@@ -175,6 +175,7 @@ mqtt_init(struct client_data *mdata)
         .client_cert = mdata->client_cert,
         .private_key = mdata->private_key,
         .handlers = {
+            SOL_SET_API_VERSION(.api_version = SOL_MQTT_HANDLERS_API_VERSION, )
             .connect = on_connect,
             .disconnect = on_disconnect,
             .message = on_message,
