@@ -930,9 +930,6 @@ _resource_request(struct sol_oic_client *client, struct sol_oic_resource *res,
         goto out;
     }
 
-    /* FIXME: We can't make phony cbor calls to calculate the exact
-     * payload here because it involves an user callback
-     * (fill_repr_map). */
     if (fill_repr_map) {
         sol_oic_packet_cbor_create(req, &map_encoder);
         if (!fill_repr_map(fill_repr_map_data, &map_encoder))
