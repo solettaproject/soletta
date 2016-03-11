@@ -1,0 +1,13 @@
+DECLARE=http-light-server:fbp:http-light-server.fbp
+DECLARE=persistence-light-server:fbp:persistence-light-server.fbp
+
+http_server(http-light-server)
+
+persistence(persistence-light-server:default_state=true,default_power=100)
+
+http_server POWER -> POWER persistence
+http_server STATE -> STATE persistence
+
+persistence POWER -> POWER http_server
+persistence STATE -> STATE http_server
+
