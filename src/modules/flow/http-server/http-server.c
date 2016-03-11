@@ -373,17 +373,34 @@ parse_allowed_methods(const char *allowed_methods_str, uint8_t *allowed_methods)
 }
 
 static int
-common_open(struct sol_flow_node *node, void *data, const struct sol_flow_node_options *options)
+common_open(struct sol_flow_node *node, struct http_data *mdata,
+    const char *path, const char *allowed_methods, const int32_t port)
+{
+    int r;
+
+    r = parse_allowed_methods(allowed_methods, &mdata->allowed_methods);
+    SOL_INT_CHECK(r, < 0, r);
+
+    r = start_server(mdata, node, path, port);
+    SOL_INT_CHECK(r, < 0, r);
+
+    return 0;
+}
+
+static int
+boolean_open(struct sol_flow_node *node, void *data,
+    const struct sol_flow_node_options *options)
 {
     int r;
     struct http_data *mdata = data;
     struct sol_flow_node_type_http_server_boolean_options *opts =
         (struct sol_flow_node_type_http_server_boolean_options *)options;
 
-    r = parse_allowed_methods(opts->allowed_methods, &mdata->allowed_methods);
-    SOL_INT_CHECK(r, < 0, r);
+    SOL_FLOW_NODE_OPTIONS_SUB_API_CHECK(options,
+        SOL_FLOW_NODE_TYPE_HTTP_SERVER_BOOLEAN_OPTIONS_API_VERSION,
+        -EINVAL);
 
-    r = start_server(mdata, node, opts->path, opts->port);
+    r = common_open(node, mdata, opts->path, opts->allowed_methods, opts->port);
     SOL_INT_CHECK(r, < 0, r);
 
     mdata->value.b = opts->value;
@@ -403,13 +420,10 @@ int_open(struct sol_flow_node *node, void *data, const struct sol_flow_node_opti
         SOL_FLOW_NODE_TYPE_HTTP_SERVER_INT_OPTIONS_API_VERSION,
         -EINVAL);
 
-    r = parse_allowed_methods(opts->allowed_methods, &mdata->allowed_methods);
-    SOL_INT_CHECK(r, < 0, r);
-
-    r = start_server(mdata, node, opts->path, opts->port);
-    SOL_INT_CHECK(r, < 0, r);
-
     r = sol_irange_compose(&opts->value_spec, opts->value, &mdata->value.i);
+    SOL_INT_CHECK(r, < 0, r);
+
+    r = common_open(node, mdata, opts->path, opts->allowed_methods, opts->port);
     SOL_INT_CHECK(r, < 0, r);
 
     return 0;
@@ -427,13 +441,10 @@ float_open(struct sol_flow_node *node, void *data, const struct sol_flow_node_op
         SOL_FLOW_NODE_TYPE_HTTP_SERVER_FLOAT_OPTIONS_API_VERSION,
         -EINVAL);
 
-    r = parse_allowed_methods(opts->allowed_methods, &mdata->allowed_methods);
-    SOL_INT_CHECK(r, < 0, r);
-
-    r = start_server(mdata, node, opts->path, opts->port);
-    SOL_INT_CHECK(r, < 0, r);
-
     r = sol_drange_compose(&opts->value_spec, opts->value, &mdata->value.d);
+    SOL_INT_CHECK(r, < 0, r);
+
+    r = common_open(node, mdata, opts->path, opts->allowed_methods, opts->port);
     SOL_INT_CHECK(r, < 0, r);
 
     return 0;
@@ -578,21 +589,17 @@ string_open(struct sol_flow_node *node, void *data, const struct sol_flow_node_o
         SOL_FLOW_NODE_TYPE_HTTP_SERVER_STRING_OPTIONS_API_VERSION,
         -EINVAL);
 
-    r = parse_allowed_methods(opts->allowed_methods, &mdata->allowed_methods);
-    SOL_INT_CHECK(r, < 0, r);
-
     mdata->value.s = strdup(opts->value);
     SOL_NULL_CHECK(mdata->value.s, -ENOMEM);
 
-    r = start_server(mdata, node, opts->path, opts->port);
+    r = common_open(node, mdata, opts->path, opts->allowed_methods, opts->port);
     SOL_INT_CHECK_GOTO(r, < 0, err);
 
     return 0;
 
 err:
     free(mdata->value.s);
-    free(mdata->path);
-    return -1;
+    return r;
 }
 
 /* ----------------------------------- int ------------------------------------------- */
@@ -773,10 +780,7 @@ rgb_open(struct sol_flow_node *node, void *data,
         SOL_FLOW_NODE_TYPE_HTTP_SERVER_RGB_OPTIONS_API_VERSION,
         -EINVAL);
 
-    r = parse_allowed_methods(opts->allowed_methods, &mdata->allowed_methods);
-    SOL_INT_CHECK(r, < 0, r);
-
-    r = start_server(mdata, node, opts->path, opts->port);
+    r = common_open(node, mdata, opts->path, opts->allowed_methods, opts->port);
     SOL_INT_CHECK(r, < 0, r);
 
     mdata->value.rgb = opts->value;
@@ -870,10 +874,7 @@ direction_vector_open(struct sol_flow_node *node, void *data,
         SOL_FLOW_NODE_TYPE_HTTP_SERVER_DIRECTION_VECTOR_OPTIONS_API_VERSION,
         -EINVAL);
 
-    r = parse_allowed_methods(opts->allowed_methods, &mdata->allowed_methods);
-    SOL_INT_CHECK(r, < 0, r);
-
-    r = start_server(mdata, node, opts->path, opts->port);
+    r = common_open(node, mdata, opts->path, opts->allowed_methods, opts->port);
     SOL_INT_CHECK(r, < 0, r);
 
     mdata->value.dir_vector = opts->value;

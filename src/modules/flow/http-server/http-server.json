@@ -12,7 +12,7 @@
       "description": "HTTP Server for boolean",
       "methods": {
         "close": "common_close",
-        "open": "common_open"
+        "open": "boolean_open"
       },
       "node_type": {
         "access": [
