@@ -151,18 +151,18 @@ fill_info(const struct sol_oic_map_reader *map_reader, bool *state, int32_t *pow
     struct sol_oic_map_reader iterator;
 
     SOL_OIC_MAP_LOOP(map_reader, &field, &iterator, end_reason) {
-        if (state && streq(field.key, "state") &&
+        if (state && streq(field.f_key, "state") &&
             field.type == SOL_OIC_REPR_TYPE_BOOLEAN) {
-            *state = field.v_boolean;
+            *state = field.f_boolean;
             continue;
         }
-        if (power && streq(field.key, "power")) {
+        if (power && streq(field.f_key, "power")) {
             if (field.type == SOL_OIC_REPR_TYPE_UINT)
-                *power = field.v_uint;
+                *power = field.f_uint;
             else if (field.type == SOL_OIC_REPR_TYPE_INT)
-                *power = field.v_int;
+                *power = field.f_int;
             else if (field.type == SOL_OIC_REPR_TYPE_SIMPLE)
-                *power = field.v_simple;
+                *power = field.f_simple;
             continue;
         }
     }
@@ -349,46 +349,46 @@ print_response(sol_coap_responsecode_t response_code, struct sol_oic_client *cli
 
             switch (field.type) {
             case SOL_OIC_REPR_TYPE_UINT:
-                SOL_DBG("\tkey: '%s', value: uint(%" PRIu64 ")", field.key,
-                    field.v_uint);
+                SOL_DBG("\tkey: '%s', value: uint(%" PRIu64 ")", field.f_key,
+                    field.f_uint);
                 break;
             case SOL_OIC_REPR_TYPE_INT:
-                SOL_DBG("\tkey: '%s', value: int(%" PRIi64 ")", field.key,
-                    field.v_int);
+                SOL_DBG("\tkey: '%s', value: int(%" PRIi64 ")", field.f_key,
+                    field.f_int);
                 break;
             case SOL_OIC_REPR_TYPE_SIMPLE:
-                SOL_DBG("\tkey: '%s', value: simple(%d)", field.key,
-                    field.v_simple);
+                SOL_DBG("\tkey: '%s', value: simple(%d)", field.f_key,
+                    field.f_simple);
                 break;
             case SOL_OIC_REPR_TYPE_TEXT_STRING:
-                SOL_DBG("\tkey: '%s', value: str(%.*s)", field.key,
-                    (int)field.v_slice.len, field.v_slice.data);
+                SOL_DBG("\tkey: '%s', value: str(%.*s)", field.f_key,
+                    (int)field.f_slice.len, field.f_slice.data);
                 break;
             case SOL_OIC_REPR_TYPE_BYTE_STRING:
-                dump_byte_string(&buf, field.v_slice);
-                SOL_DBG("\tkey: '%s', value: bytestr{%.*s}", field.key,
+                dump_byte_string(&buf, field.f_slice);
+                SOL_DBG("\tkey: '%s', value: bytestr{%.*s}", field.f_key,
                     SOL_STR_SLICE_PRINT(sol_buffer_get_slice(&buf)));
 
                 sol_buffer_fini(&buf);
                 break;
             case SOL_OIC_REPR_TYPE_HALF_FLOAT:
-                SOL_DBG("\tkey: '%s', value: hfloat(%p)", field.key,
-                    field.v_voidptr);
+                SOL_DBG("\tkey: '%s', value: hfloat(%p)", field.f_key,
+                    field.f_voidptr);
                 break;
             case SOL_OIC_REPR_TYPE_FLOAT:
-                SOL_DBG("\tkey: '%s', value: float(%f)", field.key,
-                    field.v_float);
+                SOL_DBG("\tkey: '%s', value: float(%f)", field.f_key,
+                    field.f_float);
                 break;
             case SOL_OIC_REPR_TYPE_DOUBLE:
-                SOL_DBG("\tkey: '%s', value: float(%g)", field.key,
-                    field.v_double);
+                SOL_DBG("\tkey: '%s', value: float(%g)", field.f_key,
+                    field.f_double);
                 break;
             case SOL_OIC_REPR_TYPE_BOOLEAN:
-                SOL_DBG("\tkey: '%s', value: boolean(%s)", field.key,
-                    field.v_boolean ? "true" : "false");
+                SOL_DBG("\tkey: '%s', value: boolean(%s)", field.f_key,
+                    field.f_boolean ? "true" : "false");
                 break;
             default:
-                SOL_DBG("\tkey: '%s', value: unknown(%d)", field.key, field.type);
+                SOL_DBG("\tkey: '%s', value: unknown(%d)", field.f_key, field.type);
             }
         }
         SOL_DBG("}\n");

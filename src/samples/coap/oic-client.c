@@ -63,35 +63,35 @@ got_get_response(sol_coap_responsecode_t response_code, struct sol_oic_client *c
 
     printf("Dumping payload received from addr %.*s {\n", SOL_STR_SLICE_PRINT(sol_buffer_get_slice(&addr)));
     SOL_OIC_MAP_LOOP(map_reader, &field, &iterator, end_reason) {
-        printf("\tkey: '%s', value: ", field.key);
+        printf("\tkey: '%s', value: ", field.f_key);
 
         switch (field.type) {
         case SOL_OIC_REPR_TYPE_UINT:
-            printf("uint(%" PRIu64 ")\n", field.v_uint);
+            printf("uint(%" PRIu64 ")\n", field.f_uint);
             break;
         case SOL_OIC_REPR_TYPE_INT:
-            printf("int(%" PRIi64 ")\n", field.v_int);
+            printf("int(%" PRIi64 ")\n", field.f_int);
             break;
         case SOL_OIC_REPR_TYPE_SIMPLE:
-            printf("simple(%d)\n", field.v_simple);
+            printf("simple(%d)\n", field.f_simple);
             break;
         case SOL_OIC_REPR_TYPE_TEXT_STRING:
-            printf("str(%.*s)\n", (int)field.v_slice.len, field.v_slice.data);
+            printf("str(%.*s)\n", (int)field.f_slice.len, field.f_slice.data);
             break;
         case SOL_OIC_REPR_TYPE_BYTE_STRING:
             printf("bytestr() [not dumping]\n");
             break;
         case SOL_OIC_REPR_TYPE_HALF_FLOAT:
-            printf("hfloat(%p)\n", field.v_voidptr);
+            printf("hfloat(%p)\n", field.f_voidptr);
             break;
         case SOL_OIC_REPR_TYPE_FLOAT:
-            printf("float(%f)\n", field.v_float);
+            printf("float(%f)\n", field.f_float);
             break;
         case SOL_OIC_REPR_TYPE_DOUBLE:
-            printf("float(%g)\n", field.v_double);
+            printf("float(%g)\n", field.f_double);
             break;
         case SOL_OIC_REPR_TYPE_BOOLEAN:
-            printf("boolean(%s)\n", field.v_boolean ? "true" : "false");
+            printf("boolean(%s)\n", field.f_boolean ? "true" : "false");
             break;
         default:
             printf("unknown(%d)\n", field.type);

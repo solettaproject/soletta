@@ -239,7 +239,7 @@ struct sol_oic_repr_field {
     /**
      * @brief Field's key as a string.
      */
-    const char *key;
+    const char *f_key;
     /**
      * @brief Union used to access field's data in correct format specified by
      * @a type
@@ -248,36 +248,36 @@ struct sol_oic_repr_field {
         /**
          * @brief Field's data if type is SOL_OIC_REPR_TYPE_UINT.
          */
-        uint64_t v_uint;
+        uint64_t f_uint;
         /**
          * @brief Field's data if type is SOL_OIC_REPR_TYPE_INT.
          */
-        int64_t v_int;
+        int64_t f_int;
         /**
          * @brief Field's data if type is SOL_OIC_REPR_TYPE_SIMPLE.
          */
-        uint8_t v_simple;
+        uint8_t f_simple;
         /**
          * @brief Field's data if type is SOL_OIC_REPR_TYPE_TEXT_STRING or
          * SOL_OIC_REPR_TYPE_BYTE_STRING.
          */
-        struct sol_str_slice v_slice;
+        struct sol_str_slice f_slice;
         /**
          * @brief Field's data if type is SOL_OIC_REPR_TYPE_FLOAT.
          */
-        float v_float;
+        float f_float;
         /**
          * @brief Field's data if type is SOL_OIC_REPR_TYPE_DOUBLE.
          */
-        double v_double;
+        double f_double;
         /**
          * @brief Field's data if type is SOL_OIC_REPR_TYPE_HALF_FLOAT.
          */
-        void *v_voidptr;
+        void *f_voidptr;
         /**
          * @brief Field's data if type is SOL_OIC_REPR_TYPE_BOOLEAN.
          */
-        bool v_boolean;
+        bool f_boolean;
     };
 };
 
@@ -289,7 +289,7 @@ struct sol_oic_repr_field {
  * @param ... Extra structure initialization commands.
  */
 #define SOL_OIC_REPR_FIELD(key_, type_, ...) \
-    (struct sol_oic_repr_field){.type = (type_), .key = (key_), { __VA_ARGS__ } }
+    (struct sol_oic_repr_field){.type = (type_), .f_key = (key_), { __VA_ARGS__ } }
 
 /**
  * @brief Helper macro to create an unsigned integer sol_oic_repr_field.
@@ -298,7 +298,7 @@ struct sol_oic_repr_field {
  * @param value_ The unsigned int value of this field.
  */
 #define SOL_OIC_REPR_UINT(key_, value_) \
-    SOL_OIC_REPR_FIELD(key_, SOL_OIC_REPR_TYPE_UINT, .v_uint = (value_))
+    SOL_OIC_REPR_FIELD(key_, SOL_OIC_REPR_TYPE_UINT, .f_uint = (value_))
 
 /**
  * @brief Helper macro to create an signed integer sol_oic_repr_field.
@@ -307,7 +307,7 @@ struct sol_oic_repr_field {
  * @param value_ The signed int value of this field.
  */
 #define SOL_OIC_REPR_INT(key_, value_) \
-    SOL_OIC_REPR_FIELD(key_, SOL_OIC_REPR_TYPE_INT, .v_int = (value_))
+    SOL_OIC_REPR_FIELD(key_, SOL_OIC_REPR_TYPE_INT, .f_int = (value_))
 
 /**
  * @brief Helper macro to create an boolean sol_oic_repr_field.
@@ -316,7 +316,7 @@ struct sol_oic_repr_field {
  * @param value_ The boolean value of this field.
  */
 #define SOL_OIC_REPR_BOOLEAN(key_, value_) \
-    SOL_OIC_REPR_FIELD(key_, SOL_OIC_REPR_TYPE_BOOLEAN, .v_boolean = !!(value_))
+    SOL_OIC_REPR_FIELD(key_, SOL_OIC_REPR_TYPE_BOOLEAN, .f_boolean = !!(value_))
 
 /**
  * @brief Helper macro to create an simple integer sol_oic_repr_field.
@@ -325,7 +325,7 @@ struct sol_oic_repr_field {
  * @param value_ The 8-bit integer value of this field.
  */
 #define SOL_OIC_REPR_SIMPLE(key_, value_) \
-    SOL_OIC_REPR_FIELD(key_, SOL_OIC_REPR_TYPE_SIMPLE, .v_simple = (value_))
+    SOL_OIC_REPR_FIELD(key_, SOL_OIC_REPR_TYPE_SIMPLE, .f_simple = (value_))
 
 /**
  * @brief Helper macro to create a text string sol_oic_repr_field.
@@ -336,7 +336,7 @@ struct sol_oic_repr_field {
  * @param len_ The length of the string pointed by @a value.
  */
 #define SOL_OIC_REPR_TEXT_STRING(key_, value_, len_) \
-    SOL_OIC_REPR_FIELD(key_, SOL_OIC_REPR_TYPE_TEXT_STRING, .v_slice = SOL_STR_SLICE_STR((value_), (len_)))
+    SOL_OIC_REPR_FIELD(key_, SOL_OIC_REPR_TYPE_TEXT_STRING, .f_slice = SOL_STR_SLICE_STR((value_), (len_)))
 
 /**
  * @brief Helper macro to create a byte string sol_oic_repr_field.
@@ -347,7 +347,7 @@ struct sol_oic_repr_field {
  * @param len_ The length of the string pointed by @a value.
  */
 #define SOL_OIC_REPR_BYTE_STRING(key_, value_, len_) \
-    SOL_OIC_REPR_FIELD(key_, SOL_OIC_REPR_TYPE_BYTE_STRING, .v_slice = SOL_STR_SLICE_STR((value_), (len_)))
+    SOL_OIC_REPR_FIELD(key_, SOL_OIC_REPR_TYPE_BYTE_STRING, .f_slice = SOL_STR_SLICE_STR((value_), (len_)))
 
 /**
  * @brief Helper macro to create a half-precision float number
@@ -357,7 +357,7 @@ struct sol_oic_repr_field {
  * @param value_ The value of the float number.
  */
 #define SOL_OIC_REPR_HALF_FLOAT(key_, value_) \
-    SOL_OIC_REPR_FIELD(key_, SOL_OIC_REPR_TYPE_HALF_FLOAT, .v_voidptr = (void *)(value_))
+    SOL_OIC_REPR_FIELD(key_, SOL_OIC_REPR_TYPE_HALF_FLOAT, .f_voidptr = (void *)(value_))
 
 /**
  * @brief Helper macro to create a single-precision float number
@@ -367,7 +367,7 @@ struct sol_oic_repr_field {
  * @param value_ The value of the float number.
  */
 #define SOL_OIC_REPR_FLOAT(key_, value_) \
-    SOL_OIC_REPR_FIELD(key_, SOL_OIC_REPR_TYPE_FLOAT, .v_float = (value_))
+    SOL_OIC_REPR_FIELD(key_, SOL_OIC_REPR_TYPE_FLOAT, .f_float = (value_))
 
 /**
  * @brief Helper macro to create a double-precision float sol_oic_repr_field.
@@ -376,7 +376,7 @@ struct sol_oic_repr_field {
  * @param value_ The value of the float number.
  */
 #define SOL_OIC_REPR_DOUBLE(key_, value_) \
-    SOL_OIC_REPR_FIELD(key_, SOL_OIC_REPR_TYPE_DOUBLE, .v_double = (value_))
+    SOL_OIC_REPR_FIELD(key_, SOL_OIC_REPR_TYPE_DOUBLE, .f_double = (value_))
 
 /**
  * @struct sol_oic_map_writer

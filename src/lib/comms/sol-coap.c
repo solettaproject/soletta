@@ -658,7 +658,9 @@ on_can_write(void *data, struct sol_socket *s)
     if (err == -EAGAIN)
         return true;
 
-    SOL_DBG("pkt sent:");
+    SOL_DBG("CoAP packet sent (payload of %zu bytes, "
+        "buffer holding it with %zu bytes)",
+        outgoing->pkt->buf.used, outgoing->pkt->buf.capacity);
     sol_coap_packet_debug(outgoing->pkt);
     if (err < 0) {
         SOL_BUFFER_DECLARE_STATIC(addr, SOL_INET_ADDR_STRLEN);

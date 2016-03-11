@@ -190,7 +190,7 @@ startup()
     struct sol_oic_repr_field rep_field8 = SOL_OIC_REPR_HALF_FLOAT("8", &f);
     struct sol_oic_repr_field rep_field9 = SOL_OIC_REPR_FLOAT("9", 2.3);
     struct sol_oic_repr_field rep_field10 = SOL_OIC_REPR_DOUBLE("10", 2.3);
-    struct sol_oic_repr_field rep_field11 = SOL_OIC_REPR_FIELD("131231", SOL_OIC_REPR_TYPE_UINT, .v_uint = 123);
+    struct sol_oic_repr_field rep_field11 = SOL_OIC_REPR_FIELD("131231", SOL_OIC_REPR_TYPE_UINT, .f_uint = 123);
     SOL_OIC_MAP_LOOP(&map, &rep_field1, &iterator, end_reason);
 #endif
 
