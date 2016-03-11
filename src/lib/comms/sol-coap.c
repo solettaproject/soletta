@@ -1237,7 +1237,7 @@ resource_not_found(struct sol_coap_packet *req,
     return sol_coap_send_packet(server, resp, cliaddr);
 
 err:
-    sol_coap_packet_unref(req);
+    sol_coap_packet_unref(resp);
     return r;
 }
 
