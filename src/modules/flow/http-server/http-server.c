@@ -85,7 +85,7 @@ struct http_server_node_type {
     void (*send_packet_cb)(struct http_data *mdata, struct sol_flow_node *node);
 };
 
-static struct sol_ptr_vector *servers = NULL;
+static struct sol_ptr_vector servers = SOL_PTR_VECTOR_INIT;
 
 #define STRTOL(field_, var_, changed_, is_unsigned_) \
     do { \
@@ -127,17 +127,12 @@ is_method_allowed(const uint8_t allowed_methods, enum sol_http_method method)
 }
 
 static void
-servers_free(void)
+servers_clear(void)
 {
-    if (!servers)
+    if (sol_ptr_vector_get_len(&servers) != 0)
         return;
 
-    if (sol_ptr_vector_get_len(servers) != 0)
-        return;
-
-    sol_ptr_vector_clear(servers);
-    free(servers);
-    servers = NULL;
+    sol_ptr_vector_clear(&servers);
 }
 
 static int
@@ -164,13 +159,7 @@ server_ref(int32_t opt_port)
 
     port = validate_port(opt_port);
 
-    if (!servers) {
-        servers = calloc(1, sizeof(struct sol_ptr_vector));
-        SOL_NULL_CHECK(servers, NULL);
-        sol_ptr_vector_init(servers);
-    }
-
-    SOL_PTR_VECTOR_FOREACH_IDX (servers, idata, i) {
+    SOL_PTR_VECTOR_FOREACH_IDX (&servers, idata, i) {
         if (idata->port == port) {
             sdata = idata;
             break;
@@ -183,7 +172,7 @@ server_ref(int32_t opt_port)
         sdata = calloc(1, sizeof(struct server_data));
         SOL_NULL_CHECK_GOTO(sdata, err_sdata);
 
-        r = sol_ptr_vector_append(servers, sdata);
+        r = sol_ptr_vector_append(&servers, sdata);
         SOL_INT_CHECK_GOTO(r, < 0, err_vec);
 
         sdata->server = sol_http_server_new(port);
@@ -197,11 +186,11 @@ server_ref(int32_t opt_port)
     return sdata;
 
 err_server:
-    sol_ptr_vector_remove(servers, sdata);
+    sol_ptr_vector_remove(&servers, sdata);
 err_vec:
     free(sdata);
 err_sdata:
-    servers_free();
+    servers_clear();
 
     return NULL;
 }
@@ -214,10 +203,10 @@ server_unref(struct server_data *sdata)
     if (sdata->refcount > 0)
         return;
 
-    sol_ptr_vector_remove(servers, sdata);
+    sol_ptr_vector_remove(&servers, sdata);
     sol_http_server_del(sdata->server);
     free(sdata);
-    servers_free();
+    servers_clear();
 }
 
 static int
