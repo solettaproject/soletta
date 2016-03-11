@@ -1,0 +1,14 @@
+INPORT=power.IN:IN_POWER
+INPORT=state.IN:IN_STATE
+
+OUTPORT=power.OUT:OUT_POWER
+OUTPORT=state.OUT:OUT_STATE
+
+power(http-server/int:path="/power",port=8002)
+state(http-server/boolean:path="/state",port=8002)
+
+http_server OUT_POWER -> IN print_power(console)
+http_server OUT_STATE -> IN print_state(console)
+
+_(constant/string:value="http-light-server running on port 8002, paths: /state and /power") OUT -> IN _(console:prefixo="note: ")
+
