@@ -12,7 +12,7 @@
       "description": "HTTP Server for boolean. It will store the value received in the input port 'IN' and upon HTTP requests to server at 'port' option and the path specified at 'path' will return such value for GET method, and set the value on 'POST', in this case the new value will be sent on the 'OUT' port if it changed. The HTTP methods may change the content-type by providing 'Accept: application/json' header. POST should provide payload value=true or value=false.",
       "methods": {
         "close": "common_close",
-        "open": "common_open"
+        "open": "boolean_open"
       },
       "node_type": {
         "access": [
