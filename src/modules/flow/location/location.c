@@ -74,16 +74,16 @@ freegeoip_query_finished(void *data,
     }
     SOL_HTTP_RESPONSE_CHECK_API(response);
 
-    if (!response->content.used) {
-        sol_flow_send_error_packet(mdata->node, EINVAL,
-            "Empty response from FreeGeoIP");
-        return;
-    }
-
     if (response->response_code != SOL_HTTP_STATUS_OK) {
         sol_flow_send_error_packet(mdata->node, EINVAL,
             "FreeGeoIP returned an unknown response code: %d",
             response->response_code);
+        return;
+    }
+
+    if (!response->content.used) {
+        sol_flow_send_error_packet(mdata->node, EINVAL,
+            "Empty response from FreeGeoIP");
         return;
     }
 

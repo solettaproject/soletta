@@ -192,7 +192,7 @@ common_response_cb(void *data, struct sol_http_request *request)
 {
     int r = 0;
     uint16_t idx;
-    bool send_json = false;
+    bool send_json = false, updated = false;
     enum sol_http_method method;
     struct sol_flow_node *node = data;
     struct http_data *mdata = sol_flow_node_get_private_data(node);
@@ -202,7 +202,7 @@ common_response_cb(void *data, struct sol_http_request *request)
         SOL_SET_API_VERSION(.api_version = SOL_HTTP_RESPONSE_API_VERSION, )
         .content = SOL_BUFFER_INIT_EMPTY,
         .param = SOL_HTTP_REQUEST_PARAMS_INIT,
-        .response_code = SOL_HTTP_STATUS_OK
+        .response_code = SOL_HTTP_STATUS_INTERNAL_SERVER_ERROR
     };
 
     type = (const struct http_server_node_type *)
@@ -224,11 +224,12 @@ common_response_cb(void *data, struct sol_http_request *request)
         switch (value->type) {
         case SOL_HTTP_PARAM_POST_FIELD:
             r = type->post_cb(mdata, node, value);
+            response.response_code = SOL_HTTP_STATUS_BAD_REQUEST;
             SOL_INT_CHECK_GOTO(r, < 0, end);
+            if (r == 0)
+                continue;
 
-            r = sol_http_server_set_last_modified(mdata->sdata->server,
-                mdata->path, time(NULL));
-            SOL_INT_CHECK_GOTO(r, < 0, end);
+            updated = true;
             break;
         case SOL_HTTP_PARAM_HEADER:
             if (sol_str_slice_str_caseeq(value->value.key_value.key, HTTP_HEADER_ACCEPT)) {
@@ -240,6 +241,8 @@ common_response_cb(void *data, struct sol_http_request *request)
             break;
         }
     }
+
+    response.response_code = SOL_HTTP_STATUS_INTERNAL_SERVER_ERROR;
 
     if (send_json) {
         r = sol_buffer_append_printf(&response.content, "{\"%s\":", mdata->path);
@@ -258,13 +261,39 @@ common_response_cb(void *data, struct sol_http_request *request)
         HTTP_HEADER_CONTENT_TYPE, (send_json) ? HTTP_HEADER_CONTENT_TYPE_JSON : HTTP_HEADER_CONTENT_TYPE_TEXT));
     SOL_INT_CHECK_GOTO(r, != true, end);
 
+    if (updated) {
+        r = sol_http_server_set_last_modified(mdata->sdata->server,
+            mdata->path, time(NULL));
+        SOL_INT_CHECK_GOTO(r, < 0, end);
+    }
+
+    response.response_code = SOL_HTTP_STATUS_OK;
+
     r = sol_http_server_send_response(request, &response);
+    response.response_code = SOL_HTTP_STATUS_INTERNAL_SERVER_ERROR;
     SOL_INT_CHECK_GOTO(r, < 0, end);
 
-    if ((method == SOL_HTTP_METHOD_POST) && type->send_packet_cb)
+    if ((method == SOL_HTTP_METHOD_POST) && type->send_packet_cb && updated)
         type->send_packet_cb(mdata, node);
 
 end:
+    if (r < 0) {
+        sol_buffer_reset(&response.content);
+        sol_buffer_append_printf(&response.content,
+            "Could not serve request: %s", sol_util_strerrora(-r));
+
+        sol_http_params_clear(&response.param);
+        r = sol_http_param_add(&response.param, SOL_HTTP_REQUEST_PARAM_HEADER(
+            HTTP_HEADER_CONTENT_TYPE, HTTP_HEADER_CONTENT_TYPE_TEXT));
+        if (r < 0)
+            SOL_WRN("could not set response content-type: text/plain: %s", sol_util_strerrora(-r));
+
+        /* response_code was set before goto, so use as-is */
+        sol_http_server_send_response(request, &response);
+
+        sol_flow_send_error_packet_str(node, -r, response.content.data);
+    }
+
     sol_buffer_fini(&response.content);
     sol_http_params_clear(&response.param);
 
@@ -431,6 +460,8 @@ common_process(struct sol_flow_node *node, void *data, uint16_t port, uint16_t c
 
     r = type->process_cb(mdata, packet);
     SOL_INT_CHECK(r, < 0, r);
+    if (r == 0)
+        return 0;
 
     r = sol_http_server_set_last_modified(mdata->sdata->server,
         mdata->path, time(NULL));
@@ -446,14 +477,20 @@ static int
 boolean_post_cb(struct http_data *mdata, struct sol_flow_node *node,
     struct sol_http_param_value *value)
 {
+    bool b;
+
     if (sol_str_slice_str_eq(value->value.key_value.value, "true"))
-        mdata->value.b = true;
+        b = true;
     else if (sol_str_slice_str_eq(value->value.key_value.value, "false"))
-        mdata->value.b = false;
+        b = false;
     else
         return -EINVAL;
 
-    return 0;
+    if (mdata->value.b == b)
+        return 0;
+
+    mdata->value.b = b;
+    return 1;
 }
 
 static int
@@ -478,7 +515,17 @@ boolean_send_packet_cb(struct http_data *mdata, struct sol_flow_node *node)
 static int
 boolean_process_cb(struct http_data *mdata, const struct sol_flow_packet *packet)
 {
-    return sol_flow_packet_get_boolean(packet, &mdata->value.b);
+    bool b;
+    int r;
+
+    r = sol_flow_packet_get_boolean(packet, &b);
+    SOL_INT_CHECK(r, < 0, r);
+
+    if (mdata->value.b == b)
+        return 0;
+
+    mdata->value.b = b;
+    return 1;
 }
 
 /* ------------------------------------- string ------------------------------------------- */
@@ -502,9 +549,8 @@ string_post_cb(struct http_data *mdata, struct sol_flow_node *node,
     struct sol_http_param_value *value)
 {
     if (sol_str_slice_str_eq(value->value.key_value.key, "value")) {
-        int ret = sol_util_replace_str_from_slice_if_changed(&mdata->value.s,
+        return sol_util_replace_str_from_slice_if_changed(&mdata->value.s,
             value->value.key_value.value);
-        SOL_INT_CHECK(ret, < 0, ret);
     } else {
         return -EINVAL;
     }
@@ -521,11 +567,7 @@ string_process_cb(struct http_data *mdata, const struct sol_flow_packet *packet)
     r = sol_flow_packet_get_string(packet, &val);
     SOL_INT_CHECK(r, < 0, r);
 
-    free(mdata->value.s);
-    mdata->value.s = strdup(val);
-    SOL_NULL_CHECK(mdata->value.s, -ENOMEM);
-
-    return 0;
+    return sol_util_replace_str_if_changed(&mdata->value.s, val);
 }
 
 static void
@@ -580,12 +622,19 @@ static int
 int_post_cb(struct http_data *mdata, struct sol_flow_node *node,
     struct sol_http_param_value *value)
 {
+    int ret = 0;
+
 #define STRTOL_(field_) \
     do { \
+        int32_t i; \
         errno = 0; \
-        mdata->value.i.field_ = sol_util_strtol(value->value.key_value.value.data, NULL, value->value.key_value.value.len, 0); \
+        i = sol_util_strtol(value->value.key_value.value.data, NULL, value->value.key_value.value.len, 0); \
         if (errno != 0) { \
             return -errno; \
+        } \
+        if (mdata->value.i.field_ != i) { \
+            mdata->value.i.field_ = i; \
+            ret = 1; \
         } \
     } while (0)
 
@@ -601,7 +650,7 @@ int_post_cb(struct http_data *mdata, struct sol_flow_node *node,
         return -EINVAL;
 #undef STRTOL_
 
-    return 0;
+    return ret;
 }
 
 static int
@@ -629,7 +678,17 @@ int_send_packet_cb(struct http_data *mdata, struct sol_flow_node *node)
 static int
 int_process_cb(struct http_data *mdata, const struct sol_flow_packet *packet)
 {
-    return sol_flow_packet_get_irange(packet, &mdata->value.i);
+    struct sol_irange i;
+    int r;
+
+    r = sol_flow_packet_get_irange(packet, &i);
+    SOL_INT_CHECK(r, < 0, r);
+
+    if (sol_irange_equal(&mdata->value.i, &i))
+        return 0;
+
+    memcpy(&mdata->value.i, &i, sizeof(i));
+    return 1;
 }
 
 /* ------------------------------------------- float ------------------------------------------------- */
@@ -638,13 +697,20 @@ static int
 float_post_cb(struct http_data *mdata, struct sol_flow_node *node,
     struct sol_http_param_value *value)
 {
+    int ret = 0;
+
 #define STRTOD_(field_) \
     do { \
+        double d; \
         errno = 0; \
-        mdata->value.d.field_ = sol_util_strtodn(value->value.key_value.value.data, NULL, \
+        d = sol_util_strtodn(value->value.key_value.value.data, NULL, \
             value->value.key_value.value.len, false); \
         if ((fpclassify(mdata->value.d.field_) == FP_ZERO) && (errno != 0)) { \
             return -errno; \
+        } \
+        if (!sol_drange_val_equal(mdata->value.d.field_, d)) { \
+            mdata->value.d.field_ = d; \
+            ret = 1; \
         } \
     } while (0)
 
@@ -660,7 +726,7 @@ float_post_cb(struct http_data *mdata, struct sol_flow_node *node,
         return -EINVAL;
 #undef STRTOD_
 
-    return 0;
+    return ret;
 }
 
 static int
@@ -710,7 +776,17 @@ float_send_packet_cb(struct http_data *mdata, struct sol_flow_node *node)
 static int
 float_process_cb(struct http_data *mdata, const struct sol_flow_packet *packet)
 {
-    return sol_flow_packet_get_drange(packet, &mdata->value.d);
+    struct sol_drange d;
+    int r;
+
+    r = sol_flow_packet_get_drange(packet, &d);
+    SOL_INT_CHECK(r, < 0, r);
+
+    if (sol_drange_equal(&mdata->value.d, &d))
+        return 0;
+
+    memcpy(&mdata->value.d, &d, sizeof(d));
+    return 1;
 }
 
 /* ---------------------------  static files ----------------------------------------- */
