@@ -52,6 +52,8 @@ test_coap_parse_empty_pdu(void)
     struct sol_coap_packet *pkt;
     struct sol_buffer *buf;
     size_t offset;
+    uint8_t ver, type, code;
+    uint16_t id;
 
     pkt = sol_coap_packet_new(NULL);
     ASSERT(pkt);
@@ -62,10 +64,15 @@ test_coap_parse_empty_pdu(void)
 
     ASSERT(!coap_packet_parse(pkt));
 
-    ASSERT_INT_EQ(sol_coap_header_get_ver(pkt), 1);
-    ASSERT_INT_EQ(sol_coap_header_get_type(pkt), SOL_COAP_TYPE_CON);
-    ASSERT_INT_EQ(sol_coap_header_get_code(pkt), SOL_COAP_METHOD_GET);
-    ASSERT_INT_EQ(sol_coap_header_get_id(pkt), 0);
+    sol_coap_header_get_ver(pkt, &ver);
+    sol_coap_header_get_type(pkt, &type);
+    sol_coap_header_get_code(pkt, &code);
+    sol_coap_header_get_id(pkt, &id);
+
+    ASSERT_INT_EQ(ver, 1);
+    ASSERT_INT_EQ(type, SOL_COAP_TYPE_CON);
+    ASSERT_INT_EQ(code, SOL_COAP_METHOD_GET);
+    ASSERT_INT_EQ(id, 0);
 
     sol_coap_packet_unref(pkt);
 }
@@ -85,7 +92,8 @@ test_coap_parse_simple_pdu(void)
     uint8_t *token;
     int count = 16;
     size_t offset;
-    uint8_t tkl;
+    uint8_t tkl, code, ver, type;
+    uint16_t id;
 
     pkt = sol_coap_packet_new(NULL);
     ASSERT(pkt);
@@ -96,16 +104,21 @@ test_coap_parse_simple_pdu(void)
 
     ASSERT(!coap_packet_parse(pkt));
 
-    ASSERT_INT_EQ(sol_coap_header_get_ver(pkt), 1);
-    ASSERT_INT_EQ(sol_coap_header_get_type(pkt), SOL_COAP_TYPE_NONCON);
+    sol_coap_header_get_ver(pkt, &ver);
+    sol_coap_header_get_type(pkt, &type);
+
+    ASSERT_INT_EQ(ver, 1);
+    ASSERT_INT_EQ(type, SOL_COAP_TYPE_NONCON);
 
     token = sol_coap_header_get_token(pkt, &tkl);
     ASSERT(token);
     ASSERT_INT_EQ(tkl, 5);
     ASSERT(!strcmp((char *)token, "token"));
 
-    ASSERT_INT_EQ(sol_coap_header_get_code(pkt), SOL_COAP_RSPCODE_PROXYING_NOT_SUPPORTED);
-    ASSERT_INT_EQ(sol_coap_header_get_id(pkt), 0x1234);
+    sol_coap_header_get_code(pkt, &code);
+    sol_coap_header_get_id(pkt, &id);
+    ASSERT_INT_EQ(code, SOL_COAP_RSPCODE_PROXYING_NOT_SUPPORTED);
+    ASSERT_INT_EQ(id, 0x1234);
 
     count = sol_coap_find_options(pkt, SOL_COAP_OPTION_CONTENT_FORMAT, options, count);
     ASSERT_INT_EQ(count, 1);
