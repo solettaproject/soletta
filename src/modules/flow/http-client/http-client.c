@@ -712,6 +712,186 @@ float_post_process(struct sol_flow_node *node, void *data, uint16_t port, uint16
 }
 
 /*
+ * --------------------------------- rgb node  -----------------------------
+ */
+
+static int
+send_rgb_value(struct sol_flow_node *node, const char *start, size_t len)
+{
+    struct sol_rgb rgb = { 0 };
+    enum sol_json_loop_reason reason;
+    struct sol_json_scanner sub_scanner;
+    struct sol_json_token sub_key, sub_value, token;
+
+    sol_json_scanner_init(&sub_scanner, start, len);
+
+    SOL_JSON_SCANNER_OBJECT_LOOP (&sub_scanner, &token, &sub_key,
+        &sub_value, reason) {
+        if (SOL_JSON_TOKEN_STR_LITERAL_EQ(&sub_key, "red")) {
+            if (sol_json_token_get_uint32(&sub_value, &rgb.red) < 0)
+                return -EINVAL;
+        } else if (SOL_JSON_TOKEN_STR_LITERAL_EQ(&sub_key, "green")) {
+            if (sol_json_token_get_uint32(&sub_value, &rgb.green) < 0)
+                return -EINVAL;
+        } else if (SOL_JSON_TOKEN_STR_LITERAL_EQ(&sub_key, "blue")) {
+            if (sol_json_token_get_uint32(&sub_value, &rgb.blue) < 0)
+                return -EINVAL;
+        } else if (SOL_JSON_TOKEN_STR_LITERAL_EQ(&sub_key, "red_max")) {
+            if (sol_json_token_get_uint32(&sub_value, &rgb.red_max) < 0)
+                return -EINVAL;
+        } else if (SOL_JSON_TOKEN_STR_LITERAL_EQ(&sub_key, "green_max")) {
+            if (sol_json_token_get_uint32(&sub_value, &rgb.green_max) < 0)
+                return -EINVAL;
+        } else if (SOL_JSON_TOKEN_STR_LITERAL_EQ(&sub_key, "blue_max")) {
+            if (sol_json_token_get_uint32(&sub_value, &rgb.blue_max) < 0)
+                return -EINVAL;
+        }
+    }
+
+    return sol_flow_send_rgb_packet(node,
+        SOL_FLOW_NODE_TYPE_HTTP_CLIENT_RGB__OUT__OUT, &rgb);
+}
+
+static int
+rgb_process_token(struct sol_flow_node *node, struct sol_json_token *key,
+    struct sol_json_token *value)
+{
+
+    return send_rgb_value(node, value->start, value->end - value->start);
+}
+
+static int
+rgb_process_data(struct sol_flow_node *node,
+    struct sol_http_response *response)
+{
+    return send_rgb_value(node, response->content.data, response->content.used);
+}
+
+static int
+rgb_post_process(struct sol_flow_node *node, void *data, uint16_t port,
+    uint16_t conn_id, const struct sol_flow_packet *packet)
+{
+    int r;
+    struct sol_rgb rgb;
+
+    SOL_BUFFER_DECLARE_STATIC(red, DOUBLE_STRING_LEN);
+    SOL_BUFFER_DECLARE_STATIC(green, DOUBLE_STRING_LEN);
+    SOL_BUFFER_DECLARE_STATIC(blue, DOUBLE_STRING_LEN);
+    SOL_BUFFER_DECLARE_STATIC(red_max, DOUBLE_STRING_LEN);
+    SOL_BUFFER_DECLARE_STATIC(green_max, DOUBLE_STRING_LEN);
+    SOL_BUFFER_DECLARE_STATIC(blue_max, DOUBLE_STRING_LEN);
+
+    r = sol_flow_packet_get_rgb(packet, &rgb);
+    SOL_INT_CHECK(r, < 0, r);
+
+    r = sol_buffer_append_printf(&red, "%" PRIu32, rgb.red);
+    SOL_INT_CHECK(r, < 0, r);
+    r = sol_buffer_append_printf(&green, "%" PRIu32, rgb.green);
+    SOL_INT_CHECK(r, < 0, r);
+    r = sol_buffer_append_printf(&blue, "%" PRIu32, rgb.blue);
+    SOL_INT_CHECK(r, < 0, r);
+    r = sol_buffer_append_printf(&red_max, "%" PRIu32, rgb.red_max);
+    SOL_INT_CHECK(r, < 0, r);
+    r = sol_buffer_append_printf(&green_max, "%" PRIu32, rgb.green_max);
+    SOL_INT_CHECK(r, < 0, r);
+    r = sol_buffer_append_printf(&blue_max, "%" PRIu32, rgb.blue_max);
+    SOL_INT_CHECK(r, < 0, r);
+
+    return common_post_process(node, data, "red", red.data,
+        "green", green.data, "blue", blue.data, "red_max", red_max.data,
+        "green_max", green_max.data, "blue_max", blue_max.data, NULL);
+}
+
+/*
+ * --------------------------------- direction vector node  -----------------------------
+ */
+static int
+send_direction_vector_value(struct sol_flow_node *node, const char *start, size_t len)
+{
+    struct sol_direction_vector dir_vector = { 0 };
+    enum sol_json_loop_reason reason;
+    struct sol_json_scanner sub_scanner;
+    struct sol_json_token sub_key, sub_value, token;
+
+    sol_json_scanner_init(&sub_scanner, start, len);
+
+    SOL_JSON_SCANNER_OBJECT_LOOP (&sub_scanner, &token, &sub_key,
+        &sub_value, reason) {
+        if (SOL_JSON_TOKEN_STR_LITERAL_EQ(&sub_key, "x")) {
+            if (sol_json_token_get_double(&sub_value, &dir_vector.x) < 0)
+                return -EINVAL;
+        } else if (SOL_JSON_TOKEN_STR_LITERAL_EQ(&sub_key, "y")) {
+            if (sol_json_token_get_double(&sub_value, &dir_vector.y) < 0)
+                return -EINVAL;
+        } else if (SOL_JSON_TOKEN_STR_LITERAL_EQ(&sub_key, "z")) {
+            if (sol_json_token_get_double(&sub_value, &dir_vector.z) < 0)
+                return -EINVAL;
+        } else if (SOL_JSON_TOKEN_STR_LITERAL_EQ(&sub_key, "min")) {
+            if (sol_json_token_get_double(&sub_value, &dir_vector.min) < 0)
+                return -EINVAL;
+        } else if (SOL_JSON_TOKEN_STR_LITERAL_EQ(&sub_key, "max")) {
+            if (sol_json_token_get_double(&sub_value, &dir_vector.max) < 0)
+                return -EINVAL;
+        }
+    }
+
+    return sol_flow_send_direction_vector_packet(node,
+        SOL_FLOW_NODE_TYPE_HTTP_CLIENT_DIRECTION_VECTOR__OUT__OUT, &dir_vector);
+}
+
+static int
+direction_vector_process_token(struct sol_flow_node *node,
+    struct sol_json_token *key, struct sol_json_token *value)
+{
+    return send_direction_vector_value(node, value->start,
+        value->end - value->start);
+}
+
+static int
+direction_vector_process_data(struct sol_flow_node *node,
+    struct sol_http_response *response)
+{
+    return send_direction_vector_value(node, response->content.data,
+        response->content.used);
+}
+
+static int
+direction_vector_post_process(struct sol_flow_node *node, void *data,
+    uint16_t port, uint16_t conn_id, const struct sol_flow_packet *packet)
+{
+    int r;
+    struct sol_direction_vector dir;
+
+    SOL_BUFFER_DECLARE_STATIC(x, DOUBLE_STRING_LEN);
+    SOL_BUFFER_DECLARE_STATIC(z, DOUBLE_STRING_LEN);
+    SOL_BUFFER_DECLARE_STATIC(y, DOUBLE_STRING_LEN);
+    SOL_BUFFER_DECLARE_STATIC(min, DOUBLE_STRING_LEN);
+    SOL_BUFFER_DECLARE_STATIC(max, DOUBLE_STRING_LEN);
+
+    r = sol_flow_packet_get_direction_vector(packet, &dir);
+    SOL_INT_CHECK(r, < 0, r);
+
+    r = sol_json_double_to_str(dir.x, &x);
+    SOL_INT_CHECK(r, < 0, r);
+
+    r = sol_json_double_to_str(dir.y, &y);
+    SOL_INT_CHECK(r, < 0, r);
+
+    r = sol_json_double_to_str(dir.z, &z);
+    SOL_INT_CHECK(r, < 0, r);
+
+    r = sol_json_double_to_str(dir.min, &min);
+    SOL_INT_CHECK(r, < 0, r);
+
+    r = sol_json_double_to_str(dir.max, &max);
+    SOL_INT_CHECK(r, < 0, r);
+
+    return common_post_process(node, data, "x", x.data,
+        "y", y.data, "z", z.data, "min", min.data,
+        "max", max.data, NULL);
+}
+
+/*
  * --------------------------------- generic nodes  -----------------------------
  */
 

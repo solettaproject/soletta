@@ -148,6 +148,146 @@
       "url": "http://solettaproject.org/doc/latest/node_types/http-client/string.html"
     },
     {
+      "name": "http-client/rgb",
+      "category": "output/network",
+      "description": "HTTP Client for RGB",
+      "methods": {
+        "close": "common_close",
+        "open": "common_open"
+      },
+      "node_type": {
+        "access": [
+          "base"
+        ],
+        "data_type": "struct http_client_node_type",
+        "extra_methods": {
+          "process_token": "rgb_process_token",
+          "process_data": "rgb_process_data"
+        }
+      },
+      "options": {
+        "members": [
+          {
+            "data_type": "string",
+            "description": "The url that will be used on request and posts",
+            "name": "url"
+          },
+          {
+            "data_type": "boolean",
+            "description": "If the machine_id should be set on every request made",
+            "name": "machine_id",
+            "default": false
+          }
+        ],
+        "version": 1
+      },
+      "in_ports": [
+        {
+          "data_type": "string",
+          "description": "Replace the url set on options",
+          "methods": {
+            "process": "common_url_process"
+          },
+          "name": "URL"
+        },
+        {
+          "data_type": "any",
+          "description": "Get the contents of the specified url",
+          "methods": {
+            "process": "common_get_process"
+          },
+          "name": "GET"
+        },
+        {
+          "data_type": "rgb",
+          "description": "Post into the url",
+          "methods": {
+            "process": "rgb_post_process"
+          },
+          "name": "POST"
+        }
+      ],
+      "out_ports": [
+        {
+          "data_type": "rgb",
+          "description": "The value received from the url",
+          "name": "OUT"
+        }
+      ],
+      "private_data_type": "http_data",
+      "url": "http://solettaproject.org/doc/latest/node_types/http-client/rgb.html"
+    },
+    {
+      "name": "http-client/direction-vector",
+      "category": "output/network",
+      "description": "HTTP Client for direction vector",
+      "methods": {
+        "close": "common_close",
+        "open": "common_open"
+      },
+      "node_type": {
+        "access": [
+          "base"
+        ],
+        "data_type": "struct http_client_node_type",
+        "extra_methods": {
+          "process_token": "direction_vector_process_token",
+          "process_data": "direction_vector_process_data"
+        }
+      },
+      "options": {
+        "members": [
+          {
+            "data_type": "string",
+            "description": "The url that will be used on request and posts",
+            "name": "url"
+          },
+          {
+            "data_type": "boolean",
+            "description": "If the machine_id should be set on every request made",
+            "name": "machine_id",
+            "default": false
+          }
+        ],
+        "version": 1
+      },
+      "in_ports": [
+        {
+          "data_type": "string",
+          "description": "Replace the url set on options",
+          "methods": {
+            "process": "common_url_process"
+          },
+          "name": "URL"
+        },
+        {
+          "data_type": "any",
+          "description": "Get the contents of the specified url",
+          "methods": {
+            "process": "common_get_process"
+          },
+          "name": "GET"
+        },
+        {
+          "data_type": "direction-vector",
+          "description": "Post into the url",
+          "methods": {
+            "process": "direction_vector_post_process"
+          },
+          "name": "POST"
+        }
+      ],
+      "out_ports": [
+        {
+          "data_type": "direction-vector",
+          "description": "The value received from the url",
+          "name": "OUT"
+        }
+      ],
+      "private_data_type": "http_data",
+      "url": "http://solettaproject.org/doc/latest/node_types/http-client/direction-vector.html"
+    },
+    {
       "name": "http-client/int",
       "category": "output/network",
       "description": "HTTP Client for int",
