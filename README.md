@@ -70,7 +70,7 @@ are checked out, just run:
     cd soletta-master
     git init 
     make thirdparty-update
-    
+ 
     else (if cloned using git clone https://github.com/solettaproject/soletta.git)
     cd soletta
     make thirdparty-update
