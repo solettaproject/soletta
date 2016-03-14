@@ -28,6 +28,7 @@
 #include <sys/types.h>
 #include <unistd.h>
 
+#include "sol-buffer.h"
 #include "sol-http-server.h"
 #include "sol-log.h"
 #include "sol-mainloop.h"
@@ -68,6 +69,15 @@ struct sol_http_request {
     time_t if_since_modified;
     time_t last_modified;
     bool is_multipart;
+};
+
+struct sol_http_response_sse {
+    struct MHD_Connection *connection;
+    void (*cb)(void *data, const struct sol_http_response_sse *sse);
+    const void *cb_data;
+    struct sol_buffer buffer;
+    bool delete_me;
+    bool suspended;
 };
 
 struct static_dir {
@@ -206,17 +216,12 @@ set_last_modified_header(struct MHD_Response *response, time_t last_modified)
 }
 
 static struct MHD_Response *
-build_mhd_response(const struct sol_http_response *response, time_t last_modified)
+build_mhd_response_params(struct MHD_Response *r, const struct sol_http_response *response,
+    time_t last_modified)
 {
     struct sol_buffer buf;
     uint16_t idx;
-    struct MHD_Response *r;
     struct sol_http_param_value *value;
-
-    r = MHD_create_response_from_buffer(response->content.used, response->content.data,
-        MHD_RESPMEM_MUST_COPY);
-    if (!r)
-        return NULL;
 
     sol_buffer_init(&buf);
     SOL_HTTP_PARAMS_FOREACH_IDX (&response->param, value, idx) {
@@ -266,6 +271,100 @@ build_mhd_response(const struct sol_http_response *response, time_t last_modifie
 
 err:
     sol_buffer_fini(&buf);
+    MHD_destroy_response(r);
+    return NULL;
+}
+
+static struct MHD_Response *
+build_mhd_response(const struct sol_http_response *response, time_t last_modified)
+{
+    struct MHD_Response *r;
+
+    r = MHD_create_response_from_buffer(response->content.used, response->content.data,
+        MHD_RESPMEM_MUST_COPY);
+    if (!r)
+        return NULL;
+
+    return build_mhd_response_params(r, response, last_modified);
+}
+
+static void
+response_sse_del_cb(void *data)
+{
+    struct sol_http_response_sse *sse = data;
+
+    if (sse->cb)
+        sse->cb((void *)sse->cb_data, sse);
+
+    sol_buffer_fini(&sse->buffer);
+    free(sse);
+}
+
+static ssize_t
+response_sse_cb(void *data, uint64_t pos, char *buf, size_t size)
+{
+    int r;
+    ssize_t len;
+    struct sol_http_response_sse *sse = data;
+
+    if (sse->delete_me)
+        return MHD_CONTENT_READER_END_OF_STREAM;
+
+    if (!sse->buffer.used) {
+        MHD_suspend_connection(sse->connection);
+        sse->suspended = true;
+        return 0;
+    }
+
+    len = sse->buffer.used > size ? size : sse->buffer.used;
+    memcpy(buf, sse->buffer.data, len);
+
+    r = sol_buffer_remove_data(&sse->buffer, len, 0);
+    SOL_INT_CHECK(r, < 0, MHD_CONTENT_READER_END_WITH_ERROR);
+
+    return len;
+}
+
+static struct MHD_Response *
+build_mhd_response_sse(struct sol_http_response_sse *sse)
+{
+    struct MHD_Response *r;
+
+    r = MHD_create_response_from_callback(MHD_SIZE_UNKNOWN, 128,
+        response_sse_cb, sse, response_sse_del_cb);
+    if (!r)
+        return NULL;
+
+    if (MHD_add_response_header(r, MHD_HTTP_HEADER_CONTENT_TYPE,
+        "text/event-stream") == MHD_NO) {
+        SOL_WRN("Could not add the header: Content-Type");
+        goto err;
+    }
+
+    if (MHD_add_response_header(r, MHD_HTTP_HEADER_CONNECTION, "keep-alive") == MHD_NO) {
+        SOL_WRN("Could not add the header: Connection");
+        goto err;
+    }
+
+    if (MHD_add_response_header(r, MHD_HTTP_HEADER_CACHE_CONTROL, "no-cache") == MHD_NO) {
+        SOL_WRN("Could not add the header: Cache-Control");
+        goto err;
+    }
+
+    if (MHD_add_response_header(r, MHD_HTTP_HEADER_ACCESS_CONTROL_ALLOW_ORIGIN, "*") == MHD_NO) {
+        SOL_WRN("Could not add the header: Access-Control-Allow-Origin");
+        goto err;
+    }
+
+    if (MHD_add_response_header(r, "Access-Control-Allow-Headers",
+        "Origin, X-Requested-With, Content-Type, Accept") == MHD_NO) {
+        SOL_WRN("Could not add the header: Access-Control-Allow-Headers");
+        goto err;
+    }
+
+    return r;
+
+err:
     MHD_destroy_response(r);
     return NULL;
 }
@@ -957,6 +1056,81 @@ sol_http_server_send_response(struct sol_http_request *request, struct sol_http_
     SOL_INT_CHECK(ret, != MHD_YES, -1);
 
     return ret;
+}
+
+SOL_API struct sol_http_response_sse *
+sol_http_server_send_response_sse(struct sol_http_request *request,
+    void (*cb)(void *data, const struct sol_http_response_sse *sse),
+    const void *cb_data)
+{
+    int ret;
+    struct sol_http_response_sse *sse;
+    struct MHD_Response *mhd_response;
+
+    SOL_NULL_CHECK(request, NULL);
+    SOL_NULL_CHECK(request->connection, NULL);
+
+    sse = malloc(sizeof(*sse));
+    SOL_NULL_CHECK(sse, NULL);
+
+    sol_buffer_init(&sse->buffer);
+    sse->connection = request->connection;
+    sse->delete_me = false;
+
+    MHD_resume_connection(request->connection);
+
+    mhd_response = build_mhd_response_sse(sse);
+    SOL_NULL_CHECK_GOTO(mhd_response, err);
+
+    ret = MHD_queue_response(request->connection, SOL_HTTP_STATUS_OK, mhd_response);
+    MHD_destroy_response(mhd_response);
+
+    SOL_INT_CHECK_GOTO(ret, != MHD_YES, err);
+
+    sse->cb = cb;
+    sse->cb_data = cb_data;
+
+    return sse;
+
+err:
+    free(sse);
+    return NULL;
+}
+
+SOL_API int
+sol_http_response_sse_del(struct sol_http_response_sse *sse)
+{
+    SOL_NULL_CHECK(sse, -EINVAL);
+
+    if (sse->suspended)
+        MHD_resume_connection(sse->connection);
+    sse->delete_me = true;
+
+    /*
+     * Do not call the user when he deletes the handle
+     */
+    sse->cb = NULL;
+
+    return 0;
+}
+
+SOL_API int
+sol_http_response_sse_send_data(struct sol_http_response_sse *sse,
+    struct sol_buffer *buffer)
+{
+    int ret;
+
+    SOL_NULL_CHECK(sse, -EINVAL);
+
+    ret = sol_buffer_append_buffer(&sse->buffer, buffer);
+    SOL_INT_CHECK(ret, < 0, ret);
+
+    if (sse->suspended) {
+        MHD_resume_connection(sse->connection);
+        sse->suspended = false;
+    }
+
+    return 0;
 }
 
 SOL_API int
