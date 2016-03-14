@@ -30,16 +30,35 @@
  * OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
 
-#include "js-handle.h"
+#pragma once
 
-using namespace v8;
+#include <sol-oic-client.h>
+#include "../structures/js-handle.h"
 
-UnrefData::UnrefData(void *_data, void (*_unref)(void *), Local<Object> js):
-    data(_data), unref(_unref), persistent(new Nan::Persistent<Object>(js)) {
-}
+class SolOicClientResource : public JSReffableHandle<SolOicClientResource> {
+public:
+    static const char *jsClassName();
+    static void ref(void *data);
+    static void unref(void *data);
+    static v8::Local<v8::Object> New(struct sol_oic_resource *resource);
+};
 
-UnrefData::~UnrefData() {
-    unref(data);
-    persistent->Reset();
-    delete persistent;
-}
+class SolOicClient : public JSReffableHandle<SolOicClient> {
+public:
+    static const char *jsClassName();
+    static void ref(void *data);
+    static void unref(void *data);
+};
+
+class OicCallbackData {
+protected:
+    OicCallbackData();
+public:
+    bool init(v8::Local<v8::Object> jsClient, v8::Local<v8::Function> jsCallback);
+    virtual ~OicCallbackData();
+    static OicCallbackData *New(v8::Local<v8::Object> jsClient, v8::Local<v8::Function> jsCallback);
+    Nan::Persistent<v8::Object> *jsClient;
+    Nan::Callback *callback;
+private:
+    bool hijackRefWasSuccessful;
+};

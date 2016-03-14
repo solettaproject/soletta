@@ -30,16 +30,14 @@
  * OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
 
-#include "js-handle.h"
+#pragma once
 
-using namespace v8;
+#include <v8.h>
+#include <sol-oic-client.h>
 
-UnrefData::UnrefData(void *_data, void (*_unref)(void *), Local<Object> js):
-    data(_data), unref(_unref), persistent(new Nan::Persistent<Object>(js)) {
-}
+v8::Local<v8::Value> js_sol_oic_map_reader(const struct sol_oic_map_reader *representation);
 
-UnrefData::~UnrefData() {
-    unref(data);
-    persistent->Reset();
-    delete persistent;
-}
+bool c_sol_oic_map_writer(v8::Local<v8::Object> payload, struct sol_oic_map_writer *map);
+
+/* @p data is a Nan::Persistent<Object> * */
+bool oic_map_writer_callback(void *data, struct sol_oic_map_writer *map);

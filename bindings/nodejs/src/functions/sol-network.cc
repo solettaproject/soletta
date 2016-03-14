@@ -30,16 +30,30 @@
  * OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
 
-#include "js-handle.h"
+#include <sol-network.h>
+#include <nan.h>
+
+#include "../common.h"
+#include "../structures/network.h"
 
 using namespace v8;
 
-UnrefData::UnrefData(void *_data, void (*_unref)(void *), Local<Object> js):
-    data(_data), unref(_unref), persistent(new Nan::Persistent<Object>(js)) {
-}
+NAN_METHOD(bind_sol_network_addr_from_str) {
+    VALIDATE_ARGUMENT_COUNT(info, 2);
+    VALIDATE_ARGUMENT_TYPE(info, 0, IsObject);
+    VALIDATE_ARGUMENT_TYPE(info, 1, IsString);
 
-UnrefData::~UnrefData() {
-    unref(data);
-    persistent->Reset();
-    delete persistent;
+    struct sol_network_link_addr local;
+    if (!c_sol_network_link_addr(Nan::To<Object>(info[0]).ToLocalChecked(),
+        &local)) {
+        return;
+    }
+    const struct sol_network_link_addr *result =
+        sol_network_addr_from_str(&local,
+            (const char *)*String::Utf8Value(info[1]));
+    if (result) {
+        info.GetReturnValue().Set(js_sol_network_link_addr(result));
+    } else {
+        info.GetReturnValue().Set(Nan::Null());
+    }
 }

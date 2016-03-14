@@ -30,16 +30,29 @@
  * OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
 
-#include "js-handle.h"
+#include "../structures/oic-client.h"
+#include "../common.h"
 
 using namespace v8;
 
-UnrefData::UnrefData(void *_data, void (*_unref)(void *), Local<Object> js):
-    data(_data), unref(_unref), persistent(new Nan::Persistent<Object>(js)) {
+NAN_METHOD(bind_sol_oic_client_new) {
+    VALIDATE_ARGUMENT_COUNT(info, 0);
+    struct sol_oic_client *client = sol_oic_client_new();
+    if (client) {
+        info.GetReturnValue().Set(SolOicClient::New(client));
+    } else {
+        info.GetReturnValue().Set(Nan::Null());
+    }
 }
 
-UnrefData::~UnrefData() {
-    unref(data);
-    persistent->Reset();
-    delete persistent;
+NAN_METHOD(bind_sol_oic_client_del) {
+    VALIDATE_ARGUMENT_COUNT(info, 1);
+    VALIDATE_ARGUMENT_TYPE(info, 0, IsObject);
+    Local<Object> jsClient = Nan::To<Object>(info[0]).ToLocalChecked();
+    struct sol_oic_client *client = (struct sol_oic_client *)
+        SolOicClient::Resolve(jsClient);
+    if (client) {
+        sol_oic_client_del(client);
+        Nan::SetInternalFieldPointer(jsClient, 0, 0);
+    }
 }

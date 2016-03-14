@@ -6,7 +6,7 @@ var exec = require( "child_process" ).exec;
 var initialHostname = require( "os" ).hostname();
 var initialTimezone, destinationTimezone;
 
-console.log( JSON.stringify( { assertionCount: 3 } ) );
+console.log( JSON.stringify( { assertionCount: 5 } ) );
 
 // commands like sudo don't like having an LD_PRELOAD
 delete process.env.LD_PRELOAD;
@@ -88,7 +88,17 @@ async.series( [
 	},
 
 	function deleteTimezoneMonitorAndRestoreTimezone( callback ) {
+		var theError = {};
 		soletta.sol_platform_del_timezone_monitor( timezoneMonitor );
+		try {
+			soletta.sol_platform_del_timezone_monitor( timezoneMonitor );
+		} catch( anError ) {
+			theError = anError;
+		}
+		utils.assert( "strictEqual", theError instanceof TypeError, true,
+			"Attempting to delete a monitor twice throws a TypeError" );
+		utils.assert( "strictEqual", theError.message, "Object is not of type SolPlatformMonitor",
+			"The message of the TypeError is as expected" );
 		exec( "sudo timedatectl set-timezone " + initialTimezone, callback );
 	}
 ], function( error ) {

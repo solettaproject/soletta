@@ -30,16 +30,9 @@
  * OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
 
-#include "js-handle.h"
+#pragma once
 
-using namespace v8;
+#include <v8.h>
+#include <sol-str-slice.h>
 
-UnrefData::UnrefData(void *_data, void (*_unref)(void *), Local<Object> js):
-    data(_data), unref(_unref), persistent(new Nan::Persistent<Object>(js)) {
-}
-
-UnrefData::~UnrefData() {
-    unref(data);
-    persistent->Reset();
-    delete persistent;
-}
+v8::Local<v8::Value> js_DeviceIdFromSlice(const struct sol_str_slice *slice);

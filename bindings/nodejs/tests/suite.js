@@ -243,10 +243,24 @@ runTestSuites( ( suiteOptions.testList ?
 	( glob.sync( path.join( __dirname, suiteOptions.prefix,
 		( havePromises() ? "" : "!(API)" ) + "*" ) ) ) ) );
 
-process.on( "exit", function() {
+function processIsDying( anError ) {
 	var childIndex;
 
-	for ( childIndex in runningProcesses ) {
-		runningProcesses[ childIndex ].kill( "SIGTERM" );
+	if ( anError ) {
+		console.error( anError.message + anError.stack );
 	}
+
+	for ( childIndex in runningProcesses ) {
+		runningProcesses[ childIndex ].kill( "SIGKILL" );
+	}
+}
+
+process.on( "SIGINT", function() {
+	processIsDying();
+	process.exit( 0 );
+} );
+process.on( "exit", processIsDying );
+process.on( "uncaughtException", function( anError ) {
+	processIsDying( anError );
+	process.exit( 0 );
 } );
