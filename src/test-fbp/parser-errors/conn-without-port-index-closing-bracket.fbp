@@ -19,6 +19,5 @@ foo PORT[123
 ## TEST-EXPECTS-ERROR
 
 ## TEST-OUTPUT
-# conn-without-port-index-closing-bracket.fbp:31:13 Expected ']' after port index
+# conn-without-port-index-closing-bracket.fbp:17:13 Expected ']' after port index
 ## TEST-SKIP-COMPILE This test should not be generated + compiled, test parser errors is its sole purpose
-

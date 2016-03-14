@@ -19,6 +19,5 @@ foo=Foo
 ## TEST-EXPECTS-ERROR
 
 ## TEST-OUTPUT
-# foo-equals-foo.fbp:31:1 Expected node and port while defining a connection. e.g. 'node(nodetype) OUTPUT_PORT_NAME -> INPUT_PORT_NAME node2(nodetype2)'
+# foo-equals-foo.fbp:17:1 Expected node and port while defining a connection. e.g. 'node(nodetype) OUTPUT_PORT_NAME -> INPUT_PORT_NAME node2(nodetype2)'
 ## TEST-SKIP-COMPILE This test should not be generated + compiled, test parser errors is its sole purpose
-

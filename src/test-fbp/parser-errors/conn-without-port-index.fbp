@@ -19,6 +19,5 @@ foo PORT[
 ## TEST-EXPECTS-ERROR
 
 ## TEST-OUTPUT
-# conn-without-port-index.fbp:31:10 Expected integer number for port index
+# conn-without-port-index.fbp:17:10 Expected integer number for port index
 ## TEST-SKIP-COMPILE This test should not be generated + compiled, test parser errors is its sole purpose
-

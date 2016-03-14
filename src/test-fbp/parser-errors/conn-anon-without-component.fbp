@@ -19,6 +19,5 @@ _ -> _
 ## TEST-EXPECTS-ERROR
 
 ## TEST-OUTPUT
-# conn-anon-without-component.fbp:31:1 Anonymous node type must be defined. e.g. '_(nodetype)'
+# conn-anon-without-component.fbp:17:1 Anonymous node type must be defined. e.g. '_(nodetype)'
 ## TEST-SKIP-COMPILE This test should not be generated + compiled, test parser errors is its sole purpose
-
