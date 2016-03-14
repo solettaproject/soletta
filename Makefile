@@ -1,6 +1,11 @@
 top_srcdir = ./
 MAKEFLAGS += -r --no-print-directory
 
+# So we can get correct defaults on Kconfig
+export PREFIX ?= "/usr"
+export CFLAGS ?=
+export LDFLAGS ?=
+
 # kconfig settings
 KCONFIG_CONFIG ?= $(top_srcdir).config
 KCONFIG_INCLUDE := $(top_srcdir)include/
