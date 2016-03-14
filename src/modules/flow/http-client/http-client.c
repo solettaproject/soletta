@@ -598,20 +598,24 @@ int_post_process(struct sol_flow_node *node, void *data, uint16_t port, uint16_t
 {
     int r;
     struct sol_irange value;
-    char min[3 * sizeof(int)], max[3 * sizeof(int)],
-        val[3 * sizeof(int)], step[3 * sizeof(int)];
+    char min[3 * sizeof(int32_t)], max[3 * sizeof(int32_t)],
+        val[3 * sizeof(int32_t)], step[3 * sizeof(int32_t)];
 
     r = sol_flow_packet_get_irange(packet, &value);
     SOL_INT_CHECK(r, < 0, r);
 
-    r = snprintf(val, sizeof(val), "%d", value.val);
+    r = snprintf(val, sizeof(val), "%" PRId32, value.val);
     SOL_INT_CHECK(r, < 0, r);
-    r = snprintf(min, sizeof(min), "%d", value.min);
+    SOL_INT_CHECK(r, >= (int)sizeof(val), -ENOMEM);
+    r = snprintf(min, sizeof(min), "%" PRId32, value.min);
     SOL_INT_CHECK(r, < 0, r);
-    r = snprintf(max, sizeof(max), "%d", value.max);
+    SOL_INT_CHECK(r, >= (int)sizeof(min), -ENOMEM);
+    r = snprintf(max, sizeof(max), "%" PRId32, value.max);
     SOL_INT_CHECK(r, < 0, r);
-    r = snprintf(step, sizeof(step), "%d", value.step);
+    SOL_INT_CHECK(r, >= (int)sizeof(max), -ENOMEM);
+    r = snprintf(step, sizeof(step), "%" PRId32, value.step);
     SOL_INT_CHECK(r, < 0, r);
+    SOL_INT_CHECK(r, >= (int)sizeof(step), -ENOMEM);
 
     return common_post_process(node, data, "value", val, "min", min,
         "max", max, "step", step, NULL);

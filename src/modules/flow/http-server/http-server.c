@@ -665,10 +665,12 @@ int_response_cb(struct http_data *mdata, struct sol_buffer *content, bool json)
     int r;
 
     if (json) {
-        r = sol_buffer_append_printf(content, "{\"value\":%d,\"min\":%d,\"max\":%d,\"step\":%d}",
-            mdata->value.i.val, mdata->value.i.min, mdata->value.i.max, mdata->value.i.step);
+        r = sol_buffer_append_printf(content, "{\"value\":%" PRId32
+            ",\"min\":%" PRId32 ",\"max\":%" PRId32 ",\"step\":%" PRId32 "}",
+            mdata->value.i.val, mdata->value.i.min, mdata->value.i.max,
+            mdata->value.i.step);
     } else {
-        r = sol_buffer_append_printf(content, "%d", mdata->value.i.val);
+        r = sol_buffer_append_printf(content, "%" PRId32, mdata->value.i.val);
     }
 
     return r;
