@@ -68,6 +68,18 @@ struct sol_http_server;
 struct sol_http_request;
 
 /**
+ * @struct sol_http_progressive_response
+ * @brief Opaque handler used for send data progressively.
+ *
+ * Progressive responses can be used to create server sent events.
+ *
+ * This response is create with sol_http_server_send_progressive_response()
+ * and data can be given using sol_http_progressive_response_feed(),
+ * to delete it use sol_http_progressive_response_del().
+ */
+struct sol_http_progressive_response;
+
+/**
  * @brief Creates a HTTP server, binding on all interfaces
  * in the specified @a port.
  *
@@ -204,8 +216,97 @@ int sol_http_server_set_last_modified(struct sol_http_server *server, const char
  * and parameters (e.g http headers)
  *
  * @return @c 0 on success, error code (always negative) otherwise.
+ *
+ * @see sol_http_server_send_progressive_response()
  */
 int sol_http_server_send_response(struct sol_http_request *request, struct sol_http_response *response);
+
+/**
+ * @brief Set the necessary headers to allow server sent events
+ *
+ * @param response The response to set the headers
+ *
+ * @return @c 0 on success, error code (always negative) otherwise.
+ */
+static inline int
+sol_http_response_set_sse_headers(struct sol_http_response *response)
+{
+    const struct { const char *k; const char *v; } *itr, headers[] = {
+        { "Content-Type", "text/event-stream" },
+        { "Connection", "keep-alive" },
+        { "Cache-Control", "no-cache" },
+        { NULL, NULL }
+    };
+
+    if (!response)
+        return -EINVAL;
+
+    for (itr = headers; itr->k != NULL; itr++) {
+        if (!sol_http_param_add(&response->param,
+            SOL_HTTP_REQUEST_PARAM_HEADER(itr->k, itr->v))) {
+            return -ENOMEM;
+        }
+    }
+
+    return 0;
+}
+
+/**
+ * @brief Send the response and keep connection alive to request given in the
+ * callback registered on sol_http_server_register_handler().
+ *
+ * After this call, the caller will be resposible to close the connection calling
+ * sol_http_progressive_response_del(). @note all the necessary headers are set by this function.
+ *
+ * @param request The request given on the callback of
+ * sol_http_server_register_handler().
+ * @param response The response for the request containing the data
+ * and parameters (e.g http headers)
+ * @param on_close Callback called when the connection is closed.
+ * @param cb_data The data pointer to be passed to @a cb.
+ *
+ * @return @c sol_http_progressive_response on success, @c NULL otherwise.
+ *
+ * @see sol_http_server_send_response()
+ * @see sol_http_progressive_response_del()
+ * @see sol_http_progressive_response_feed()
+ */
+struct sol_http_progressive_response *sol_http_server_send_progressive_response(struct sol_http_request *request,
+    const struct sol_http_response *response,
+    void (*on_close)(void *data, const struct sol_http_progressive_response *progressive),
+    const void *cb_data);
+
+/**
+ * @brief Send data for the progressive response.
+ *
+ * @param progressive The progressive response created with
+ * sol_http_server_send_progressive_response()
+ * @param data The data to be sent.
+ *
+ * @return @c 0 on success, error code (always negative) otherwise.
+ *
+ * @see sol_http_progressive_response_del()
+ * @see sol_http_server_send_progressive_response()
+ */
+int sol_http_progressive_response_feed(struct sol_http_progressive_response *progressive,
+    const struct sol_str_slice data);
+
+/**
+ * @brief Delete the progressive response.
+ *
+ * This function deletes the progressive response and its resources and closes
+ * the connection. When the connection be closed the callback given on
+ * sol_http_server_send_progressive_response() will be called.
+ *
+ * @param progressive The progressive response created with
+ * sol_http_server_send_progressive_response()
+ * @param graceful_del If @c true all pending data will be sent before
+ * the connection be closed.
+ *
+ * @see sol_http_server_send_progressive_response()
+ * @see sol_http_progressive_response_feed()
+ */
+void sol_http_progressive_response_del(struct sol_http_progressive_response *progressive, bool graceful_del);
 
 /**
  * @brief Gets the URL from a given request.
