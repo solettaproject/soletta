@@ -28,6 +28,7 @@
 #include <sys/types.h>
 #include <unistd.h>
 
+#include "sol-buffer.h"
 #include "sol-http-server.h"
 #include "sol-log.h"
 #include "sol-mainloop.h"
@@ -68,6 +69,15 @@ struct sol_http_request {
     time_t if_since_modified;
     time_t last_modified;
     bool is_multipart;
+};
+
+struct sol_http_response_progressive {
+    struct MHD_Connection *connection;
+    void (*on_del)(void *data, const struct sol_http_response_progressive *progressive);
+    const void *cb_data;
+    struct sol_buffer buffer;
+    bool delete_me, graceful_del;
+    bool suspended;
 };
 
 struct static_dir {
@@ -207,17 +217,12 @@ set_last_modified_header(struct MHD_Response *response, time_t last_modified)
 }
 
 static struct MHD_Response *
-build_mhd_response(const struct sol_http_response *response, time_t last_modified)
+build_mhd_response_params(struct MHD_Response *r,
+    const struct sol_http_response *response)
 {
     struct sol_buffer buf;
     uint16_t idx;
-    struct MHD_Response *r;
     struct sol_http_param_value *value;
-
-    r = MHD_create_response_from_buffer(response->content.used, response->content.data,
-        MHD_RESPMEM_MUST_COPY);
-    if (!r)
-        return NULL;
 
     sol_buffer_init(&buf);
     SOL_HTTP_PARAMS_FOREACH_IDX (&response->param, value, idx) {
@@ -259,9 +264,6 @@ build_mhd_response(const struct sol_http_response *response, time_t last_modifie
         }
     }
 
-    if (!set_last_modified_header(r, last_modified))
-        goto err;
-
     sol_buffer_fini(&buf);
     return r;
 
@@ -269,6 +271,82 @@ err:
     sol_buffer_fini(&buf);
     MHD_destroy_response(r);
     return NULL;
+}
+
+static struct MHD_Response *
+build_mhd_response(const struct sol_http_response *response, time_t last_modified)
+{
+    struct MHD_Response *r;
+
+    r = MHD_create_response_from_buffer(response->content.used, response->content.data,
+        MHD_RESPMEM_MUST_COPY);
+    if (!r)
+        return NULL;
+
+    r = build_mhd_response_params(r, response);
+    if (!r)
+        return NULL;
+
+    if (!set_last_modified_header(r, last_modified)) {
+        MHD_destroy_response(r);
+        return NULL;
+    }
+
+    return r;
+}
+
+static void
+response_progressive_del_cb(void *data)
+{
+    struct sol_http_response_progressive *progressive = data;
+
+    if (progressive->on_del)
+        progressive->on_del((void *)progressive->cb_data, progressive);
+
+    sol_buffer_fini(&progressive->buffer);
+    free(progressive);
+}
+
+static ssize_t
+response_progressive_cb(void *data, uint64_t pos, char *buf, size_t size)
+{
+    int r;
+    ssize_t len;
+    struct sol_http_response_progressive *progressive = data;
+
+    if (progressive->delete_me) {
+        if (!progressive->graceful_del ||
+            (progressive->graceful_del && !progressive->buffer.used))
+            return MHD_CONTENT_READER_END_OF_STREAM;
+    }
+
+    if (!progressive->buffer.used) {
+        MHD_suspend_connection(progressive->connection);
+        progressive->suspended = true;
+        return 0;
+    }
+
+    len = sol_min(size, progressive->buffer.used);
+    memcpy(buf, progressive->buffer.data, len);
+
+    r = sol_buffer_remove_data(&progressive->buffer, 0, len);
+    SOL_INT_CHECK(r, < 0, MHD_CONTENT_READER_END_WITH_ERROR);
+
+    return len;
+}
+
+static struct MHD_Response *
+build_mhd_response_progressive(const struct sol_http_response *response,
+    struct sol_http_response_progressive *progressive)
+{
+    struct MHD_Response *r;
+
+    r = MHD_create_response_from_callback(MHD_SIZE_UNKNOWN, 128,
+        response_progressive_cb, progressive, response_progressive_del_cb);
+    if (!r)
+        return NULL;
+
+    return build_mhd_response_params(r, response);
 }
 
 static int
@@ -958,6 +1036,80 @@ sol_http_server_send_response(struct sol_http_request *request, struct sol_http_
     SOL_INT_CHECK(ret, != MHD_YES, -1);
 
     return ret;
+}
+
+SOL_API struct sol_http_response_progressive *
+sol_http_server_send_response_progressive(struct sol_http_request *request,
+    const struct sol_http_response *response,
+    void (*on_del)(void *data, const struct sol_http_response_progressive *progressive),
+    const void *cb_data)
+{
+    int ret;
+    struct sol_http_response_progressive *progressive;
+    struct MHD_Response *mhd_response;
+
+    SOL_NULL_CHECK(request, NULL);
+    SOL_NULL_CHECK(request->connection, NULL);
+    SOL_NULL_CHECK(response, NULL);
+
+    progressive = calloc(1, sizeof(*progressive));
+    SOL_NULL_CHECK(progressive, NULL);
+
+    sol_buffer_init(&progressive->buffer);
+    progressive->connection = request->connection;
+    progressive->delete_me = false;
+
+    MHD_resume_connection(request->connection);
+
+    mhd_response = build_mhd_response_progressive(response, progressive);
+    SOL_NULL_CHECK_GOTO(mhd_response, err);
+
+    ret = MHD_queue_response(request->connection, SOL_HTTP_STATUS_OK, mhd_response);
+    MHD_destroy_response(mhd_response);
+
+    SOL_INT_CHECK_GOTO(ret, != MHD_YES, err);
+
+    progressive->on_del = on_del;
+    progressive->cb_data = cb_data;
+
+    return progressive;
+
+err:
+    free(progressive);
+    return NULL;
+}
+
+SOL_API void
+sol_http_response_progressive_del(struct sol_http_response_progressive *progressive, bool graceful_del)
+{
+    SOL_NULL_CHECK(progressive);
+    SOL_EXP_CHECK(progressive->delete_me == true);
+
+    if (progressive->suspended)
+        MHD_resume_connection(progressive->connection);
+
+    progressive->graceful_del = graceful_del;
+    progressive->delete_me = true;
+}
+
+SOL_API int
+sol_http_response_progressive_feed(struct sol_http_response_progressive *progressive,
+    const struct sol_str_slice data)
+{
+    int ret;
+
+    SOL_NULL_CHECK(progressive, -EINVAL);
+    SOL_EXP_CHECK(progressive->delete_me == true, -EINVAL);
+
+    ret = sol_buffer_append_slice(&progressive->buffer, data);
+    SOL_INT_CHECK(ret, < 0, ret);
+
+    if (progressive->suspended) {
+        MHD_resume_connection(progressive->connection);
+        progressive->suspended = false;
+    }
+
+    return 0;
 }
 
 SOL_API int
