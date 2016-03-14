@@ -969,7 +969,7 @@ def master_json_as_string(generated, json_name):
         'name': json_name,
         'meta': {
             'author': 'Intel Corporation',
-            'license': 'BSD-3-Clause',
+            'license': 'Apache-2.0',
             'version': '1'
         },
         'types': [t['json_server'] for t in generated] + [t['json_client'] for t in generated]
