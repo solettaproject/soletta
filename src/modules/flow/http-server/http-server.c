@@ -722,40 +722,44 @@ float_post_cb(struct http_data *mdata, struct sol_flow_node *node,
 }
 
 static int
-float_response_cb(struct http_data *mdata, struct sol_buffer *content, bool json)
+float_response_cb(struct http_data *mdata, struct sol_buffer *content,
+    bool json)
 {
-    int r;
-
-    SOL_BUFFER_DECLARE_STATIC(val, DOUBLE_STRING_LEN);
-
-    r = sol_json_double_to_str(mdata->value.d.val, &val);
-    SOL_INT_CHECK(r, < 0, r);
-
     if (json) {
-        SOL_BUFFER_DECLARE_STATIC(min, DOUBLE_STRING_LEN);
-        SOL_BUFFER_DECLARE_STATIC(max, DOUBLE_STRING_LEN);
-        SOL_BUFFER_DECLARE_STATIC(step, DOUBLE_STRING_LEN);
+        int r;
 
-        r = sol_json_double_to_str(mdata->value.d.min, &min);
+        r = sol_buffer_append_slice(content,
+            sol_str_slice_from_str("{\"value\":"));
+        SOL_INT_CHECK(r, < 0, r);
+        r = sol_json_double_to_str(mdata->value.d.val, content);
         SOL_INT_CHECK(r, < 0, r);
 
-        r = sol_json_double_to_str(mdata->value.d.max, &max);
+        r = sol_buffer_append_slice(content,
+            sol_str_slice_from_str(",\"min\":"));
+        SOL_INT_CHECK(r, < 0, r);
+        r = sol_json_double_to_str(mdata->value.d.min, content);
         SOL_INT_CHECK(r, < 0, r);
 
-        r = sol_json_double_to_str(mdata->value.d.step, &step);
+        r = sol_buffer_append_slice(content,
+            sol_str_slice_from_str(",\"max\":"));
+        SOL_INT_CHECK(r, < 0, r);
+        r = sol_json_double_to_str(mdata->value.d.max, content);
         SOL_INT_CHECK(r, < 0, r);
 
-        r = sol_buffer_append_printf(content,
-            "{\"value\":%.*s,\"min\":%.*s,\"max\":%.*s,\"step\":%.*s}",
-            SOL_STR_SLICE_PRINT(sol_buffer_get_slice(&val)),
-            SOL_STR_SLICE_PRINT(sol_buffer_get_slice(&min)),
-            SOL_STR_SLICE_PRINT(sol_buffer_get_slice(&max)),
-            SOL_STR_SLICE_PRINT(sol_buffer_get_slice(&step)));
-    } else {
-        r = sol_buffer_append_slice(content, sol_buffer_get_slice(&val));
+        r = sol_buffer_append_slice(content,
+            sol_str_slice_from_str(",\"step\":"));
+        SOL_INT_CHECK(r, < 0, r);
+
+        r = sol_json_double_to_str(mdata->value.d.step, content);
+        SOL_INT_CHECK(r, < 0, r);
+
+        r = sol_buffer_append_char(content, '}');
+        SOL_INT_CHECK(r, < 0, r);
+
+        return 0;
     }
 
-    return r;
+    return sol_json_double_to_str(mdata->value.d.val, content);
 }
 
 static void
