@@ -527,8 +527,8 @@ sol_network_link_get_name(const struct sol_network_link *link)
     return NULL;
 }
 
-SOL_API bool
-sol_network_link_up(uint16_t link_index)
+static bool
+sol_network_link_set_status(uint16_t link_index, unsigned changes, unsigned flags)
 {
     char buf[NLMSG_ALIGN(sizeof(struct nlmsghdr) + sizeof(struct ifinfomsg) + 512)] = { 0 };
     struct iovec iov = { buf, sizeof(buf) };
@@ -559,8 +559,8 @@ sol_network_link_up(uint16_t link_index)
     ifi = (struct ifinfomsg *)(buf + sizeof(struct nlmsghdr));
     ifi->ifi_family = AF_UNSPEC;
     ifi->ifi_index = link_index;
-    ifi->ifi_change = IFF_UP;
-    ifi->ifi_flags = IFF_UP;
+    ifi->ifi_change = changes;
+    ifi->ifi_flags = flags;
 
 #define ADD_RTATTR(_attr, _len, _type) \
     do { \
@@ -586,6 +586,18 @@ sol_network_link_up(uint16_t link_index)
     }
 
     return true;
+}
+
+SOL_API bool
+sol_network_link_up(uint16_t link_index)
+{
+    return sol_network_link_set_status(link_index, IFF_UP, IFF_UP);
+}
+
+SOL_API bool
+sol_network_link_down(uint16_t link_index)
+{
+    return sol_network_link_set_status(link_index, IFF_UP, ~IFF_UP);
 }
 
 SOL_API bool
