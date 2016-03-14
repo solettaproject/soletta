@@ -69,7 +69,6 @@ struct sol_fd_posix {
     int fd;
     uint32_t flags;
     bool remove_me;
-    bool invalid;
 };
 
 struct child_exit_status {
@@ -573,7 +572,7 @@ fd_prepare(void)
     nfds = 0;
     SOL_PTR_VECTOR_FOREACH_IDX (&fd_vector, handler, i) {
         struct pollfd *pfd;
-        if (handler->remove_me || handler->invalid)
+        if (handler->remove_me)
             continue;
         pfd = pollfds + nfds;
         nfds++;
@@ -695,7 +694,7 @@ fd_process(void)
         if (nfds <= 0)
             break;
 
-        if (handler->remove_me || handler->invalid)
+        if (handler->remove_me)
             continue;
 
         for (; j < pollfds_used; j++) {
@@ -761,7 +760,6 @@ sol_mainloop_impl_fd_add(int fd, uint32_t flags, bool (*cb)(void *data, int fd, 
     handle->cb = cb;
     handle->data = data;
     handle->remove_me = false;
-    handle->invalid = false;
 
     ret = sol_ptr_vector_append(&fd_vector, handle);
     SOL_INT_CHECK_GOTO(ret, != 0, clean);
