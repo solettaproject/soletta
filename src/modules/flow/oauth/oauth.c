@@ -118,9 +118,10 @@ v1_access_finished(void *data,
 
     SOL_NULL_CHECK_GOTO(response, end);
     SOL_HTTP_RESPONSE_CHECK_API_GOTO(response, end);
-    SOL_INT_CHECK_GOTO(response->content.used, == 0, end);
 
-    if (response->response_code != SOL_HTTP_STATUS_OK) {
+    if (response->response_code == SOL_HTTP_STATUS_OK)
+        SOL_INT_CHECK_GOTO(response->content.used, == 0, end);
+    else {
         SOL_WRN("Response from %s - %d", response->url, response->response_code);
         goto end;
     }
@@ -322,9 +323,10 @@ v1_request_finished(void *data,
 
     SOL_NULL_CHECK_GOTO(response, err);
     SOL_HTTP_RESPONSE_CHECK_API_GOTO(response, err);
-    SOL_INT_CHECK_GOTO(response->content.used, == 0, err);
 
-    if (response->response_code != SOL_HTTP_STATUS_OK) {
+    if (response->response_code == SOL_HTTP_STATUS_OK)
+        SOL_INT_CHECK_GOTO(response->content.used, == 0, err);
+    else {
         SOL_WRN("Response from %s - %d", response->url, response->response_code);
         goto err;
     }
@@ -364,7 +366,7 @@ get_callback_url(const struct sol_http_request *request, const char *basename)
     r = sol_http_request_get_interface_address(request, &addr);
     SOL_INT_CHECK(r, < 0, NULL);
 
-    SOL_NULL_CHECK(sol_network_addr_to_str(&addr, &buf), NULL);
+    SOL_NULL_CHECK(sol_network_link_addr_to_str(&addr, &buf), NULL);
 
     r = asprintf(&url, "http://%.*s:%d/%s/oauth_callback",
         SOL_STR_SLICE_PRINT(sol_buffer_get_slice(&buf)), addr.port, basename);

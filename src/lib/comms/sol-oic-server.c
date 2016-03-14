@@ -381,7 +381,7 @@ err:
     if (err != CborNoError) {
         SOL_BUFFER_DECLARE_STATIC(addr, SOL_INET_ADDR_STRLEN);
 
-        sol_network_addr_to_str(cliaddr, &addr);
+        sol_network_link_addr_to_str(cliaddr, &addr);
         SOL_WRN("Error building response for /oic/res, server %p client %.*s: %s",
             oic_server.server, SOL_STR_SLICE_PRINT(sol_buffer_get_slice(&addr)),
             cbor_error_string(err));
@@ -584,9 +584,6 @@ _sol_oic_resource_type_handle(
         input_ptr = &input;
     }
 
-    /* FIXME: We can't make phony cbor calls to calculate the exact
-     * payload here because it involves an user callback
-     * (handle_fn). */
     sol_oic_packet_cbor_create(response, &output);
     code = handle_fn(cliaddr, res->callback.data, input_ptr, &output);
     if (sol_oic_packet_cbor_close(response, &output) != CborNoError)
@@ -793,9 +790,6 @@ send_notification_to_server(struct sol_oic_server_resource *resource,
     pkt = sol_coap_packet_notification_new(oic_server.server, resource->coap);
     SOL_NULL_CHECK(pkt, false);
 
-    /* FIXME: We can't make phony cbor calls to calculate the exact
-     * payload here because it involves an user callback
-     * (fill_repr_map). */
     sol_oic_packet_cbor_create(pkt, &oic_map_writer);
     if (!fill_repr_map((void *)data, &oic_map_writer))
         goto end;

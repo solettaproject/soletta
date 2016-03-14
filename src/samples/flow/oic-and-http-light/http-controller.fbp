@@ -1,0 +1,89 @@
+#!/usr/bin/env sol-fbp-runner
+# This file is part of the Soletta Project
+#
+# Copyright (C) 2015 Intel Corporation. All rights reserved.
+#
+# Redistribution and use in source and binary forms, with or without
+# modification, are permitted provided that the following conditions
+# are met:
+#
+#   * Redistributions of source code must retain the above copyright
+#     notice, this list of conditions and the following disclaimer.
+#   * Redistributions in binary form must reproduce the above copyright
+#     notice, this list of conditions and the following disclaimer in
+#     the documentation and/or other materials provided with the
+#     distribution.
+#   * Neither the name of Intel Corporation nor the names of its
+#     contributors may be used to endorse or promote products derived
+#     from this software without specific prior written permission.
+#
+# THIS SOFTWARE IS PROVIDED BY THE COPYRIGHT HOLDERS AND CONTRIBUTORS
+# "AS IS" AND ANY EXPRESS OR IMPLIED WARRANTIES, INCLUDING, BUT NOT
+# LIMITED TO, THE IMPLIED WARRANTIES OF MERCHANTABILITY AND FITNESS FOR
+# A PARTICULAR PURPOSE ARE DISCLAIMED. IN NO EVENT SHALL THE COPYRIGHT
+# OWNER OR CONTRIBUTORS BE LIABLE FOR ANY DIRECT, INDIRECT, INCIDENTAL,
+# SPECIAL, EXEMPLARY, OR CONSEQUENTIAL DAMAGES (INCLUDING, BUT NOT
+# LIMITED TO, PROCUREMENT OF SUBSTITUTE GOODS OR SERVICES; LOSS OF USE,
+# DATA, OR PROFITS; OR BUSINESS INTERRUPTION) HOWEVER CAUSED AND ON ANY
+# THEORY OF LIABILITY, WHETHER IN CONTRACT, STRICT LIABILITY, OR TORT
+# (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE
+# OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
+
+# Brief:
+#
+# This file is a comprehensive controller to the light-server over HTTP.
+#
+# It uses the controller logic defined in its own FBP.
+
+DECLARE=controller:fbp:controller.fbp
+
+# expect an URL as the first command line parameter
+cmdline_arguments(app/argc-argv)
+cmdline_arguments ERROR -> IN cmdline_usage(converter/empty-to-string:output_value="Missing URL in the command line. Example: http://localhost:8002") OUT -> IN _(console:prefix="ERROR: ")
+cmdline_usage OUT -> IN _(converter/empty-to-int:output_value=1) OUT -> CODE _(app/quit)
+
+# Build URL for each resource
+_(constant/int:value=1) OUT -> IN cmdline_arguments
+
+state_url(string/concatenate:separator="/")
+cmdline_arguments OUT -> IN[0] state_url
+_(constant/string:value="state") OUT -> IN[1] state_url
+
+power_url(string/concatenate:separator="/")
+cmdline_arguments OUT -> IN[0] power_url
+_(constant/string:value="power") OUT -> IN[1] power_url
+
+# create a controller
+controller(controller)
+
+note(console:prefix="note: ")
+
+# HTTP provides no callback or observe, so trigger will keep polling
+# server for status
+trigger_get(timer:interval=1000)
+
+# define http client for 'power' property
+http_power(http-client/int)
+http_power ERROR -> IN _(converter/empty-to-string:output_value="Error communicating with HTTP server at /power. Check if the server is running.") OUT -> IN note
+power_url OUT -> URL http_power
+
+# load power level from server
+trigger_get OUT -> GET http_power
+http_power OUT -> POWER controller
+http_power OUT -> IN _(console:prefix="Server power level is: ")
+
+# notify server of power level change
+controller POWER -> POST http_power
+
+# define http client for 'state' property
+http_state(http-client/boolean)
+http_state ERROR -> IN _(converter/empty-to-string:output_value="Error communicating with HTTP server at /state. Check if the server is running.") OUT -> IN note
+state_url OUT -> URL http_state
+
+# load state from server
+trigger_get OUT -> GET http_state
+http_state OUT -> STATE controller
+http_state OUT -> IN _(console:prefix="Server state is: ")
+
+# notify server of state change
+controller STATE -> POST http_state

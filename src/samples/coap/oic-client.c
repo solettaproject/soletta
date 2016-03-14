@@ -56,7 +56,7 @@ got_get_response(sol_coap_responsecode_t response_code, struct sol_oic_client *c
         return;
     }
 
-    if (!sol_network_addr_to_str(srv_addr, &addr)) {
+    if (!sol_network_link_addr_to_str(srv_addr, &addr)) {
         SOL_WRN("Could not convert network address to string");
         return;
     }
@@ -121,7 +121,7 @@ found_resource(struct sol_oic_client *cli, struct sol_oic_resource *res, void *d
     }
 #endif
 
-    if (!sol_network_addr_to_str(&res->addr, &addr)) {
+    if (!sol_network_link_addr_to_str(&res->addr, &addr)) {
         SOL_WRN("Could not convert network address to string");
         return false;
     }
@@ -179,7 +179,7 @@ main(int argc, char *argv[])
     if (!strchr(argv[1], ':'))
         srv_addr.family = SOL_NETWORK_FAMILY_INET;
 
-    if (!sol_network_addr_from_str(&srv_addr, argv[1])) {
+    if (!sol_network_link_addr_from_str(&srv_addr, argv[1])) {
         printf("Could not convert IP address to sockaddr_in\n");
         return 1;
     }

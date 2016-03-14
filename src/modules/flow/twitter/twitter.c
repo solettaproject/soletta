@@ -123,12 +123,6 @@ twitter_request_finished(void *data,
 
     SOL_NULL_CHECK_GOTO(response, err);
     SOL_HTTP_RESPONSE_CHECK_API_GOTO(response, err);
-    SOL_INT_CHECK_GOTO(response->content.used, == 0, err);
-
-    sol_json_scanner_init(&object_scanner, response->content.data,
-        response->content.used);
-    sol_json_scanner_init(&array_scanner, response->content.data,
-        response->content.used);
 
     if (response->response_code != SOL_HTTP_STATUS_OK) {
         SOL_WRN("Response from %s - %d",
@@ -136,6 +130,12 @@ twitter_request_finished(void *data,
         r = response->response_code;
         goto err;
     }
+    SOL_INT_CHECK_GOTO(response->content.used, == 0, err);
+
+    sol_json_scanner_init(&object_scanner, response->content.data,
+        response->content.used);
+    sol_json_scanner_init(&array_scanner, response->content.data,
+        response->content.used);
 
     r = ENOMEM;
     blob = sol_blob_new(SOL_BLOB_TYPE_DEFAULT, NULL,

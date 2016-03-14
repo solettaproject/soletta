@@ -552,7 +552,7 @@ timeout_cb(void *data)
 
     sol_socket_set_on_write(server->socket, on_can_write, server);
 
-    sol_network_addr_to_str(&outgoing->cliaddr, &addr);
+    sol_network_link_addr_to_str(&outgoing->cliaddr, &addr);
 
     SOL_DBG("server %p retrying packet id %d to client %.*s",
         server, sol_coap_header_get_id(outgoing->pkt),
@@ -658,12 +658,14 @@ on_can_write(void *data, struct sol_socket *s)
     if (err == -EAGAIN)
         return true;
 
-    SOL_DBG("pkt sent:");
+    SOL_DBG("CoAP packet sent (payload of %zu bytes, "
+        "buffer holding it with %zu bytes)",
+        outgoing->pkt->buf.used, outgoing->pkt->buf.capacity);
     sol_coap_packet_debug(outgoing->pkt);
     if (err < 0) {
         SOL_BUFFER_DECLARE_STATIC(addr, SOL_INET_ADDR_STRLEN);
 
-        sol_network_addr_to_str(&outgoing->cliaddr, &addr);
+        sol_network_link_addr_to_str(&outgoing->cliaddr, &addr);
         SOL_WRN("Could not send packet %d to %.*s (%d): %s", sol_coap_header_get_id(outgoing->pkt),
             SOL_STR_SLICE_PRINT(sol_buffer_get_slice(&addr)), -err, sol_util_strerrora(-err));
         return false;
@@ -762,7 +764,7 @@ done:
     if (err < 0) {
         SOL_BUFFER_DECLARE_STATIC(addr, SOL_INET_ADDR_STRLEN);
 
-        sol_network_addr_to_str(cliaddr, &addr);
+        sol_network_link_addr_to_str(cliaddr, &addr);
         SOL_WRN("Could not enqueue packet %p to %.*s (%d): %s", pkt,
             SOL_STR_SLICE_PRINT(sol_buffer_get_slice(&addr)), -err,
             sol_util_strerrora(-err));
@@ -846,7 +848,7 @@ sol_coap_packet_send_notification(struct sol_coap_server *server,
         if (r < 0) {
             SOL_BUFFER_DECLARE_STATIC(addr, SOL_INET_ADDR_STRLEN);
 
-            sol_network_addr_to_str(&o->cliaddr, &addr);
+            sol_network_link_addr_to_str(&o->cliaddr, &addr);
             SOL_WRN("Failed to enqueue packet %p to %.*s", p,
                 SOL_STR_SLICE_PRINT(sol_buffer_get_slice(&addr)));
             goto done;
@@ -1235,7 +1237,7 @@ resource_not_found(struct sol_coap_packet *req,
     return sol_coap_send_packet(server, resp, cliaddr);
 
 err:
-    sol_coap_packet_unref(req);
+    sol_coap_packet_unref(resp);
     return r;
 }
 
@@ -1552,18 +1554,18 @@ join_mcast_groups(struct sol_socket *s, const struct sol_network_link *link)
         groupaddr.family = addr->family;
 
         if (addr->family == SOL_NETWORK_FAMILY_INET) {
-            sol_network_addr_from_str(&groupaddr, IPV4_ALL_COAP_NODES_GROUP);
+            sol_network_link_addr_from_str(&groupaddr, IPV4_ALL_COAP_NODES_GROUP);
             if (sol_socket_join_group(s, link->index, &groupaddr) < 0)
                 return -errno;
 
             continue;
         }
 
-        sol_network_addr_from_str(&groupaddr, IPV6_ALL_COAP_NODES_SCOPE_LOCAL);
+        sol_network_link_addr_from_str(&groupaddr, IPV6_ALL_COAP_NODES_SCOPE_LOCAL);
         if (sol_socket_join_group(s, link->index, &groupaddr) < 0)
             return -errno;
 
-        sol_network_addr_from_str(&groupaddr, IPV6_ALL_COAP_NODES_SCOPE_SITE);
+        sol_network_link_addr_from_str(&groupaddr, IPV6_ALL_COAP_NODES_SCOPE_SITE);
         if (sol_socket_join_group(s, link->index, &groupaddr) < 0)
             return -errno;
     }
