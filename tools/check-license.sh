@@ -63,17 +63,20 @@ fi
 
 EXIT_CODE=0
 for f in $(cat $DIFF_LIST); do
-    r=0
+    test1=0
+    test2=0
     if [ ${f##*.} = "json" ]; then
         # There is no need of license in config files
         if [ $(grep -c -m 1 "config.schema" $f) -ne 0 ]; then
             continue;
         fi
-        r=$(grep -c -m 1 "\"license\": \"Apache-2.0\"" $f);
+        test1=$(grep -c -m 1 "\"license\": \"Apache-2.0\"" $f);
+        test2=1
     else
-        r=$(grep -c -m 1 "This file is part of the Soletta Project" $f)
+        test1=$(grep -c -m 1 "This file is part of the Soletta Project" $f)
+        test2=$(grep -c -m 1 "http://www.apache.org/licenses/LICENSE-2.0" $f)
     fi
-    if [ $r -eq 0 ]; then
+    if [ $test1 -eq 0 ] || [ $test2 -eq 0 ]; then
         echo "$f has license issues"
         EXIT_CODE=1
     fi
