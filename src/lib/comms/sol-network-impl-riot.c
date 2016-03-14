@@ -247,6 +247,13 @@ sol_network_link_up(uint16_t link_index)
     return false;
 }
 
+SOL_API bool
+sol_network_link_down(uint16_t link_index)
+{
+    SOL_WRN("Not implemented");
+    return false;
+}
+
 SOL_API struct sol_network_hostname_handle *
 sol_network_get_hostname_address_info(const struct sol_str_slice hostname,
     enum sol_network_family family, void (*host_info_cb)(void *data,
