@@ -98,12 +98,7 @@ def print_port(outfile, port):
     "description": port["description"],
     })
 
-group_id = 0
-entry_id = 0
-
-def print_node_type(outfile, node_type, svgs):
-    global group_id
-    global entry_id
+def print_node_type(outfile, node_type, svgs, group_id):
     outfile.write("""\
             var entry = new Entry({
                 id:"entry_%(group_id)s_%(entry_id)s",
@@ -115,8 +110,8 @@ def print_node_type(outfile, node_type, svgs):
 """ % {
     "name": node_type["name"],
     "description": node_type["description"].replace("\"", "\\\""),
-    "group_id": str(group_id),
-    "entry_id": str(entry_id),
+    "group_id": group_id,
+    "entry_id": node_type["name"].replace("/", "-")
     })
 
     in_ports = node_type.get("in_ports")
@@ -164,12 +159,8 @@ def print_node_type(outfile, node_type, svgs):
             entry.getElement().on('entry:select',onEntryEvent);
             entry.getElement().on('entry:hover',onEntryEvent);
 """)
-    entry_id = entry_id + 1
 
 def print_description(outfile, description, infile, svgs):
-    global group_id
-    global entry_id
-
     modules = description.keys()
     if len(modules) != 1:
         print("Warning: a single module is expected per file. Skiping %s" %
@@ -186,13 +177,12 @@ def print_description(outfile, description, infile, svgs):
                 menuLabel:fullCategoryName
             });
 """ % {
-    "id": str(group_id),
+    "id": module,
     "name": module,
     })
 
-        entry_id = 0
         for node_type in description[module]:
-            print_node_type(outfile, node_type, svgs)
+            print_node_type(outfile, node_type, svgs, module)
 
         outfile.write("""\
             $(category.getContents()).isotope({
@@ -200,8 +190,6 @@ def print_description(outfile, description, infile, svgs):
                 layoutMode:"masonry"
             });
 """)
-        group_id = group_id + 1
-
 
 PLACEHOLDER = "<!-- PLACEHOLDER -->\n"
 
