@@ -533,7 +533,7 @@ static const struct sol_flow_node_type_description sol_flow_node_type_http_clien
     .options_symbol = "http_composed_client_options",
     .description = "Provides an HTTP client that supports composed packets",
     .url = "http://solettaproject.org/doc/latest/components/http-composed-client.html",
-    .license = "BSD-3-Clause",
+    .license = "Apache-2.0",
     .version = "1",
     .options = &((const struct sol_flow_node_options_description){
             .data_size = sizeof(struct http_composed_client_options),
