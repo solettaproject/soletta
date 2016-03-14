@@ -12,7 +12,7 @@
       "description": "HTTP Server for boolean. It will store the value received in the input port 'IN' and upon HTTP requests to server at 'port' option and the path specified at 'path' will return such value for GET method, and set the value on 'POST', in this case the new value will be sent on the 'OUT' port if it changed. The HTTP methods may change the content-type by providing 'Accept: application/json' header. POST should provide payload value=true or value=false.",
       "methods": {
         "close": "common_close",
-        "open": "common_open"
+        "open": "boolean_open"
       },
       "node_type": {
         "access": [
@@ -351,7 +351,153 @@
         }
       ],
       "private_data_type": "http_data",
-      "url": "http://solettaproject.org/doc/latest/node_types/http-server/float.html"
+      "url": "http://solettaproject.org/doc/latest/node_types/http-server/static.html"
+    },
+    {
+      "category": "output/network",
+      "description": "HTTP Server for RGB. The GET response will vary according to the client's HTTP Accept header. If the Accept header is set to 'application/json', the response will include all color components (green, red, blue, green_max, red_max and blue_max). However if the Accept header is not 'application/json', the response will be in 'plain/text' and the color will be expressed in hexdecimal using the following format: #RRGGBB",
+      "methods": {
+        "close": "common_close",
+        "open": "rgb_open"
+      },
+      "node_type": {
+        "access": [
+          "base"
+        ],
+        "data_type": "struct http_server_node_type",
+        "extra_methods": {
+            "response_cb": "rgb_response_cb",
+            "post_cb": "rgb_post_cb",
+            "process_cb": "rgb_process_cb",
+            "send_packet_cb": "rgb_send_packet_cb"
+        }
+      },
+      "name": "http-server/rgb",
+      "options": {
+        "members": [
+          {
+            "data_type": "string",
+	    "default": "rgb",
+            "description": "The http path where it will be served",
+            "name": "path"
+          },
+          {
+            "data_type": "int",
+            "default": -1,
+            "description": "The port used to bind the server. If a negative value, default port will be used.",
+            "name": "port"
+          },
+          {
+            "data_type": "rgb",
+            "default": {
+              "red": 255,
+              "green": 255,
+              "blue": 255
+            },
+            "description": "The initial node's value",
+            "name": "value"
+          },
+          {
+            "data_type": "string",
+            "default": "GET|POST",
+            "description": "The allowed HTTP methods. Should be separated by a '|' character.",
+            "name": "allowed_methods"
+          }
+        ],
+        "version": 1
+      },
+      "in_ports": [
+	{
+	  "data_type": "rgb",
+	  "description": "The value that will be given on a GET",
+          "methods": {
+            "process": "common_process"
+          },
+          "name": "IN"
+        }
+      ],
+      "out_ports": [
+	{
+          "data_type": "rgb",
+          "description": "The value received on a POST",
+          "name": "OUT"
+        }
+      ],
+      "private_data_type": "http_data",
+      "url": "http://solettaproject.org/doc/latest/node_types/http-server/rgb.html"
+    },
+    {
+      "category": "output/network",
+      "description": "HTTP Server for direction vector. The GET response will vary according to the client's HTTP Accept header. If the Accept header is set to 'application/json', the response will include all direction vector components (x, y, z, min, max). However if the Accept header is not 'application/json', the response will be in 'plain/text' and the color will be expressed in hexdecimal using the following format: (X;Y;Z)",
+      "methods": {
+        "close": "common_close",
+        "open": "direction_vector_open"
+      },
+      "node_type": {
+        "access": [
+          "base"
+        ],
+        "data_type": "struct http_server_node_type",
+        "extra_methods": {
+            "response_cb": "direction_vector_response_cb",
+            "post_cb": "direction_vector_post_cb",
+            "process_cb": "direction_vector_process_cb",
+            "send_packet_cb": "direction_vector_send_packet_cb"
+        }
+      },
+      "name": "http-server/direction-vector",
+      "options": {
+        "members": [
+          {
+            "data_type": "string",
+            "default": "direction-vector",
+            "description": "The http path where it will be served",
+            "name": "path"
+          },
+          {
+            "data_type": "int",
+            "default": -1,
+            "description": "The port used to bind the server. If a negative value, default port will be used.",
+            "name": "port"
+          },
+          {
+            "data_type": "direction-vector",
+            "default": {
+              "x": 0,
+              "y": 0,
+              "z": 0
+            },
+            "description": "The initial node's value",
+            "name": "value"
+          },
+          {
+            "data_type": "string",
+            "default": "GET|POST",
+            "description": "The allowed HTTP methods. Should be separated by a '|' character.",
+            "name": "allowed_methods"
+          }
+        ],
+        "version": 1
+      },
+      "in_ports": [
+	{
+	  "data_type": "direction-vector",
+	  "description": "The value that will be given on a GET",
+          "methods": {
+            "process": "common_process"
+          },
+          "name": "IN"
+        }
+      ],
+      "out_ports": [
+	{
+          "data_type": "direction-vector",
+          "description": "The value received on a POST",
+          "name": "OUT"
+        }
+      ],
+      "private_data_type": "http_data",
+      "url": "http://solettaproject.org/doc/latest/node_types/http-server/direction-vector.html"
     }
   ]
 }
