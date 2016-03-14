@@ -25,7 +25,7 @@ function die() {
 
 DIFF_LIST=$(mktemp /tmp/sol-tmp.XXXX)
 
-PATTERNS=".*\.*\([ch]\|py\|h\.in\|py\.in\|fbp\|sh\|json\|COPYING\|calc\-lib\-size\|generate\-svg\-from\-all\-fbps\)$"
+PATTERNS=".*\.*\([ch]\|py\|h\.in\|py\.in\|fbp\|sh\|json\|COPYING\|calc\-lib\-size\|js\|generate\-svg\-from\-all\-fbps\)$"
 IGNORE="src\/thirdparty\/\|tools\/kconfig\/\|data\/oic\/\|data\/jsons\/\|.*\.ac|.*Makefile.*\|.*-gen.h\.in"
 
 trap "rm -f $DIFF_LIST" EXIT
@@ -61,24 +61,23 @@ if [ ! -s "$DIFF_LIST" ]; then
     git diff --diff-filter=ACMR --oneline --name-only $BASE_COMMIT HEAD | grep $PATTERNS | sed '/'${IGNORE}'/d' > $DIFF_LIST
 fi
 
-EXIT_CODE=0
-for f in $(cat $DIFF_LIST); do
+cat "${DIFF_LIST}" | ( EXIT_CODE=0; while read; do
+	f="${REPLY}"
     test1=0
     test2=0
-    if [ ${f##*.} = "json" ]; then
+    if [ "${f##*.}" = "json" ]; then
         # There is no need of license in config files
-        if [ $(grep -c -m 1 "config.schema" $f) -ne 0 ]; then
+        if [ $(grep -c -m 1 "config.schema" "${f}") -ne 0 ]; then
             continue;
         fi
-        test1=$(grep -c -m 1 "\"license\": \"Apache-2.0\"" $f);
+        test1=$(grep -c -m 1 "\"license\": \"Apache-2.0\"" "${f}");
         test2=1
     else
-        test1=$(grep -c -m 1 "This file is part of the Soletta Project" $f)
-        test2=$(grep -c -m 1 "http://www.apache.org/licenses/LICENSE-2.0" $f)
+        test1=$(grep -c -m 1 "This file is part of the Soletta Project" "${f}")
+        test2=$(grep -c -m 1 "http://www.apache.org/licenses/LICENSE-2.0" "${f}")
     fi
-    if [ $test1 -eq 0 ] || [ $test2 -eq 0 ]; then
-        echo "$f has license issues"
+    if [ "${test1}" -eq 0 ] || [ "${test2}" -eq 0 ]; then
+        echo "${f} has license issues"
         EXIT_CODE=1
     fi
-done
-exit $EXIT_CODE
+done; exit "${EXIT_CODE}"; )
