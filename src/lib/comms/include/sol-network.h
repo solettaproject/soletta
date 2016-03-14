@@ -281,8 +281,23 @@ char *sol_network_link_get_name(const struct sol_network_link *link);
  *
  * @param link_index The index of a @ref sol_network_link structure.
  * @return @c true on success, @c false on error.
+ *
+ * @see sol_network_linke_down()
  */
 bool sol_network_link_up(uint16_t link_index);
+
+/**
+ * @brief Sets a network link down.
+ *
+ * This function sets a network link down, after this a link will not be
+ * able to get a network address.
+ *
+ * @param link_index The index of a @ref sol_network_link structure.
+ * @return @c true on success, @c false on error.
+ *
+ * @see sol_network_linke_up()
+ */
+bool sol_network_link_down(uint16_t link_index);
 
 /**
  * @brief Gets a hostname address info.
