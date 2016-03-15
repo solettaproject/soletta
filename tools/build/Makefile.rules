@@ -1,6 +1,8 @@
 find-deps = $(foreach dep,$($(1)-deps),$($(filter %$(dep),$(modules))-out) $($(dep)-out))
 find-obj-deps = $(foreach dep,$($(1)-deps),$($(dep)-objs))
 
+oic-gens :=
+
 gen-artifact = \
 	$(foreach json,$(filter %.json,$(2)), \
 		$(eval $(json)-src   := $(subst $(top_srcdir)src,$(build_stagedir),$(subst .json,-gen.c,$(json)))) \
@@ -86,11 +88,14 @@ parse-common-module = \
 	$(eval $(5)         := $(if $(obj-$(1)-$(3)-type),$(obj-$(1)-$(3)-type),$(mod-type))) \
 	$(eval $(4)-type    := $($(5))) \
 	$(call gen-artifact,$(1),$(filter %.json,$(artifacts)),"",$(4)) \
+	$(if $(obj-$(1)-$(3)-oic), \
+		$(eval oic-gens     += $(dir $(2))) \
+	) \
 	$(foreach obj,$(mod-objs), \
 		$(eval dest-obj        := $($(obj)-dest-obj)) \
 		$(eval $(dest-obj)-src := $(subst .o,.c,$(obj))) \
 		$(eval $(4)-srcs       := $($(dest-obj)-src)) \
-	        $(eval $(4)-objs       += $(dest-obj)) \
+		$(eval $(4)-objs       += $(dest-obj)) \
 		$(eval $(dest-obj)-module := $(if $($(dest-obj)-module),$($(dest-obj)-module),$(4))) \
 		$(eval all-objs        += $(dest-obj)) \
 	)\
@@ -105,7 +110,7 @@ parse-builtin-module = \
 
 parse-mod-output = \
 	$(eval out-prefix := $(build_modulesdir)$($(3)-type)) \
-        $(eval $(3)-out   := $(out-prefix)/$(1).so) \
+	$(eval $(3)-out   := $(out-prefix)/$(1).so) \
 	$(eval mod-so     += $(3)) \
 
 external-module-flags := -DSOL_FLOW_NODE_TYPE_MODULE_EXTERNAL=1 -DSOL_PLATFORM_LINUX_MICRO_MODULE_EXTERNAL=1 \
@@ -369,6 +374,19 @@ $(SOL_LIB_SO): $(builtin-objs)
 	$(Q)$(LN) -fs $(notdir $(@).$(VERSION)) $(@)
 
 # generators
+define make-oic-gen
+$(addprefix $(addprefix $(1), $(notdir $(abspath $(1)))), .json) $(addprefix $(addprefix $(1), $(notdir $(abspath $(1)))), .c) $(addprefix $(addprefix $(1), $(notdir $(abspath $(1)))), -gen.c) $(addprefix $(addprefix $(1), $(notdir $(abspath $(1)))), .h): $(FLOW_OIC_GEN_SCRIPT)
+	$(Q)echo "     "GEN"   "$$@
+	$(Q)$(PYTHON) $(FLOW_OIC_GEN_SCRIPT) \
+		--schema-dir=$(1) \
+		--node-type-json=$(addprefix $(addprefix $(1), $(notdir $(abspath $(1)))), .json) \
+		--node-type-impl=$(addprefix $(addprefix $(1), $(notdir $(abspath $(1)))), .c) \
+		--node-type-gen-c=$(addprefix $(notdir $(abspath $(1))), -gen.c) \
+		--node-type-gen-h=$(addprefix sol-flow/, $(addprefix $(notdir $(abspath $(1))), .h)) >/dev/null
+	$(eval cleanup-files += $(addprefix $(addprefix $(1), $(notdir $(abspath $(1)))), .json) $(addprefix $(addprefix $(1), $(notdir $(abspath $(1)))), .c))
+endef
+$(foreach gen,$(sort $(oic-gens)),$(eval $(call make-oic-gen,$(gen))))
+
 define make-gen
 $($(1)-hdr) $($(1)-src) $($(1)-desc): $(1) $(NODE_TYPE_GEN_SCRIPT)
 	$(Q)echo "     "GEN"   "$$@
@@ -407,13 +425,6 @@ endef
 $(eval $(call install-resource,$(NODE_TYPE_SCHEMA),$(NODE_TYPE_SCHEMA_DEST)))
 $(eval $(call install-resource,$(BOARD_DETECT),$(BOARD_DETECT_DEST)))
 $(eval $(call install-resource,$(GDB_AUTOLOAD_PY),$(GDB_AUTOLOAD_PY_DEST)))
-
-$(FLOW_OIC_GEN): $(FLOW_OIC_GEN_SCRIPT) $(KCONFIG_AUTOHEADER)
-	$(Q)echo "     "GEN"   "$(@)
-	$(Q)$(PYTHON) $(FLOW_OIC_GEN_SCRIPT) --schema-dir=$(FLOW_OIC_SPEC_DIR) \
-		--node-type-json=$(dir $(@))oic.json \
-		--node-type-impl=$(dir $(@))oic.c --node-type-gen-c=oic-gen.c \
-		--node-type-gen-h=sol-flow/oic.h >/dev/null
 
 $(KCONFIG_AUTOHEADER): $(DEPENDENCY_CACHE) $(KCONFIG_CONFIG) $(obj)/conf
 	$(Q)echo "     "GEN"   "$@
