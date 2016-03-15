@@ -241,6 +241,7 @@ def run_tests(args):
         if curr.should_skip(skips):
             logging.debug("SKIPPED running %s: %s" % (t, curr.skip_msg))
             status["skipped"] += 1
+            logging.info("SKIP: %s" % path["file"])
             continue
 
         if not args.compiled:
@@ -269,6 +270,7 @@ def run_tests(args):
                 logging.warning("Dependence test %s for test %s failed. Skipping it",
                         curr.depends, curr.test_file)
                 status["skipped"] += 1
+                logging.info("SKIP: %s" % path["file"])
                 continue
 
             out, code = sh(cmd, cwd=test_cwd)
@@ -277,8 +279,10 @@ def run_tests(args):
         status[result] += 1
         if result == "failed":
             failures = True
+            logging.info("FAIL: %s" % path["file"])
         else:
             successful.append(path['file'])
+            logging.info("PASS: %s" % path["file"])
 
     for k,v in status.items():
         if v > 0:
