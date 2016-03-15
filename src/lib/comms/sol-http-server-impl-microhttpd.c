@@ -186,18 +186,19 @@ static bool
 set_last_modified_header(struct MHD_Response *response, time_t last_modified)
 {
     struct tm result;
-    char buf[128];
-    size_t r;
+    ssize_t r;
+
+    SOL_BUFFER_DECLARE_STATIC(buf, 128);
 
     SOL_NULL_CHECK(gmtime_r(&last_modified, &result), false);
 
-    r = strftime(buf, sizeof(buf), "%a, %d %b %Y %H:%M:%S GMT", &result);
+    r = sol_util_strftime(&buf, "%a, %d %b %Y %H:%M:%S GMT", &result, false);
     if (!r) {
         SOL_WRN("Could not create the last modified date string");
         return false;
     }
 
-    if (MHD_add_response_header(response, SOL_HTTP_PARAM_LAST_MODIFIED, buf) == MHD_NO) {
+    if (MHD_add_response_header(response, SOL_HTTP_PARAM_LAST_MODIFIED, buf.data) == MHD_NO) {
         SOL_WRN("Could not add the last modified header to the response");
         return false;
     }
