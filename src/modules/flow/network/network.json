@@ -19,12 +19,23 @@
         "members": [
           {
             "data_type": "string",
+            "default": null,
             "description": "Which interface should be monitored (can be a regexp)",
             "name": "address"
           }
         ],
         "version": 1
       },
+      "in_ports": [
+	{
+	  "data_type": "string",
+	  "description": "Which interface should be monitored (can be a regexp)",
+          "methods": {
+            "process": "network_address_process"
+          },
+          "name": "ADDRESS"
+        }
+      ],
       "out_ports": [
         {
           "data_type": "boolean",
