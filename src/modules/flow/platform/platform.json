@@ -597,6 +597,14 @@
             "process": "platform_service_stop_process"
           },
           "name": "STOP"
+        },
+        {
+          "data_type": "string",
+          "description": "The platform service name",
+          "methods": {
+            "process": "platform_service_name_process"
+          },
+          "name": "NAME"
         }
       ],
       "methods": {
@@ -608,8 +616,9 @@
         "members": [
           {
             "data_type": "string",
-            "description": "the platform service name",
-            "name": "service_name"
+            "default": null,
+            "description": "The platform service name",
+            "name": "name"
           }
         ],
         "version": 1

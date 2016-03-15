@@ -138,6 +138,11 @@ platform_service_trigger_process(struct sol_flow_node *node, void *data, uint16_
 {
     struct platform_service_data *mdata = data;
 
+    if (!mdata->service_name) {
+        return sol_flow_send_error_packet(mdata->node, EINVAL,
+            "Service name not set");
+    }
+
     service_state_dispatch(mdata);
     return 0;
 }
@@ -147,6 +152,11 @@ platform_service_start_process(struct sol_flow_node *node, void *data, uint16_t 
 {
     struct platform_service_data *mdata = data;
 
+    if (!mdata->service_name) {
+        return sol_flow_send_error_packet(mdata->node, EINVAL,
+            "Service name not set");
+    }
+
     return sol_platform_start_service(mdata->service_name);
 }
 
@@ -155,7 +165,39 @@ platform_service_stop_process(struct sol_flow_node *node, void *data, uint16_t p
 {
     struct platform_service_data *mdata = data;
 
+    if (!mdata->service_name) {
+        return sol_flow_send_error_packet(mdata->node, EINVAL,
+            "Service name not set");
+    }
+
     return sol_platform_stop_service(mdata->service_name);
+}
+
+static int
+platform_service_name_process(struct sol_flow_node *node, void *data,
+    uint16_t port, uint16_t conn_id, const struct sol_flow_packet *packet)
+{
+    struct platform_service_data *mdata = data;
+    const char *name;
+    int r;
+
+    r = sol_flow_packet_get_string(packet, &name);
+    SOL_INT_CHECK(r, < 0, r);
+    if (mdata->service_name) {
+        sol_platform_del_service_monitor(on_service_state_changed,
+            mdata->service_name, mdata);
+    }
+
+    r = sol_util_replace_str_if_changed(&mdata->service_name, name);
+    SOL_INT_CHECK(r, < 0, r);
+
+    sol_platform_add_service_monitor(on_service_state_changed,
+        mdata->service_name, mdata);
+    mdata->state = sol_platform_get_service_state(mdata->service_name);
+
+    return sol_flow_send_boolean_packet(node,
+        SOL_FLOW_NODE_TYPE_PLATFORM_SERVICE__OUT__ACTIVE,
+        (mdata->state == SOL_PLATFORM_SERVICE_STATE_ACTIVE));
 }
 
 static int
@@ -168,13 +210,15 @@ platform_service_open(struct sol_flow_node *node, void *data, const struct sol_f
     opts = (const struct sol_flow_node_type_platform_service_options *)options;
 
     SOL_FLOW_NODE_OPTIONS_SUB_API_CHECK(options, SOL_FLOW_NODE_TYPE_PLATFORM_SERVICE_OPTIONS_API_VERSION, -EINVAL);
-
-    mdata->service_name = strdup(opts->service_name);
-    SOL_NULL_CHECK(mdata->service_name, -ENOMEM);
-
     mdata->node = node;
 
-    sol_platform_add_service_monitor(on_service_state_changed, mdata->service_name, mdata);
+    if (!opts->name)
+        return 0;
+
+    mdata->service_name = strdup(opts->name);
+    SOL_NULL_CHECK(mdata->service_name, -ENOMEM);
+    sol_platform_add_service_monitor(on_service_state_changed,
+        mdata->service_name, mdata);
     mdata->state = sol_platform_get_service_state(mdata->service_name);
 
     return sol_flow_send_boolean_packet(node,
