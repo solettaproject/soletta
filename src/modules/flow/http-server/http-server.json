@@ -31,7 +31,7 @@
         "members": [
           {
             "data_type": "string",
-	    "default": "boolean",
+	    "default": "/boolean",
             "description": "The http path where it will be served",
             "name": "path"
           },
@@ -100,7 +100,7 @@
         "members": [
           {
             "data_type": "string",
-	    "default": "string",
+	    "default": "/string",
             "description": "The http path where it will be served",
             "name": "path"
           },
@@ -169,7 +169,7 @@
         "members": [
           {
             "data_type": "string",
-	    "default": "string",
+	    "default": "/int",
             "description": "The http path where it will be served",
             "name": "path"
           },
@@ -248,7 +248,7 @@
         "members": [
           {
             "data_type": "string",
-	    "default": "string",
+	    "default": "/float",
             "description": "The http path where it will be served",
             "name": "path"
           },
@@ -377,7 +377,7 @@
         "members": [
           {
             "data_type": "string",
-	    "default": "rgb",
+	    "default": "/rgb",
             "description": "The http path where it will be served",
             "name": "path"
           },
@@ -450,7 +450,7 @@
         "members": [
           {
             "data_type": "string",
-            "default": "direction-vector",
+            "default": "/direction-vector",
             "description": "The http path where it will be served",
             "name": "path"
           },
