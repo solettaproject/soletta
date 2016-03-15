@@ -317,10 +317,10 @@ static int
 start_server(struct http_data *http, struct sol_flow_node *node,
     const char *path, int32_t opt_port)
 {
-    int r;
+    int r = -ENOMEM;
 
     http->sdata = server_ref(opt_port);
-    SOL_NULL_CHECK(http->sdata, -ENOMEM);
+    SOL_NULL_CHECK(http->sdata, r);
 
     http->path = strdup(path);
     SOL_NULL_CHECK_GOTO(http->path, err_path);
@@ -329,13 +329,17 @@ start_server(struct http_data *http, struct sol_flow_node *node,
         common_response_cb, node);
     SOL_INT_CHECK_GOTO(r, < 0, err_handler);
 
+    r = sol_http_server_set_last_modified(http->sdata->server, http->path,
+        time(NULL));
+    SOL_INT_CHECK_GOTO(r, < 0, err_handler);
+
     return 0;
 
 err_handler:
     free(http->path);
 err_path:
     server_unref(http->sdata);
-    return -ENOMEM;
+    return r;
 }
 
 static void
