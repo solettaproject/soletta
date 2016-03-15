@@ -42,6 +42,7 @@ struct http_data {
     char *url;
     char *content_type;
     char *accept;
+    char *last_modified;
     bool machine_id;
     bool strict;
 };
@@ -220,6 +221,7 @@ common_close(struct sol_flow_node *node, void *data)
     free(mdata->url);
     free(mdata->content_type);
     free(mdata->accept);
+    free(mdata->last_modified);
     SOL_PTR_VECTOR_FOREACH_IDX (&mdata->pending_conns, connection, i)
         sol_http_client_connection_cancel(connection);
     sol_ptr_vector_clear(&mdata->pending_conns);
@@ -271,6 +273,10 @@ remove_connection(struct http_data *mdata,
         SOL_WRN("Failed to find pending connection %p", connection);
 }
 
+/**
+ * returns -errno on error, 0 if status HTTP status OK and content.used > 0
+ * or 1 if HTTP_STATUS_NOT_MODIFIED
+ */
 static int
 check_response(struct http_data *mdata, struct sol_flow_node *node,
     const struct sol_http_client_connection *connection,
@@ -284,6 +290,9 @@ check_response(struct http_data *mdata, struct sol_flow_node *node,
         return -EINVAL;
     }
     SOL_HTTP_RESPONSE_CHECK_API(response, -EINVAL);
+
+    if (response->response_code == SOL_HTTP_STATUS_NOT_MODIFIED)
+        return 1;
 
     if (response->response_code != SOL_HTTP_STATUS_OK) {
         sol_flow_send_error_packet(node, EINVAL,
@@ -301,6 +310,30 @@ check_response(struct http_data *mdata, struct sol_flow_node *node,
     return 0;
 }
 
+static int
+get_last_modified_date(struct http_data *mdata,
+    struct sol_http_response *response)
+{
+    struct sol_http_param_value *param_value;
+    uint16_t i;
+
+    SOL_HTTP_PARAMS_FOREACH_IDX (&response->param, param_value, i) {
+        int r;
+
+        if (param_value->type != SOL_HTTP_PARAM_HEADER)
+            continue;
+        if (!sol_str_slice_str_eq(param_value->value.key_value.key,
+            "Last-Modified"))
+            continue;
+        r = sol_util_replace_str_from_slice_if_changed(&mdata->last_modified,
+            param_value->value.key_value.value);
+        SOL_INT_CHECK(r, < 0, r);
+        break;
+    }
+
+    return 0;
+}
+
 static void
 common_request_finished(void *data,
     const struct sol_http_client_connection *connection,
@@ -311,8 +344,18 @@ common_request_finished(void *data,
     struct http_data *mdata = sol_flow_node_get_private_data(node);
     const struct http_client_node_type *type;
 
-    if (check_response(mdata, node, connection, response) < 0)
+    ret = check_response(mdata, node, connection, response);
+    if (ret < 0) {
+        SOL_WRN("Invalid HTTP response");
         return;
+    }
+
+    //Not modified
+    if (ret == 1)
+        return;
+
+    ret = get_last_modified_date(mdata, response);
+    SOL_INT_CHECK_GOTO(ret, < 0, err);
 
     type = (const struct http_client_node_type *)sol_flow_node_get_type(node);
     if (streq(response->content_type, "application/json")) {
@@ -358,6 +401,14 @@ common_get_process(struct sol_flow_node *node, void *data, uint16_t port, uint16
     sol_http_params_init(&params);
     if (!sol_http_param_add(&params,
         SOL_HTTP_REQUEST_PARAM_HEADER("Accept", "application/json"))) {
+        SOL_WRN("Failed to set query params");
+        r = -ENOMEM;
+        goto err;
+    }
+
+    if (mdata->last_modified && !sol_http_param_add(&params,
+        SOL_HTTP_REQUEST_PARAM_HEADER("If-Since-Modified",
+        mdata->last_modified))) {
         SOL_WRN("Failed to set query params");
         r = -ENOMEM;
         goto err;
@@ -1173,11 +1224,20 @@ generic_request_finished(void *data,
     struct sol_flow_node *node = data;
     struct http_data *mdata = sol_flow_node_get_private_data(node);
     const struct http_client_node_type *type;
+    int ret;
 
-    if (check_response(mdata, node, conn, response) < 0) {
+    ret = check_response(mdata, node, conn, response);
+
+    if (ret < 0) {
         SOL_ERR("Invalid http response from %s", mdata->url);
         return;
     }
+
+    if (ret == 1)
+        return;
+
+    ret = get_last_modified_date(mdata, response);
+    SOL_INT_CHECK(ret, < 0);
 
     if (mdata->strict && mdata->accept && response->content_type &&
         !streq(response->content_type, mdata->accept)) {
@@ -1213,6 +1273,14 @@ make_http_request(struct sol_flow_node *node, struct http_data *mdata)
         SOL_ERR("Could not add the HTTP Accept param");
         goto err;
     }
+
+    if (mdata->last_modified && !sol_http_param_add(&params,
+        SOL_HTTP_REQUEST_PARAM_HEADER("If-Since-Modified",
+        mdata->last_modified))) {
+        SOL_WRN("Failed to set query params");
+        goto err;
+    }
+
 
     if ((mdata->method == SOL_HTTP_METHOD_POST ||
         mdata->method == SOL_HTTP_METHOD_PUT) &&
