@@ -454,7 +454,7 @@ get_default_response(const struct sol_http_server *server, enum sol_http_status_
     }
 
     r = snprintf(buf, sizeof(buf), "status - %d", error);
-    if (r < 0 || r > (int)sizeof(buf)) {
+    if (r < 0 || r >= (int)sizeof(buf)) {
         SOL_WRN("Could not set the status code on response body");
         response = MHD_create_response_from_buffer(0, NULL, MHD_RESPMEM_PERSISTENT);
     } else {
