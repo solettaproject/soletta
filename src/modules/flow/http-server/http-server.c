@@ -317,10 +317,10 @@ static int
 start_server(struct http_data *http, struct sol_flow_node *node,
     const char *path, int32_t opt_port)
 {
-    int r;
+    int r = -ENOMEM;
 
     http->sdata = server_ref(opt_port);
-    SOL_NULL_CHECK(http->sdata, -ENOMEM);
+    SOL_NULL_CHECK(http->sdata, r);
 
     http->path = strdup(path);
     SOL_NULL_CHECK_GOTO(http->path, err_path);
@@ -329,13 +329,17 @@ start_server(struct http_data *http, struct sol_flow_node *node,
         common_response_cb, node);
     SOL_INT_CHECK_GOTO(r, < 0, err_handler);
 
+    r = sol_http_server_set_last_modified(http->sdata->server, http->path,
+        time(NULL));
+    SOL_INT_CHECK_GOTO(r, < 0, err_handler);
+
     return 0;
 
 err_handler:
     free(http->path);
 err_path:
     server_unref(http->sdata);
-    return -ENOMEM;
+    return r;
 }
 
 static void
@@ -665,10 +669,12 @@ int_response_cb(struct http_data *mdata, struct sol_buffer *content, bool json)
     int r;
 
     if (json) {
-        r = sol_buffer_append_printf(content, "{\"value\":%d,\"min\":%d,\"max\":%d,\"step\":%d}",
-            mdata->value.i.val, mdata->value.i.min, mdata->value.i.max, mdata->value.i.step);
+        r = sol_buffer_append_printf(content, "{\"value\":%" PRId32
+            ",\"min\":%" PRId32 ",\"max\":%" PRId32 ",\"step\":%" PRId32 "}",
+            mdata->value.i.val, mdata->value.i.min, mdata->value.i.max,
+            mdata->value.i.step);
     } else {
-        r = sol_buffer_append_printf(content, "%d", mdata->value.i.val);
+        r = sol_buffer_append_printf(content, "%" PRId32, mdata->value.i.val);
     }
 
     return r;
@@ -720,40 +726,44 @@ float_post_cb(struct http_data *mdata, struct sol_flow_node *node,
 }
 
 static int
-float_response_cb(struct http_data *mdata, struct sol_buffer *content, bool json)
+float_response_cb(struct http_data *mdata, struct sol_buffer *content,
+    bool json)
 {
-    int r;
-
-    SOL_BUFFER_DECLARE_STATIC(val, DOUBLE_STRING_LEN);
-
-    r = sol_json_double_to_str(mdata->value.d.val, &val);
-    SOL_INT_CHECK(r, < 0, r);
-
     if (json) {
-        SOL_BUFFER_DECLARE_STATIC(min, DOUBLE_STRING_LEN);
-        SOL_BUFFER_DECLARE_STATIC(max, DOUBLE_STRING_LEN);
-        SOL_BUFFER_DECLARE_STATIC(step, DOUBLE_STRING_LEN);
+        int r;
 
-        r = sol_json_double_to_str(mdata->value.d.min, &min);
+        r = sol_buffer_append_slice(content,
+            sol_str_slice_from_str("{\"value\":"));
+        SOL_INT_CHECK(r, < 0, r);
+        r = sol_json_double_to_str(mdata->value.d.val, content);
         SOL_INT_CHECK(r, < 0, r);
 
-        r = sol_json_double_to_str(mdata->value.d.max, &max);
+        r = sol_buffer_append_slice(content,
+            sol_str_slice_from_str(",\"min\":"));
+        SOL_INT_CHECK(r, < 0, r);
+        r = sol_json_double_to_str(mdata->value.d.min, content);
         SOL_INT_CHECK(r, < 0, r);
 
-        r = sol_json_double_to_str(mdata->value.d.step, &step);
+        r = sol_buffer_append_slice(content,
+            sol_str_slice_from_str(",\"max\":"));
+        SOL_INT_CHECK(r, < 0, r);
+        r = sol_json_double_to_str(mdata->value.d.max, content);
         SOL_INT_CHECK(r, < 0, r);
 
-        r = sol_buffer_append_printf(content,
-            "{\"value\":%.*s,\"min\":%.*s,\"max\":%.*s,\"step\":%.*s}",
-            SOL_STR_SLICE_PRINT(sol_buffer_get_slice(&val)),
-            SOL_STR_SLICE_PRINT(sol_buffer_get_slice(&min)),
-            SOL_STR_SLICE_PRINT(sol_buffer_get_slice(&max)),
-            SOL_STR_SLICE_PRINT(sol_buffer_get_slice(&step)));
-    } else {
-        r = sol_buffer_append_slice(content, sol_buffer_get_slice(&val));
+        r = sol_buffer_append_slice(content,
+            sol_str_slice_from_str(",\"step\":"));
+        SOL_INT_CHECK(r, < 0, r);
+
+        r = sol_json_double_to_str(mdata->value.d.step, content);
+        SOL_INT_CHECK(r, < 0, r);
+
+        r = sol_buffer_append_char(content, '}');
+        SOL_INT_CHECK(r, < 0, r);
+
+        return 0;
     }
 
-    return r;
+    return sol_json_double_to_str(mdata->value.d.val, content);
 }
 
 static void
