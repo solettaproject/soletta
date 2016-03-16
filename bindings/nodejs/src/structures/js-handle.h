@@ -51,15 +51,22 @@ public:
 
         return returnValue;
     }
+
+    // If the object is not of the expected type, or if the pointer inside the
+    // object has already been removed, then we must throw an error
     static void *
     Resolve(v8::Local<v8::Object> jsObject)
     {
-        if (!Nan::New(theTemplate())->HasInstance(jsObject)) {
+        void *returnValue = 0;
+
+        if (Nan::New(theTemplate())->HasInstance(jsObject)) {
+            returnValue = Nan::GetInternalFieldPointer(jsObject, 0);
+        }
+        if (!returnValue) {
             Nan::ThrowTypeError((std::string("Object is not of type ") +
                 T::jsClassName()).c_str());
-            return 0;
         }
-        return Nan::GetInternalFieldPointer(jsObject, 0);
+        return returnValue;
     }
 };
 

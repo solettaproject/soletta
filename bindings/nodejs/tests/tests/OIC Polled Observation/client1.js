@@ -16,16 +16,4 @@
  * limitations under the License.
  */
 
-#include "js-handle.h"
-
-using namespace v8;
-
-UnrefData::UnrefData(void *_data, void (*_unref)(void *), Local<Object> js):
-    data(_data), unref(_unref), persistent(new Nan::Persistent<Object>(js)) {
-}
-
-UnrefData::~UnrefData() {
-    unref(data);
-    persistent->Reset();
-    delete persistent;
-}
+require( "../../observation-client" )( "Client 1: ", 2, 2 );

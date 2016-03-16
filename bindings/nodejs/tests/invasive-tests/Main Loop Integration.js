@@ -1,3 +1,21 @@
+/*
+ * This file is part of the Soletta Project
+ *
+ * Copyright (C) 2015 Intel Corporation. All rights reserved.
+ *
+ * Licensed under the Apache License, Version 2.0 (the "License");
+ * you may not use this file except in compliance with the License.
+ * You may obtain a copy of the License at
+ *
+ *     http://www.apache.org/licenses/LICENSE-2.0
+ *
+ * Unless required by applicable law or agreed to in writing, software
+ * distributed under the License is distributed on an "AS IS" BASIS,
+ * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+ * See the License for the specific language governing permissions and
+ * limitations under the License.
+ */
+
 var async = require( "async" );
 var utils = require( "../assert-to-console" );
 var soletta = require( require( "path" )
@@ -6,7 +24,7 @@ var exec = require( "child_process" ).exec;
 var initialHostname = require( "os" ).hostname();
 var initialTimezone, destinationTimezone;
 
-console.log( JSON.stringify( { assertionCount: 3 } ) );
+console.log( JSON.stringify( { assertionCount: 5 } ) );
 
 // commands like sudo don't like having an LD_PRELOAD
 delete process.env.LD_PRELOAD;
@@ -88,7 +106,17 @@ async.series( [
 	},
 
 	function deleteTimezoneMonitorAndRestoreTimezone( callback ) {
+		var theError = {};
 		soletta.sol_platform_del_timezone_monitor( timezoneMonitor );
+		try {
+			soletta.sol_platform_del_timezone_monitor( timezoneMonitor );
+		} catch( anError ) {
+			theError = anError;
+		}
+		utils.assert( "strictEqual", theError instanceof TypeError, true,
+			"Attempting to delete a monitor twice throws a TypeError" );
+		utils.assert( "strictEqual", theError.message, "Object is not of type SolPlatformMonitor",
+			"The message of the TypeError is as expected" );
 		exec( "sudo timedatectl set-timezone " + initialTimezone, callback );
 	}
 ], function( error ) {

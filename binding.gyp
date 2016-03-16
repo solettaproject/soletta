@@ -46,8 +46,17 @@
 						"bindings/nodejs/src/hijack.cc",
 						"bindings/nodejs/src/data.cc",
 						"bindings/nodejs/src/sol-uv-integration.c",
+						"bindings/nodejs/src/structures/oic-client.cc",
+						"bindings/nodejs/src/structures/network.cc",
 						"bindings/nodejs/src/structures/js-handle.cc",
+						"bindings/nodejs/src/structures/oic-map.cc",
+						"bindings/nodejs/src/structures/device-id.cc",
+						"bindings/nodejs/src/functions/oic-client-common.cc",
+						"bindings/nodejs/src/functions/oic-client-discovery.cc",
+						"bindings/nodejs/src/functions/sol-network.cc",
 						"bindings/nodejs/src/functions/sol-platform-monitors.cc",
+						"bindings/nodejs/src/functions/oic-server.cc",
+						"bindings/nodejs/src/functions/oic-client-resource-ops.cc",
 						"bindings/nodejs/src/functions/simple.cc"
 					],
 					"include_dirs": [
