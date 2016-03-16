@@ -254,7 +254,7 @@ fail:
  * mainloop terminates.
  */
 SOL_API sd_bus *
-sol_bus_get(void (*bus_initialized)(sd_bus *bus))
+sol_bus_get(int (*bus_initialized)(sd_bus *bus))
 {
     int r;
 
@@ -271,15 +271,17 @@ sol_bus_get(void (*bus_initialized)(sd_bus *bus))
 
     sol_ptr_vector_init(&_ctx.clients);
 
-    if (bus_initialized)
-        bus_initialized(_ctx.bus);
+    if (bus_initialized) {
+        r = bus_initialized(_ctx.bus);
+        SOL_INT_CHECK_GOTO(r, < 0, exit);
+    }
 
     return _ctx.bus;
 
 fail:
     SOL_WRN("D-Bus requested but connection could not be made");
     sol_quit();
-
+exit:
     return NULL;
 }
 
