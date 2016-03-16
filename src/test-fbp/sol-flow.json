@@ -89,6 +89,10 @@
                 {
                     "name": "drange_def",
                     "size": 32
+                },
+                {
+                    "name": "rgb",
+                    "size": 24
                 }
             ]
         }

@@ -744,4 +744,70 @@ persist_string_close(struct sol_flow_node *node, void *data)
     persist_close(node, mdata);
 }
 
+struct persist_rgb_data {
+    struct persist_data base;
+    struct sol_rgb default_rgb;
+    struct sol_rgb last_value;
+};
+
+static struct sol_flow_packet *
+persist_rgb_packet_new_packet(const struct persist_data *data)
+{
+    struct persist_rgb_data *mdata =
+        (struct persist_rgb_data *)data;
+
+    return sol_flow_packet_new_rgb(&mdata->last_value);
+}
+
+static int
+persist_rgb_data_get(size_t packet_data_size,
+    const struct sol_flow_packet *packet, void *value_ptr)
+{
+    int r = sol_flow_packet_get_rgb(packet, value_ptr);
+
+    SOL_INT_CHECK(r, < 0, r);
+    return 0;
+}
+
+static int
+persist_rgb_send_packet(struct sol_flow_node *node)
+{
+    struct persist_data *mdata = sol_flow_node_get_private_data(node);
+
+    return sol_flow_send_rgb_packet(node,
+        SOL_FLOW_NODE_TYPE_PERSISTENCE_RGB__OUT__OUT,
+        (struct sol_rgb *)mdata->value_ptr);
+}
+
+static void *
+persist_rgb_get_default(struct sol_flow_node *node)
+{
+    struct persist_rgb_data *mdata = sol_flow_node_get_private_data(node);
+
+    return &mdata->default_rgb;
+}
+
+static int
+persist_rgb_open(struct sol_flow_node *node,
+    void *data,
+    const struct sol_flow_node_options *options)
+{
+    struct persist_rgb_data *mdata = data;
+    const struct sol_flow_node_type_persistence_rgb_options *opts =
+        (const struct sol_flow_node_type_persistence_rgb_options *)options;
+
+    SOL_FLOW_NODE_OPTIONS_SUB_API_CHECK(options,
+        SOL_FLOW_NODE_TYPE_PERSISTENCE_RGB_OPTIONS_API_VERSION, -EINVAL);
+
+    mdata->base.packet_data_size = sizeof(struct sol_rgb);
+    mdata->base.packet_new_fn = persist_rgb_packet_new_packet;
+    mdata->base.packet_data_get_fn = persist_rgb_data_get;
+    mdata->base.packet_send_fn = persist_rgb_send_packet;
+    mdata->base.node_get_default_fn = persist_rgb_get_default;
+    mdata->default_rgb = opts->default_value;
+    mdata->base.value_ptr = &mdata->last_value;
+
+    return persist_open(node, data, opts->storage, opts->name);
+}
+
 #include "persistence-gen.c"

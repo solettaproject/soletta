@@ -40,6 +40,7 @@ validator_drange_map(test/float-validator:sequence="56.0")
 validator_int_map(test/int-validator:sequence="49")
 validator_int_val_only_map(test/int-validator:sequence="100")
 validator_irange_map(test/int-validator:sequence="37")
+validator_rgb(test/int-validator:sequence="255 123 55")
 
 int_map(int/map:output_range=min:0|max:100|step:1)
 int_only_val_map(int/map:output_range=min:0|max:100|step:1)
@@ -49,6 +50,9 @@ double_map(float/map:output_range=min:0|max:100|step:1)
 double_only_val_map(float/map:output_range=min:0|max:100|step:1)
 drange_map(float/map:output_range=min:0|max:100|step:1)
 
+persist_rgb(persistence/rgb:storage="memmap", name="rgb") OUT -> IN rgb_to_int(converter/rgb-to-int) RED -> IN validator_rgb OUT -> RESULT _(test/result)
+rgb_to_int GREEN -> IN validator_rgb
+rgb_to_int BLUE -> IN validator_rgb
 persist_int(persistence/int:storage="memmap",name="int")
 persist_int_only_val(persistence/int:storage="memmap",name="int_only_val",store_only_val=true,default_value=30,default_value_spec=-12|30|1)
 persist_irange(persistence/int:storage="memmap",name="irange")
