@@ -93,6 +93,10 @@
                 {
                     "name": "rgb",
                     "size": 24
+                },
+                {
+                    "name": "dir_vector",
+                    "size": 40
                 }
             ]
         }

@@ -384,6 +384,67 @@
       ],
       "private_data_type": "persist_rgb_data",
       "url": "http://solettaproject.org/doc/latest/components/persistence.html"
+    },
+    {
+      "category": "io/persistence",
+      "description": "Persists the last input packet's data it receives to storage, also repeating that packet on output port. If the value is unchanged, then the packet is not repeated, this allows the use of persistence in feedback loops with setters of data to be persisted. Note that upon a new connection on the unique output port, if a previous stored packet is found, it will already be sent.",
+      "methods": {
+        "close": "persist_close",
+        "open": "persist_direction_vector_open"
+      },
+      "name": "persistence/direction-vector",
+      "options": {
+        "members": [
+          {
+            "data_type": "string",
+            "description": "Name to persist a direction-vector packet. If 'storage' is 'fs', name can be a fully fledged path to the file where the value will be stored.",
+            "name": "name"
+          },
+          {
+            "data_type": "string",
+            "description": "Storage where data will be persisted. It can be of the following: fs, efivars",
+            "name": "storage"
+          },
+          {
+            "data_type": "direction-vector",
+            "default": {
+              "x": 0,
+              "y": 0,
+              "z": 0
+            },
+            "description": "Default value for this node, when there's no previous value persisted",
+            "name": "default_value"
+          }
+        ],
+        "version": 1
+      },
+      "in_ports": [
+        {
+          "data_type": "direction-vector",
+          "description": "A RGB packet to persist (and repeat on output)",
+          "methods": {
+            "process": "persist_process"
+          },
+          "name": "IN"
+        },
+        {
+          "data_type": "any",
+          "description": "Reset persist value to its default and send to output the new value",
+          "methods": {
+            "process": "reset_process"
+          },
+          "name": "RESET"
+        }
+      ],
+      "out_ports": [
+        {
+          "data_type": "direction-vector",
+          "description": "A RGB packet with the persisted value of the node",
+          "name": "OUT"
+        }
+      ],
+      "private_data_type": "persist_direction_vector_data",
+      "url": "http://solettaproject.org/doc/latest/components/persistence.html"
     }
   ]
 }
