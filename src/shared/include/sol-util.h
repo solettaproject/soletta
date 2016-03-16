@@ -1038,6 +1038,23 @@ sol_util_le64_to_cpu(uint64_t val)
  */
 int sol_util_unescape_quotes(const struct sol_str_slice slice, struct sol_buffer *buf);
 
+
+/**
+ * @brief Wrapper around strftime()/strftime_l()
+ *
+ * This is a simple wrraper around strftime()/strftime_l() functions. The
+ * @c use_locale parameter is only considered if strftime_l() and newlocale() is
+ * available, otherwise this wrapper will fallback to strftime() - Thus current system's
+ * locale will be considered when formatting the time.
+ *
+ * @param buf The buffer to append the formated time - It must be already initialzed.
+ * @param format The date format - check strftime man page for accepted formats.
+ * @param timeptr The broken down time struct.
+ * @param use_locale true to use current system locale or false to do not use system's locale.
+ * @return The number of bytes writte, negative errno or 0 on error. (see strftime man page).
+ */
+ssize_t sol_util_strftime(struct sol_buffer *buf, const char *format, const struct tm *timeptr, bool use_locale) SOL_ATTR_STRFTIME(2);
+
 /**
  * @}
  */

@@ -38,7 +38,7 @@ struct sol_uuid {
     uint8_t bytes[16];
 };
 
-#if defined(HAVE_NEWLOCALE) && defined(HAVE_STRTOD_L)
+#if defined(HAVE_NEWLOCALE) && (defined(HAVE_STRTOD_L) || defined(HAVE_STRFTIME_L))
 static locale_t c_locale;
 static void
 clear_c_locale(void)
@@ -1004,12 +1004,10 @@ sol_util_unescape_quotes(const struct sol_str_slice slice,
 
         if (len > 0) {
             sol_buffer_init_flags(buf, txt_start, len,
-                SOL_BUFFER_FLAGS_MEMORY_NOT_OWNED |
-                SOL_BUFFER_FLAGS_NO_NUL_BYTE);
+                SOL_BUFFER_FLAGS_MEMORY_NOT_OWNED);
             buf->used = buf->capacity;
         } else {
-            buf->flags |= SOL_BUFFER_FLAGS_MEMORY_NOT_OWNED |
-                SOL_BUFFER_FLAGS_NO_NUL_BYTE;
+            buf->flags |= SOL_BUFFER_FLAGS_MEMORY_NOT_OWNED;
         }
     } else {
         size_t len = slice.len - (last_append + (((char *)slice.data + slice.len) - txt_end) - 1);
@@ -1025,4 +1023,41 @@ sol_util_unescape_quotes(const struct sol_str_slice slice,
 err_exit:
     sol_buffer_fini(buf);
     return r;
+}
+
+ssize_t
+sol_util_strftime(struct sol_buffer *buf, const char *format,
+    const struct tm *timeptr, bool use_locale)
+{
+    size_t used;
+
+    SOL_NULL_CHECK(buf, -EINVAL);
+    SOL_NULL_CHECK(format, -EINVAL);
+    SOL_NULL_CHECK(timeptr, -EINVAL);
+
+#if defined(HAVE_NEWLOCALE) && defined(HAVE_STRFTIME_L)
+    if (!use_locale) {
+        if (!init_c_locale()) {
+            int r = -errno;
+            SOL_WRN("Could not init the 'C' locale");
+            return r;
+        }
+
+        used = strftime_l(sol_buffer_at_end(buf),
+            buf->capacity - buf->used, format, timeptr, c_locale);
+        buf->used += used;
+        return used;
+    }
+#endif
+
+    /**
+       Even with SOL_ATTR_STRFTIME() GCC still wrans that the format parameter was net checked.
+       This is a known GCC bug: https://gcc.gnu.org/bugzilla/show_bug.cgi?id=39438
+       This cast was suggested in order to make the compiler happy.
+     */
+    used = ((size_t (*)(char *, size_t, const char *, const struct tm *))strftime)
+            (sol_buffer_at_end(buf),
+            buf->capacity - buf->used, format, timeptr);
+    buf->used += used;
+    return used;
 }
