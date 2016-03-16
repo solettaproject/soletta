@@ -517,6 +517,22 @@ base16_encode_digit(const uint8_t nibble, const char a)
 }
 
 SOL_API ssize_t
+sol_util_base64_calculate_decoded_len(const struct sol_str_slice slice, const char base64_map[SOL_STATIC_ARRAY_SIZE(65)])
+{
+    size_t req_len = (slice.len / 4) * 3;
+    size_t i;
+
+    for (i = slice.len; i > 0; i--) {
+        if (slice.data[i - 1] != base64_map[64])
+            break;
+        req_len--;
+    }
+    if (req_len > SSIZE_MAX)
+        return -EOVERFLOW;
+    return req_len;
+}
+
+SOL_API ssize_t
 sol_util_base16_encode(void *buf, size_t buflen, const struct sol_str_slice slice, bool uppercase)
 {
     char *output, a;
