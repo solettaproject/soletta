@@ -23,7 +23,7 @@
 
 #define SOL_LOG_DOMAIN &_sol_oic_server_log_domain
 
-#include "cbor.h"
+#include "tinycbor/cbor.h"
 #include "sol-coap.h"
 #include "sol-json.h"
 #include "sol-log-internal.h"

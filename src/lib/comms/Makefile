@@ -35,18 +35,30 @@ obj-networking-$(COAP) += \
     coap.o \
     sol-coap.o
 
-obj-networking-$(OIC) += \
-    sol-oic-cbor.o \
-    sol-oic-client.o \
-    sol-oic-common.o \
-    sol-oic-server.o \
+obj-$(OIC) += tinycbor.mod
+
+obj-tinycbor-y = \
     $(TINYCBOR_SRC_PATH)/cborencoder.o \
     $(TINYCBOR_SRC_PATH)/cborerrorstrings.o \
     $(TINYCBOR_SRC_PATH)/cborparser.o \
     $(TINYCBOR_SRC_PATH)/cborpretty.o
 
+obj-tinycbor-private-headers += \
+    $(TINYCBOR_SRC_PATH)/cbor.h
+
+obj-tinycbor-y-extra-cflags += \
+    -Wno-cpp \
+    -Wno-declaration-after-statement \
+    -Wno-float-equal \
+    -Wno-undef
+
+obj-networking-$(OIC) += \
+    sol-oic-cbor.o \
+    sol-oic-client.o \
+    sol-oic-common.o \
+    sol-oic-server.o \
+
 obj-networking-$(OIC)-extra-cflags += \
-    -I$(TINYCBOR_SRC_PATH) \
     -Wno-cpp \
     -Wno-declaration-after-statement \
     -Wno-float-equal \

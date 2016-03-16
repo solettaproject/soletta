@@ -22,7 +22,7 @@
 #include <stdlib.h>
 #include <string.h>
 
-#include "cbor.h"
+#include "tinycbor/cbor.h"
 #include "sol-coap.h"
 #include "sol-log-internal.h"
 #include "sol-macros.h"
