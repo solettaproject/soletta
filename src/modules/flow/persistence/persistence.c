@@ -810,4 +810,71 @@ persist_rgb_open(struct sol_flow_node *node,
     return persist_open(node, data, opts->storage, opts->name);
 }
 
+struct persist_direction_vector_data {
+    struct persist_data base;
+    struct sol_direction_vector default_direction_vector;
+    struct sol_direction_vector last_value;
+};
+
+static struct sol_flow_packet *
+persist_direction_vector_packet_new_packet(const struct persist_data *data)
+{
+    struct persist_direction_vector_data *mdata =
+        (struct persist_direction_vector_data *)data;
+
+    return sol_flow_packet_new_direction_vector(&mdata->last_value);
+}
+
+static int
+persist_direction_vector_data_get(size_t packet_data_size,
+    const struct sol_flow_packet *packet, void *value_ptr)
+{
+    int r = sol_flow_packet_get_direction_vector(packet, value_ptr);
+
+    SOL_INT_CHECK(r, < 0, r);
+    return 0;
+}
+
+static int
+persist_direction_vector_send_packet(struct sol_flow_node *node)
+{
+    struct persist_data *mdata = sol_flow_node_get_private_data(node);
+
+    return sol_flow_send_direction_vector_packet(node,
+        SOL_FLOW_NODE_TYPE_PERSISTENCE_DIRECTION_VECTOR__OUT__OUT,
+        (struct sol_direction_vector *)mdata->value_ptr);
+}
+
+static void *
+persist_direction_vector_get_default(struct sol_flow_node *node)
+{
+    struct persist_direction_vector_data *mdata =
+        sol_flow_node_get_private_data(node);
+
+    return &mdata->default_direction_vector;
+}
+
+static int
+persist_direction_vector_open(struct sol_flow_node *node,
+    void *data,
+    const struct sol_flow_node_options *options)
+{
+    struct persist_direction_vector_data *mdata = data;
+    const struct sol_flow_node_type_persistence_direction_vector_options *opts =
+        (const struct sol_flow_node_type_persistence_direction_vector_options *)options;
+
+    SOL_FLOW_NODE_OPTIONS_SUB_API_CHECK(options,
+        SOL_FLOW_NODE_TYPE_PERSISTENCE_DIRECTION_VECTOR_OPTIONS_API_VERSION, -EINVAL);
+
+    mdata->base.packet_data_size = sizeof(struct sol_direction_vector);
+    mdata->base.packet_new_fn = persist_direction_vector_packet_new_packet;
+    mdata->base.packet_data_get_fn = persist_direction_vector_data_get;
+    mdata->base.packet_send_fn = persist_direction_vector_send_packet;
+    mdata->base.node_get_default_fn = persist_direction_vector_get_default;
+    mdata->default_direction_vector = opts->default_value;
+    mdata->base.value_ptr = &mdata->last_value;
+
+    return persist_open(node, data, opts->storage, opts->name);
+}
+
 #include "persistence-gen.c"
