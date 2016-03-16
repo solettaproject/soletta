@@ -107,7 +107,7 @@ sol_platform_impl_set_target(const char *target)
     return -ENOTSUP;
 }
 
-#ifdef CPUID_ID_LEN
+#ifdef CPUID_LEN
 static inline char
 to_hex(int num)
 {
@@ -135,12 +135,12 @@ serial_to_string(const char *buf, size_t len, char *dst)
 int
 sol_platform_impl_get_machine_id(char id[SOL_STATIC_ARRAY_SIZE(33)])
 {
-#ifdef CPUID_ID_LEN
-    char cpuid[CPUID_ID_LEN];
+#ifdef CPUID_LEN
+    char cpuid[CPUID_LEN];
 
     /* Assume, for now, the the cpuid we get is a valid UUID */
     cpuid_get(cpuid);
-    serial_to_string(cpuid, CPUID_ID_LEN, id);
+    serial_to_string(cpuid, CPUID_LEN, id);
 
     return 0;
 #else
@@ -151,17 +151,17 @@ sol_platform_impl_get_machine_id(char id[SOL_STATIC_ARRAY_SIZE(33)])
 int
 sol_platform_impl_get_serial_number(char **number)
 {
-#ifdef CPUID_ID_LEN
-    char cpuid[CPUID_ID_LEN];
+#ifdef CPUID_LEN
+    char cpuid[CPUID_LEN];
 
     if (!number)
         return -EINVAL;
 
-    *number = malloc(CPUID_ID_LEN * 2 + 1);
+    *number = malloc(CPUID_LEN * 2 + 1);
     SOL_NULL_CHECK(*number, -ENOMEM);
 
     cpuid_get(cpuid);
-    serial_to_string(cpuid, CPUID_ID_LEN, *number);
+    serial_to_string(cpuid, CPUID_LEN, *number);
 
     return 0;
 #else
