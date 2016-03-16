@@ -41,6 +41,7 @@ validator_int_map(test/int-validator:sequence="49")
 validator_int_val_only_map(test/int-validator:sequence="100")
 validator_irange_map(test/int-validator:sequence="37")
 validator_rgb(test/int-validator:sequence="255 123 55")
+validator_dir_vector(test/float-validator:sequence="23.4 100.2 -23.2")
 
 int_map(int/map:output_range=min:0|max:100|step:1)
 int_only_val_map(int/map:output_range=min:0|max:100|step:1)
@@ -49,6 +50,10 @@ irange_map(int/map:output_range=min:0|max:100|step:1)
 double_map(float/map:output_range=min:0|max:100|step:1)
 double_only_val_map(float/map:output_range=min:0|max:100|step:1)
 drange_map(float/map:output_range=min:0|max:100|step:1)
+
+persist_dir_vector(persistence/direction-vector:storage="memmap", name="dir_vector") OUT -> IN dir_vector_to_float(converter/direction-vector-to-float) X -> IN validator_dir_vector OUT -> RESULT _(test/result)
+dir_vector_to_float Y -> IN validator_dir_vector
+dir_vector_to_float Z -> IN validator_dir_vector
 
 persist_rgb(persistence/rgb:storage="memmap", name="rgb") OUT -> IN rgb_to_int(converter/rgb-to-int) RED -> IN validator_rgb OUT -> RESULT _(test/result)
 rgb_to_int GREEN -> IN validator_rgb
