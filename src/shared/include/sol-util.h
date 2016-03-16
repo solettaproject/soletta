@@ -517,21 +517,8 @@ sol_util_base64_calculate_encoded_len(const struct sol_str_slice slice, const ch
  * @return the size that will be utilized to decode the @c slice or a
  * negative number on error.
  */
-static inline ssize_t
-sol_util_base64_calculate_decoded_len(const struct sol_str_slice slice, const char base64_map[SOL_STATIC_ARRAY_SIZE(65)])
-{
-    size_t req_len = (slice.len / 4) * 3;
-    size_t i;
-
-    for (i = slice.len; i > 0; i--) {
-        if (slice.data[i - 1] != base64_map[64])
-            break;
-        req_len--;
-    }
-    if (req_len > SSIZE_MAX)
-        return -EOVERFLOW;
-    return req_len;
-}
+ssize_t
+sol_util_base64_calculate_decoded_len(const struct sol_str_slice slice, const char base64_map[SOL_STATIC_ARRAY_SIZE(65)]);
 
 /**
  * @brief Encode the binary slice to base16 (hexadecimal).
