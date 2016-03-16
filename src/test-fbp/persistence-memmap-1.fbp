@@ -35,6 +35,7 @@ boolean(constant/boolean:value=true)
 string(constant/string:value="string")
 double(constant/float:value=2.568)
 drange(constant/float:value=5.5,value_spec=-40.0|40.0|0.4)
+rgb(constant/rgb:value=255|123|55)
 
 validator_int(test/int-validator:sequence="0 -12")
 validator_irange(test/int-validator:sequence="0 -13")
@@ -42,6 +43,7 @@ validator_byte(test/int-validator:sequence="0 73")
 validator_boolean(test/boolean-validator:sequence="FT")
 validator_string(test/string-validator:sequence="|string")
 validator_double(test/float-validator:sequence="0 2.568")
+validator_rgb(test/int-validator:sequence="0 0 0 255 123 55")
 
 int_map(int/map:output_range=min:0|max:100|step:1)
 int_only_val_map(int/map:output_range=min:0|max:100|step:1)
@@ -59,6 +61,12 @@ validator_float_map(test/float-validator:sequence="50.0 50.0")
 validator_float_val_only_map(test/float-validator:sequence="0.0 0.0")
 validator_drange(test/float-validator:sequence="0.0 5.5")
 validator_drange_map(test/float-validator:sequence="50.0 56.0")
+
+persist_rgb(persistence/rgb:storage="memmap", name="rgb")
+rgb OUT -> IN persist_rgb OUT -> IN rgb_to_int(converter/rgb-to-int)
+rgb_to_int RED -> IN validator_rgb OUT -> RESULT _(test/result)
+rgb_to_int GREEN -> IN validator_rgb
+rgb_to_int BLUE -> IN validator_rgb
 
 persist_int(persistence/int:storage="memmap",name="int")
 int OUT -> IN persist_int OUT -> IN validator_int OUT -> RESULT _(test/result)
