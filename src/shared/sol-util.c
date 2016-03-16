@@ -1004,12 +1004,10 @@ sol_util_unescape_quotes(const struct sol_str_slice slice,
 
         if (len > 0) {
             sol_buffer_init_flags(buf, txt_start, len,
-                SOL_BUFFER_FLAGS_MEMORY_NOT_OWNED |
-                SOL_BUFFER_FLAGS_NO_NUL_BYTE);
+                SOL_BUFFER_FLAGS_MEMORY_NOT_OWNED);
             buf->used = buf->capacity;
         } else {
-            buf->flags |= SOL_BUFFER_FLAGS_MEMORY_NOT_OWNED |
-                SOL_BUFFER_FLAGS_NO_NUL_BYTE;
+            buf->flags |= SOL_BUFFER_FLAGS_MEMORY_NOT_OWNED;
         }
     } else {
         size_t len = slice.len - (last_append + (((char *)slice.data + slice.len) - txt_end) - 1);
