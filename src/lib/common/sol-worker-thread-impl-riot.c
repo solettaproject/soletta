@@ -17,6 +17,7 @@
  */
 
 #include <errno.h>
+#include <irq.h>
 #include <mutex.h>
 #include <thread.h>
 
@@ -137,7 +138,7 @@ end:
     disableIRQ();
     __atomic_store_n(&thread->finished, true, __ATOMIC_SEQ_CST);
     if (thread->waiting_join != KERNEL_PID_UNDEF)
-        sched_set_status((tcb_t *)sched_threads[thread->waiting_join], STATUS_PENDING);
+        sched_set_status((thread_t *)sched_threads[thread->waiting_join], STATUS_PENDING);
 
     return thread;
 }

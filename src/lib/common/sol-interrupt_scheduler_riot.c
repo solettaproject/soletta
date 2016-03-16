@@ -150,7 +150,7 @@ sol_interrupt_scheduler_gpio_stop(gpio_t dev, void *handler)
 /* Run in interrupt context */
 #ifdef USE_UART
 static void
-uart_rx_cb(void *data, char char_read)
+uart_rx_cb(void *data, uint8_t char_read)
 {
     struct uart_interrupt_data *int_data = data;
 

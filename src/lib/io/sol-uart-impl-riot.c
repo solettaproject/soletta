@@ -49,7 +49,7 @@ struct sol_uart {
 };
 
 static void
-uart_rx_cb(void *arg, char data)
+uart_rx_cb(void *arg, uint8_t data)
 {
     struct sol_uart *uart = arg;
 
