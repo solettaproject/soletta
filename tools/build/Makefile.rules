@@ -34,6 +34,19 @@ extra-headers = \
 		) \
 	) \
 
+private-headers = \
+	$(foreach hdr,$(1), \
+		$(if $(filter %.h.in,$(hdr)), \
+			$(eval gen-file      := $(subst .h.in,.h,$(hdr))) \
+			$(eval $(hdr)-dest   := $(build_stagedir)include/$(2)/$(notdir $(gen-file))) \
+			$(eval all-templates += $(hdr)) \
+		, \
+			$(eval $(hdr)-dest  := $(build_stagedir)include/$(2)/$(notdir $(hdr))) \
+			$(eval all-priv-hdr += $(hdr)) \
+			$(eval all-dest-hdr += $($(hdr)-dest)) \
+		) \
+	) \
+
 artifact-path = $(foreach curr,$(1), \
 			$(if $(wildcard $(top_srcdir)$(2)/$(subst .o,.c,$(curr))), \
 				$(eval intree := y), \
@@ -66,6 +79,7 @@ parse-common-module = \
 	$(eval $(4)-cflags  += $(obj-$(1)-m-extra-cflags)) \
 	$(eval $(4)-ldflags := $(obj-$(1)-y-extra-ldflags)) \
 	$(eval $(4)-ldflags += $(obj-$(1)-m-extra-ldflags)) \
+	$(if $(obj-$(1)-private-headers),$(call private-headers,$(obj-$(1)-private-headers),$(1))) \
 	$(eval $(4)-bs      := $(addprefix $(2),Makefile)) \
 	$(eval $(4)-bs      += $(if $(wildcard $(2)/Kconfig),$(addprefix $(2),Kconfig))) \
 	$(eval $(4)-hdrs    := $(filter %.h,$(artifacts))) \
@@ -252,6 +266,7 @@ $($(1)-dest): $(1)
 	$(Q)$(CP) $(1) $($(1)-dest)
 endef
 $(foreach hdr,$(all-hdr),$(eval $(call make-extra-header,$(hdr))))
+$(foreach hdr,$(all-priv-hdr),$(eval $(call make-extra-header,$(hdr))))
 
 define make-extra-bin
 $($(1)-dest): $(1)

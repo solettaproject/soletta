@@ -18,7 +18,7 @@
 
 #pragma once
 
-#include "cbor.h"
+#include "tinycbor/cbor.h"
 #include "sol-coap.h"
 #include "sol-oic-common.h"
 #include "sol-vector.h"
