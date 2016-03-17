@@ -103,17 +103,6 @@ struct sol_i2c {
 #define BUSY_CHECK(i2c, ret) SOL_EXP_CHECK(i2c->async.timeout, ret);
 #endif
 
-static int
-_i2c_open_device_file(const char *i2c_dev_path, int len)
-{
-    if (len < 0 || len >= PATH_MAX) {
-        SOL_WRN("i2c: could not format device path");
-        return -1;
-    }
-
-    return open(i2c_dev_path, O_RDWR | O_CLOEXEC);
-}
-
 SOL_API struct sol_i2c *
 sol_i2c_open_raw(uint8_t bus, enum sol_i2c_speed speed)
 {
@@ -125,26 +114,23 @@ sol_i2c_open_raw(uint8_t bus, enum sol_i2c_speed speed)
     SOL_LOG_INTERNAL_INIT_ONCE;
 
     len = snprintf(i2c_dev_path, sizeof(i2c_dev_path), "/dev/i2c-%u", bus);
-    dev = _i2c_open_device_file(i2c_dev_path, len);
-    if (dev < 0) {
-        SOL_INF("i2c #%u: could not open at /dev/", bus);
-
-        len = snprintf(i2c_dev_path, sizeof(i2c_dev_path),
-            "/sys/class/i2c-adapter/i2c-%u", bus);
-        dev = _i2c_open_device_file(i2c_dev_path, len);
-        if (dev < 0) {
-            SOL_WRN("i2c #%u: could not open at /sys/class/i2c-adapter/", bus);
-            return NULL;
-        }
+    if (len < 0 || len >= PATH_MAX) {
+        SOL_WRN("i2c #%u: could not format device path", bus);
+        return NULL;
     }
 
     i2c = calloc(1, sizeof(*i2c));
     if (!i2c) {
         SOL_WRN("i2c #%u: could not allocate i2c context", bus);
-        close(dev);
+        errno = ENOMEM;
         return NULL;
     }
 
+    dev = open(i2c_dev_path, O_RDWR | O_CLOEXEC);
+    if (dev < 0) {
+        SOL_WRN("i2c #%u: could not open device file", bus);
+        goto open_error;
+    }
     i2c->bus = bus;
     i2c->dev = dev;
 
@@ -158,6 +144,7 @@ sol_i2c_open_raw(uint8_t bus, enum sol_i2c_speed speed)
 
 ioctl_error:
     close(i2c->dev);
+open_error:
     free(i2c);
     return NULL;
 }
