@@ -3,11 +3,19 @@ Thirdparty
 
 - Duktape
       - Site/Repository: http://duktape.org / https://github.com/svaarala/duktape
-      - Version: 1.2.2
       - License: MIT - src/thirdparty/duktape/LICENSE.txt
       - Duktape is an embeddable Javascript engine, with focus on
         portabillity and compact footprint. This is used in order
         to create JS node types in flow.
+
+- MAVLink
+      - Repository/Generated: https://github.com/mavlink/mavlink / https://github.com/mavlink/c_library
+      - License: LGPLv3
+        "The C-language version of MAVLink is a header-only library,
+        and as such compiling an application with it is considered
+        "using the library", not a derived work (copied from Readme.md)
+      - Lightweight communication protocol between Micro Air Vehicles (swarm)
+        and/or ground control stations.
 
 - TinyCBOR
       - Repository: https://github.com/01org/tinycbor
