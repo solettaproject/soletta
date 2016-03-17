@@ -1525,6 +1525,15 @@ client_resource_close(struct client_resource *resource)
     sol_oic_client_del(resource->client);
 }
 
+static void
+client_resource_update_ack(sol_coap_responsecode_t response_code, struct sol_oic_client *cli, const struct sol_network_link_addr *addr,
+    const struct sol_oic_map_reader *repr_vec, void *data)
+{
+    struct client_resource *resource = data;
+
+    resource->funcs->inform_flow(resource);
+}
+
 static bool
 client_resource_perform_update(void *data)
 {
@@ -1535,7 +1544,8 @@ client_resource_perform_update(void *data)
     SOL_NULL_CHECK_GOTO(resource->funcs->to_repr_vec, disable_timeout);
 
     r = sol_oic_client_resource_request(resource->client, resource->resource,
-        SOL_COAP_METHOD_PUT, resource->funcs->to_repr_vec, resource, NULL, NULL);
+        SOL_COAP_METHOD_PUT, resource->funcs->to_repr_vec, resource,
+        client_resource_update_ack, data);
     if (r < 0) {
         SOL_WRN("Could not send update request to resource, will try again");
         return true;
