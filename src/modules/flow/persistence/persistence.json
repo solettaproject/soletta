@@ -14,6 +14,17 @@
         "close": "persist_close",
         "open": "persist_boolean_open"
       },
+      "node_type": {
+        "access": [
+          "base"
+        ],
+        "data_type": "struct persistence_node_type",
+        "extra_methods": {
+          "get_packet_data": "persist_boolean_get_packet_data",
+          "send_packet": "persist_boolean_send_packet",
+          "get_default": "persist_boolean_get_default"
+        }
+      },
       "name": "persistence/boolean",
       "options": {
         "members": [
@@ -72,6 +83,17 @@
         "open": "persist_byte_open"
       },
       "name": "persistence/byte",
+      "node_type": {
+        "access": [
+          "base"
+        ],
+        "data_type": "struct persistence_node_type",
+        "extra_methods": {
+          "get_packet_data": "persist_byte_get_packet_data",
+          "send_packet": "persist_byte_send_packet",
+          "get_default": "persist_byte_get_default"
+        }
+      },
       "options": {
         "members": [
           {
@@ -127,6 +149,17 @@
       "methods": {
         "close": "persist_close",
         "open": "persist_drange_open"
+      },
+      "node_type": {
+        "access": [
+          "base"
+        ],
+        "data_type": "struct persistence_node_type",
+        "extra_methods": {
+          "get_packet_data": "persist_drange_get_packet_data",
+          "send_packet": "persist_drange_send_packet",
+          "get_default": "persist_drange_get_default"
+        }
       },
       "name": "persistence/float",
       "options": {
@@ -201,6 +234,17 @@
         "close": "persist_close",
         "open": "persist_irange_open"
       },
+      "node_type": {
+        "access": [
+          "base"
+        ],
+        "data_type": "struct persistence_node_type",
+        "extra_methods": {
+          "get_packet_data": "persist_irange_get_packet_data",
+          "send_packet": "persist_irange_send_packet",
+          "get_default": "persist_irange_get_default"
+        }
+      },
       "name": "persistence/int",
       "options": {
         "members": [
@@ -274,6 +318,17 @@
         "close": "persist_string_close",
         "open": "persist_string_open"
       },
+      "node_type": {
+        "access": [
+          "base"
+        ],
+        "data_type": "struct persistence_node_type",
+        "extra_methods": {
+          "get_packet_data": "persist_string_get_packet_data",
+          "send_packet": "persist_string_send_packet",
+          "get_default": "persist_string_get_default"
+        }
+      },
       "name": "persistence/string",
       "options": {
         "members": [
@@ -330,6 +385,17 @@
       "methods": {
         "close": "persist_close",
         "open": "persist_rgb_open"
+      },
+      "node_type": {
+        "access": [
+          "base"
+        ],
+        "data_type": "struct persistence_node_type",
+        "extra_methods": {
+          "get_packet_data": "persist_rgb_get_packet_data",
+          "send_packet": "persist_rgb_send_packet",
+          "get_default": "persist_rgb_get_default"
+        }
       },
       "name": "persistence/rgb",
       "options": {
@@ -391,6 +457,17 @@
       "methods": {
         "close": "persist_close",
         "open": "persist_direction_vector_open"
+      },
+      "node_type": {
+        "access": [
+          "base"
+        ],
+        "data_type": "struct persistence_node_type",
+        "extra_methods": {
+          "get_packet_data": "persist_direction_vector_get_packet_data",
+          "send_packet": "persist_direction_vector_send_packet",
+          "get_default": "persist_direction_vector_get_default"
+        }
       },
       "name": "persistence/direction-vector",
       "options": {
