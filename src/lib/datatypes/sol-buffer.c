@@ -135,6 +135,14 @@ sol_buffer_append_bytes(struct sol_buffer *buf, const uint8_t *bytes, size_t siz
 }
 
 SOL_API int
+sol_buffer_append_buffer(struct sol_buffer *buf, const struct sol_buffer *from)
+{
+    SOL_NULL_CHECK(from, -EINVAL);
+
+    return sol_buffer_append_bytes(buf, (uint8_t *)from->data, from->used);
+}
+
+SOL_API int
 sol_buffer_append_slice(struct sol_buffer *buf, const struct sol_str_slice slice)
 {
     return sol_buffer_append_bytes(buf, (uint8_t *)slice.data, slice.len);
