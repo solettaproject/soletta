@@ -420,6 +420,17 @@ int sol_buffer_append_slice(struct sol_buffer *buf, const struct sol_str_slice s
 int sol_buffer_append_bytes(struct sol_buffer *buf, const uint8_t *bytes, size_t size);
 
 /**
+ * @brief Appends the contents of the buffer @c from in the end of @c buf,
+ * reallocating @c if necessary.
+ *
+ * @param dst Destination buffer
+ * @param src The buffer from where the data will be copied
+ *
+ * @return @c 0 on success, error code (always negative) otherwise
+ */
+int sol_buffer_append_buffer(struct sol_buffer *dst, const struct sol_buffer *src);
+
+/**
  * @brief Set the string slice @c slice into @c buf at position @c pos,
  * reallocating if necessary.
  *
