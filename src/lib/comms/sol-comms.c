@@ -22,6 +22,9 @@ extern void sol_http_client_shutdown(void);
 #endif
 extern int sol_network_init(void);
 extern void sol_network_shutdown(void);
+#ifdef OIC
+extern void sol_oic_server_shutdown(void);
+#endif
 
 int sol_comms_init(void);
 void sol_comms_shutdown(void);
@@ -54,6 +57,9 @@ http_error:
 void
 sol_comms_shutdown(void)
 {
+#ifdef OIC
+    sol_oic_server_shutdown();
+#endif
 #ifdef HTTP_CLIENT
     sol_http_client_shutdown();
 #endif
