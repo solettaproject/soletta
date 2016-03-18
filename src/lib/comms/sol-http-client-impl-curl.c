@@ -876,6 +876,7 @@ client_request_internal(enum sol_http_method method,
     const void *data)
 {
     static const struct sol_http_params empty_params = {
+        SOL_SET_API_VERSION(.api_version = SOL_HTTP_PARAM_API_VERSION, )
         .params = SOL_VECTOR_INIT(struct sol_http_param_value)
     };
     static const struct curl_http_method_opt sol_to_curl_method[] = {
@@ -1043,7 +1044,7 @@ sol_http_client_request(enum sol_http_method method,
     struct sol_http_client_connection *pending;
     const struct sol_http_request_interface *interface =
         &(struct sol_http_request_interface) {
-        SOL_SET_API_VERSION(.api_version = SOL_HTTP_RESPONSE_API_VERSION, )
+        SOL_SET_API_VERSION(.api_version = SOL_HTTP_REQUEST_INTERFACE_API_VERSION, )
         .response_cb = cb
     };
 
