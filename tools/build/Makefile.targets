@@ -204,8 +204,8 @@ bindings-nodejs: $(SOL_LIB_OUTPUT)
 	$(Q) \
 		SOLETTA_CFLAGS="$(addprefix -I,$(abspath $(HEADERDIRS)))" \
 		SOLETTA_LIBS="$(FIND_LIBRARY_LDFLAGS)" \
-               SOLETTA_CFLAGS="$${SOLETTA_CFLAGS}" SOLETTA_LIBS="$${SOLETTA_LIBS}" $(NODE_GYP) configure && \
-               SOLETTA_CFLAGS="$${SOLETTA_CFLAGS}" SOLETTA_LIBS="$${SOLETTA_LIBS}" $(NODE_GYP) build
+               SOLETTA_CFLAGS="$${SOLETTA_CFLAGS}" SOLETTA_LIBS="$${SOLETTA_LIBS}" $(NODE_GYP) $(NODE_GYP_FLAGS) configure && \
+               SOLETTA_CFLAGS="$${SOLETTA_CFLAGS}" SOLETTA_LIBS="$${SOLETTA_LIBS}" $(NODE_GYP) $(NODE_GYP_FLAGS) build
 
 PHONY += bindings-nodejs
 
