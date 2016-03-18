@@ -50,8 +50,8 @@ scan OUT -> IN _(converter/empty-to-boolean:output_value=false) OUT -> ENABLED s
 
 next OUT -> PULSE_IF_TRUE _(converter/boolean-to-empty) OUT -> NEXT light_selector
 select OUT -> PULSE_IF_TRUE _(converter/boolean-to-empty) OUT -> SELECT light_selector
-light OUT_STATE -> IN status
-light_button OUT -> PULSE_IF_TRUE _(converter/boolean-to-empty) OUT -> IN toggle(boolean/toggle) OUT -> IN_STATE light
+light STATE -> IN status
+light_button OUT -> PULSE_IF_TRUE _(converter/boolean-to-empty) OUT -> IN toggle(boolean/toggle) OUT -> STATE light
 
 #DeviceID Persistence
 light_selector SELECTED -> IN persistence(DeviceIDPersistence)

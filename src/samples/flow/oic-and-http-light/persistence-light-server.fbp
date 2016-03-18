@@ -20,11 +20,11 @@
 # high-level "persist-light-server" that can be used as a single
 # entity
 
-INPORT=power.IN:IN_POWER
-INPORT=state.IN:IN_STATE
+INPORT=power.IN:POWER
+INPORT=state.IN:STATE
 
-OUTPORT=power.OUT:OUT_POWER
-OUTPORT=state.OUT:OUT_STATE
+OUTPORT=power.OUT:POWER
+OUTPORT=state.OUT:STATE
 
 OPTION=power.default_value:default_power
 OPTION=state.default_value:default_state

@@ -40,12 +40,12 @@ oic(oic/client-light)
 cmdline_arguments OUT -> DEVICE_ID oic
 
 # cross-link OIC and controller
-oic OUT_STATE -> STATE controller
-oic OUT_POWER -> POWER controller
+oic STATE -> STATE controller
+oic POWER -> POWER controller
 
-controller STATE -> IN_STATE oic
-controller POWER -> IN_POWER oic
+controller STATE -> STATE oic
+controller POWER -> POWER oic
 
 # inform the user when server changed
-oic OUT_STATE -> IN _(console:prefix="Server state is: ")
-oic OUT_POWER -> IN _(console:prefix="Server power level is: ")
+oic STATE -> IN _(console:prefix="Server state is: ")
+oic POWER -> IN _(console:prefix="Server power level is: ")

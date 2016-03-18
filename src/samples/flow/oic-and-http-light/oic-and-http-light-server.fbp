@@ -37,26 +37,26 @@ http_server(http-light-server)
 persistence(persistence-light-server:default_state=true,default_power=100)
 
 # cross-link OIC and HTTP, acting on one should report to the other.
-oic_server OUT_POWER -> IN_POWER http_server
-oic_server OUT_STATE -> IN_STATE http_server
+oic_server POWER -> POWER http_server
+oic_server STATE -> STATE http_server
 
-http_server OUT_POWER -> IN_POWER oic_server
-http_server OUT_STATE -> IN_STATE oic_server
+http_server POWER -> POWER oic_server
+http_server STATE -> STATE oic_server
 
 # cross-link OIC and persistence, acting on one should report to the other.
-oic_server OUT_POWER -> IN_POWER persistence
-oic_server OUT_STATE -> IN_STATE persistence
+oic_server POWER -> POWER persistence
+oic_server STATE -> STATE persistence
 
-persistence OUT_POWER -> IN_POWER oic_server
-persistence OUT_STATE -> IN_STATE oic_server
+persistence POWER -> POWER oic_server
+persistence STATE -> STATE oic_server
 
 # act on hardware based on OIC values
 # TODO: sol-flow.json defines PowerActuator as calamari/led that uses
 # an input port INTENSITY instead of IN. There should be a way to
 # define a meta-type in the sol-flow.json, then we could create a
 # wrapper FBP that converts the port name.
-oic_server OUT_POWER -> IN power_actuator(PowerActuator)
-oic_server OUT_STATE -> IN state_actuator(StateActuator)
+oic_server POWER -> IN power_actuator(PowerActuator)
+oic_server STATE -> IN state_actuator(StateActuator)
 
 # show machine-id as device-id
 _(platform/machine-id) OUT -> IN _(console:prefix="OIC device-id: ")

@@ -480,7 +480,7 @@ def object_inform_flow_fn_common_c(state_struct_name, name, props, client):
                 'field_name': field_name
             }
 
-        send_flow_pkts.append('''%(flow_send_fn)s(resource->node, SOL_FLOW_NODE_TYPE_%(STRUCT_NAME)s__OUT__OUT_%(FIELD_NAME)s, %(val)s);''' % {
+        send_flow_pkts.append('''%(flow_send_fn)s(resource->node, SOL_FLOW_NODE_TYPE_%(STRUCT_NAME)s__OUT__%(FIELD_NAME)s, %(val)s);''' % {
             'flow_send_fn': fn,
             'STRUCT_NAME': name.upper(),
             'FIELD_NAME': field_name.upper(),
@@ -855,7 +855,7 @@ def generate_object_json(resource_type, struct_name, node_name, title, props, se
             'methods': {
                 'process': '%s_set_%s' % (struct_name, prop_name)
             },
-            'name': 'IN_%s' % prop_name.upper()
+            'name': '%s' % prop_name.upper()
         })
 
     if server:
@@ -875,7 +875,7 @@ def generate_object_json(resource_type, struct_name, node_name, title, props, se
         out_ports.append({
             'data_type': JSON_TO_SOL_JSON[prop_descr.get('type', 'string')],
             'description': prop_descr.get('description', '???'),
-            'name': 'OUT_%s' % prop_name.upper()
+            'name': '%s' % prop_name.upper()
         })
 
     output = {
