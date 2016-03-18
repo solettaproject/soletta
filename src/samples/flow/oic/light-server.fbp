@@ -22,4 +22,4 @@
 #    $ ./light-server.fbp
 
 light(oic/server-light)
-light OUT_STATE -> IN LightState(console)
+light STATE -> IN LightState(console)

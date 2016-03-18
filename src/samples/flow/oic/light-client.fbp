@@ -25,4 +25,4 @@ timer(timer:interval=1000)
 light(LightClient) FOUND -> ENABLED timer
 light FOUND -> IN _(console:prefix="Light found ")
 
-timer OUT -> IN toggle(boolean/toggle) OUT -> IN_STATE light
+timer OUT -> IN toggle(boolean/toggle) OUT -> STATE light

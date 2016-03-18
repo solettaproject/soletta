@@ -19,11 +19,11 @@
 # This file wraps low-level primitive http-server nodes into
 # a high-level "http-light-server" that can be used as a single entity
 
-INPORT=power.IN:IN_POWER
-INPORT=state.IN:IN_STATE
+INPORT=power.IN:POWER
+INPORT=state.IN:STATE
 
-OUTPORT=power.OUT:OUT_POWER
-OUTPORT=state.OUT:OUT_STATE
+OUTPORT=power.OUT:POWER
+OUTPORT=state.OUT:STATE
 
 # Each node will register a path in a singleton server that is
 # maintained by Soletta for each port.
