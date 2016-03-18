@@ -155,11 +155,6 @@ main(int argc, char *argv[])
 
     sol_init();
 
-    if (sol_oic_server_init() != 0) {
-        SOL_WRN("Could not create OIC server.");
-        return -1;
-    }
-
     res = register_light_resource_type(user_handle_get, user_handle_put,
         resource_type);
     if (!res) {
@@ -178,7 +173,6 @@ main(int argc, char *argv[])
     sol_run();
 
     sol_oic_server_del_resource(res);
-    sol_oic_server_shutdown();
 
     if (console_fd >= 0 && ioctl(console_fd, KDSETLED, old_led_state)) {
         SOL_ERR("Could not return the leds to the old state");
