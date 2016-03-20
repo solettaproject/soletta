@@ -50,30 +50,29 @@ struct v1_request_data {
     char *timestamp, *nonce, *callback_url;
 };
 
-struct oauth_node_type {
-    struct sol_flow_node_type base;
+static struct {
     struct sol_http_server *server;
     uint16_t server_ref;
-};
+} oauth;
 
 static int
-server_ref(struct oauth_node_type *oauth)
+server_ref(void)
 {
-    if (!oauth->server) {
-        oauth->server = sol_http_server_new(HTTP_SERVER_PORT);
-        SOL_NULL_CHECK(oauth->server, -ENOMEM);
+    if (!oauth.server) {
+        oauth.server = sol_http_server_new(HTTP_SERVER_PORT);
+        SOL_NULL_CHECK(oauth.server, -ENOMEM);
     }
-    oauth->server_ref++;
+    oauth.server_ref++;
     return 0;
 }
 
 static void
-server_unref(struct oauth_node_type *oauth)
+server_unref(void)
 {
-    oauth->server_ref--;
-    if (!oauth->server_ref) {
-        sol_http_server_del(oauth->server);
-        oauth->server = NULL;
+    oauth.server_ref--;
+    if (!oauth.server_ref) {
+        sol_http_server_del(oauth.server);
+        oauth.server = NULL;
     }
 }
 
@@ -219,15 +218,12 @@ v1_close(struct sol_flow_node *node, void *data)
 {
     struct sol_http_client_connection *connection;
     struct sol_message_digest *digest;
-    struct oauth_node_type *type;
     struct v1_data *mdata = data;
     uint16_t i;
 
-    type = (struct oauth_node_type *)sol_flow_node_get_type(node);
-
-    sol_http_server_unregister_handler(type->server, mdata->start_handler_url);
-    sol_http_server_unregister_handler(type->server, mdata->callback_handler_url);
-    server_unref(type);
+    sol_http_server_unregister_handler(oauth.server, mdata->start_handler_url);
+    sol_http_server_unregister_handler(oauth.server, mdata->callback_handler_url);
+    server_unref();
 
     free(mdata->start_handler_url);
     free(mdata->callback_handler_url);
@@ -583,7 +579,6 @@ v1_open(struct sol_flow_node *node, void *data, const struct sol_flow_node_optio
 {
     int r;
     struct v1_data *mdata = data;
-    struct oauth_node_type *type;
     struct sol_flow_node_type_oauth_v1_options *opts =
         (struct sol_flow_node_type_oauth_v1_options *)options;
 
@@ -591,9 +586,7 @@ v1_open(struct sol_flow_node *node, void *data, const struct sol_flow_node_optio
         SOL_FLOW_NODE_TYPE_OAUTH_V1_OPTIONS_API_VERSION,
         -EINVAL);
 
-    type = (struct oauth_node_type *)sol_flow_node_get_type(node);
-
-    r = server_ref(type);
+    r = server_ref();
     SOL_INT_CHECK(r, < 0, r);
 
     mdata->request_token_url = strdup(opts->request_token_url);
@@ -623,18 +616,18 @@ v1_open(struct sol_flow_node *node, void *data, const struct sol_flow_node_optio
     r = asprintf(&mdata->callback_handler_url, "%s/oauth_callback", mdata->basename);
     SOL_INT_CHECK_GOTO(r, < 0, err_callback);
 
-    r = sol_http_server_register_handler(type->server, mdata->start_handler_url,
+    r = sol_http_server_register_handler(oauth.server, mdata->start_handler_url,
         v1_request_start_cb, node);
     SOL_INT_CHECK_GOTO(r, < 0, err_register_handler);
 
-    r = sol_http_server_register_handler(type->server, mdata->callback_handler_url,
+    r = sol_http_server_register_handler(oauth.server, mdata->callback_handler_url,
         v1_authorize_response_cb, node);
     SOL_INT_CHECK_GOTO(r, < 0, err);
 
     return 0;
 
 err:
-    sol_http_server_unregister_handler(type->server,
+    sol_http_server_unregister_handler(oauth.server,
         mdata->start_handler_url);
 err_register_handler:
     free(mdata->callback_handler_url);
@@ -653,7 +646,7 @@ access_err:
 authorize_err:
     free(mdata->request_token_url);
 url_err:
-    server_unref(type);
+    server_unref();
     return r;
 }
 

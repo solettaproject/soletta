@@ -15,12 +15,6 @@
         "close": "v1_close",
         "open": "v1_open"
       },
-      "node_type": {
-        "access": [
-          "base"
-        ],
-        "data_type": "struct oauth_node_type"
-      },
       "options": {
 	"members": [
 	  {
