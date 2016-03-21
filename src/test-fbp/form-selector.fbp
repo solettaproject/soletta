@@ -155,4 +155,28 @@ _(test/boolean-generator:sequence="TT",interval=10) OUT -> NEXT selector_11
 validator_11(test/string-validator:sequence="Title * item1  |Title * item1  |Title item1    |Title item2    |Title * item3  ")
 selector_11 STRING -> IN validator_11 OUT -> RESULT _(test/result)
 
+#advance items, bad format
+selector_12(form/selector:rows=3,columns=10,format="whatever")
+items_12(test/string-generator:sequence="item1 item2 item3",separator=" ")
+items_12 OUT -> ADD_ITEM selector_12
+_(test/boolean-generator:sequence="TT",interval=20) OUT -> NEXT selector_12
+validator_12(test/string-validator:sequence="> * item1 |> * item1 \n    item2 |> * item1 \n    item2 \n    item3 |  * item1 \n>   item2 \n    item3 |  * item1 \n    item2 \n>   item3 ")
+selector_12 STRING -> IN validator_12 OUT -> RESULT _(test/result)
+
+#advance items, bad format with title only
+selector_13(form/selector:rows=3,columns=10,format="{title}")
+items_13(test/string-generator:sequence="item1 item2 item3",separator=" ")
+items_13 OUT -> ADD_ITEM selector_13
+_(test/boolean-generator:sequence="TT",interval=20) OUT -> NEXT selector_13
+validator_13(test/string-validator:sequence="> * item1 |> * item1 \n    item2 |> * item1 \n    item2 \n    item3 |  * item1 \n>   item2 \n    item3 |  * item1 \n    item2 \n>   item3 ")
+selector_13 STRING -> IN validator_13 OUT -> RESULT _(test/result)
+
+#advance items, bad format with title after value
+selector_14(form/selector:rows=3,columns=10,format="{value}{title}")
+items_14(test/string-generator:sequence="item1 item2 item3",separator=" ")
+items_14 OUT -> ADD_ITEM selector_14
+_(test/boolean-generator:sequence="TT",interval=20) OUT -> NEXT selector_14
+validator_14(test/string-validator:sequence="> * item1 |> * item1 \n    item2 |> * item1 \n    item2 \n    item3 |  * item1 \n>   item2 \n    item3 |  * item1 \n    item2 \n>   item3 ")
+selector_14 STRING -> IN validator_14 OUT -> RESULT _(test/result)
+
 ## TEST-SKIP-VALGRIND The timing we're relying on for the string sequence is blown away by Valgrind, so skip it.
