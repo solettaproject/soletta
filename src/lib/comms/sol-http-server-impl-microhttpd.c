@@ -3,31 +3,17 @@
  *
  * Copyright (C) 2015 Intel Corporation. All rights reserved.
  *
- * Redistribution and use in source and binary forms, with or without
- * modification, are permitted provided that the following conditions
- * are met:
+ * Licensed under the Apache License, Version 2.0 (the "License");
+ * you may not use this file except in compliance with the License.
+ * You may obtain a copy of the License at
  *
- *   * Redistributions of source code must retain the above copyright
- *     notice, this list of conditions and the following disclaimer.
- *   * Redistributions in binary form must reproduce the above copyright
- *     notice, this list of conditions and the following disclaimer in
- *     the documentation and/or other materials provided with the
- *     distribution.
- *   * Neither the name of Intel Corporation nor the names of its
- *     contributors may be used to endorse or promote products derived
- *     from this software without specific prior written permission.
+ *     http://www.apache.org/licenses/LICENSE-2.0
  *
- * THIS SOFTWARE IS PROVIDED BY THE COPYRIGHT HOLDERS AND CONTRIBUTORS
- * "AS IS" AND ANY EXPRESS OR IMPLIED WARRANTIES, INCLUDING, BUT NOT
- * LIMITED TO, THE IMPLIED WARRANTIES OF MERCHANTABILITY AND FITNESS FOR
- * A PARTICULAR PURPOSE ARE DISCLAIMED. IN NO EVENT SHALL THE COPYRIGHT
- * OWNER OR CONTRIBUTORS BE LIABLE FOR ANY DIRECT, INDIRECT, INCIDENTAL,
- * SPECIAL, EXEMPLARY, OR CONSEQUENTIAL DAMAGES (INCLUDING, BUT NOT
- * LIMITED TO, PROCUREMENT OF SUBSTITUTE GOODS OR SERVICES; LOSS OF USE,
- * DATA, OR PROFITS; OR BUSINESS INTERRUPTION) HOWEVER CAUSED AND ON ANY
- * THEORY OF LIABILITY, WHETHER IN CONTRACT, STRICT LIABILITY, OR TORT
- * (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE
- * OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
+ * Unless required by applicable law or agreed to in writing, software
+ * distributed under the License is distributed on an "AS IS" BASIS,
+ * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+ * See the License for the specific language governing permissions and
+ * limitations under the License.
  */
 
 #include <arpa/inet.h>
@@ -80,6 +66,7 @@ struct sol_http_request {
     size_t len;
     enum sol_http_method method;
     time_t if_since_modified;
+    time_t last_modified;
     bool is_multipart;
 };
 
@@ -195,8 +182,31 @@ sol_http_request_get_method(const struct sol_http_request *request)
     return request->method;
 }
 
+static bool
+set_last_modified_header(struct MHD_Response *response, time_t last_modified)
+{
+    struct tm result;
+    char buf[128];
+    size_t r;
+
+    SOL_NULL_CHECK(gmtime_r(&last_modified, &result), false);
+
+    r = strftime(buf, sizeof(buf), "%a, %d %b %Y %H:%M:%S GMT", &result);
+    if (!r) {
+        SOL_WRN("Could not create the last modified date string");
+        return false;
+    }
+
+    if (MHD_add_response_header(response, SOL_HTTP_PARAM_LAST_MODIFIED, buf) == MHD_NO) {
+        SOL_WRN("Could not add the last modified header to the response");
+        return false;
+    }
+
+    return true;
+}
+
 static struct MHD_Response *
-build_mhd_response(const struct sol_http_response *response)
+build_mhd_response(const struct sol_http_response *response, time_t last_modified)
 {
     struct sol_buffer buf;
     uint16_t idx;
@@ -247,6 +257,9 @@ build_mhd_response(const struct sol_http_response *response)
             break;
         }
     }
+
+    if (!set_last_modified_header(r, last_modified))
+        goto err;
 
     sol_buffer_fini(&buf);
     return r;
@@ -311,7 +324,7 @@ static time_t
 process_if_modified_since(const char *value)
 {
     char *s;
-    struct tm t;
+    struct tm t = { 0 };
 
     s = strptime(value, "%a, %d %b %Y %H:%M:%S GMT", &t);
     if (!s || *s != '\0')
@@ -328,7 +341,7 @@ headers_iterator(void *data, enum MHD_ValueKind kind, const char *key, const cha
     switch (kind) {
     case MHD_HEADER_KIND:
         if (!strcasecmp(key, SOL_HTTP_PARAM_IF_SINCE_MODIFIED)) {
-            request->if_since_modified = process_if_modified_since(key);
+            request->if_since_modified = process_if_modified_since(value);
             SOL_INT_CHECK_GOTO(request->if_since_modified, == 0, param_err);
         }
         if (!strncasecmp(value, SOL_HTTP_MULTIPART_HEADER,
@@ -441,7 +454,7 @@ get_default_response(const struct sol_http_server *server, enum sol_http_status_
     }
 
     r = snprintf(buf, sizeof(buf), "status - %d", error);
-    if (r < 0 || r > (int)sizeof(buf)) {
+    if (r < 0 || r >= (int)sizeof(buf)) {
         SOL_WRN("Could not set the status code on response body");
         response = MHD_create_response_from_buffer(0, NULL, MHD_RESPMEM_PERSISTENT);
     } else {
@@ -570,7 +583,7 @@ http_server_handler(void *data, struct MHD_Connection *connection, const char *u
         if (req->len > server->buf_size) {
             SOL_WRN("Request is bigger than buffer (%zu)", server->buf_size);
             status = SOL_HTTP_STATUS_INTERNAL_SERVER_ERROR;
-            goto end;
+            goto create_response;
         }
 
         if (!req->pp)
@@ -579,7 +592,7 @@ http_server_handler(void *data, struct MHD_Connection *connection, const char *u
 
         if (MHD_post_process(req->pp, upload_data, *upload_data_size) == MHD_NO) {
             status = SOL_HTTP_STATUS_INTERNAL_SERVER_ERROR;
-            goto end;
+            goto create_response;
         }
 
         if (*upload_data_size) {
@@ -606,14 +619,13 @@ http_server_handler(void *data, struct MHD_Connection *connection, const char *u
     default:
         SOL_WRN("Method %s not implemented", method ? method : "NULL");
         status = SOL_HTTP_STATUS_NOT_IMPLEMENTED;
-        goto end;
-        break;
+        goto create_response;
     }
 
     path = sanitize_path(url);
     if (!path) {
         status = SOL_HTTP_STATUS_INTERNAL_SERVER_ERROR;
-        goto end;
+        goto create_response;
     }
 
     SOL_VECTOR_FOREACH_IDX (&server->handlers, handler, i) {
@@ -621,11 +633,12 @@ http_server_handler(void *data, struct MHD_Connection *connection, const char *u
             continue;
 
         free(path);
-        if (handler->last_modified && (req->if_since_modified > handler->last_modified)) {
+        if (handler->last_modified && (req->if_since_modified >= handler->last_modified)) {
             status = SOL_HTTP_STATUS_NOT_MODIFIED;
-            goto end;
+            goto create_response;
         } else {
             MHD_suspend_connection(connection);
+            req->last_modified = handler->last_modified;
             ret = handler->request_cb((void *)handler->user_data, req);
             SOL_INT_CHECK(ret, < 0, MHD_NO);
         }
@@ -638,6 +651,7 @@ http_server_handler(void *data, struct MHD_Connection *connection, const char *u
     if (status != SOL_HTTP_STATUS_NOT_FOUND)
         goto end;
 
+create_response:
     mhd_response = get_default_response(server, status);
     SOL_NULL_CHECK(mhd_response, MHD_NO);
 end:
@@ -934,7 +948,7 @@ sol_http_server_send_response(struct sol_http_request *request, struct sol_http_
 
     MHD_resume_connection(request->connection);
 
-    mhd_response = build_mhd_response(response);
+    mhd_response = build_mhd_response(response, request->last_modified);
     SOL_NULL_CHECK(mhd_response, -1);
 
     ret = MHD_queue_response(request->connection, response->response_code, mhd_response);

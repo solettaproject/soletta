@@ -3,31 +3,17 @@
  *
  * Copyright (C) 2015 Intel Corporation. All rights reserved.
  *
- * Redistribution and use in source and binary forms, with or without
- * modification, are permitted provided that the following conditions
- * are met:
+ * Licensed under the Apache License, Version 2.0 (the "License");
+ * you may not use this file except in compliance with the License.
+ * You may obtain a copy of the License at
  *
- *   * Redistributions of source code must retain the above copyright
- *     notice, this list of conditions and the following disclaimer.
- *   * Redistributions in binary form must reproduce the above copyright
- *     notice, this list of conditions and the following disclaimer in
- *     the documentation and/or other materials provided with the
- *     distribution.
- *   * Neither the name of Intel Corporation nor the names of its
- *     contributors may be used to endorse or promote products derived
- *     from this software without specific prior written permission.
+ *     http://www.apache.org/licenses/LICENSE-2.0
  *
- * THIS SOFTWARE IS PROVIDED BY THE COPYRIGHT HOLDERS AND CONTRIBUTORS
- * "AS IS" AND ANY EXPRESS OR IMPLIED WARRANTIES, INCLUDING, BUT NOT
- * LIMITED TO, THE IMPLIED WARRANTIES OF MERCHANTABILITY AND FITNESS FOR
- * A PARTICULAR PURPOSE ARE DISCLAIMED. IN NO EVENT SHALL THE COPYRIGHT
- * OWNER OR CONTRIBUTORS BE LIABLE FOR ANY DIRECT, INDIRECT, INCIDENTAL,
- * SPECIAL, EXEMPLARY, OR CONSEQUENTIAL DAMAGES (INCLUDING, BUT NOT
- * LIMITED TO, PROCUREMENT OF SUBSTITUTE GOODS OR SERVICES; LOSS OF USE,
- * DATA, OR PROFITS; OR BUSINESS INTERRUPTION) HOWEVER CAUSED AND ON ANY
- * THEORY OF LIABILITY, WHETHER IN CONTRACT, STRICT LIABILITY, OR TORT
- * (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE
- * OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
+ * Unless required by applicable law or agreed to in writing, software
+ * distributed under the License is distributed on an "AS IS" BASIS,
+ * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+ * See the License for the specific language governing permissions and
+ * limitations under the License.
  */
 
 #include <stdbool.h>
@@ -52,6 +38,8 @@ test_coap_parse_empty_pdu(void)
     struct sol_coap_packet *pkt;
     struct sol_buffer *buf;
     size_t offset;
+    uint8_t ver, type, code;
+    uint16_t id;
 
     pkt = sol_coap_packet_new(NULL);
     ASSERT(pkt);
@@ -62,10 +50,15 @@ test_coap_parse_empty_pdu(void)
 
     ASSERT(!coap_packet_parse(pkt));
 
-    ASSERT_INT_EQ(sol_coap_header_get_ver(pkt), 1);
-    ASSERT_INT_EQ(sol_coap_header_get_type(pkt), SOL_COAP_TYPE_CON);
-    ASSERT_INT_EQ(sol_coap_header_get_code(pkt), SOL_COAP_METHOD_GET);
-    ASSERT_INT_EQ(sol_coap_header_get_id(pkt), 0);
+    sol_coap_header_get_ver(pkt, &ver);
+    sol_coap_header_get_type(pkt, &type);
+    sol_coap_header_get_code(pkt, &code);
+    sol_coap_header_get_id(pkt, &id);
+
+    ASSERT_INT_EQ(ver, 1);
+    ASSERT_INT_EQ(type, SOL_COAP_TYPE_CON);
+    ASSERT_INT_EQ(code, SOL_COAP_METHOD_GET);
+    ASSERT_INT_EQ(id, 0);
 
     sol_coap_packet_unref(pkt);
 }
@@ -85,7 +78,8 @@ test_coap_parse_simple_pdu(void)
     uint8_t *token;
     int count = 16;
     size_t offset;
-    uint8_t tkl;
+    uint8_t tkl, code, ver, type;
+    uint16_t id;
 
     pkt = sol_coap_packet_new(NULL);
     ASSERT(pkt);
@@ -96,16 +90,21 @@ test_coap_parse_simple_pdu(void)
 
     ASSERT(!coap_packet_parse(pkt));
 
-    ASSERT_INT_EQ(sol_coap_header_get_ver(pkt), 1);
-    ASSERT_INT_EQ(sol_coap_header_get_type(pkt), SOL_COAP_TYPE_NONCON);
+    sol_coap_header_get_ver(pkt, &ver);
+    sol_coap_header_get_type(pkt, &type);
+
+    ASSERT_INT_EQ(ver, 1);
+    ASSERT_INT_EQ(type, SOL_COAP_TYPE_NONCON);
 
     token = sol_coap_header_get_token(pkt, &tkl);
     ASSERT(token);
     ASSERT_INT_EQ(tkl, 5);
     ASSERT(!strcmp((char *)token, "token"));
 
-    ASSERT_INT_EQ(sol_coap_header_get_code(pkt), SOL_COAP_RSPCODE_PROXYING_NOT_SUPPORTED);
-    ASSERT_INT_EQ(sol_coap_header_get_id(pkt), 0x1234);
+    sol_coap_header_get_code(pkt, &code);
+    sol_coap_header_get_id(pkt, &id);
+    ASSERT_INT_EQ(code, SOL_COAP_RSPCODE_PROXYING_NOT_SUPPORTED);
+    ASSERT_INT_EQ(id, 0x1234);
 
     count = sol_coap_find_options(pkt, SOL_COAP_OPTION_CONTENT_FORMAT, options, count);
     ASSERT_INT_EQ(count, 1);

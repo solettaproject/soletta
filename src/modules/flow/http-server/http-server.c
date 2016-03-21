@@ -3,31 +3,17 @@
  *
  * Copyright (C) 2015 Intel Corporation. All rights reserved.
  *
- * Redistribution and use in source and binary forms, with or without
- * modification, are permitted provided that the following conditions
- * are met:
+ * Licensed under the Apache License, Version 2.0 (the "License");
+ * you may not use this file except in compliance with the License.
+ * You may obtain a copy of the License at
  *
- *   * Redistributions of source code must retain the above copyright
- *     notice, this list of conditions and the following disclaimer.
- *   * Redistributions in binary form must reproduce the above copyright
- *     notice, this list of conditions and the following disclaimer in
- *     the documentation and/or other materials provided with the
- *     distribution.
- *   * Neither the name of Intel Corporation nor the names of its
- *     contributors may be used to endorse or promote products derived
- *     from this software without specific prior written permission.
+ *     http://www.apache.org/licenses/LICENSE-2.0
  *
- * THIS SOFTWARE IS PROVIDED BY THE COPYRIGHT HOLDERS AND CONTRIBUTORS
- * "AS IS" AND ANY EXPRESS OR IMPLIED WARRANTIES, INCLUDING, BUT NOT
- * LIMITED TO, THE IMPLIED WARRANTIES OF MERCHANTABILITY AND FITNESS FOR
- * A PARTICULAR PURPOSE ARE DISCLAIMED. IN NO EVENT SHALL THE COPYRIGHT
- * OWNER OR CONTRIBUTORS BE LIABLE FOR ANY DIRECT, INDIRECT, INCIDENTAL,
- * SPECIAL, EXEMPLARY, OR CONSEQUENTIAL DAMAGES (INCLUDING, BUT NOT
- * LIMITED TO, PROCUREMENT OF SUBSTITUTE GOODS OR SERVICES; LOSS OF USE,
- * DATA, OR PROFITS; OR BUSINESS INTERRUPTION) HOWEVER CAUSED AND ON ANY
- * THEORY OF LIABILITY, WHETHER IN CONTRACT, STRICT LIABILITY, OR TORT
- * (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE
- * OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
+ * Unless required by applicable law or agreed to in writing, software
+ * distributed under the License is distributed on an "AS IS" BASIS,
+ * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+ * See the License for the specific language governing permissions and
+ * limitations under the License.
  */
 
 #include <errno.h>
@@ -57,13 +43,15 @@
 struct server_data {
     struct sol_http_server *server;
     int port;
-    int refcount;
+    uint16_t refcount;
 };
 
 struct http_data {
     union {
         struct sol_irange i;
         struct sol_drange d;
+        struct sol_rgb rgb;
+        struct sol_direction_vector dir_vector;
         bool b;
         char *s;
     } value;
@@ -83,7 +71,38 @@ struct http_server_node_type {
     void (*send_packet_cb)(struct http_data *mdata, struct sol_flow_node *node);
 };
 
-static struct sol_ptr_vector *servers = NULL;
+static struct sol_ptr_vector servers = SOL_PTR_VECTOR_INIT;
+
+#define STRTOL(field_, var_, changed_, is_unsigned_) \
+    do { \
+        errno = 0; \
+        if ((is_unsigned_)) \
+            var_ = sol_util_strtoul(value->value.key_value.value.data, NULL, value->value.key_value.value.len, 0); \
+        else \
+            var_ = sol_util_strtol(value->value.key_value.value.data, NULL, value->value.key_value.value.len, 0); \
+        if (errno != 0) { \
+            return -errno; \
+        } \
+        if (mdata->value.field_ != (var_)) { \
+            mdata->value.field_ = (var_); \
+            changed_ = 1; \
+        } \
+    } while (0)
+
+#define STRTOD(field_, ret_) \
+    do { \
+        double d; \
+        errno = 0; \
+        d = sol_util_strtodn(value->value.key_value.value.data, NULL, \
+            value->value.key_value.value.len, false); \
+        if ((fpclassify(mdata->value.field_) == FP_ZERO) && (errno != 0)) { \
+            return -errno; \
+        } \
+        if (!sol_drange_val_equal(mdata->value.field_, d)) { \
+            mdata->value.field_ = d; \
+            ret_ = 1; \
+        } \
+    } while (0)
 
 static bool
 is_method_allowed(const uint8_t allowed_methods, enum sol_http_method method)
@@ -94,17 +113,12 @@ is_method_allowed(const uint8_t allowed_methods, enum sol_http_method method)
 }
 
 static void
-servers_free(void)
+servers_clear(void)
 {
-    if (!servers)
+    if (sol_ptr_vector_get_len(&servers) != 0)
         return;
 
-    if (sol_ptr_vector_get_len(servers) != 0)
-        return;
-
-    sol_ptr_vector_clear(servers);
-    free(servers);
-    servers = NULL;
+    sol_ptr_vector_clear(&servers);
 }
 
 static int
@@ -131,15 +145,14 @@ server_ref(int32_t opt_port)
 
     port = validate_port(opt_port);
 
-    if (!servers) {
-        servers = calloc(1, sizeof(struct sol_ptr_vector));
-        SOL_NULL_CHECK(servers, NULL);
-        sol_ptr_vector_init(servers);
-    }
-
-    SOL_PTR_VECTOR_FOREACH_IDX (servers, idata, i) {
+    SOL_PTR_VECTOR_FOREACH_IDX (&servers, idata, i) {
         if (idata->port == port) {
             sdata = idata;
+            if (sdata->refcount == UINT16_MAX) {
+                SOL_WRN("Server port %d reached its max refcount %" PRIu16,
+                    sdata->port, UINT16_MAX);
+                return NULL;
+            }
             break;
         }
     }
@@ -150,7 +163,7 @@ server_ref(int32_t opt_port)
         sdata = calloc(1, sizeof(struct server_data));
         SOL_NULL_CHECK_GOTO(sdata, err_sdata);
 
-        r = sol_ptr_vector_append(servers, sdata);
+        r = sol_ptr_vector_append(&servers, sdata);
         SOL_INT_CHECK_GOTO(r, < 0, err_vec);
 
         sdata->server = sol_http_server_new(port);
@@ -164,11 +177,11 @@ server_ref(int32_t opt_port)
     return sdata;
 
 err_server:
-    sol_ptr_vector_remove(servers, sdata);
+    sol_ptr_vector_remove(&servers, sdata);
 err_vec:
     free(sdata);
 err_sdata:
-    servers_free();
+    servers_clear();
 
     return NULL;
 }
@@ -181,10 +194,10 @@ server_unref(struct server_data *sdata)
     if (sdata->refcount > 0)
         return;
 
-    sol_ptr_vector_remove(servers, sdata);
+    sol_ptr_vector_remove(&servers, sdata);
     sol_http_server_del(sdata->server);
     free(sdata);
-    servers_free();
+    servers_clear();
 }
 
 static int
@@ -304,10 +317,10 @@ static int
 start_server(struct http_data *http, struct sol_flow_node *node,
     const char *path, int32_t opt_port)
 {
-    int r;
+    int r = -ENOMEM;
 
     http->sdata = server_ref(opt_port);
-    SOL_NULL_CHECK(http->sdata, -ENOMEM);
+    SOL_NULL_CHECK(http->sdata, r);
 
     http->path = strdup(path);
     SOL_NULL_CHECK_GOTO(http->path, err_path);
@@ -316,13 +329,17 @@ start_server(struct http_data *http, struct sol_flow_node *node,
         common_response_cb, node);
     SOL_INT_CHECK_GOTO(r, < 0, err_handler);
 
+    r = sol_http_server_set_last_modified(http->sdata->server, http->path,
+        time(NULL));
+    SOL_INT_CHECK_GOTO(r, < 0, err_handler);
+
     return 0;
 
 err_handler:
     free(http->path);
 err_path:
     server_unref(http->sdata);
-    return -ENOMEM;
+    return r;
 }
 
 static void
@@ -381,17 +398,34 @@ parse_allowed_methods(const char *allowed_methods_str, uint8_t *allowed_methods)
 }
 
 static int
-common_open(struct sol_flow_node *node, void *data, const struct sol_flow_node_options *options)
+common_open(struct sol_flow_node *node, struct http_data *mdata,
+    const char *path, const char *allowed_methods, const int32_t port)
+{
+    int r;
+
+    r = parse_allowed_methods(allowed_methods, &mdata->allowed_methods);
+    SOL_INT_CHECK(r, < 0, r);
+
+    r = start_server(mdata, node, path, port);
+    SOL_INT_CHECK(r, < 0, r);
+
+    return 0;
+}
+
+static int
+boolean_open(struct sol_flow_node *node, void *data,
+    const struct sol_flow_node_options *options)
 {
     int r;
     struct http_data *mdata = data;
     struct sol_flow_node_type_http_server_boolean_options *opts =
         (struct sol_flow_node_type_http_server_boolean_options *)options;
 
-    r = parse_allowed_methods(opts->allowed_methods, &mdata->allowed_methods);
-    SOL_INT_CHECK(r, < 0, r);
+    SOL_FLOW_NODE_OPTIONS_SUB_API_CHECK(options,
+        SOL_FLOW_NODE_TYPE_HTTP_SERVER_BOOLEAN_OPTIONS_API_VERSION,
+        -EINVAL);
 
-    r = start_server(mdata, node, opts->path, opts->port);
+    r = common_open(node, mdata, opts->path, opts->allowed_methods, opts->port);
     SOL_INT_CHECK(r, < 0, r);
 
     mdata->value.b = opts->value;
@@ -411,13 +445,10 @@ int_open(struct sol_flow_node *node, void *data, const struct sol_flow_node_opti
         SOL_FLOW_NODE_TYPE_HTTP_SERVER_INT_OPTIONS_API_VERSION,
         -EINVAL);
 
-    r = parse_allowed_methods(opts->allowed_methods, &mdata->allowed_methods);
-    SOL_INT_CHECK(r, < 0, r);
-
-    r = start_server(mdata, node, opts->path, opts->port);
-    SOL_INT_CHECK(r, < 0, r);
-
     r = sol_irange_compose(&opts->value_spec, opts->value, &mdata->value.i);
+    SOL_INT_CHECK(r, < 0, r);
+
+    r = common_open(node, mdata, opts->path, opts->allowed_methods, opts->port);
     SOL_INT_CHECK(r, < 0, r);
 
     return 0;
@@ -435,13 +466,10 @@ float_open(struct sol_flow_node *node, void *data, const struct sol_flow_node_op
         SOL_FLOW_NODE_TYPE_HTTP_SERVER_FLOAT_OPTIONS_API_VERSION,
         -EINVAL);
 
-    r = parse_allowed_methods(opts->allowed_methods, &mdata->allowed_methods);
-    SOL_INT_CHECK(r, < 0, r);
-
-    r = start_server(mdata, node, opts->path, opts->port);
-    SOL_INT_CHECK(r, < 0, r);
-
     r = sol_drange_compose(&opts->value_spec, opts->value, &mdata->value.d);
+    SOL_INT_CHECK(r, < 0, r);
+
+    r = common_open(node, mdata, opts->path, opts->allowed_methods, opts->port);
     SOL_INT_CHECK(r, < 0, r);
 
     return 0;
@@ -599,21 +627,17 @@ string_open(struct sol_flow_node *node, void *data, const struct sol_flow_node_o
         SOL_FLOW_NODE_TYPE_HTTP_SERVER_STRING_OPTIONS_API_VERSION,
         -EINVAL);
 
-    r = parse_allowed_methods(opts->allowed_methods, &mdata->allowed_methods);
-    SOL_INT_CHECK(r, < 0, r);
-
     mdata->value.s = strdup(opts->value);
     SOL_NULL_CHECK(mdata->value.s, -ENOMEM);
 
-    r = start_server(mdata, node, opts->path, opts->port);
+    r = common_open(node, mdata, opts->path, opts->allowed_methods, opts->port);
     SOL_INT_CHECK_GOTO(r, < 0, err);
 
     return 0;
 
 err:
     free(mdata->value.s);
-    free(mdata->path);
-    return -1;
+    return r;
 }
 
 /* ----------------------------------- int ------------------------------------------- */
@@ -623,32 +647,18 @@ int_post_cb(struct http_data *mdata, struct sol_flow_node *node,
     struct sol_http_param_value *value)
 {
     int ret = 0;
-
-#define STRTOL_(field_) \
-    do { \
-        int32_t i; \
-        errno = 0; \
-        i = sol_util_strtol(value->value.key_value.value.data, NULL, value->value.key_value.value.len, 0); \
-        if (errno != 0) { \
-            return -errno; \
-        } \
-        if (mdata->value.i.field_ != i) { \
-            mdata->value.i.field_ = i; \
-            ret = 1; \
-        } \
-    } while (0)
+    int32_t i;
 
     if (sol_str_slice_str_eq(value->value.key_value.key, "value"))
-        STRTOL_(val);
+        STRTOL(i.val, i, ret, false);
     else if (sol_str_slice_str_eq(value->value.key_value.key, "min"))
-        STRTOL_(min);
+        STRTOL(i.min, i, ret, false);
     else if (sol_str_slice_str_eq(value->value.key_value.key, "max"))
-        STRTOL_(max);
+        STRTOL(i.max, i, ret, false);
     else if (sol_str_slice_str_eq(value->value.key_value.key, "step"))
-        STRTOL_(step);
+        STRTOL(i.step, i, ret, false);
     else
         return -EINVAL;
-#undef STRTOL_
 
     return ret;
 }
@@ -659,10 +669,12 @@ int_response_cb(struct http_data *mdata, struct sol_buffer *content, bool json)
     int r;
 
     if (json) {
-        r = sol_buffer_append_printf(content, "{\"value\":%d,\"min\":%d,\"max\":%d,\"step\":%d}",
-            mdata->value.i.val, mdata->value.i.min, mdata->value.i.max, mdata->value.i.step);
+        r = sol_buffer_append_printf(content, "{\"value\":%" PRId32
+            ",\"min\":%" PRId32 ",\"max\":%" PRId32 ",\"step\":%" PRId32 "}",
+            mdata->value.i.val, mdata->value.i.min, mdata->value.i.max,
+            mdata->value.i.step);
     } else {
-        r = sol_buffer_append_printf(content, "%d", mdata->value.i.val);
+        r = sol_buffer_append_printf(content, "%" PRId32, mdata->value.i.val);
     }
 
     return r;
@@ -699,71 +711,59 @@ float_post_cb(struct http_data *mdata, struct sol_flow_node *node,
 {
     int ret = 0;
 
-#define STRTOD_(field_) \
-    do { \
-        double d; \
-        errno = 0; \
-        d = sol_util_strtodn(value->value.key_value.value.data, NULL, \
-            value->value.key_value.value.len, false); \
-        if ((fpclassify(mdata->value.d.field_) == FP_ZERO) && (errno != 0)) { \
-            return -errno; \
-        } \
-        if (!sol_drange_val_equal(mdata->value.d.field_, d)) { \
-            mdata->value.d.field_ = d; \
-            ret = 1; \
-        } \
-    } while (0)
-
     if (sol_str_slice_str_eq(value->value.key_value.key, "value"))
-        STRTOD_(val);
+        STRTOD(d.val, ret);
     else if (sol_str_slice_str_eq(value->value.key_value.key, "min"))
-        STRTOD_(min);
+        STRTOD(d.min, ret);
     else if (sol_str_slice_str_eq(value->value.key_value.key, "max"))
-        STRTOD_(max);
+        STRTOD(d.max, ret);
     else if (sol_str_slice_str_eq(value->value.key_value.key, "step"))
-        STRTOD_(step);
+        STRTOD(d.step, ret);
     else
         return -EINVAL;
-#undef STRTOD_
 
     return ret;
 }
 
 static int
-float_response_cb(struct http_data *mdata, struct sol_buffer *content, bool json)
+float_response_cb(struct http_data *mdata, struct sol_buffer *content,
+    bool json)
 {
-    int r;
-
-    SOL_BUFFER_DECLARE_STATIC(val, DOUBLE_STRING_LEN);
-
-    r = sol_json_double_to_str(mdata->value.d.val, &val);
-    SOL_INT_CHECK(r, < 0, r);
-
     if (json) {
-        SOL_BUFFER_DECLARE_STATIC(min, DOUBLE_STRING_LEN);
-        SOL_BUFFER_DECLARE_STATIC(max, DOUBLE_STRING_LEN);
-        SOL_BUFFER_DECLARE_STATIC(step, DOUBLE_STRING_LEN);
+        int r;
 
-        r = sol_json_double_to_str(mdata->value.d.min, &min);
+        r = sol_buffer_append_slice(content,
+            sol_str_slice_from_str("{\"value\":"));
+        SOL_INT_CHECK(r, < 0, r);
+        r = sol_json_double_to_str(mdata->value.d.val, content);
         SOL_INT_CHECK(r, < 0, r);
 
-        r = sol_json_double_to_str(mdata->value.d.max, &max);
+        r = sol_buffer_append_slice(content,
+            sol_str_slice_from_str(",\"min\":"));
+        SOL_INT_CHECK(r, < 0, r);
+        r = sol_json_double_to_str(mdata->value.d.min, content);
         SOL_INT_CHECK(r, < 0, r);
 
-        r = sol_json_double_to_str(mdata->value.d.step, &step);
+        r = sol_buffer_append_slice(content,
+            sol_str_slice_from_str(",\"max\":"));
+        SOL_INT_CHECK(r, < 0, r);
+        r = sol_json_double_to_str(mdata->value.d.max, content);
         SOL_INT_CHECK(r, < 0, r);
 
-        r = sol_buffer_append_printf(content,
-            "{\"value\":%.*s,\"min\":%.*s,\"max\":%.*s,\"step\":%.*s}",
-            SOL_STR_SLICE_PRINT(sol_buffer_get_slice(&val)),
-            SOL_STR_SLICE_PRINT(sol_buffer_get_slice(&min)),
-            SOL_STR_SLICE_PRINT(sol_buffer_get_slice(&max)),
-            SOL_STR_SLICE_PRINT(sol_buffer_get_slice(&step)));
-    } else {
-        r = sol_buffer_append_slice(content, sol_buffer_get_slice(&val));
+        r = sol_buffer_append_slice(content,
+            sol_str_slice_from_str(",\"step\":"));
+        SOL_INT_CHECK(r, < 0, r);
+
+        r = sol_json_double_to_str(mdata->value.d.step, content);
+        SOL_INT_CHECK(r, < 0, r);
+
+        r = sol_buffer_append_char(content, '}');
+        SOL_INT_CHECK(r, < 0, r);
+
+        return 0;
     }
 
-    return r;
+    return sol_json_double_to_str(mdata->value.d.val, content);
 }
 
 static void
@@ -787,6 +787,211 @@ float_process_cb(struct http_data *mdata, const struct sol_flow_packet *packet)
 
     memcpy(&mdata->value.d, &d, sizeof(d));
     return 1;
+}
+
+static void
+rgb_send_packet_cb(struct http_data *mdata, struct sol_flow_node *node)
+{
+    sol_flow_send_rgb_packet(node,
+        SOL_FLOW_NODE_TYPE_HTTP_SERVER_RGB__OUT__OUT, &mdata->value.rgb);
+}
+
+static int
+rgb_response_cb(struct http_data *mdata, struct sol_buffer *content, bool json)
+{
+    if (json) {
+        return sol_buffer_append_printf(content,
+            "{\"red\":%" PRIu32 ",\"green\":%" PRIu32 ",\"blue\":%" PRIu32
+            ",\"red_max\":%" PRIu32 ",\"green_max\":%" PRIu32
+            ",\"blue_max\":%" PRIu32 "}",
+            mdata->value.rgb.red, mdata->value.rgb.green, mdata->value.rgb.blue,
+            mdata->value.rgb.red_max, mdata->value.rgb.green_max,
+            mdata->value.rgb.blue_max);
+    }
+
+    return sol_buffer_append_printf(content, "#%02X%02X%02X",
+        mdata->value.rgb.red, mdata->value.rgb.green, mdata->value.rgb.blue);
+}
+
+static int
+rgb_post_cb(struct http_data *mdata, struct sol_flow_node *node,
+    struct sol_http_param_value *value)
+{
+    int ret = 0;
+    uint32_t i;
+
+    if (sol_str_slice_str_eq(value->value.key_value.key, "red"))
+        STRTOL(rgb.red, i, ret, true);
+    else if (sol_str_slice_str_eq(value->value.key_value.key, "green"))
+        STRTOL(rgb.green, i, ret, true);
+    else if (sol_str_slice_str_eq(value->value.key_value.key, "blue"))
+        STRTOL(rgb.blue, i, ret, true);
+    else if (sol_str_slice_str_eq(value->value.key_value.key, "red_max"))
+        STRTOL(rgb.red_max, i, ret, true);
+    else if (sol_str_slice_str_eq(value->value.key_value.key, "green_max"))
+        STRTOL(rgb.green_max, i, ret, true);
+    else if (sol_str_slice_str_eq(value->value.key_value.key, "blue_max"))
+        STRTOL(rgb.blue_max, i, ret, true);
+    else
+        return -EINVAL;
+
+    return ret;
+}
+
+static int
+rgb_process_cb(struct http_data *mdata, const struct sol_flow_packet *packet)
+{
+    return sol_flow_packet_get_rgb(packet, &mdata->value.rgb);
+}
+
+static int
+rgb_open(struct sol_flow_node *node, void *data,
+    const struct sol_flow_node_options *options)
+{
+    int r;
+    struct http_data *mdata = data;
+    struct sol_flow_node_type_http_server_rgb_options *opts =
+        (struct sol_flow_node_type_http_server_rgb_options *)options;
+
+    SOL_FLOW_NODE_OPTIONS_SUB_API_CHECK(options,
+        SOL_FLOW_NODE_TYPE_HTTP_SERVER_RGB_OPTIONS_API_VERSION,
+        -EINVAL);
+
+    r = common_open(node, mdata, opts->path, opts->allowed_methods, opts->port);
+    SOL_INT_CHECK(r, < 0, r);
+
+    mdata->value.rgb = opts->value;
+    return 0;
+}
+
+static int
+direction_vector_post_cb(struct http_data *mdata, struct sol_flow_node *node,
+    struct sol_http_param_value *value)
+{
+    int ret = 0;
+
+    if (sol_str_slice_str_eq(value->value.key_value.key, "x"))
+        STRTOD(dir_vector.x, ret);
+    else if (sol_str_slice_str_eq(value->value.key_value.key, "y"))
+        STRTOD(dir_vector.y, ret);
+    else if (sol_str_slice_str_eq(value->value.key_value.key, "z"))
+        STRTOD(dir_vector.z, ret);
+    else if (sol_str_slice_str_eq(value->value.key_value.key, "min"))
+        STRTOD(dir_vector.min, ret);
+    else if (sol_str_slice_str_eq(value->value.key_value.key, "max"))
+        STRTOD(dir_vector.max, ret);
+    else
+        return -EINVAL;
+
+    return ret;
+}
+
+static int
+direction_vector_response_cb(struct http_data *mdata,
+    struct sol_buffer *content, bool json)
+{
+    int r;
+
+    if (json) {
+
+        r = sol_buffer_append_slice(content, sol_str_slice_from_str("{\"x\":"));
+        SOL_INT_CHECK(r, < 0, r);
+
+        r = sol_json_double_to_str(mdata->value.dir_vector.x, content);
+        SOL_INT_CHECK(r, < 0, r);
+
+        r = sol_buffer_append_slice(content, sol_str_slice_from_str(",\"y\":"));
+        SOL_INT_CHECK(r, < 0, r);
+
+        r = sol_json_double_to_str(mdata->value.dir_vector.y, content);
+        SOL_INT_CHECK(r, < 0, r);
+
+        r = sol_buffer_append_slice(content, sol_str_slice_from_str(",\"z\":"));
+        SOL_INT_CHECK(r, < 0, r);
+
+        r = sol_json_double_to_str(mdata->value.dir_vector.z, content);
+        SOL_INT_CHECK(r, < 0, r);
+
+        r = sol_buffer_append_slice(content,
+            sol_str_slice_from_str(",\"min\":"));
+        SOL_INT_CHECK(r, < 0, r);
+
+        r = sol_json_double_to_str(mdata->value.dir_vector.min, content);
+        SOL_INT_CHECK(r, < 0, r);
+
+        r = sol_buffer_append_slice(content,
+            sol_str_slice_from_str(",\"max\":"));
+        SOL_INT_CHECK(r, < 0, r);
+
+        r = sol_json_double_to_str(mdata->value.dir_vector.max, content);
+        SOL_INT_CHECK(r, < 0, r);
+
+        r = sol_buffer_append_char(content, '}');
+        SOL_INT_CHECK(r, < 0, r);
+
+        return 0;
+    }
+
+    //Format (X;Y;Z)
+    r = sol_buffer_append_char(content, '(');
+    SOL_INT_CHECK(r, < 0, r);
+
+    r = sol_json_double_to_str(mdata->value.dir_vector.x, content);
+    SOL_INT_CHECK(r, < 0, r);
+
+    r = sol_buffer_append_char(content, ';');
+    SOL_INT_CHECK(r, < 0, r);
+    r = sol_json_double_to_str(mdata->value.dir_vector.y, content);
+    SOL_INT_CHECK(r, < 0, r);
+
+    r = sol_buffer_append_char(content, ';');
+    SOL_INT_CHECK(r, < 0, r);
+
+    r = sol_json_double_to_str(mdata->value.dir_vector.z, content);
+    SOL_INT_CHECK(r, < 0, r);
+
+    r = sol_buffer_append_char(content, ')');
+    SOL_INT_CHECK(r, < 0, r);
+
+    return 0;
+}
+
+static void
+direction_vector_send_packet_cb(struct http_data *mdata,
+    struct sol_flow_node *node)
+{
+    sol_flow_send_direction_vector_packet(node,
+        SOL_FLOW_NODE_TYPE_HTTP_SERVER_DIRECTION_VECTOR__OUT__OUT,
+        &mdata->value.dir_vector);
+}
+
+static int
+direction_vector_process_cb(struct http_data *mdata,
+    const struct sol_flow_packet *packet)
+{
+    return sol_flow_packet_get_direction_vector(packet,
+        &mdata->value.dir_vector);
+}
+
+static int
+direction_vector_open(struct sol_flow_node *node, void *data,
+    const struct sol_flow_node_options *options)
+{
+    int r;
+    struct http_data *mdata = data;
+    struct sol_flow_node_type_http_server_direction_vector_options *opts =
+        (struct sol_flow_node_type_http_server_direction_vector_options *)
+        options;
+
+    SOL_FLOW_NODE_OPTIONS_SUB_API_CHECK(options,
+        SOL_FLOW_NODE_TYPE_HTTP_SERVER_DIRECTION_VECTOR_OPTIONS_API_VERSION,
+        -EINVAL);
+
+    r = common_open(node, mdata, opts->path, opts->allowed_methods, opts->port);
+    SOL_INT_CHECK(r, < 0, r);
+
+    mdata->value.dir_vector = opts->value;
+    return 0;
 }
 
 /* ---------------------------  static files ----------------------------------------- */

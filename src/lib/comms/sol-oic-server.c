@@ -3,31 +3,17 @@
  *
  * Copyright (C) 2015 Intel Corporation. All rights reserved.
  *
- * Redistribution and use in source and binary forms, with or without
- * modification, are permitted provided that the following conditions
- * are met:
+ * Licensed under the Apache License, Version 2.0 (the "License");
+ * you may not use this file except in compliance with the License.
+ * You may obtain a copy of the License at
  *
- *   * Redistributions of source code must retain the above copyright
- *     notice, this list of conditions and the following disclaimer.
- *   * Redistributions in binary form must reproduce the above copyright
- *     notice, this list of conditions and the following disclaimer in
- *     the documentation and/or other materials provided with the
- *     distribution.
- *   * Neither the name of Intel Corporation nor the names of its
- *     contributors may be used to endorse or promote products derived
- *     from this software without specific prior written permission.
+ *     http://www.apache.org/licenses/LICENSE-2.0
  *
- * THIS SOFTWARE IS PROVIDED BY THE COPYRIGHT HOLDERS AND CONTRIBUTORS
- * "AS IS" AND ANY EXPRESS OR IMPLIED WARRANTIES, INCLUDING, BUT NOT
- * LIMITED TO, THE IMPLIED WARRANTIES OF MERCHANTABILITY AND FITNESS FOR
- * A PARTICULAR PURPOSE ARE DISCLAIMED. IN NO EVENT SHALL THE COPYRIGHT
- * OWNER OR CONTRIBUTORS BE LIABLE FOR ANY DIRECT, INDIRECT, INCIDENTAL,
- * SPECIAL, EXEMPLARY, OR CONSEQUENTIAL DAMAGES (INCLUDING, BUT NOT
- * LIMITED TO, PROCUREMENT OF SUBSTITUTE GOODS OR SERVICES; LOSS OF USE,
- * DATA, OR PROFITS; OR BUSINESS INTERRUPTION) HOWEVER CAUSED AND ON ANY
- * THEORY OF LIABILITY, WHETHER IN CONTRACT, STRICT LIABILITY, OR TORT
- * (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE
- * OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
+ * Unless required by applicable law or agreed to in writing, software
+ * distributed under the License is distributed on an "AS IS" BASIS,
+ * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+ * See the License for the specific language governing permissions and
+ * limitations under the License.
  */
 
 #include <errno.h>
@@ -37,7 +23,7 @@
 
 #define SOL_LOG_DOMAIN &_sol_oic_server_log_domain
 
-#include "cbor.h"
+#include "tinycbor/cbor.h"
 #include "sol-coap.h"
 #include "sol-json.h"
 #include "sol-log-internal.h"
@@ -81,6 +67,10 @@ struct sol_oic_server_resource {
 };
 
 static struct sol_oic_server oic_server;
+void sol_oic_server_shutdown(void);
+static struct sol_oic_server_resource *sol_oic_server_add_resource_internal(const struct sol_oic_resource_type *rt, const void *handler_data, enum sol_oic_resource_flag flags);
+static void sol_oic_server_del_resource_internal(struct sol_oic_server_resource *resource);
+static void sol_oic_server_unref(void);
 
 #define OIC_SERVER_CHECK(ret) \
     do { \
@@ -447,8 +437,8 @@ init_static_server_info(void)
     return info;
 }
 
-SOL_API int
-sol_oic_server_init(void)
+static int
+sol_oic_server_ref(void)
 {
     struct sol_oic_platform_information *plat_info = NULL;
     struct sol_oic_server_information *server_info = NULL;
@@ -497,11 +487,11 @@ sol_oic_server_init(void)
 
     oic_server.refcnt++;
 
-    res = sol_oic_server_add_resource(&oic_d_resource_type, NULL,
+    res = sol_oic_server_add_resource_internal(&oic_d_resource_type, NULL,
         SOL_OIC_FLAG_DISCOVERABLE | SOL_OIC_FLAG_ACTIVE);
     SOL_NULL_CHECK_GOTO(res, error_shutdown);
 
-    res = sol_oic_server_add_resource(&oic_p_resource_type, NULL,
+    res = sol_oic_server_add_resource_internal(&oic_p_resource_type, NULL,
         SOL_OIC_FLAG_DISCOVERABLE | SOL_OIC_FLAG_ACTIVE);
     SOL_NULL_CHECK_GOTO(res, error_shutdown);
 
@@ -515,23 +505,18 @@ error:
     return r;
 
 error_shutdown:
-    sol_oic_server_shutdown();
+    sol_oic_server_unref();
     return -ENOMEM;
 }
 
-SOL_API void
-sol_oic_server_shutdown(void)
+static void
+sol_oic_server_shutdown_internal(void)
 {
     struct sol_oic_server_resource *res;
     uint16_t idx;
 
-    OIC_SERVER_CHECK();
-
-    if (--oic_server.refcnt > 0)
-        return;
-
     SOL_PTR_VECTOR_FOREACH_REVERSE_IDX (&oic_server.resources, res, idx)
-        sol_oic_server_del_resource(res);
+        sol_oic_server_del_resource_internal(res);
 
     if (oic_server.dtls_server)
         sol_coap_server_unref(oic_server.dtls_server);
@@ -543,6 +528,28 @@ sol_oic_server_shutdown(void)
 
     free(oic_server.server_info);
     free(oic_server.plat_info);
+}
+
+void
+sol_oic_server_shutdown(void)
+{
+    if (oic_server.refcnt == 0)
+        return;
+
+    sol_oic_server_shutdown_internal();
+    oic_server.refcnt = 0;
+}
+
+static void
+sol_oic_server_unref(void)
+{
+
+    OIC_SERVER_CHECK();
+
+    if (--oic_server.refcnt > 0)
+        return;
+
+    sol_oic_server_shutdown_internal();
 }
 
 static int
@@ -681,23 +688,11 @@ create_endpoint(void)
     return r < 0 ? NULL : buffer;
 }
 
-SOL_API struct sol_oic_server_resource *
-sol_oic_server_add_resource(const struct sol_oic_resource_type *rt,
+struct sol_oic_server_resource *
+sol_oic_server_add_resource_internal(const struct sol_oic_resource_type *rt,
     const void *handler_data, enum sol_oic_resource_flag flags)
 {
     struct sol_oic_server_resource *res;
-
-    OIC_SERVER_CHECK(NULL);
-    SOL_NULL_CHECK(rt, NULL);
-
-#ifndef SOL_NO_API_VERSION
-    if (SOL_UNLIKELY(rt->api_version != SOL_OIC_RESOURCE_TYPE_API_VERSION)) {
-        SOL_WRN("Couldn't add resource_type with "
-            "version '%u'. Expected version '%u'.",
-            rt->api_version, SOL_OIC_RESOURCE_TYPE_API_VERSION);
-        return NULL;
-    }
-#endif
 
     res = malloc(sizeof(struct sol_oic_server_resource));
     SOL_NULL_CHECK(res, NULL);
@@ -755,12 +750,31 @@ remove_res:
     return NULL;
 }
 
-SOL_API void
-sol_oic_server_del_resource(struct sol_oic_server_resource *resource)
+SOL_API struct sol_oic_server_resource *
+sol_oic_server_add_resource(const struct sol_oic_resource_type *rt,
+    const void *handler_data, enum sol_oic_resource_flag flags)
 {
-    OIC_SERVER_CHECK();
-    SOL_NULL_CHECK(resource);
+    int r;
 
+    SOL_NULL_CHECK(rt, NULL);
+    r = sol_oic_server_ref();
+    SOL_INT_CHECK(r, < 0, NULL);
+
+#ifndef SOL_NO_API_VERSION
+    if (SOL_UNLIKELY(rt->api_version != SOL_OIC_RESOURCE_TYPE_API_VERSION)) {
+        SOL_WRN("Couldn't add resource_type with "
+            "version '%u'. Expected version '%u'.",
+            rt->api_version, SOL_OIC_RESOURCE_TYPE_API_VERSION);
+        return NULL;
+    }
+#endif
+
+    return sol_oic_server_add_resource_internal(rt, handler_data, flags);
+}
+
+static void
+sol_oic_server_del_resource_internal(struct sol_oic_server_resource *resource)
+{
     sol_coap_server_unregister_resource(oic_server.server, resource->coap);
     if (oic_server.dtls_server)
         sol_coap_server_unregister_resource(oic_server.dtls_server, resource->coap);
@@ -773,6 +787,16 @@ sol_oic_server_del_resource(struct sol_oic_server_resource *resource)
         SOL_ERR("Could not find resource %p in OIC server resource list",
             resource);
     free(resource);
+}
+
+SOL_API void
+sol_oic_server_del_resource(struct sol_oic_server_resource *resource)
+{
+    OIC_SERVER_CHECK();
+    SOL_NULL_CHECK(resource);
+
+    sol_oic_server_del_resource_internal(resource);
+    sol_oic_server_unref();
 }
 
 static bool
@@ -820,6 +844,8 @@ sol_oic_notify_observers(struct sol_oic_server_resource *resource,
 
     SOL_NULL_CHECK(resource, false);
     SOL_NULL_CHECK(fill_repr_map, false);
+
+    OIC_SERVER_CHECK(false);
 
     sent_server = send_notification_to_server(resource, oic_server.server, fill_repr_map, data);
     if (oic_server.dtls_server)

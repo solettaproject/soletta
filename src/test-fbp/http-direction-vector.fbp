@@ -1,0 +1,29 @@
+# This file is part of the Soletta Project
+#
+# Copyright (C) 2015 Intel Corporation. All rights reserved.
+#
+# Licensed under the Apache License, Version 2.0 (the "License");
+# you may not use this file except in compliance with the License.
+# You may obtain a copy of the License at
+#
+#     http://www.apache.org/licenses/LICENSE-2.0
+#
+# Unless required by applicable law or agreed to in writing, software
+# distributed under the License is distributed on an "AS IS" BASIS,
+# WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+# See the License for the specific language governing permissions and
+# limitations under the License.
+
+HttpServer(http-server/direction-vector:port=8080,path="/dv") OUT -> IN direction_vector_to_float_server(converter/direction-vector-to-float)
+
+direction_vector_to_float_server X -> IN ServerValidator(test/float-validator:sequence="23.3 11.2 33.4") OUT -> RESULT TestServer(test/result)
+direction_vector_to_float_server Y -> IN ServerValidator
+direction_vector_to_float_server Z -> IN ServerValidator
+
+_(constant/direction-vector:value=23.3|11.2|33.4) OUT -> POST HttpClient(http-client/direction-vector:url="http://localhost:8080/dv")
+
+HttpClient OUT -> IN direction_vector_to_float_client(converter/direction-vector-to-float)
+
+direction_vector_to_float_client X -> IN GetValidator(test/float-validator:sequence="23.3 11.2 33.4") OUT -> RESULT TestClient(test/result)
+direction_vector_to_float_client Y -> IN GetValidator
+direction_vector_to_float_client Z -> IN GetValidator

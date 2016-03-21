@@ -4,31 +4,17 @@
 #
 # Copyright (C) 2015 Intel Corporation. All rights reserved.
 #
-# Redistribution and use in source and binary forms, with or without
-# modification, are permitted provided that the following conditions
-# are met:
+# Licensed under the Apache License, Version 2.0 (the "License");
+# you may not use this file except in compliance with the License.
+# You may obtain a copy of the License at
 #
-#   * Redistributions of source code must retain the above copyright
-#     notice, this list of conditions and the following disclaimer.
-#   * Redistributions in binary form must reproduce the above copyright
-#     notice, this list of conditions and the following disclaimer in
-#     the documentation and/or other materials provided with the
-#     distribution.
-#   * Neither the name of Intel Corporation nor the names of its
-#     contributors may be used to endorse or promote products derived
-#     from this software without specific prior written permission.
+#     http://www.apache.org/licenses/LICENSE-2.0
 #
-# THIS SOFTWARE IS PROVIDED BY THE COPYRIGHT HOLDERS AND CONTRIBUTORS
-# "AS IS" AND ANY EXPRESS OR IMPLIED WARRANTIES, INCLUDING, BUT NOT
-# LIMITED TO, THE IMPLIED WARRANTIES OF MERCHANTABILITY AND FITNESS FOR
-# A PARTICULAR PURPOSE ARE DISCLAIMED. IN NO EVENT SHALL THE COPYRIGHT
-# OWNER OR CONTRIBUTORS BE LIABLE FOR ANY DIRECT, INDIRECT, INCIDENTAL,
-# SPECIAL, EXEMPLARY, OR CONSEQUENTIAL DAMAGES (INCLUDING, BUT NOT
-# LIMITED TO, PROCUREMENT OF SUBSTITUTE GOODS OR SERVICES; LOSS OF USE,
-# DATA, OR PROFITS; OR BUSINESS INTERRUPTION) HOWEVER CAUSED AND ON ANY
-# THEORY OF LIABILITY, WHETHER IN CONTRACT, STRICT LIABILITY, OR TORT
-# (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE
-# OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
+# Unless required by applicable law or agreed to in writing, software
+# distributed under the License is distributed on an "AS IS" BASIS,
+# WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+# See the License for the specific language governing permissions and
+# limitations under the License.
 
 function die() {
     echo "ERROR: $1"
@@ -39,7 +25,7 @@ function die() {
 
 DIFF_LIST=$(mktemp /tmp/sol-tmp.XXXX)
 
-PATTERNS=".*\.*\([ch]\|py\|h\.in\|py\.in\|fbp\|sh\|json\|COPYING\|calc\-lib\-size\|generate\-svg\-from\-all\-fbps\)$"
+PATTERNS=".*\.*\([ch]\|py\|h\.in\|py\.in\|fbp\|sh\|json\|COPYING\|calc\-lib\-size\|js\|generate\-svg\-from\-all\-fbps\)$"
 IGNORE="src\/thirdparty\/\|tools\/kconfig\/\|data\/oic\/\|data\/jsons\/\|.*\.ac|.*Makefile.*\|.*-gen.h\.in"
 
 trap "rm -f $DIFF_LIST" EXIT
@@ -75,21 +61,23 @@ if [ ! -s "$DIFF_LIST" ]; then
     git diff --diff-filter=ACMR --oneline --name-only $BASE_COMMIT HEAD | grep $PATTERNS | sed '/'${IGNORE}'/d' > $DIFF_LIST
 fi
 
-EXIT_CODE=0
-for f in $(cat $DIFF_LIST); do
-    r=0
-    if [ ${f##*.} = "json" ]; then
+cat "${DIFF_LIST}" | ( EXIT_CODE=0; while read; do
+	f="${REPLY}"
+    test1=0
+    test2=0
+    if [ "${f##*.}" = "json" ]; then
         # There is no need of license in config files
-        if [ $(grep -c -m 1 "config.schema" $f) -ne 0 ]; then
+        if [ $(grep -c -m 1 "config.schema" "${f}") -ne 0 ]; then
             continue;
         fi
-        r=$(grep -c -m 1 "\"license\": \"BSD-3-Clause\"" $f);
+        test1=$(grep -c -m 1 "\"license\": \"Apache-2.0\"" "${f}");
+        test2=1
     else
-        r=$(grep -c -m 1 "This file is part of the Soletta Project" $f)
+        test1=$(grep -c -m 1 "This file is part of the Soletta Project" "${f}")
+        test2=$(grep -c -m 1 "http://www.apache.org/licenses/LICENSE-2.0" "${f}")
     fi
-    if [ $r -eq 0 ]; then
-        echo "$f has license issues"
+    if [ "${test1}" -eq 0 ] || [ "${test2}" -eq 0 ]; then
+        echo "${f} has license issues"
         EXIT_CODE=1
     fi
-done
-exit $EXIT_CODE
+done; exit "${EXIT_CODE}"; )

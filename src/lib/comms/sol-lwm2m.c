@@ -3,31 +3,17 @@
  *
  * Copyright (C) 2015 Intel Corporation. All rights reserved.
  *
- * Redistribution and use in source and binary forms, with or without
- * modification, are permitted provided that the following conditions
- * are met:
+ * Licensed under the Apache License, Version 2.0 (the "License");
+ * you may not use this file except in compliance with the License.
+ * You may obtain a copy of the License at
  *
- *   * Redistributions of source code must retain the above copyright
- *     notice, this list of conditions and the following disclaimer.
- *   * Redistributions in binary form must reproduce the above copyright
- *     notice, this list of conditions and the following disclaimer in
- *     the documentation and/or other materials provided with the
- *     distribution.
- *   * Neither the name of Intel Corporation nor the names of its
- *     contributors may be used to endorse or promote products derived
- *     from this software without specific prior written permission.
+ *     http://www.apache.org/licenses/LICENSE-2.0
  *
- * THIS SOFTWARE IS PROVIDED BY THE COPYRIGHT HOLDERS AND CONTRIBUTORS
- * "AS IS" AND ANY EXPRESS OR IMPLIED WARRANTIES, INCLUDING, BUT NOT
- * LIMITED TO, THE IMPLIED WARRANTIES OF MERCHANTABILITY AND FITNESS FOR
- * A PARTICULAR PURPOSE ARE DISCLAIMED. IN NO EVENT SHALL THE COPYRIGHT
- * OWNER OR CONTRIBUTORS BE LIABLE FOR ANY DIRECT, INDIRECT, INCIDENTAL,
- * SPECIAL, EXEMPLARY, OR CONSEQUENTIAL DAMAGES (INCLUDING, BUT NOT
- * LIMITED TO, PROCUREMENT OF SUBSTITUTE GOODS OR SERVICES; LOSS OF USE,
- * DATA, OR PROFITS; OR BUSINESS INTERRUPTION) HOWEVER CAUSED AND ON ANY
- * THEORY OF LIABILITY, WHETHER IN CONTRACT, STRICT LIABILITY, OR TORT
- * (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE
- * OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
+ * Unless required by applicable law or agreed to in writing, software
+ * distributed under the License is distributed on an "AS IS" BASIS,
+ * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+ * See the License for the specific language governing permissions and
+ * limitations under the License.
  */
 #include <errno.h>
 #include <float.h>
@@ -278,8 +264,11 @@ send_ack_if_needed(struct sol_coap_server *coap, struct sol_coap_packet *msg,
     const struct sol_network_link_addr *cliaddr)
 {
     struct sol_coap_packet *ack;
+    uint8_t type;
 
-    if (sol_coap_header_get_type(msg) == SOL_COAP_TYPE_CON) {
+    sol_coap_header_get_type(msg, &type);
+
+    if (type == SOL_COAP_TYPE_CON) {
         ack = sol_coap_packet_new(msg);
         SOL_NULL_CHECK(ack);
         if (sol_coap_send_packet(coap, ack, cliaddr) < 0)
@@ -1582,7 +1571,8 @@ extract_content(struct sol_coap_packet *req, uint8_t *code,
     size_t offset;
     int r;
 
-    *code = sol_coap_header_get_code(req);
+    r = sol_coap_header_get_code(req, code);
+    SOL_INT_CHECK(r, < 0);
 
     if (!sol_coap_packet_has_payload(req))
         return;
@@ -1776,7 +1766,7 @@ management_reply(struct sol_coap_server *server,
     case MANAGEMENT_WRITE:
     case MANAGEMENT_EXECUTE:
         if (!code)
-            code = sol_coap_header_get_code(req);
+            sol_coap_header_get_code(req, &code);
         ((sol_lwm2m_server_management_status_response_cb)ctx->cb)
             ((void *)ctx->data, ctx->server, ctx->cinfo, ctx->path, code);
         break;
@@ -2949,7 +2939,7 @@ handle_resource(struct sol_coap_server *server,
         payload.data = sol_buffer_at(buf, offset);
     }
 
-    method = sol_coap_header_get_code(req);
+    sol_coap_header_get_code(req, &method);
 
     switch (method) {
     case SOL_COAP_METHOD_GET:
@@ -3422,7 +3412,7 @@ register_reply(struct sol_coap_server *server,
 {
     struct server_conn_ctx *conn_ctx = data;
     struct sol_str_slice path[2];
-    uint16_t code;
+    uint8_t code;
     int r;
 
     SOL_BUFFER_DECLARE_STATIC(addr, SOL_INET_ADDR_STRLEN);
@@ -3445,7 +3435,7 @@ register_reply(struct sol_coap_server *server,
     if (!sol_network_link_addr_to_str(server_addr, &addr))
         SOL_WRN("Could not convert the server address to string");
 
-    code = sol_coap_header_get_code(pkt);
+    sol_coap_header_get_code(pkt, &code);
     SOL_INT_CHECK_GOTO(code, != SOL_COAP_RSPCODE_CREATED, err_exit);
 
     r = sol_coap_find_options(pkt, SOL_COAP_OPTION_LOCATION_PATH, path,
@@ -3479,7 +3469,7 @@ update_reply(struct sol_coap_server *server,
     if (!pkt && !server_addr)
         goto err_exit;
 
-    code = sol_coap_header_get_code(pkt);
+    sol_coap_header_get_code(pkt, &code);
     SOL_INT_CHECK_GOTO(code, != SOL_COAP_RSPCODE_CHANGED, err_exit);
     return false;
 

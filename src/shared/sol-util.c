@@ -3,31 +3,17 @@
  *
  * Copyright (C) 2015 Intel Corporation. All rights reserved.
  *
- * Redistribution and use in source and binary forms, with or without
- * modification, are permitted provided that the following conditions
- * are met:
+ * Licensed under the Apache License, Version 2.0 (the "License");
+ * you may not use this file except in compliance with the License.
+ * You may obtain a copy of the License at
  *
- *   * Redistributions of source code must retain the above copyright
- *     notice, this list of conditions and the following disclaimer.
- *   * Redistributions in binary form must reproduce the above copyright
- *     notice, this list of conditions and the following disclaimer in
- *     the documentation and/or other materials provided with the
- *     distribution.
- *   * Neither the name of Intel Corporation nor the names of its
- *     contributors may be used to endorse or promote products derived
- *     from this software without specific prior written permission.
+ *     http://www.apache.org/licenses/LICENSE-2.0
  *
- * THIS SOFTWARE IS PROVIDED BY THE COPYRIGHT HOLDERS AND CONTRIBUTORS
- * "AS IS" AND ANY EXPRESS OR IMPLIED WARRANTIES, INCLUDING, BUT NOT
- * LIMITED TO, THE IMPLIED WARRANTIES OF MERCHANTABILITY AND FITNESS FOR
- * A PARTICULAR PURPOSE ARE DISCLAIMED. IN NO EVENT SHALL THE COPYRIGHT
- * OWNER OR CONTRIBUTORS BE LIABLE FOR ANY DIRECT, INDIRECT, INCIDENTAL,
- * SPECIAL, EXEMPLARY, OR CONSEQUENTIAL DAMAGES (INCLUDING, BUT NOT
- * LIMITED TO, PROCUREMENT OF SUBSTITUTE GOODS OR SERVICES; LOSS OF USE,
- * DATA, OR PROFITS; OR BUSINESS INTERRUPTION) HOWEVER CAUSED AND ON ANY
- * THEORY OF LIABILITY, WHETHER IN CONTRACT, STRICT LIABILITY, OR TORT
- * (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE
- * OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
+ * Unless required by applicable law or agreed to in writing, software
+ * distributed under the License is distributed on an "AS IS" BASIS,
+ * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+ * See the License for the specific language governing permissions and
+ * limitations under the License.
  */
 
 #include <errno.h>
@@ -531,6 +517,22 @@ base16_encode_digit(const uint8_t nibble, const char a)
 }
 
 SOL_API ssize_t
+sol_util_base64_calculate_decoded_len(const struct sol_str_slice slice, const char base64_map[SOL_STATIC_ARRAY_SIZE(65)])
+{
+    size_t req_len = (slice.len / 4) * 3;
+    size_t i;
+
+    for (i = slice.len; i > 0; i--) {
+        if (slice.data[i - 1] != base64_map[64])
+            break;
+        req_len--;
+    }
+    if (req_len > SSIZE_MAX)
+        return -EOVERFLOW;
+    return req_len;
+}
+
+SOL_API ssize_t
 sol_util_base16_encode(void *buf, size_t buflen, const struct sol_str_slice slice, bool uppercase)
 {
     char *output, a;
@@ -906,4 +908,137 @@ sol_util_uuid_str_valid(const char *str)
         return false;
 
     return true;
+}
+
+SOL_API int
+sol_util_unescape_quotes(const struct sol_str_slice slice,
+    struct sol_buffer *buf)
+{
+    bool is_escaped = false;
+    size_t i, last_append;
+    char *quote_start, *quote_end, *txt_start, *txt_end, *quote_middle;
+    int r;
+
+    SOL_NULL_CHECK(buf, -EINVAL);
+
+    sol_buffer_init(buf);
+
+    if (!slice.len)
+        return 0;
+
+    last_append = 0;
+    quote_start = quote_end = txt_start = txt_end = quote_middle = NULL;
+
+    for (i = 0; i < slice.len; i++) {
+        int is_space = isspace((int)slice.data[i]);
+
+        if (!is_space)
+            txt_end = (char *)slice.data + i;
+
+        if (!is_escaped && (slice.data[i] == '"' || slice.data[i] == '\'')) {
+            if (quote_middle && *quote_middle == slice.data[i]) {
+                size_t len;
+                len = (quote_middle - (txt_start + last_append));
+                r = sol_buffer_append_slice(buf,
+                    SOL_STR_SLICE_STR(txt_start + last_append, len));
+                SOL_INT_CHECK_GOTO(r, < 0, err_exit);
+                len = ((char *)slice.data + i) - quote_middle - 1;
+                r = sol_buffer_append_slice(buf,
+                    SOL_STR_SLICE_STR(quote_middle + 1, len));
+                SOL_INT_CHECK_GOTO(r, < 0, err_exit);
+                last_append = i + 1;
+                quote_middle = NULL;
+            } else if (!quote_start) {
+                if (i > 0 && txt_start) {
+                    //The is slice is something like: MySlice 'WithQuotesInTheMiddle' MySlice continue...
+                    quote_middle = (char *)slice.data + i;
+                } else {
+                    quote_start = (char *)slice.data + i;
+                    if (!txt_start)
+                        txt_start = quote_start + 1;
+                }
+            } else if (quote_start && *quote_start == slice.data[i]) {
+                txt_end = quote_end = (char *)slice.data + i;
+            }
+        } else if (!is_escaped && slice.data[i] == '\\') {
+            is_escaped = true;
+            if (!txt_start)
+                continue;
+            r = sol_buffer_append_slice(buf,
+                SOL_STR_SLICE_STR(slice.data + last_append, i - last_append));
+            SOL_INT_CHECK_GOTO(r, < 0, err_exit);
+        } else if (!is_escaped && !txt_start && !is_space) {
+            txt_start = (char *)slice.data + i;
+        } else if (is_escaped) {
+            char c;
+
+            is_escaped = false;
+            switch (slice.data[i]) {
+            case '\'':
+                c = '\'';
+                break;
+            case '"':
+                c = '"';
+                break;
+            default:
+                SOL_WRN("Invalid character to be escapted: '%c'",
+                    slice.data[i]);
+                r = -EINVAL;
+                goto err_exit;
+            }
+
+            r = sol_buffer_append_char(buf, c);
+            SOL_INT_CHECK_GOTO(r, < 0, err_exit);
+            last_append = i + 1;
+        }
+    }
+
+    if (quote_start && !quote_end) {
+        r = -EINVAL;
+        SOL_WRN("Missing quotes from slice: %.*s",
+            SOL_STR_SLICE_PRINT(slice));
+        goto err_exit;
+    }
+
+    if (is_escaped) {
+        SOL_WRN("Invalid string format, missing character to be escapted."
+            " String: %.*s", SOL_STR_SLICE_PRINT(slice));
+        r = -EINVAL;
+        goto err_exit;
+    }
+
+    if (!last_append) {
+        size_t len = 0;
+
+        if (txt_start && txt_start == txt_end && !isspace((int)*txt_start))
+            len = 1;
+        else if (txt_start != txt_end) {
+            len = txt_end - txt_start + 1;
+            if (quote_end)
+                len--;
+        }
+
+        if (len > 0) {
+            sol_buffer_init_flags(buf, txt_start, len,
+                SOL_BUFFER_FLAGS_MEMORY_NOT_OWNED |
+                SOL_BUFFER_FLAGS_NO_NUL_BYTE);
+            buf->used = buf->capacity;
+        } else {
+            buf->flags |= SOL_BUFFER_FLAGS_MEMORY_NOT_OWNED |
+                SOL_BUFFER_FLAGS_NO_NUL_BYTE;
+        }
+    } else {
+        size_t len = slice.len - (last_append + (((char *)slice.data + slice.len) - txt_end) - 1);
+
+        r = sol_buffer_append_slice(buf,
+            SOL_STR_SLICE_STR(slice.data + last_append,
+            len));
+        SOL_INT_CHECK_GOTO(r, < 0, err_exit);
+    }
+
+    return 0;
+
+err_exit:
+    sol_buffer_fini(buf);
+    return r;
 }

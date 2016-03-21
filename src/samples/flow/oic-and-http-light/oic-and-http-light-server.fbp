@@ -1,33 +1,20 @@
 #!/usr/bin/env sol-fbp-runner
+
 # This file is part of the Soletta Project
 #
 # Copyright (C) 2015 Intel Corporation. All rights reserved.
 #
-# Redistribution and use in source and binary forms, with or without
-# modification, are permitted provided that the following conditions
-# are met:
+# Licensed under the Apache License, Version 2.0 (the "License");
+# you may not use this file except in compliance with the License.
+# You may obtain a copy of the License at
 #
-#   * Redistributions of source code must retain the above copyright
-#     notice, this list of conditions and the following disclaimer.
-#   * Redistributions in binary form must reproduce the above copyright
-#     notice, this list of conditions and the following disclaimer in
-#     the documentation and/or other materials provided with the
-#     distribution.
-#   * Neither the name of Intel Corporation nor the names of its
-#     contributors may be used to endorse or promote products derived
-#     from this software without specific prior written permission.
+#     http://www.apache.org/licenses/LICENSE-2.0
 #
-# THIS SOFTWARE IS PROVIDED BY THE COPYRIGHT HOLDERS AND CONTRIBUTORS
-# "AS IS" AND ANY EXPRESS OR IMPLIED WARRANTIES, INCLUDING, BUT NOT
-# LIMITED TO, THE IMPLIED WARRANTIES OF MERCHANTABILITY AND FITNESS FOR
-# A PARTICULAR PURPOSE ARE DISCLAIMED. IN NO EVENT SHALL THE COPYRIGHT
-# OWNER OR CONTRIBUTORS BE LIABLE FOR ANY DIRECT, INDIRECT, INCIDENTAL,
-# SPECIAL, EXEMPLARY, OR CONSEQUENTIAL DAMAGES (INCLUDING, BUT NOT
-# LIMITED TO, PROCUREMENT OF SUBSTITUTE GOODS OR SERVICES; LOSS OF USE,
-# DATA, OR PROFITS; OR BUSINESS INTERRUPTION) HOWEVER CAUSED AND ON ANY
-# THEORY OF LIABILITY, WHETHER IN CONTRACT, STRICT LIABILITY, OR TORT
-# (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE
-# OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
+# Unless required by applicable law or agreed to in writing, software
+# distributed under the License is distributed on an "AS IS" BASIS,
+# WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+# See the License for the specific language governing permissions and
+# limitations under the License.
 
 # Brief:
 #
@@ -50,26 +37,26 @@ http_server(http-light-server)
 persistence(persistence-light-server:default_state=true,default_power=100)
 
 # cross-link OIC and HTTP, acting on one should report to the other.
-oic_server OUT_POWER -> IN_POWER http_server
-oic_server OUT_STATE -> IN_STATE http_server
+oic_server POWER -> POWER http_server
+oic_server STATE -> STATE http_server
 
-http_server OUT_POWER -> IN_POWER oic_server
-http_server OUT_STATE -> IN_STATE oic_server
+http_server POWER -> POWER oic_server
+http_server STATE -> STATE oic_server
 
 # cross-link OIC and persistence, acting on one should report to the other.
-oic_server OUT_POWER -> IN_POWER persistence
-oic_server OUT_STATE -> IN_STATE persistence
+oic_server POWER -> POWER persistence
+oic_server STATE -> STATE persistence
 
-persistence OUT_POWER -> IN_POWER oic_server
-persistence OUT_STATE -> IN_STATE oic_server
+persistence POWER -> POWER oic_server
+persistence STATE -> STATE oic_server
 
 # act on hardware based on OIC values
 # TODO: sol-flow.json defines PowerActuator as calamari/led that uses
 # an input port INTENSITY instead of IN. There should be a way to
 # define a meta-type in the sol-flow.json, then we could create a
 # wrapper FBP that converts the port name.
-oic_server OUT_POWER -> IN power_actuator(PowerActuator)
-oic_server OUT_STATE -> IN state_actuator(StateActuator)
+oic_server POWER -> IN power_actuator(PowerActuator)
+oic_server STATE -> IN state_actuator(StateActuator)
 
 # show machine-id as device-id
 _(platform/machine-id) OUT -> IN _(console:prefix="OIC device-id: ")

@@ -4,31 +4,17 @@
 #
 # Copyright (C) 2015 Intel Corporation. All rights reserved.
 #
-# Redistribution and use in source and binary forms, with or without
-# modification, are permitted provided that the following conditions
-# are met:
+# Licensed under the Apache License, Version 2.0 (the "License");
+# you may not use this file except in compliance with the License.
+# You may obtain a copy of the License at
 #
-#   * Redistributions of source code must retain the above copyright
-#     notice, this list of conditions and the following disclaimer.
-#   * Redistributions in binary form must reproduce the above copyright
-#     notice, this list of conditions and the following disclaimer in
-#     the documentation and/or other materials provided with the
-#     distribution.
-#   * Neither the name of Intel Corporation nor the names of its
-#     contributors may be used to endorse or promote products derived
-#     from this software without specific prior written permission.
+#     http://www.apache.org/licenses/LICENSE-2.0
 #
-# THIS SOFTWARE IS PROVIDED BY THE COPYRIGHT HOLDERS AND CONTRIBUTORS
-# "AS IS" AND ANY EXPRESS OR IMPLIED WARRANTIES, INCLUDING, BUT NOT
-# LIMITED TO, THE IMPLIED WARRANTIES OF MERCHANTABILITY AND FITNESS FOR
-# A PARTICULAR PURPOSE ARE DISCLAIMED. IN NO EVENT SHALL THE COPYRIGHT
-# OWNER OR CONTRIBUTORS BE LIABLE FOR ANY DIRECT, INDIRECT, INCIDENTAL,
-# SPECIAL, EXEMPLARY, OR CONSEQUENTIAL DAMAGES (INCLUDING, BUT NOT
-# LIMITED TO, PROCUREMENT OF SUBSTITUTE GOODS OR SERVICES; LOSS OF USE,
-# DATA, OR PROFITS; OR BUSINESS INTERRUPTION) HOWEVER CAUSED AND ON ANY
-# THEORY OF LIABILITY, WHETHER IN CONTRACT, STRICT LIABILITY, OR TORT
-# (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE
-# OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
+# Unless required by applicable law or agreed to in writing, software
+# distributed under the License is distributed on an "AS IS" BASIS,
+# WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+# See the License for the specific language governing permissions and
+# limitations under the License.
 
 import os
 import json
@@ -494,7 +480,7 @@ def object_inform_flow_fn_common_c(state_struct_name, name, props, client):
                 'field_name': field_name
             }
 
-        send_flow_pkts.append('''%(flow_send_fn)s(resource->node, SOL_FLOW_NODE_TYPE_%(STRUCT_NAME)s__OUT__OUT_%(FIELD_NAME)s, %(val)s);''' % {
+        send_flow_pkts.append('''%(flow_send_fn)s(resource->node, SOL_FLOW_NODE_TYPE_%(STRUCT_NAME)s__OUT__%(FIELD_NAME)s, %(val)s);''' % {
             'flow_send_fn': fn,
             'STRUCT_NAME': name.upper(),
             'FIELD_NAME': field_name.upper(),
@@ -869,7 +855,7 @@ def generate_object_json(resource_type, struct_name, node_name, title, props, se
             'methods': {
                 'process': '%s_set_%s' % (struct_name, prop_name)
             },
-            'name': 'IN_%s' % prop_name.upper()
+            'name': '%s' % prop_name.upper()
         })
 
     if server:
@@ -889,7 +875,7 @@ def generate_object_json(resource_type, struct_name, node_name, title, props, se
         out_ports.append({
             'data_type': JSON_TO_SOL_JSON[prop_descr.get('type', 'string')],
             'description': prop_descr.get('description', '???'),
-            'name': 'OUT_%s' % prop_name.upper()
+            'name': '%s' % prop_name.upper()
         })
 
     output = {
@@ -983,7 +969,7 @@ def master_json_as_string(generated, json_name):
         'name': json_name,
         'meta': {
             'author': 'Intel Corporation',
-            'license': 'BSD-3-Clause',
+            'license': 'Apache-2.0',
             'version': '1'
         },
         'types': [t['json_server'] for t in generated] + [t['json_client'] for t in generated]
@@ -1393,11 +1379,6 @@ server_resource_init(struct server_resource *resource, struct sol_flow_node *nod
 {
     log_init();
 
-    if (sol_oic_server_init() != 0) {
-        SOL_WRN("Could not create %%.*s server", SOL_STR_SLICE_PRINT(resource_type));
-        return -ENOTCONN;
-    }
-
     resource->node = node;
     resource->update_schedule_timeout = NULL;
     resource->funcs = funcs;
@@ -1416,7 +1397,6 @@ server_resource_init(struct server_resource *resource, struct sol_flow_node *nod
     if (resource->resource)
         return 0;
 
-    sol_oic_server_shutdown();
     return -EINVAL;
 }
 
@@ -1426,7 +1406,6 @@ server_resource_close(struct server_resource *resource)
     if (resource->update_schedule_timeout)
         sol_timeout_del(resource->update_schedule_timeout);
     sol_oic_server_del_resource(resource->resource);
-    sol_oic_server_shutdown();
 }
 
 static unsigned int
@@ -1539,6 +1518,15 @@ client_resource_close(struct client_resource *resource)
     sol_oic_client_del(resource->client);
 }
 
+static void
+client_resource_update_ack(sol_coap_responsecode_t response_code, struct sol_oic_client *cli, const struct sol_network_link_addr *addr,
+    const struct sol_oic_map_reader *repr_vec, void *data)
+{
+    struct client_resource *resource = data;
+
+    resource->funcs->inform_flow(resource);
+}
+
 static bool
 client_resource_perform_update(void *data)
 {
@@ -1549,7 +1537,8 @@ client_resource_perform_update(void *data)
     SOL_NULL_CHECK_GOTO(resource->funcs->to_repr_vec, disable_timeout);
 
     r = sol_oic_client_resource_request(resource->client, resource->resource,
-        SOL_COAP_METHOD_PUT, resource->funcs->to_repr_vec, resource, NULL, NULL);
+        SOL_COAP_METHOD_PUT, resource->funcs->to_repr_vec, resource,
+        client_resource_update_ack, data);
     if (r < 0) {
         SOL_WRN("Could not send update request to resource, will try again");
         return true;

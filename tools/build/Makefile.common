@@ -1,16 +1,16 @@
 $(DEPENDENCY_CACHE):
 	$(Q)$(PYTHON) $(DEPENDENCY_SCRIPT) --compiler="$(TARGETCC)" --cflags="$(DEP_RESOLVER_CFLAGS)" \
-		--ldflags="$(DEP_RESOLVER_LDFLAGS)" --prefix="$(PREFIX)" --cache="$(DEPENDENCY_CACHE)" \
+		--ldflags="$(DEP_RESOLVER_LDFLAGS)" --cache="$(DEPENDENCY_CACHE)" \
 		--pkg-config="$(PKG_CONFIG)" --makefile-gen
 
 $(KCONFIG_GEN): $(DEPENDENCY_CACHE)
 	$(Q)$(PYTHON) $(DEPENDENCY_SCRIPT) --compiler="$(TARGETCC)" --cflags="$(DEP_RESOLVER_CFLAGS)" \
-		--ldflags="$(DEP_RESOLVER_LDFLAGS)" --prefix="$(PREFIX)" --cache="$(DEPENDENCY_CACHE)" \
+		--ldflags="$(DEP_RESOLVER_LDFLAGS)" --cache="$(DEPENDENCY_CACHE)" \
 		--pkg-config="$(PKG_CONFIG)" --kconfig-gen
 
 $(MAKEFILE_GEN): $(DEPENDENCY_CACHE)
 	$(Q)$(PYTHON) $(DEPENDENCY_SCRIPT) --compiler="$(TARGETCC)" --cflags="$(DEP_RESOLVER_CFLAGS)" \
-		--ldflags="$(DEP_RESOLVER_LDFLAGS)" --prefix="$(PREFIX)" --cache="$(DEPENDENCY_CACHE)" \
+		--ldflags="$(DEP_RESOLVER_LDFLAGS)" --cache="$(DEPENDENCY_CACHE)" \
 		--pkg-config="$(PKG_CONFIG)" --makefile-gen
 
 reconf: $(DEPENDENCY_SCRIPT)
@@ -18,7 +18,7 @@ reconf: $(DEPENDENCY_SCRIPT)
 	$(Q)$(RM) -f $(DEPENDENCY_FILES)
 	$(Q)$(RM) $(DEPENDENCY_CACHE)
 	$(Q) V=1 $(PYTHON) $(DEPENDENCY_SCRIPT) --compiler="$(TARGETCC)" --cflags="$(DEP_RESOLVER_CFLAGS)" \
-		--ldflags="$(DEP_RESOLVER_LDFLAGS)" --prefix="$(PREFIX)" \
+		--ldflags="$(DEP_RESOLVER_LDFLAGS)" \
 		--cache="$(DEPENDENCY_CACHE)" --kconfig-gen --makefile-gen
 
 PHONY += reconf
@@ -68,6 +68,7 @@ soletta_help:
 	$(Q)echo  "  check-fbp-bin      - Generates + compiles + runs fbp (Flow Based Programming) tests"
 	$(Q)echo  "  check-fbp-bin-valgrind - Generates + compiles + runs fbp (Flow Based Programming) tests - with valgrind"
 	$(Q)echo  "  check-cpp - Generates + compiles + a cpp file including all soletta's public headers"
+	$(Q)echo  "  check-stub         - Check script that generates stub files for node types"
 	$(Q)echo  "  coverage           - Builds soletta with gcov and generates the coverage report"
 	$(Q)echo  "  samples            - Builds the samples directory"
 	$(Q)echo  "  doxygen            - Generates doxygen documentation"

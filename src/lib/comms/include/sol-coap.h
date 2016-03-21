@@ -3,31 +3,17 @@
  *
  * Copyright (C) 2015 Intel Corporation. All rights reserved.
  *
- * Redistribution and use in source and binary forms, with or without
- * modification, are permitted provided that the following conditions
- * are met:
+ * Licensed under the Apache License, Version 2.0 (the "License");
+ * you may not use this file except in compliance with the License.
+ * You may obtain a copy of the License at
  *
- *   * Redistributions of source code must retain the above copyright
- *     notice, this list of conditions and the following disclaimer.
- *   * Redistributions in binary form must reproduce the above copyright
- *     notice, this list of conditions and the following disclaimer in
- *     the documentation and/or other materials provided with the
- *     distribution.
- *   * Neither the name of Intel Corporation nor the names of its
- *     contributors may be used to endorse or promote products derived
- *     from this software without specific prior written permission.
+ *     http://www.apache.org/licenses/LICENSE-2.0
  *
- * THIS SOFTWARE IS PROVIDED BY THE COPYRIGHT HOLDERS AND CONTRIBUTORS
- * "AS IS" AND ANY EXPRESS OR IMPLIED WARRANTIES, INCLUDING, BUT NOT
- * LIMITED TO, THE IMPLIED WARRANTIES OF MERCHANTABILITY AND FITNESS FOR
- * A PARTICULAR PURPOSE ARE DISCLAIMED. IN NO EVENT SHALL THE COPYRIGHT
- * OWNER OR CONTRIBUTORS BE LIABLE FOR ANY DIRECT, INDIRECT, INCIDENTAL,
- * SPECIAL, EXEMPLARY, OR CONSEQUENTIAL DAMAGES (INCLUDING, BUT NOT
- * LIMITED TO, PROCUREMENT OF SUBSTITUTE GOODS OR SERVICES; LOSS OF USE,
- * DATA, OR PROFITS; OR BUSINESS INTERRUPTION) HOWEVER CAUSED AND ON ANY
- * THEORY OF LIABILITY, WHETHER IN CONTRACT, STRICT LIABILITY, OR TORT
- * (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE
- * OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
+ * Unless required by applicable law or agreed to in writing, software
+ * distributed under the License is distributed on an "AS IS" BASIS,
+ * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+ * See the License for the specific language governing permissions and
+ * limitations under the License.
  */
 
 #pragma once
@@ -354,19 +340,21 @@ struct sol_coap_resource {
  * @brief Gets the CoAP protocol version of the packet.
  *
  * @param pkt The packet to get version from.
+ * @param version The CoAP protocol version the packet implements.
  *
- * @return The CoAP protocol version the packet implements.
+ * @return 0 on success, negative number on error.
  */
-uint8_t sol_coap_header_get_ver(const struct sol_coap_packet *pkt);
+int sol_coap_header_get_ver(const struct sol_coap_packet *pkt, uint8_t *version);
 
 /**
  * @brief Gets the type of the message container in the packet.
  *
  * @param pkt The packet containing the message.
+ * @param type The type of the message, one of #sol_coap_msgtype_t.
  *
- * @return The type of the message, one of #sol_coap_msgtype_t.
+ * @return 0 on success, negative number on error.
  */
-uint8_t sol_coap_header_get_type(const struct sol_coap_packet *pkt);
+int sol_coap_header_get_type(const struct sol_coap_packet *pkt, uint8_t *type);
 
 /**
  * @brief Gets the token of the packet, if any.
@@ -376,7 +364,8 @@ uint8_t sol_coap_header_get_type(const struct sol_coap_packet *pkt);
  * @param pkt The packet with the token.
  * @param len Pointer where to store the length in bytes of the token.
  *
- * @return Pointer to an internal buffer containint the token. It must not be modified.
+ * @return @c NULL in case of error, otherwise a pointer to an internal
+ * buffer containint the token. It must not be modified.
  */
 uint8_t *sol_coap_header_get_token(const struct sol_coap_packet *pkt, uint8_t *len);
 
@@ -385,22 +374,24 @@ uint8_t *sol_coap_header_get_token(const struct sol_coap_packet *pkt, uint8_t *l
  *
  * If the packet is a request, the code returned is one of #sol_coap_method_t.
  * If it's a response, it will be one of #sol_coap_responsecode_t.
- * If the code was not set, it will return #SOL_COAP_CODE_EMPTY.
+ * If the code was not set, the returned code will be #SOL_COAP_CODE_EMPTY.
  *
  * @param pkt The packet to get the code from.
+ * @param code The request/response code.
  *
- * @return The request/response code.
+ * @return 0 on success, negative number on error.
  */
-uint8_t sol_coap_header_get_code(const struct sol_coap_packet *pkt);
+int sol_coap_header_get_code(const struct sol_coap_packet *pkt, uint8_t *code);
 
 /**
  * @brief Gets the message ID.
  *
  * @param pkt The packet from which to get the message ID.
+ * @param id The message ID.
  *
- * @return The message ID.
+ * @return 0 on success, negative number on error.
  */
-uint16_t sol_coap_header_get_id(const struct sol_coap_packet *pkt);
+int sol_coap_header_get_id(const struct sol_coap_packet *pkt, uint16_t *id);
 
 /**
  * @brief Sets the CoAP protocol version in the packet's header.

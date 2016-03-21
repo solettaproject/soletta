@@ -3,31 +3,17 @@
  *
  * Copyright (C) 2015 Intel Corporation. All rights reserved.
  *
- * Redistribution and use in source and binary forms, with or without
- * modification, are permitted provided that the following conditions
- * are met:
+ * Licensed under the Apache License, Version 2.0 (the "License");
+ * you may not use this file except in compliance with the License.
+ * You may obtain a copy of the License at
  *
- *   * Redistributions of source code must retain the above copyright
- *     notice, this list of conditions and the following disclaimer.
- *   * Redistributions in binary form must reproduce the above copyright
- *     notice, this list of conditions and the following disclaimer in
- *     the documentation and/or other materials provided with the
- *     distribution.
- *   * Neither the name of Intel Corporation nor the names of its
- *     contributors may be used to endorse or promote products derived
- *     from this software without specific prior written permission.
+ *     http://www.apache.org/licenses/LICENSE-2.0
  *
- * THIS SOFTWARE IS PROVIDED BY THE COPYRIGHT HOLDERS AND CONTRIBUTORS
- * "AS IS" AND ANY EXPRESS OR IMPLIED WARRANTIES, INCLUDING, BUT NOT
- * LIMITED TO, THE IMPLIED WARRANTIES OF MERCHANTABILITY AND FITNESS FOR
- * A PARTICULAR PURPOSE ARE DISCLAIMED. IN NO EVENT SHALL THE COPYRIGHT
- * OWNER OR CONTRIBUTORS BE LIABLE FOR ANY DIRECT, INDIRECT, INCIDENTAL,
- * SPECIAL, EXEMPLARY, OR CONSEQUENTIAL DAMAGES (INCLUDING, BUT NOT
- * LIMITED TO, PROCUREMENT OF SUBSTITUTE GOODS OR SERVICES; LOSS OF USE,
- * DATA, OR PROFITS; OR BUSINESS INTERRUPTION) HOWEVER CAUSED AND ON ANY
- * THEORY OF LIABILITY, WHETHER IN CONTRACT, STRICT LIABILITY, OR TORT
- * (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE
- * OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
+ * Unless required by applicable law or agreed to in writing, software
+ * distributed under the License is distributed on an "AS IS" BASIS,
+ * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+ * See the License for the specific language governing permissions and
+ * limitations under the License.
  */
 
 #include <math.h>
@@ -56,6 +42,7 @@ struct http_data {
     char *url;
     char *content_type;
     char *accept;
+    char *last_modified;
     bool machine_id;
     bool strict;
 };
@@ -234,6 +221,7 @@ common_close(struct sol_flow_node *node, void *data)
     free(mdata->url);
     free(mdata->content_type);
     free(mdata->accept);
+    free(mdata->last_modified);
     SOL_PTR_VECTOR_FOREACH_IDX (&mdata->pending_conns, connection, i)
         sol_http_client_connection_cancel(connection);
     sol_ptr_vector_clear(&mdata->pending_conns);
@@ -285,6 +273,10 @@ remove_connection(struct http_data *mdata,
         SOL_WRN("Failed to find pending connection %p", connection);
 }
 
+/**
+ * returns -errno on error, 0 if status HTTP status OK and content.used > 0
+ * or 1 if HTTP_STATUS_NOT_MODIFIED
+ */
 static int
 check_response(struct http_data *mdata, struct sol_flow_node *node,
     const struct sol_http_client_connection *connection,
@@ -298,6 +290,9 @@ check_response(struct http_data *mdata, struct sol_flow_node *node,
         return -EINVAL;
     }
     SOL_HTTP_RESPONSE_CHECK_API(response, -EINVAL);
+
+    if (response->response_code == SOL_HTTP_STATUS_NOT_MODIFIED)
+        return 1;
 
     if (response->response_code != SOL_HTTP_STATUS_OK) {
         sol_flow_send_error_packet(node, EINVAL,
@@ -315,6 +310,30 @@ check_response(struct http_data *mdata, struct sol_flow_node *node,
     return 0;
 }
 
+static int
+get_last_modified_date(struct http_data *mdata,
+    struct sol_http_response *response)
+{
+    struct sol_http_param_value *param_value;
+    uint16_t i;
+
+    SOL_HTTP_PARAMS_FOREACH_IDX (&response->param, param_value, i) {
+        int r;
+
+        if (param_value->type != SOL_HTTP_PARAM_HEADER)
+            continue;
+        if (!sol_str_slice_str_eq(param_value->value.key_value.key,
+            "Last-Modified"))
+            continue;
+        r = sol_util_replace_str_from_slice_if_changed(&mdata->last_modified,
+            param_value->value.key_value.value);
+        SOL_INT_CHECK(r, < 0, r);
+        break;
+    }
+
+    return 0;
+}
+
 static void
 common_request_finished(void *data,
     const struct sol_http_client_connection *connection,
@@ -325,8 +344,18 @@ common_request_finished(void *data,
     struct http_data *mdata = sol_flow_node_get_private_data(node);
     const struct http_client_node_type *type;
 
-    if (check_response(mdata, node, connection, response) < 0)
+    ret = check_response(mdata, node, connection, response);
+    if (ret < 0) {
+        SOL_WRN("Invalid HTTP response - Url: %s", mdata->url);
         return;
+    }
+
+    //Not modified
+    if (ret == 1)
+        return;
+
+    ret = get_last_modified_date(mdata, response);
+    SOL_INT_CHECK_GOTO(ret, < 0, err);
 
     type = (const struct http_client_node_type *)sol_flow_node_get_type(node);
     if (streq(response->content_type, "application/json")) {
@@ -372,6 +401,14 @@ common_get_process(struct sol_flow_node *node, void *data, uint16_t port, uint16
     sol_http_params_init(&params);
     if (!sol_http_param_add(&params,
         SOL_HTTP_REQUEST_PARAM_HEADER("Accept", "application/json"))) {
+        SOL_WRN("Failed to set query params");
+        r = -ENOMEM;
+        goto err;
+    }
+
+    if (mdata->last_modified && !sol_http_param_add(&params,
+        SOL_HTTP_REQUEST_PARAM_HEADER("If-Since-Modified",
+        mdata->last_modified))) {
         SOL_WRN("Failed to set query params");
         r = -ENOMEM;
         goto err;
@@ -612,20 +649,24 @@ int_post_process(struct sol_flow_node *node, void *data, uint16_t port, uint16_t
 {
     int r;
     struct sol_irange value;
-    char min[3 * sizeof(int)], max[3 * sizeof(int)],
-        val[3 * sizeof(int)], step[3 * sizeof(int)];
+    char min[3 * sizeof(int32_t)], max[3 * sizeof(int32_t)],
+        val[3 * sizeof(int32_t)], step[3 * sizeof(int32_t)];
 
     r = sol_flow_packet_get_irange(packet, &value);
     SOL_INT_CHECK(r, < 0, r);
 
-    r = snprintf(val, sizeof(val), "%d", value.val);
+    r = snprintf(val, sizeof(val), "%" PRId32, value.val);
     SOL_INT_CHECK(r, < 0, r);
-    r = snprintf(min, sizeof(min), "%d", value.min);
+    SOL_INT_CHECK(r, >= (int)sizeof(val), -ENOMEM);
+    r = snprintf(min, sizeof(min), "%" PRId32, value.min);
     SOL_INT_CHECK(r, < 0, r);
-    r = snprintf(max, sizeof(max), "%d", value.max);
+    SOL_INT_CHECK(r, >= (int)sizeof(min), -ENOMEM);
+    r = snprintf(max, sizeof(max), "%" PRId32, value.max);
     SOL_INT_CHECK(r, < 0, r);
-    r = snprintf(step, sizeof(step), "%d", value.step);
+    SOL_INT_CHECK(r, >= (int)sizeof(max), -ENOMEM);
+    r = snprintf(step, sizeof(step), "%" PRId32, value.step);
     SOL_INT_CHECK(r, < 0, r);
+    SOL_INT_CHECK(r, >= (int)sizeof(step), -ENOMEM);
 
     return common_post_process(node, data, "value", val, "min", min,
         "max", max, "step", step, NULL);
@@ -711,6 +752,317 @@ float_post_process(struct sol_flow_node *node, void *data, uint16_t port, uint16
 
     return common_post_process(node, data, "value", val.data, "min", min.data,
         "max", max.data, "step", step.data, NULL);
+}
+
+/*
+ * --------------------------------- rgb node  -----------------------------
+ */
+
+static int
+rgb_process_token(struct sol_flow_node *node, struct sol_json_token *key,
+    struct sol_json_token *value)
+{
+    struct sol_rgb rgb = { 0 };
+    enum sol_json_loop_reason reason;
+    struct sol_json_scanner sub_scanner;
+    struct sol_json_token sub_key, sub_value, token;
+
+    sol_json_scanner_init(&sub_scanner, value->start,
+        value->end - value->start);
+
+    rgb.red_max = rgb.green_max = rgb.blue_max = 255;
+
+    SOL_JSON_SCANNER_OBJECT_LOOP (&sub_scanner, &token, &sub_key,
+        &sub_value, reason) {
+        if (SOL_JSON_TOKEN_STR_LITERAL_EQ(&sub_key, "red")) {
+            if (sol_json_token_get_uint32(&sub_value, &rgb.red) < 0)
+                return -EINVAL;
+        } else if (SOL_JSON_TOKEN_STR_LITERAL_EQ(&sub_key, "green")) {
+            if (sol_json_token_get_uint32(&sub_value, &rgb.green) < 0)
+                return -EINVAL;
+        } else if (SOL_JSON_TOKEN_STR_LITERAL_EQ(&sub_key, "blue")) {
+            if (sol_json_token_get_uint32(&sub_value, &rgb.blue) < 0)
+                return -EINVAL;
+        } else if (SOL_JSON_TOKEN_STR_LITERAL_EQ(&sub_key, "red_max")) {
+            if (sol_json_token_get_uint32(&sub_value, &rgb.red_max) < 0)
+                return -EINVAL;
+        } else if (SOL_JSON_TOKEN_STR_LITERAL_EQ(&sub_key, "green_max")) {
+            if (sol_json_token_get_uint32(&sub_value, &rgb.green_max) < 0)
+                return -EINVAL;
+        } else if (SOL_JSON_TOKEN_STR_LITERAL_EQ(&sub_key, "blue_max")) {
+            if (sol_json_token_get_uint32(&sub_value, &rgb.blue_max) < 0)
+                return -EINVAL;
+        }
+    }
+
+    if (rgb.red > rgb.red_max) {
+        SOL_WRN("Red value '%" PRIu32 "' is bigger than red max '%" PRIu32,
+            rgb.red, rgb.red_max);
+        return -EINVAL;
+    }
+    if (rgb.blue > rgb.blue_max) {
+        SOL_WRN("Blue value '%" PRIu32 "' is bigger than blue max '%" PRIu32,
+            rgb.blue, rgb.blue_max);
+        return -EINVAL;
+    }
+    if (rgb.green > rgb.green_max) {
+        SOL_WRN("Green value '%" PRIu32 "' is bigger than green max '%" PRIu32,
+            rgb.green, rgb.green_max);
+        return -EINVAL;
+    }
+
+    return sol_flow_send_rgb_packet(node,
+        SOL_FLOW_NODE_TYPE_HTTP_CLIENT_RGB__OUT__OUT, &rgb);
+}
+
+static int
+hex_str_to_decimal(const char *start, ssize_t len, uint32_t *value)
+{
+    char *endptr = NULL;
+
+    errno = 0;
+    *value = sol_util_strtoul(start, &endptr, len, 16);
+
+    if (errno != 0 || endptr == start) {
+        SOL_WRN("Could not convert the string '%.*s' to decimal",
+            (int)len, start);
+        return -EINVAL;
+    }
+
+    return 0;
+}
+
+static int
+rgb_process_data(struct sol_flow_node *node,
+    struct sol_http_response *response)
+{
+    struct sol_rgb rgb = { 0 };
+    struct sol_str_slice rgb_str;
+    int r;
+
+    rgb_str.data = response->content.data;
+    rgb_str.len = response->content.used;
+
+    if (rgb_str.len != 7 || rgb_str.data[0] != '#') {
+        SOL_WRN("Expected format #RRGGBB. Received: %.*s",
+            SOL_STR_SLICE_PRINT(rgb_str));
+        return -EINVAL;
+    }
+
+    //Skip '#'
+    rgb_str.data++;
+    rgb_str.len--;
+
+    r = hex_str_to_decimal(rgb_str.data, 2, &rgb.red);
+    SOL_INT_CHECK(r, < 0, r);
+
+    r = hex_str_to_decimal(rgb_str.data + 2, 2, &rgb.green);
+    SOL_INT_CHECK(r, < 0, r);
+
+    r = hex_str_to_decimal(rgb_str.data + 4, 2, &rgb.blue);
+    SOL_INT_CHECK(r, < 0, r);
+    rgb.green_max = rgb.red_max = rgb.blue_max = 255;
+
+    return sol_flow_send_rgb_packet(node,
+        SOL_FLOW_NODE_TYPE_HTTP_CLIENT_RGB__OUT__OUT, &rgb);
+}
+
+static int
+rgb_post_process(struct sol_flow_node *node, void *data, uint16_t port,
+    uint16_t conn_id, const struct sol_flow_packet *packet)
+{
+    int r;
+    struct sol_rgb rgb;
+
+#define INT32_STR_LEN (12)
+
+    SOL_BUFFER_DECLARE_STATIC(red, INT32_STR_LEN);
+    SOL_BUFFER_DECLARE_STATIC(green, INT32_STR_LEN);
+    SOL_BUFFER_DECLARE_STATIC(blue, INT32_STR_LEN);
+    SOL_BUFFER_DECLARE_STATIC(red_max, INT32_STR_LEN);
+    SOL_BUFFER_DECLARE_STATIC(green_max, INT32_STR_LEN);
+    SOL_BUFFER_DECLARE_STATIC(blue_max, INT32_STR_LEN);
+
+    r = sol_flow_packet_get_rgb(packet, &rgb);
+    SOL_INT_CHECK(r, < 0, r);
+
+    r = sol_buffer_append_printf(&red, "%" PRIu32, rgb.red);
+    SOL_INT_CHECK(r, < 0, r);
+    r = sol_buffer_append_printf(&green, "%" PRIu32, rgb.green);
+    SOL_INT_CHECK(r, < 0, r);
+    r = sol_buffer_append_printf(&blue, "%" PRIu32, rgb.blue);
+    SOL_INT_CHECK(r, < 0, r);
+    r = sol_buffer_append_printf(&red_max, "%" PRIu32, rgb.red_max);
+    SOL_INT_CHECK(r, < 0, r);
+    r = sol_buffer_append_printf(&green_max, "%" PRIu32, rgb.green_max);
+    SOL_INT_CHECK(r, < 0, r);
+    r = sol_buffer_append_printf(&blue_max, "%" PRIu32, rgb.blue_max);
+    SOL_INT_CHECK(r, < 0, r);
+
+    return common_post_process(node, data, "red", red.data,
+        "green", green.data, "blue", blue.data, "red_max", red_max.data,
+        "green_max", green_max.data, "blue_max", blue_max.data, NULL);
+
+#undef INT32_STR_LEN
+}
+
+/*
+ * --------------------------------- direction vector node  -----------------------------
+ */
+static int
+direction_vector_process_token(struct sol_flow_node *node,
+    struct sol_json_token *key, struct sol_json_token *value)
+{
+    struct sol_direction_vector dir_vector = { 0 };
+    enum sol_json_loop_reason reason;
+    struct sol_json_scanner sub_scanner;
+    struct sol_json_token sub_key, sub_value, token;
+
+    sol_json_scanner_init(&sub_scanner, value->start,
+        value->end - value->start);
+
+    dir_vector.max = DBL_MAX;
+    dir_vector.min = -DBL_MAX;
+
+    SOL_JSON_SCANNER_OBJECT_LOOP (&sub_scanner, &token, &sub_key,
+        &sub_value, reason) {
+        if (SOL_JSON_TOKEN_STR_LITERAL_EQ(&sub_key, "x")) {
+            if (sol_json_token_get_double(&sub_value, &dir_vector.x) < 0)
+                return -EINVAL;
+        } else if (SOL_JSON_TOKEN_STR_LITERAL_EQ(&sub_key, "y")) {
+            if (sol_json_token_get_double(&sub_value, &dir_vector.y) < 0)
+                return -EINVAL;
+        } else if (SOL_JSON_TOKEN_STR_LITERAL_EQ(&sub_key, "z")) {
+            if (sol_json_token_get_double(&sub_value, &dir_vector.z) < 0)
+                return -EINVAL;
+        } else if (SOL_JSON_TOKEN_STR_LITERAL_EQ(&sub_key, "min")) {
+            if (sol_json_token_get_double(&sub_value, &dir_vector.min) < 0)
+                return -EINVAL;
+        } else if (SOL_JSON_TOKEN_STR_LITERAL_EQ(&sub_key, "max")) {
+            if (sol_json_token_get_double(&sub_value, &dir_vector.max) < 0)
+                return -EINVAL;
+        }
+    }
+
+    if (dir_vector.x > dir_vector.max || dir_vector.x < dir_vector.min) {
+        SOL_WRN("Direction vector X compontent '%g' outside the range:[%g, %g]",
+            dir_vector.x, dir_vector.min, dir_vector.max);
+        return -EINVAL;
+    }
+
+    if (dir_vector.y > dir_vector.max || dir_vector.y < dir_vector.min) {
+        SOL_WRN("Direction vector Y compontent '%g' outside the range:[%g, %g]",
+            dir_vector.y, dir_vector.min, dir_vector.max);
+        return -EINVAL;
+    }
+
+    if (dir_vector.z > dir_vector.max || dir_vector.z < dir_vector.min) {
+        SOL_WRN("Direction vector Z compontent '%g' outside the range:[%g, %g]",
+            dir_vector.z, dir_vector.min, dir_vector.max);
+        return -EINVAL;
+    }
+
+    return sol_flow_send_direction_vector_packet(node,
+        SOL_FLOW_NODE_TYPE_HTTP_CLIENT_DIRECTION_VECTOR__OUT__OUT, &dir_vector);
+}
+
+static int
+direction_vector_process_data(struct sol_flow_node *node,
+    struct sol_http_response *response)
+{
+    struct sol_direction_vector dir_vector;
+    struct sol_str_slice token;
+    double components[3];
+    size_t i = 0;
+
+    token.data = response->content.data;
+    token.len = response->content.used;
+
+    if (!token.len || token.data[0] != '(' ||
+        token.data[token.len - 1] != ')') {
+        SOL_WRN("Invalid direction vector format. Received '%.*s'",
+            SOL_STR_SLICE_PRINT(token));
+        return -EINVAL;
+    }
+
+    token.data++;
+    token.len -= 2;
+
+    while (token.len) {
+        char *sep = memchr(token.data, ';', token.len);
+        size_t len;
+        char *endptr;
+
+        if (!sep)
+            len = token.len;
+        else
+            len = sep - token.data;
+
+        errno = 0;
+        endptr = NULL;
+        components[i] = sol_util_strtodn(token.data, &endptr, len, false);
+
+        if (errno != 0 || endptr == token.data) {
+            SOL_WRN("Could not parse the component to double. '%.*s'",
+                (int)len, token.data);
+            return -EINVAL;
+        }
+
+        //Skip ,
+        token.data += len + 1;
+        token.len -= len == token.len ? len : len + 1;
+        i++;
+    }
+
+    if (i != 3) {
+        SOL_WRN("Could not parse all the direction vector components.");
+        return -EINVAL;
+    }
+
+    dir_vector.x = components[0];
+    dir_vector.y = components[1];
+    dir_vector.z = components[2];
+    dir_vector.max = DBL_MAX;
+    dir_vector.min = -DBL_MAX;
+
+    return sol_flow_send_direction_vector_packet(node,
+        SOL_FLOW_NODE_TYPE_HTTP_CLIENT_DIRECTION_VECTOR__OUT__OUT, &dir_vector);
+}
+
+static int
+direction_vector_post_process(struct sol_flow_node *node, void *data,
+    uint16_t port, uint16_t conn_id, const struct sol_flow_packet *packet)
+{
+    int r;
+    struct sol_direction_vector dir;
+
+    SOL_BUFFER_DECLARE_STATIC(x, DOUBLE_STRING_LEN);
+    SOL_BUFFER_DECLARE_STATIC(z, DOUBLE_STRING_LEN);
+    SOL_BUFFER_DECLARE_STATIC(y, DOUBLE_STRING_LEN);
+    SOL_BUFFER_DECLARE_STATIC(min, DOUBLE_STRING_LEN);
+    SOL_BUFFER_DECLARE_STATIC(max, DOUBLE_STRING_LEN);
+
+    r = sol_flow_packet_get_direction_vector(packet, &dir);
+    SOL_INT_CHECK(r, < 0, r);
+
+    r = sol_json_double_to_str(dir.x, &x);
+    SOL_INT_CHECK(r, < 0, r);
+
+    r = sol_json_double_to_str(dir.y, &y);
+    SOL_INT_CHECK(r, < 0, r);
+
+    r = sol_json_double_to_str(dir.z, &z);
+    SOL_INT_CHECK(r, < 0, r);
+
+    r = sol_json_double_to_str(dir.min, &min);
+    SOL_INT_CHECK(r, < 0, r);
+
+    r = sol_json_double_to_str(dir.max, &max);
+    SOL_INT_CHECK(r, < 0, r);
+
+    return common_post_process(node, data, "x", x.data,
+        "y", y.data, "z", z.data, "min", min.data,
+        "max", max.data, NULL);
 }
 
 /*
@@ -872,11 +1224,20 @@ generic_request_finished(void *data,
     struct sol_flow_node *node = data;
     struct http_data *mdata = sol_flow_node_get_private_data(node);
     const struct http_client_node_type *type;
+    int ret;
 
-    if (check_response(mdata, node, conn, response) < 0) {
+    ret = check_response(mdata, node, conn, response);
+
+    if (ret < 0) {
         SOL_ERR("Invalid http response from %s", mdata->url);
         return;
     }
+
+    if (ret == 1)
+        return;
+
+    ret = get_last_modified_date(mdata, response);
+    SOL_INT_CHECK(ret, < 0);
 
     if (mdata->strict && mdata->accept && response->content_type &&
         !streq(response->content_type, mdata->accept)) {
@@ -912,6 +1273,14 @@ make_http_request(struct sol_flow_node *node, struct http_data *mdata)
         SOL_ERR("Could not add the HTTP Accept param");
         goto err;
     }
+
+    if (mdata->last_modified && !sol_http_param_add(&params,
+        SOL_HTTP_REQUEST_PARAM_HEADER("If-Since-Modified",
+        mdata->last_modified))) {
+        SOL_WRN("Failed to set query params");
+        goto err;
+    }
+
 
     if ((mdata->method == SOL_HTTP_METHOD_POST ||
         mdata->method == SOL_HTTP_METHOD_PUT) &&

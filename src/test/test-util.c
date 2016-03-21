@@ -3,31 +3,17 @@
  *
  * Copyright (C) 2015 Intel Corporation. All rights reserved.
  *
- * Redistribution and use in source and binary forms, with or without
- * modification, are permitted provided that the following conditions
- * are met:
+ * Licensed under the Apache License, Version 2.0 (the "License");
+ * you may not use this file except in compliance with the License.
+ * You may obtain a copy of the License at
  *
- *   * Redistributions of source code must retain the above copyright
- *     notice, this list of conditions and the following disclaimer.
- *   * Redistributions in binary form must reproduce the above copyright
- *     notice, this list of conditions and the following disclaimer in
- *     the documentation and/or other materials provided with the
- *     distribution.
- *   * Neither the name of Intel Corporation nor the names of its
- *     contributors may be used to endorse or promote products derived
- *     from this software without specific prior written permission.
+ *     http://www.apache.org/licenses/LICENSE-2.0
  *
- * THIS SOFTWARE IS PROVIDED BY THE COPYRIGHT HOLDERS AND CONTRIBUTORS
- * "AS IS" AND ANY EXPRESS OR IMPLIED WARRANTIES, INCLUDING, BUT NOT
- * LIMITED TO, THE IMPLIED WARRANTIES OF MERCHANTABILITY AND FITNESS FOR
- * A PARTICULAR PURPOSE ARE DISCLAIMED. IN NO EVENT SHALL THE COPYRIGHT
- * OWNER OR CONTRIBUTORS BE LIABLE FOR ANY DIRECT, INDIRECT, INCIDENTAL,
- * SPECIAL, EXEMPLARY, OR CONSEQUENTIAL DAMAGES (INCLUDING, BUT NOT
- * LIMITED TO, PROCUREMENT OF SUBSTITUTE GOODS OR SERVICES; LOSS OF USE,
- * DATA, OR PROFITS; OR BUSINESS INTERRUPTION) HOWEVER CAUSED AND ON ANY
- * THEORY OF LIABILITY, WHETHER IN CONTRACT, STRICT LIABILITY, OR TORT
- * (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE
- * OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
+ * Unless required by applicable law or agreed to in writing, software
+ * distributed under the License is distributed on an "AS IS" BASIS,
+ * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+ * See the License for the specific language governing permissions and
+ * limitations under the License.
  */
 
 #include <errno.h>
@@ -519,6 +505,91 @@ test_unicode_utf_conversion(void)
         code = sol_util_unicode_code_from_utf8(invalid_utf8[i],
             sizeof(invalid_utf8[i]), NULL);
         ASSERT_INT_EQ(code, -EINVAL);
+    }
+}
+
+DEFINE_TEST(test_escape_quotes);
+
+static void
+test_escape_quotes(void)
+{
+    static const struct {
+        const struct sol_str_slice input;
+        const struct sol_str_slice output;
+        ssize_t int_result;
+        enum sol_buffer_flags flags;
+    } escape_tests[] = {
+        //Cases where that copy is not necessary.
+        { SOL_STR_SLICE_LITERAL("x"), SOL_STR_SLICE_LITERAL("x"), 0,
+          SOL_BUFFER_FLAGS_MEMORY_NOT_OWNED | SOL_BUFFER_FLAGS_NO_NUL_BYTE },
+        { SOL_STR_SLICE_LITERAL("    x"), SOL_STR_SLICE_LITERAL("x"), 0,
+          SOL_BUFFER_FLAGS_MEMORY_NOT_OWNED | SOL_BUFFER_FLAGS_NO_NUL_BYTE },
+        { SOL_STR_SLICE_LITERAL("x    "), SOL_STR_SLICE_LITERAL("x"), 0,
+          SOL_BUFFER_FLAGS_MEMORY_NOT_OWNED | SOL_BUFFER_FLAGS_NO_NUL_BYTE },
+        { SOL_STR_SLICE_LITERAL("'x'"), SOL_STR_SLICE_LITERAL("x"), 0,
+          SOL_BUFFER_FLAGS_MEMORY_NOT_OWNED | SOL_BUFFER_FLAGS_NO_NUL_BYTE },
+        { SOL_STR_SLICE_LITERAL("\"x\""), SOL_STR_SLICE_LITERAL("x"), 0,
+          SOL_BUFFER_FLAGS_MEMORY_NOT_OWNED | SOL_BUFFER_FLAGS_NO_NUL_BYTE },
+        { SOL_STR_SLICE_LITERAL("    \"x\""), SOL_STR_SLICE_LITERAL("x"), 0,
+          SOL_BUFFER_FLAGS_MEMORY_NOT_OWNED | SOL_BUFFER_FLAGS_NO_NUL_BYTE },
+        { SOL_STR_SLICE_LITERAL("\"x\"     "), SOL_STR_SLICE_LITERAL("x"), 0,
+          SOL_BUFFER_FLAGS_MEMORY_NOT_OWNED | SOL_BUFFER_FLAGS_NO_NUL_BYTE },
+        { SOL_STR_SLICE_LITERAL("    \"x\"    "), SOL_STR_SLICE_LITERAL("x"), 0,
+          SOL_BUFFER_FLAGS_MEMORY_NOT_OWNED | SOL_BUFFER_FLAGS_NO_NUL_BYTE },
+        { SOL_STR_SLICE_LITERAL("'Locale'"), SOL_STR_SLICE_LITERAL("Locale"), 0,
+          SOL_BUFFER_FLAGS_MEMORY_NOT_OWNED | SOL_BUFFER_FLAGS_NO_NUL_BYTE },
+        { SOL_STR_SLICE_LITERAL("\"My String\""), SOL_STR_SLICE_LITERAL("My String"), 0,
+          SOL_BUFFER_FLAGS_MEMORY_NOT_OWNED | SOL_BUFFER_FLAGS_NO_NUL_BYTE },
+        { SOL_STR_SLICE_LITERAL("      \"My Stri    ng\" "), SOL_STR_SLICE_LITERAL("My Stri    ng"), 0,
+          SOL_BUFFER_FLAGS_MEMORY_NOT_OWNED | SOL_BUFFER_FLAGS_NO_NUL_BYTE },
+        { SOL_STR_SLICE_LITERAL("       "), SOL_STR_SLICE_LITERAL(""), 0,
+          SOL_BUFFER_FLAGS_MEMORY_NOT_OWNED | SOL_BUFFER_FLAGS_NO_NUL_BYTE },
+        { SOL_STR_SLICE_LITERAL("I'm good"), SOL_STR_SLICE_LITERAL("I'm good"), 0,
+          SOL_BUFFER_FLAGS_MEMORY_NOT_OWNED | SOL_BUFFER_FLAGS_NO_NUL_BYTE },
+        { SOL_STR_SLICE_LITERAL("Hello"), SOL_STR_SLICE_LITERAL("Hello"), 0,
+          SOL_BUFFER_FLAGS_MEMORY_NOT_OWNED | SOL_BUFFER_FLAGS_NO_NUL_BYTE },
+
+        { SOL_STR_SLICE_LITERAL("I 'like' you"), SOL_STR_SLICE_LITERAL("I like you"), 0,
+          SOL_BUFFER_FLAGS_DEFAULT },
+        { SOL_STR_SLICE_LITERAL("x'y'"), SOL_STR_SLICE_LITERAL("xy"), 0, SOL_BUFFER_FLAGS_DEFAULT },
+        { SOL_STR_SLICE_LITERAL("x\\\"y"), SOL_STR_SLICE_LITERAL("x\"y"), 0, SOL_BUFFER_FLAGS_DEFAULT },
+        { SOL_STR_SLICE_LITERAL("\\\'x"), SOL_STR_SLICE_LITERAL("'x"), 0, SOL_BUFFER_FLAGS_DEFAULT },
+        { SOL_STR_SLICE_LITERAL("\\\"x"), SOL_STR_SLICE_LITERAL("\"x"), 0, SOL_BUFFER_FLAGS_DEFAULT },
+        { SOL_STR_SLICE_LITERAL("    \\\"x"), SOL_STR_SLICE_LITERAL("\"x"), 0, SOL_BUFFER_FLAGS_DEFAULT },
+        { SOL_STR_SLICE_LITERAL("x\\\'y\\\"zd"), SOL_STR_SLICE_LITERAL("x'y\"zd"), 0, SOL_BUFFER_FLAGS_DEFAULT },
+        { SOL_STR_SLICE_LITERAL("x\"y\""), SOL_STR_SLICE_LITERAL("xy"), 0, SOL_BUFFER_FLAGS_DEFAULT },
+        { SOL_STR_SLICE_LITERAL("x\"y\"z\\\"f"), SOL_STR_SLICE_LITERAL("xyz\"f"), 0, SOL_BUFFER_FLAGS_DEFAULT },
+        { SOL_STR_SLICE_LITERAL("\\'Locale\\'"), SOL_STR_SLICE_LITERAL("'Locale'"), 0, SOL_BUFFER_FLAGS_DEFAULT },
+        { SOL_STR_SLICE_LITERAL("MyQuo\\\"tes"), SOL_STR_SLICE_LITERAL("MyQuo\"tes"), 0, SOL_BUFFER_FLAGS_DEFAULT },
+        { SOL_STR_SLICE_LITERAL("MyQuo\\'tes2"), SOL_STR_SLICE_LITERAL("MyQuo'tes2"), 0, SOL_BUFFER_FLAGS_DEFAULT },
+        { SOL_STR_SLICE_LITERAL("\\\"Hi, I'm good\\\"   "), SOL_STR_SLICE_LITERAL("\"Hi, I'm good\""), 0, SOL_BUFFER_FLAGS_DEFAULT },
+        { SOL_STR_SLICE_LITERAL("    \\\"Hi, I'm good\\\"   "), SOL_STR_SLICE_LITERAL("\"Hi, I'm good\""), 0, SOL_BUFFER_FLAGS_DEFAULT },
+        { SOL_STR_SLICE_LITERAL("   \\\"Hi, I'm good\\\"   "), SOL_STR_SLICE_LITERAL("\"Hi, I'm good\""), 0, SOL_BUFFER_FLAGS_DEFAULT },
+        { SOL_STR_SLICE_LITERAL("\\\"Hi, I'm good\\\""), SOL_STR_SLICE_LITERAL("\"Hi, I'm good\""), 0, SOL_BUFFER_FLAGS_DEFAULT },
+
+        //Cases that should fail
+        { SOL_STR_SLICE_LITERAL("Wrong\\a"), SOL_STR_SLICE_LITERAL(""), -EINVAL, SOL_BUFFER_FLAGS_DEFAULT },
+        { SOL_STR_SLICE_LITERAL("Wrong\\ba"), SOL_STR_SLICE_LITERAL(""), -EINVAL, SOL_BUFFER_FLAGS_DEFAULT },
+        { SOL_STR_SLICE_LITERAL("'x\""), SOL_STR_SLICE_LITERAL(""), -EINVAL, SOL_BUFFER_FLAGS_DEFAULT },
+        { SOL_STR_SLICE_LITERAL("\"x'"), SOL_STR_SLICE_LITERAL(""), -EINVAL, SOL_BUFFER_FLAGS_DEFAULT },
+        { SOL_STR_SLICE_LITERAL("\"x'"), SOL_STR_SLICE_LITERAL(""), -EINVAL, SOL_BUFFER_FLAGS_DEFAULT },
+        { SOL_STR_SLICE_LITERAL("'x\""), SOL_STR_SLICE_LITERAL(""), -EINVAL, SOL_BUFFER_FLAGS_DEFAULT },
+        { SOL_STR_SLICE_LITERAL("'x"), SOL_STR_SLICE_LITERAL(""), -EINVAL, SOL_BUFFER_FLAGS_DEFAULT },
+        { SOL_STR_SLICE_LITERAL("\"x"), SOL_STR_SLICE_LITERAL(""), -EINVAL, SOL_BUFFER_FLAGS_DEFAULT },
+    };
+    size_t i;
+
+    for (i = 0; i < SOL_UTIL_ARRAY_SIZE(escape_tests); i++) {
+        struct sol_buffer buf;
+        int r;
+
+        r = sol_util_unescape_quotes(escape_tests[i].input, &buf);
+        ASSERT_INT_EQ(r, escape_tests[i].int_result);
+        if (r < 0)
+            continue;
+        ASSERT(sol_str_slice_eq(escape_tests[i].output, sol_buffer_get_slice(&buf)));
+        ASSERT(buf.flags == escape_tests[i].flags);
+        sol_buffer_fini(&buf);
     }
 }
 

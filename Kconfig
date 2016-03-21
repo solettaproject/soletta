@@ -62,9 +62,13 @@ config MODULES
 
             If unsure, say Y.
 
+config ENV_PREFIX
+	string
+	option env="PREFIX"
+
 config PREFIX
 	string "Installation prefix"
-	default "/usr"
+	default $ENV_PREFIX
 	help
             This path is the intended installation prefix for the
             binaries. It is used by code paths that need to look for
@@ -95,14 +99,24 @@ config BUILD_TYPE_RELEASE
 	bool "release"
 endchoice
 
+config ENV_CFLAGS
+	string
+	option env="CFLAGS"
+
 config CONFIG_CFLAGS
        string "Arbitrary CFLAGS"
+       default $ENV_CFLAGS
        help
            Sets arbitrary CFLAGS to be used across make invocations
            without the need to be provided on every make call.
 
+config ENV_LDFLAGS
+	string
+	option env="LDFLAGS"
+
 config CONFIG_LDFLAGS
        string "Arbitrary LDFLAGS"
+       default $ENV_LDFLAGS
        help
            Sets arbitrary LDFLAGS to be used across make invocations
            without the need to be provided on every make call.

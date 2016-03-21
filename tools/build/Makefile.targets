@@ -194,7 +194,7 @@ PHONY += cheat-sheet
 ifneq ($(USE_NODEJS),)
 
 bins-out += bindings-nodejs
-NODE_GYP=$(NODE_GYP_PATH)/node-gyp
+NODE_GYP ?= $(NODE_GYP_PATH)/node-gyp
 
 bindings-nodejs: $(SOL_LIB_OUTPUT)
 	# Install dependencies without building the package

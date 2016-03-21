@@ -1,33 +1,19 @@
 /*
  * This file is part of the Soletta Project
  *
- * Copyright (c) 2015, Intel Corporation
- * All rights reserved.
+ * Copyright (C) 2015 Intel Corporation. All rights reserved.
  *
- * Redistribution and use in source and binary forms, with or without modification,
- * are permitted provided that the following conditions are met:
+ * Licensed under the Apache License, Version 2.0 (the "License");
+ * you may not use this file except in compliance with the License.
+ * You may obtain a copy of the License at
  *
- * 1. Redistributions of source code must retain the above copyright notice, this
- * list of conditions and the following disclaimer.
+ *     http://www.apache.org/licenses/LICENSE-2.0
  *
- * 2. Redistributions in binary form must reproduce the above copyright notice,
- * this list of conditions and the following disclaimer in the documentation and/or
- * other materials provided with the distribution.
- *
- * 3. Neither the name of the copyright holder nor the names of its contributors may
- * be used to endorse or promote products derived from this software without specific
- * prior written permission.
- *
- * THIS SOFTWARE IS PROVIDED BY THE COPYRIGHT HOLDERS AND CONTRIBUTORS "AS IS" AND ANY
- * EXPRESS OR IMPLIED WARRANTIES, INCLUDING, BUT NOT LIMITED TO, THE IMPLIED WARRANTIES
- * OF MERCHANTABILITY AND FITNESS FOR A PARTICULAR PURPOSE ARE DISCLAIMED. IN NO EVENT
- * SHALL THE COPYRIGHT HOLDER OR CONTRIBUTORS BE LIABLE FOR ANY DIRECT, INDIRECT,
- * INCIDENTAL, SPECIAL, EXEMPLARY, OR CONSEQUENTIAL DAMAGES (INCLUDING, BUT NOT LIMITED
- * TO, PROCUREMENT OF SUBSTITUTE GOODS OR SERVICES; LOSS OF USE, DATA, OR PROFITS; OR
- * BUSINESS INTERRUPTION) HOWEVER CAUSED AND ON ANY THEORY OF LIABILITY, WHETHER IN
- * CONTRACT, STRICT LIABILITY, OR TORT (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN
- * ANY WAY OUT OF THE USE OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH
- * DAMAGE.
+ * Unless required by applicable law or agreed to in writing, software
+ * distributed under the License is distributed on an "AS IS" BASIS,
+ * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+ * See the License for the specific language governing permissions and
+ * limitations under the License.
  */
 
 #include "intel-common.h"
@@ -38,7 +24,7 @@
 // Edison Multiplexer Descriptions
 // =============================================================================
 
-static struct mux_description init_board[] = {
+static const struct mux_description init_board[] = {
     { 214, PIN_LOW, MODE_GPIO },
     { 240, PIN_LOW, MODE_GPIO },
     { 241, PIN_LOW, MODE_GPIO },
@@ -53,7 +39,7 @@ static struct mux_description init_board[] = {
     { }
 };
 
-static struct mux_description desc_0[] = {
+static const struct mux_description desc_0[] = {
     { 214, PIN_LOW, MODE_GPIO | MODE_UART },
     { 248, PIN_HIGH, MODE_GPIO_OUTPUT },
     { 248, PIN_LOW, MODE_GPIO_INPUT | MODE_UART },
@@ -66,7 +52,7 @@ static struct mux_description desc_0[] = {
     { }
 };
 
-static struct mux_description desc_1[] = {
+static const struct mux_description desc_1[] = {
     { 214, PIN_LOW, MODE_GPIO | MODE_UART },
     { 249, PIN_HIGH, MODE_GPIO_OUTPUT | MODE_UART },
     { 249, PIN_LOW, MODE_GPIO_INPUT },
@@ -79,7 +65,7 @@ static struct mux_description desc_1[] = {
     { }
 };
 
-static struct mux_description desc_2[] = {
+static const struct mux_description desc_2[] = {
     { 214, PIN_LOW, MODE_GPIO },
     { 250, PIN_HIGH, MODE_GPIO_OUTPUT },
     { 250, PIN_LOW, MODE_GPIO_INPUT },
@@ -91,7 +77,7 @@ static struct mux_description desc_2[] = {
     { }
 };
 
-static struct mux_description desc_3[] = {
+static const struct mux_description desc_3[] = {
     { 214, PIN_LOW, MODE_GPIO | MODE_PWM },
     { 251, PIN_HIGH, MODE_GPIO_OUTPUT | MODE_PWM },
     { 251, PIN_LOW, MODE_GPIO_INPUT },
@@ -104,7 +90,7 @@ static struct mux_description desc_3[] = {
     { }
 };
 
-static struct mux_description desc_4[] = {
+static const struct mux_description desc_4[] = {
     { 214, PIN_LOW, MODE_GPIO },
     { 252, PIN_HIGH, MODE_GPIO_OUTPUT },
     { 252, PIN_LOW, MODE_GPIO_INPUT },
@@ -116,7 +102,7 @@ static struct mux_description desc_4[] = {
     { }
 };
 
-static struct mux_description desc_5[] = {
+static const struct mux_description desc_5[] = {
     { 214, PIN_LOW, MODE_GPIO | MODE_PWM },
     { 253, PIN_HIGH, MODE_GPIO_OUTPUT | MODE_PWM },
     { 253, PIN_LOW, MODE_GPIO_INPUT },
@@ -129,7 +115,7 @@ static struct mux_description desc_5[] = {
     { }
 };
 
-static struct mux_description desc_6[] = {
+static const struct mux_description desc_6[] = {
     { 214, PIN_LOW, MODE_GPIO | MODE_PWM },
     { 254, PIN_HIGH, MODE_GPIO_OUTPUT | MODE_PWM },
     { 254, PIN_LOW, MODE_GPIO_INPUT },
@@ -142,7 +128,7 @@ static struct mux_description desc_6[] = {
     { }
 };
 
-static struct mux_description desc_7[] = {
+static const struct mux_description desc_7[] = {
     { 214, PIN_LOW, MODE_GPIO },
     { 255, PIN_HIGH, MODE_GPIO_OUTPUT },
     { 255, PIN_LOW, MODE_GPIO_INPUT },
@@ -154,7 +140,7 @@ static struct mux_description desc_7[] = {
     { }
 };
 
-static struct mux_description desc_8[] = {
+static const struct mux_description desc_8[] = {
     { 214, PIN_LOW, MODE_GPIO },
     { 256, PIN_HIGH, MODE_GPIO_OUTPUT },
     { 256, PIN_LOW, MODE_GPIO_INPUT },
@@ -166,7 +152,7 @@ static struct mux_description desc_8[] = {
     { }
 };
 
-static struct mux_description desc_9[] = {
+static const struct mux_description desc_9[] = {
     { 214, PIN_LOW, MODE_GPIO | MODE_PWM },
     { 257, PIN_HIGH, MODE_GPIO_OUTPUT | MODE_PWM },
     { 257, PIN_LOW, MODE_GPIO_INPUT },
@@ -179,7 +165,7 @@ static struct mux_description desc_9[] = {
     { }
 };
 
-static struct mux_description desc_10[] = {
+static const struct mux_description desc_10[] = {
     { 214, PIN_LOW, MODE_GPIO | MODE_PWM },
     { 258, PIN_HIGH, MODE_GPIO_OUTPUT | MODE_PWM },
     { 258, PIN_LOW, MODE_GPIO_INPUT },
@@ -194,7 +180,7 @@ static struct mux_description desc_10[] = {
     { }
 };
 
-static struct mux_description desc_11[] = {
+static const struct mux_description desc_11[] = {
     { 214, PIN_LOW, MODE_GPIO | MODE_SPI | MODE_PWM },
     { 259, PIN_HIGH, MODE_GPIO_OUTPUT | MODE_SPI | MODE_PWM },
     { 259, PIN_LOW, MODE_GPIO_INPUT },
@@ -211,7 +197,7 @@ static struct mux_description desc_11[] = {
     { }
 };
 
-static struct mux_description desc_12[] = {
+static const struct mux_description desc_12[] = {
     { 214, PIN_LOW, MODE_GPIO | MODE_SPI },
     { 260, PIN_HIGH, MODE_GPIO_OUTPUT },
     { 260, PIN_LOW, MODE_GPIO_INPUT | MODE_SPI },
@@ -226,7 +212,7 @@ static struct mux_description desc_12[] = {
     { }
 };
 
-static struct mux_description desc_13[] = {
+static const struct mux_description desc_13[] = {
     { 214, PIN_LOW, MODE_GPIO | MODE_SPI },
     { 261, PIN_HIGH, MODE_GPIO_OUTPUT | MODE_SPI },
     { 261, PIN_LOW, MODE_GPIO_INPUT },
@@ -241,7 +227,7 @@ static struct mux_description desc_13[] = {
     { }
 };
 
-static struct mux_description desc_14[] = {
+static const struct mux_description desc_14[] = {
     { 214, PIN_LOW, MODE_GPIO | MODE_ANALOG },
     { 200, PIN_LOW, MODE_GPIO },
     { 200, PIN_HIGH, MODE_ANALOG },
@@ -255,7 +241,7 @@ static struct mux_description desc_14[] = {
     { }
 };
 
-static struct mux_description desc_15[] = {
+static const struct mux_description desc_15[] = {
     { 214, PIN_LOW, MODE_GPIO | MODE_ANALOG },
     { 201, PIN_LOW, MODE_GPIO },
     { 201, PIN_HIGH, MODE_ANALOG },
@@ -269,7 +255,7 @@ static struct mux_description desc_15[] = {
     { }
 };
 
-static struct mux_description desc_16[] = {
+static const struct mux_description desc_16[] = {
     { 214, PIN_LOW, MODE_GPIO | MODE_ANALOG },
     { 202, PIN_LOW, MODE_GPIO },
     { 202, PIN_HIGH, MODE_ANALOG },
@@ -283,7 +269,7 @@ static struct mux_description desc_16[] = {
     { }
 };
 
-static struct mux_description desc_17[] = {
+static const struct mux_description desc_17[] = {
     { 214, PIN_LOW, MODE_GPIO | MODE_ANALOG },
     { 203, PIN_LOW, MODE_GPIO },
     { 203, PIN_HIGH, MODE_ANALOG },
@@ -297,7 +283,7 @@ static struct mux_description desc_17[] = {
     { }
 };
 
-static struct mux_description desc_18[] = {
+static const struct mux_description desc_18[] = {
     { 214, PIN_LOW, MODE_GPIO | MODE_I2C | MODE_ANALOG },
     {  14, PIN_NONE, MODE_I2C },
     { 204, PIN_LOW, MODE_GPIO | MODE_I2C },
@@ -313,7 +299,7 @@ static struct mux_description desc_18[] = {
     { }
 };
 
-static struct mux_description desc_19[] = {
+static const struct mux_description desc_19[] = {
     { 214, PIN_LOW, MODE_GPIO | MODE_I2C | MODE_ANALOG },
     { 165, PIN_NONE, MODE_I2C },
     { 205, PIN_LOW, MODE_GPIO | MODE_I2C },
@@ -336,17 +322,17 @@ static struct mux_description desc_19[] = {
 //AIO
 
 // Recipe List for AIO device 1
-static struct mux_description *aio_dev_1[] = {
+static const struct mux_description *const aio_dev_1[] = {
     desc_14, desc_15, desc_16, desc_17, desc_18, desc_19
 };
 
-static struct mux_controller aio_controller_list[] = {
+static const struct mux_controller aio_controller_list[] = {
     { 0, NULL },
     { SOL_UTIL_ARRAY_SIZE(aio_dev_1), aio_dev_1 },
 };
 
 //GPIO
-static struct mux_description *gpio_dev_0[184] = {
+static const struct mux_description *const gpio_dev_0[184] = {
     [12] = desc_3,
     [13] = desc_5,
     [14] = desc_18,
@@ -370,7 +356,7 @@ static struct mux_description *gpio_dev_0[184] = {
 };
 
 //I2C
-static struct mux_description *i2c_dev_0[][2] = {
+static const struct mux_description *const i2c_dev_0[][2] = {
     { 0, NULL },
     { 0, NULL },
     { 0, NULL },
@@ -381,15 +367,15 @@ static struct mux_description *i2c_dev_0[][2] = {
 };
 
 //PWM
-static struct mux_description *pwm_dev_0[] = {
+static const struct mux_description *const pwm_dev_0[] = {
     desc_3, desc_5, desc_6, desc_9,
 };
 
-static struct mux_controller pwm_controller_list[] = {
+static const struct mux_controller pwm_controller_list[] = {
     { SOL_UTIL_ARRAY_SIZE(pwm_dev_0), pwm_dev_0 },
 };
 
-static struct mux_pin_map pin_map[] = {
+static const struct mux_pin_map pin_map[] = {
     { .label = "A0", .cap = SOL_IO_AIO | SOL_IO_GPIO, .aio = { 1, 0 }, .gpio = 44 },
     { .label = "A1", .cap = SOL_IO_AIO | SOL_IO_GPIO, .aio = { 1, 1 }, .gpio = 45 },
     { .label = "A2", .cap = SOL_IO_AIO | SOL_IO_GPIO, .aio = { 1, 2 }, .gpio = 46 },

@@ -3,31 +3,17 @@
  *
  * Copyright (C) 2015 Intel Corporation. All rights reserved.
  *
- * Redistribution and use in source and binary forms, with or without
- * modification, are permitted provided that the following conditions
- * are met:
+ * Licensed under the Apache License, Version 2.0 (the "License");
+ * you may not use this file except in compliance with the License.
+ * You may obtain a copy of the License at
  *
- *   * Redistributions of source code must retain the above copyright
- *     notice, this list of conditions and the following disclaimer.
- *   * Redistributions in binary form must reproduce the above copyright
- *     notice, this list of conditions and the following disclaimer in
- *     the documentation and/or other materials provided with the
- *     distribution.
- *   * Neither the name of Intel Corporation nor the names of its
- *     contributors may be used to endorse or promote products derived
- *     from this software without specific prior written permission.
+ *     http://www.apache.org/licenses/LICENSE-2.0
  *
- * THIS SOFTWARE IS PROVIDED BY THE COPYRIGHT HOLDERS AND CONTRIBUTORS
- * "AS IS" AND ANY EXPRESS OR IMPLIED WARRANTIES, INCLUDING, BUT NOT
- * LIMITED TO, THE IMPLIED WARRANTIES OF MERCHANTABILITY AND FITNESS FOR
- * A PARTICULAR PURPOSE ARE DISCLAIMED. IN NO EVENT SHALL THE COPYRIGHT
- * OWNER OR CONTRIBUTORS BE LIABLE FOR ANY DIRECT, INDIRECT, INCIDENTAL,
- * SPECIAL, EXEMPLARY, OR CONSEQUENTIAL DAMAGES (INCLUDING, BUT NOT
- * LIMITED TO, PROCUREMENT OF SUBSTITUTE GOODS OR SERVICES; LOSS OF USE,
- * DATA, OR PROFITS; OR BUSINESS INTERRUPTION) HOWEVER CAUSED AND ON ANY
- * THEORY OF LIABILITY, WHETHER IN CONTRACT, STRICT LIABILITY, OR TORT
- * (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE
- * OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
+ * Unless required by applicable law or agreed to in writing, software
+ * distributed under the License is distributed on an "AS IS" BASIS,
+ * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+ * See the License for the specific language governing permissions and
+ * limitations under the License.
  */
 
 #include <errno.h>
@@ -127,49 +113,77 @@ struct outgoing {
 
 static bool on_can_write(void *data, struct sol_socket *s);
 
-SOL_API uint8_t
-sol_coap_header_get_ver(const struct sol_coap_packet *pkt)
+SOL_API int
+sol_coap_header_get_ver(const struct sol_coap_packet *pkt, uint8_t *version)
 {
-    struct coap_header *hdr = (struct coap_header *)pkt->buf.data;
+    struct coap_header *hdr;
 
-    return hdr->ver;
+    SOL_NULL_CHECK(pkt, -EINVAL);
+    SOL_NULL_CHECK(version, -EINVAL);
+
+    hdr = (struct coap_header *)pkt->buf.data;
+    *version = hdr->ver;
+
+    return 0;
 }
 
-SOL_API uint8_t
-sol_coap_header_get_type(const struct sol_coap_packet *pkt)
+SOL_API int
+sol_coap_header_get_type(const struct sol_coap_packet *pkt, uint8_t *type)
 {
-    struct coap_header *hdr = (struct coap_header *)pkt->buf.data;
+    struct coap_header *hdr;
 
-    return hdr->type;
+    SOL_NULL_CHECK(pkt, -EINVAL);
+    SOL_NULL_CHECK(type, -EINVAL);
+
+    hdr = (struct coap_header *)pkt->buf.data;
+    *type = hdr->type;
+
+    return 0;
 }
 
 SOL_API uint8_t *
 sol_coap_header_get_token(const struct sol_coap_packet *pkt, uint8_t *len)
 {
-    struct coap_header *hdr = (struct coap_header *)pkt->buf.data;
+    struct coap_header *hdr;
 
-    *len = hdr->tkl;
+    SOL_NULL_CHECK(pkt, NULL);
+
+    hdr = (struct coap_header *)pkt->buf.data;
+
+    if (len)
+        *len = hdr->tkl;
+
     if (hdr->tkl == 0)
         return NULL;
 
     return (uint8_t *)pkt->buf.data + sizeof(*hdr);
 }
 
-SOL_API uint16_t
-sol_coap_header_get_id(const struct sol_coap_packet *pkt)
+SOL_API int
+sol_coap_header_get_id(const struct sol_coap_packet *pkt, uint16_t *id)
 {
-    struct coap_header *hdr = (struct coap_header *)pkt->buf.data;
+    struct coap_header *hdr;
 
-    return sol_util_be16_to_cpu(hdr->id);
+    SOL_NULL_CHECK(pkt, -EINVAL);
+    SOL_NULL_CHECK(id, -EINVAL);
+
+    hdr = (struct coap_header *)pkt->buf.data;
+    *id = sol_util_be16_to_cpu(hdr->id);
+
+    return 0;
 }
 
-SOL_API uint8_t
-sol_coap_header_get_code(const struct sol_coap_packet *pkt)
+SOL_API int
+sol_coap_header_get_code(const struct sol_coap_packet *pkt, uint8_t *code)
 {
-    struct coap_header *hdr = (struct coap_header *)pkt->buf.data;
-    uint8_t code = hdr->code;
+    struct coap_header *hdr;
 
-    switch (code) {
+    SOL_NULL_CHECK(pkt, -EINVAL);
+    SOL_NULL_CHECK(code, -EINVAL);
+
+    hdr = (struct coap_header *)pkt->buf.data;
+
+    switch (hdr->code) {
     /* Methods are encoded in the code field too */
     case SOL_COAP_METHOD_GET:
     case SOL_COAP_METHOD_POST:
@@ -199,11 +213,14 @@ sol_coap_header_get_code(const struct sol_coap_packet *pkt)
     case SOL_COAP_RSPCODE_GATEWAY_TIMEOUT:
     case SOL_COAP_RSPCODE_PROXYING_NOT_SUPPORTED:
     case SOL_COAP_CODE_EMPTY:
-        return code;
+        *code = hdr->code;
+        break;
     default:
-        SOL_WRN("Invalid code (%d)", code);
-        return SOL_COAP_CODE_EMPTY;
+        SOL_WRN("Invalid code (%d)", hdr->code);
+        return -EINVAL;
     }
+
+    return 0;
 }
 
 /* NB: At all _set_ functions, we assign the hdr ptr *after* the
@@ -213,8 +230,11 @@ SOL_API int
 sol_coap_header_set_ver(struct sol_coap_packet *pkt, uint8_t ver)
 {
     struct coap_header *hdr;
-    int r = sol_buffer_ensure(&pkt->buf, sizeof(struct coap_header));
+    int r;
 
+    SOL_NULL_CHECK(pkt, -EINVAL);
+
+    r = sol_buffer_ensure(&pkt->buf, sizeof(struct coap_header));
     SOL_INT_CHECK(r, < 0, r);
 
     hdr = (struct coap_header *)pkt->buf.data;
@@ -227,8 +247,11 @@ SOL_API int
 sol_coap_header_set_type(struct sol_coap_packet *pkt, uint8_t type)
 {
     struct coap_header *hdr;
-    int r = sol_buffer_ensure(&pkt->buf, sizeof(struct coap_header));
+    int r;
 
+    SOL_NULL_CHECK(pkt, -EINVAL);
+
+    r = sol_buffer_ensure(&pkt->buf, sizeof(struct coap_header));
     SOL_INT_CHECK(r, < 0, r);
 
     hdr = (struct coap_header *)pkt->buf.data;
@@ -243,8 +266,11 @@ sol_coap_header_set_token(struct sol_coap_packet *pkt, uint8_t *token, uint8_t t
     struct sol_str_slice s = SOL_STR_SLICE_STR((char *)token,
         (size_t)tokenlen);
     struct coap_header *hdr;
-    int r = sol_buffer_ensure(&pkt->buf, sizeof(struct coap_header));
+    int r;
 
+    SOL_NULL_CHECK(pkt, -EINVAL);
+
+    r = sol_buffer_ensure(&pkt->buf, sizeof(struct coap_header));
     SOL_INT_CHECK(r, < 0, r);
 
     r = sol_buffer_insert_slice(&pkt->buf, sizeof(*hdr), s);
@@ -261,8 +287,11 @@ SOL_API int
 sol_coap_header_set_id(struct sol_coap_packet *pkt, uint16_t id)
 {
     struct coap_header *hdr;
-    int r = sol_buffer_ensure(&pkt->buf, sizeof(struct coap_header));
+    int r;
 
+    SOL_NULL_CHECK(pkt, -EINVAL);
+
+    r = sol_buffer_ensure(&pkt->buf, sizeof(struct coap_header));
     SOL_INT_CHECK(r, < 0, r);
 
     hdr = (struct coap_header *)pkt->buf.data;
@@ -275,8 +304,11 @@ SOL_API int
 sol_coap_header_set_code(struct sol_coap_packet *pkt, uint8_t code)
 {
     struct coap_header *hdr;
-    int r = sol_buffer_ensure(&pkt->buf, sizeof(struct coap_header));
+    int r;
 
+    SOL_NULL_CHECK(pkt, -EINVAL);
+
+    r = sol_buffer_ensure(&pkt->buf, sizeof(struct coap_header));
     SOL_INT_CHECK(r, < 0, r);
 
     hdr = (struct coap_header *)pkt->buf.data;
@@ -400,7 +432,7 @@ static int(*find_resource_cb(const struct sol_coap_packet *req,
     if (!uri_path_eq(req, resource->path))
         return NULL;
 
-    opcode = sol_coap_header_get_code(req);
+    sol_coap_header_get_code(req, &opcode);
 
     switch (opcode) {
     case SOL_COAP_METHOD_GET:
@@ -489,10 +521,13 @@ sol_coap_packet_new(struct sol_coap_packet *old)
         uint8_t *token;
         uint8_t type;
         uint8_t tkl;
+        uint16_t id;
 
-        r = sol_coap_header_set_id(pkt, sol_coap_header_get_id(old));
+        sol_coap_header_get_id(old, &id);
+
+        r = sol_coap_header_set_id(pkt, id);
         SOL_INT_CHECK_GOTO(r, < 0, err);
-        type = sol_coap_header_get_type(old);
+        sol_coap_header_get_type(old, &type);
         if (type == SOL_COAP_TYPE_CON)
             r = sol_coap_header_set_type(pkt, SOL_COAP_TYPE_ACK);
         else if (type == SOL_COAP_TYPE_NONCON)
@@ -543,6 +578,7 @@ next_in_queue(struct sol_coap_server *server, int *idx)
 static bool
 timeout_cb(void *data)
 {
+    uint16_t id;
     struct outgoing *outgoing = data;
     struct sol_coap_server *server = outgoing->server;
 
@@ -554,8 +590,10 @@ timeout_cb(void *data)
 
     sol_network_link_addr_to_str(&outgoing->cliaddr, &addr);
 
+    sol_coap_header_get_id(outgoing->pkt, &id);
+
     SOL_DBG("server %p retrying packet id %d to client %.*s",
-        server, sol_coap_header_get_id(outgoing->pkt),
+        server, id,
         SOL_STR_SLICE_PRINT(sol_buffer_get_slice(&addr)));
 
     return false;
@@ -575,9 +613,10 @@ pending_reply_free(struct pending_reply *reply)
 static bool
 call_reply_timeout_cb(struct sol_coap_server *server, struct sol_coap_packet *pkt)
 {
-    uint16_t i;
+    uint16_t i, id;
     struct pending_reply *reply;
-    const uint16_t id = sol_coap_header_get_id(pkt);
+
+    sol_coap_header_get_id(pkt, &id);
 
     SOL_PTR_VECTOR_FOREACH_REVERSE_IDX (&server->pending, reply, i) {
         if (reply->observing || reply->id != id)
@@ -597,11 +636,13 @@ timeout_expired(struct sol_coap_server *server, struct outgoing *outgoing)
 {
     struct outgoing *o;
     int timeout;
-    uint16_t i;
+    uint16_t i, id;
+    uint8_t type;
     int max_retransmit;
     bool expired = false;
 
-    if (sol_coap_header_get_type(outgoing->pkt) == SOL_COAP_TYPE_CON) {
+    sol_coap_header_get_type(outgoing->pkt, &type);
+    if (type == SOL_COAP_TYPE_CON) {
         max_retransmit = MAX_RETRANSMIT;
         timeout = ACK_TIMEOUT_MS << outgoing->counter++;
     } else {
@@ -613,8 +654,9 @@ timeout_expired(struct sol_coap_server *server, struct outgoing *outgoing)
     if (outgoing->counter > max_retransmit) {
         SOL_PTR_VECTOR_FOREACH_REVERSE_IDX (&server->outgoing, o, i) {
             if (o == outgoing) {
+                sol_coap_header_get_id(outgoing->pkt, &id);
                 SOL_DBG("packet id %d dropped, after %d transmissions",
-                    sol_coap_header_get_id(outgoing->pkt), outgoing->counter);
+                    id, outgoing->counter);
 
                 if (!call_reply_timeout_cb(server, outgoing->pkt)) {
                     expired = true;
@@ -630,7 +672,9 @@ timeout_expired(struct sol_coap_server *server, struct outgoing *outgoing)
 
     outgoing->timeout = sol_timeout_add(timeout, timeout_cb, outgoing);
 
-    SOL_DBG("waiting %d ms to re-try packet id %d", timeout, sol_coap_header_get_id(outgoing->pkt));
+    sol_coap_header_get_id(outgoing->pkt, &id);
+    SOL_DBG("waiting %d ms to re-try packet id %d", timeout, id);
+
     return expired;
 }
 
@@ -663,10 +707,12 @@ on_can_write(void *data, struct sol_socket *s)
         outgoing->pkt->buf.used, outgoing->pkt->buf.capacity);
     sol_coap_packet_debug(outgoing->pkt);
     if (err < 0) {
+        uint16_t id;
         SOL_BUFFER_DECLARE_STATIC(addr, SOL_INET_ADDR_STRLEN);
 
         sol_network_link_addr_to_str(&outgoing->cliaddr, &addr);
-        SOL_WRN("Could not send packet %d to %.*s (%d): %s", sol_coap_header_get_id(outgoing->pkt),
+        sol_coap_header_get_id(outgoing->pkt, &id);
+        SOL_WRN("Could not send packet %d to %.*s (%d): %s", id,
             SOL_STR_SLICE_PRINT(sol_buffer_get_slice(&addr)), -err, sol_util_strerrora(-err));
         return false;
     }
@@ -720,6 +766,10 @@ sol_coap_send_packet_with_reply(struct sol_coap_server *server, struct sol_coap_
     int err = 0, count;
     bool observing = false;
 
+    SOL_NULL_CHECK(server, -EINVAL);
+    SOL_NULL_CHECK(pkt, -EINVAL);
+    SOL_NULL_CHECK(cliaddr, -EINVAL);
+
     count = sol_coap_find_options(pkt, SOL_COAP_OPTION_OBSERVE, &option, 1);
     if (count < 0) {
         sol_coap_packet_unref(pkt);
@@ -747,7 +797,7 @@ sol_coap_send_packet_with_reply(struct sol_coap_server *server, struct sol_coap_
         return -ENOMEM;
     }
 
-    reply->id = sol_coap_header_get_id(pkt);
+    sol_coap_header_get_id(pkt, &reply->id);
     reply->cb = reply_cb;
     reply->data = data;
     reply->observing = observing;
@@ -825,12 +875,16 @@ sol_coap_packet_send_notification(struct sol_coap_server *server,
     sol_coap_header_get_token(pkt, &tkl);
 
     SOL_PTR_VECTOR_FOREACH_IDX (&c->observers, o, i) {
+        uint8_t type, code;
+
         p = sol_coap_packet_new(NULL);
         SOL_NULL_CHECK(p, -ENOMEM);
 
-        r = sol_coap_header_set_code(p, sol_coap_header_get_code(pkt));
+        sol_coap_header_get_code(pkt, &code);
+        r = sol_coap_header_set_code(p, code);
         SOL_INT_CHECK_GOTO(r, < 0, err);
-        r = sol_coap_header_set_type(p, sol_coap_header_get_type(pkt));
+        sol_coap_header_get_type(pkt, &type);
+        r = sol_coap_header_set_type(p, type);
         SOL_INT_CHECK_GOTO(r, < 0, err);
         r = sol_coap_header_set_token(p, o->token, o->tkl);
         SOL_INT_CHECK_GOTO(r, < 0, err);
@@ -1199,7 +1253,9 @@ register_observer(struct resource_context *c, struct sol_coap_packet *req,
 static bool
 match_reply(struct pending_reply *reply, struct sol_coap_packet *pkt)
 {
-    const uint16_t id = sol_coap_header_get_id(pkt);
+    uint16_t id;
+
+    sol_coap_header_get_id(pkt, &id);
 
     /* When observing the match is made using the token. */
     if (reply->observing) {
@@ -1247,10 +1303,16 @@ remove_outgoing_confirmable_packet(struct sol_coap_server *server, struct sol_co
     uint16_t i, id;
     struct outgoing *o;
 
-    id = sol_coap_header_get_id(req);
+    sol_coap_header_get_id(req, &id);
     /* If it has the same 'id' as a packet that we are trying to send we will stop now. */
     SOL_PTR_VECTOR_FOREACH_REVERSE_IDX (&server->outgoing, o, i) {
-        if (id != sol_coap_header_get_id(o->pkt) || sol_coap_header_get_type(o->pkt) != SOL_COAP_TYPE_CON) {
+        uint8_t type;
+        uint16_t o_id;
+
+        sol_coap_header_get_type(o->pkt, &type);
+        sol_coap_header_get_id(o->pkt, &o_id);
+
+        if (id != o_id || type != SOL_COAP_TYPE_CON) {
             continue;
         }
 
@@ -1291,11 +1353,14 @@ error:
 static bool
 is_coap_ping(struct sol_coap_packet *req)
 {
-    uint8_t tokenlen;
+    uint8_t tokenlen, type, code;
 
     (void)sol_coap_header_get_token(req, &tokenlen);
-    return sol_coap_header_get_type(req) == SOL_COAP_TYPE_CON &&
-           sol_coap_header_get_code(req) == SOL_COAP_CODE_EMPTY &&
+    (void)sol_coap_header_get_type(req, &type);
+    (void)sol_coap_header_get_code(req, &code);
+
+    return type == SOL_COAP_TYPE_CON &&
+           code == SOL_COAP_CODE_EMPTY &&
            tokenlen == 0 && !sol_coap_packet_has_payload(req);
 }
 
@@ -1338,7 +1403,7 @@ respond_packet(struct sol_coap_server *server, struct sol_coap_packet *req,
         return send_reset_msg(server, req, cliaddr);
     }
 
-    code = sol_coap_header_get_code(req);
+    sol_coap_header_get_code(req, &code);
 
     observe = get_observe_option(req);
 
@@ -1716,6 +1781,7 @@ sol_coap_packet_get_payload(struct sol_coap_packet *pkt,
     size_t *offset)
 {
     SOL_NULL_CHECK(pkt, -EINVAL);
+    SOL_NULL_CHECK(buf, -EINVAL);
 
     if (!pkt->payload_start) {
         int r;
@@ -1796,7 +1862,7 @@ sol_coap_cancel_send_packet(struct sol_coap_server *server, struct sol_coap_pack
     SOL_NULL_CHECK(server, -EINVAL);
     SOL_NULL_CHECK(pkt, -EINVAL);
 
-    id = sol_coap_header_get_id(pkt);
+    sol_coap_header_get_id(pkt, &id);
     SOL_PTR_VECTOR_FOREACH_REVERSE_IDX (&server->outgoing, o, i) {
         if (o->pkt != pkt)
             continue;
@@ -1830,6 +1896,8 @@ sol_coap_unobserve_server(struct sol_coap_server *server, const struct sol_netwo
     int r;
     uint16_t i;
     struct pending_reply *reply;
+
+    SOL_NULL_CHECK(server, -EINVAL);
 
     SOL_PTR_VECTOR_FOREACH_REVERSE_IDX (&server->pending, reply, i) {
         if (!match_observe_reply(reply, token, tkl))
@@ -1867,8 +1935,12 @@ SOL_API void
 sol_coap_packet_debug(struct sol_coap_packet *pkt)
 {
     int r;
-    uint16_t query_len;
+    uint8_t type, code;
+    uint16_t query_len, id;
     char *path = NULL, *query;
+
+
+    SOL_NULL_CHECK(pkt);
 
     if (sol_log_get_level() < SOL_LOG_LEVEL_DEBUG)
         return;
@@ -1878,11 +1950,11 @@ sol_coap_packet_debug(struct sol_coap_packet *pkt)
         query_len = 0;
 
     r = packet_extract_path(pkt, &path);
+    sol_coap_header_get_type(pkt, &type);
+    sol_coap_header_get_id(pkt, &id);
+    sol_coap_header_get_code(pkt, &code);
     SOL_DBG("{id: %d, href: '%s', type: %d, header_code: %d, query: '%.*s'}",
-        sol_coap_header_get_id(pkt), r == 0 ? path : "",
-        sol_coap_header_get_type(pkt),
-        sol_coap_header_get_code(pkt),
-        query_len, query);
+        id, r == 0 ? path : "", type, code, query_len, query);
     if (r == 0)
         free(path);
 }
