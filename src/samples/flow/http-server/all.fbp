@@ -60,4 +60,4 @@ string OUT -> IN String(console)
 
 # Press key 's' to enable/disable
 
-key_s OUT -> ENABLED static(http-server/static:path="/tmp/www/",start=false)
+key_s OUT -> ENABLED static(http-server/static:path="/tmp/www/",enabled=false)
