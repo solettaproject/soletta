@@ -17,3 +17,19 @@ sample-grove-relay-$(FLOW_GROVE_RELAY_SAMPLE)-conffile := sol-flow-intel-galileo
 sample-$(FLOW_GROVE_SOUND_SENSOR_SAMPLE) += grove-sound-sensor
 sample-grove-sound-sensor-$(FLOW_GROVE_SOUND_SENSOR_SAMPLE) := grove-sound-sensor.fbp
 sample-grove-sound-sensor-$(FLOW_GROVE_SOUND_SENSOR_SAMPLE)-conffile := sol-flow-intel-galileo-rev-g.json
+
+sample-$(FLOW_GROVE_LED_WAVE_GENERATOR_SAMPLE) += grove-led-wave-generator
+sample-grove-led-wave-generator-$(FLOW_GROVE_LED_WAVE_GENERATOR_SAMPLE) := grove-led-wave-generator.fbp
+sample-grove-led-wave-generator-$(FLOW_GROVE_LED_WAVE_GENERATOR_SAMPLE)-conffile := sol-flow-intel-galileo-rev-g.json
+
+sample-$(FLOW_GROVE_LIGHT_SENSOR_SAMPLE) += grove-light-sensor
+sample-grove-light-sensor-$(FLOW_GROVE_LIGHT_SENSOR_SAMPLE) := grove-light-sensor.fbp
+sample-grove-light-sensor-$(FLOW_GROVE_LIGHT_SENSOR_SAMPLE)-conffile := sol-flow-intel-galileo-rev-g.json
+
+sample-$(FLOW_GROVE_ROTARY_ANGLE_SENSOR_SAMPLE) += grove-rotary-angle-sensor
+sample-grove-rotary-angle-sensor-$(FLOW_GROVE_ROTARY_ANGLE_SENSOR_SAMPLE) := grove-rotary-angle-sensor.fbp
+sample-grove-rotary-angle-sensor-$(FLOW_GROVE_ROTARY_ANGLE_SENSOR_SAMPLE)-conffile := sol-flow-intel-galileo-rev-g.json
+
+sample-$(FLOW_GROVE_TEMPERATURE_SENSOR_SAMPLE) += grove-temperature-sensor
+sample-grove-temperature-sensor-$(FLOW_GROVE_TEMPERATURE_SENSOR_SAMPLE) := grove-temperature-sensor.fbp
+sample-grove-temperature-sensor-$(FLOW_GROVE_TEMPERATURE_SENSOR_SAMPLE)-conffile := sol-flow-intel-galileo-rev-g.json

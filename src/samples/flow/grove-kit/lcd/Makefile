@@ -29,3 +29,11 @@ sample-grove-lcd-set-cursor-$(FLOW_GROVE_LCD_SET_CURSOR_SAMPLE)-conffile := ../s
 sample-$(FLOW_GROVE_LCD_TEXT_DIRECTION_SAMPLE) += grove-lcd-text-direction
 sample-grove-lcd-text-direction-$(FLOW_GROVE_LCD_TEXT_DIRECTION_SAMPLE) := grove-lcd-text-direction.fbp
 sample-grove-lcd-text-direction-$(FLOW_GROVE_LCD_TEXT_DIRECTION_SAMPLE)-conffile := ../sol-flow-intel-galileo-rev-g.json
+
+sample-$(FLOW_GROVE_LCD_FADE_SAMPLE) += grove-lcd-fade
+sample-grove-lcd-fade-$(FLOW_GROVE_LCD_FADE_SAMPLE) := grove-lcd-fade.fbp
+sample-grove-lcd-fade-$(FLOW_GROVE_LCD_FADE_SAMPLE)-conffile := ../sol-flow-intel-galileo-rev-g.json
+
+sample-$(FLOW_GROVE_LCD_FORM_SAMPLE) += grove-lcd-form
+sample-grove-lcd-form-$(FLOW_GROVE_LCD_FORM_SAMPLE) := grove-lcd-form.fbp
+sample-grove-lcd-form-$(FLOW_GROVE_LCD_FORM_SAMPLE)-conffile := ../sol-flow-intel-galileo-rev-g.json
