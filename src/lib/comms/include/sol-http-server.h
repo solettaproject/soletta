@@ -68,6 +68,16 @@ struct sol_http_server;
 struct sol_http_request;
 
 /**
+ * @struct sol_http_response_sse
+ * @brief Opaque handler for response using server-sent-event.
+ *
+ * This response is create with @c sol_http_server_send_response_sse
+ * and data can be given using @c sol_http_server_reponse_sse_send_data,
+ * to delete it use @c sol_http_server_reponse_ss2_del.
+ */
+struct sol_http_response_sse;
+
+/**
  * @brief Creates a HTTP server, binding on all interfaces
  * in the specified @a port.
  *
@@ -206,6 +216,50 @@ int sol_http_server_set_last_modified(struct sol_http_server *server, const char
  * @return @c 0 on success, error code (always negative) otherwise.
  */
 int sol_http_server_send_response(struct sol_http_request *request, struct sol_http_response *response);
+
+/**
+ * @brief Send the response and keep connection alive to request given in the
+ * callback registered on @c sol_http_server_register_handler.
+ *
+ * After this call, the caller will be resposible to close the connection calling
+ * @c sol_http_response_sse_del. @note all the necessary headers are set by this function.
+ *
+ * @param request The request given on the callback of
+ * @c sol_http_server_register_handler.
+ * @param cb Callback called when the connection is closed from the client side.
+ * @param cb_data The data pointer to be passed to @a cb.
+ *
+ * @return @c sol_http_response_sse on success, @c NULL otherwise.
+ *
+ * @see sol_http_response_sse_del
+ * @see sol_http_response_sse_send_data
+ */
+struct sol_http_response_sse *sol_http_server_send_response_sse(struct sol_http_request *request,
+    void (*cb)(void *data, const struct sol_http_response_sse *sse),
+    const void *cb_data);
+
+/**
+ * @brief Send data for the sse response.
+ *
+ * @return @c 0 on success, error code (always negative) otherwise.
+ *
+ * @see sol_http_response_sse_del
+ * @see sol_http_server_send_response_sse
+ */
+int sol_http_response_sse_send_data(struct sol_http_response_sse *sse, struct sol_buffer *buffer);
+
+/**
+ * @brief Delete the sse response.
+ *
+ * This function deletes the sse response and its resources and closes
+ * the connection.
+ *
+ * @return @c 0 on success, error code (always negative) otherwise.
+ *
+ * @see sol_http_server_send_response_sse
+ * @see sol_http_response_sse_send_data
+ */
+int sol_http_response_sse_del(struct sol_http_response_sse *sse);
 
 /**
  * @brief Gets the URL from a given request.
