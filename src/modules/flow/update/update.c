@@ -30,20 +30,15 @@
 
 struct update_data {
     struct sol_update_handle *handle;
-};
-
-struct update_node_type {
-    struct sol_flow_node_type base;
     uint16_t progress_port;
 };
 
 static int
 check_open(struct sol_flow_node *node, void *data, const struct sol_flow_node_options *options)
 {
-    struct update_node_type *type;
+    struct update_data *mdata = data;
 
-    type = (struct update_node_type *)sol_flow_node_get_type(node);
-    type->progress_port = SOL_FLOW_NODE_TYPE_UPDATE_CHECK__OUT__PROGRESS;
+    mdata->progress_port = SOL_FLOW_NODE_TYPE_UPDATE_CHECK__OUT__PROGRESS;
 
     return 0;
 }
@@ -120,10 +115,9 @@ check_process(struct sol_flow_node *node, void *data, uint16_t port, uint16_t co
 static int
 fetch_open(struct sol_flow_node *node, void *data, const struct sol_flow_node_options *options)
 {
-    struct update_node_type *type;
+    struct update_data *mdata = data;
 
-    type = (struct update_node_type *)sol_flow_node_get_type(node);
-    type->progress_port = SOL_FLOW_NODE_TYPE_UPDATE_FETCH__OUT__PROGRESS;
+    mdata->progress_port = SOL_FLOW_NODE_TYPE_UPDATE_FETCH__OUT__PROGRESS;
 
     return 0;
 }
@@ -197,10 +191,9 @@ fetch_process(struct sol_flow_node *node, void *data, uint16_t port, uint16_t co
 static int
 install_open(struct sol_flow_node *node, void *data, const struct sol_flow_node_options *options)
 {
-    struct update_node_type *type;
+    struct update_data *mdata = data;
 
-    type = (struct update_node_type *)sol_flow_node_get_type(node);
-    type->progress_port = SOL_FLOW_NODE_TYPE_UPDATE_INSTALL__OUT__PROGRESS;
+    mdata->progress_port = SOL_FLOW_NODE_TYPE_UPDATE_INSTALL__OUT__PROGRESS;
 
     return 0;
 }
@@ -263,19 +256,16 @@ static int
 common_get_progress(struct sol_flow_node *node, void *data, uint16_t port, uint16_t conn_id, const struct sol_flow_packet *packet)
 {
     struct update_data *mdata = data;
-    struct update_node_type *type;
     struct sol_irange irange = {
         .step = 1,
         .min = 0,
         .max = 100
     };
 
-    type = (struct update_node_type *)sol_flow_node_get_type(node);
-
     if (mdata->handle) {
         irange.val = sol_update_get_progress(mdata->handle);
         if (irange.val >= 0 && irange.val <= 100)
-            sol_flow_send_irange_packet(node, type->progress_port, &irange);
+            sol_flow_send_irange_packet(node, mdata->progress_port, &irange);
         else
             sol_flow_send_error_packet(node, EINVAL,
                 "Could not get progress of task");

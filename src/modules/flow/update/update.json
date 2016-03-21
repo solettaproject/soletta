@@ -40,12 +40,6 @@
         "close": "common_close",
         "open": "check_open"
       },
-      "node_type": {
-        "access": [
-          "base"
-        ],
-        "data_type": "struct update_node_type"
-      },
       "name": "update/check",
       "out_ports": [
         {
@@ -105,12 +99,6 @@
         "close": "common_close",
         "open": "fetch_open"
       },
-      "node_type": {
-        "access": [
-          "base"
-        ],
-        "data_type": "struct update_node_type"
-      },
       "name": "update/fetch",
       "out_ports": [
         {
@@ -158,12 +146,6 @@
       "methods": {
         "close": "common_close",
         "open": "install_open"
-      },
-      "node_type": {
-        "access": [
-          "base"
-        ],
-        "data_type": "struct update_node_type"
       },
       "name": "update/install",
       "out_ports": [
