@@ -141,7 +141,7 @@ hijack_main_loop()
     // We allocate the various needed structures only once. After that, we
     // reuse them. We never free them, even if we release the uv main loop.
     if (!uv_loop_source) {
-        uv_loop_source = sol_mainloop_source_add(&uv_loop_source_funcs,
+        uv_loop_source = sol_mainloop_add_source(&uv_loop_source_funcs,
             uv_loop);
         if (!uv_loop_source) {
             return -ENOMEM;
