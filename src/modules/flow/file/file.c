@@ -103,7 +103,7 @@ file_reader_load(struct file_reader_data *mdata)
         reader, sizeof(reader));
     SOL_NULL_CHECK_GOTO(mdata->reader_blob, err_reader);
 
-    mdata->content_blob = sol_blob_new(SOL_BLOB_TYPE_NOFREE,
+    mdata->content_blob = sol_blob_new(SOL_BLOB_TYPE_NO_FREE,
         mdata->reader_blob,
         slice.data, slice.len);
     SOL_NULL_CHECK_GOTO(mdata->content_blob, err_content);

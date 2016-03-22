@@ -481,7 +481,7 @@ extern const struct sol_blob_type *SOL_BLOB_TYPE_DEFAULT;
  *
  * @note Blob's struct memory will be freed.
  */
-extern const struct sol_blob_type *SOL_BLOB_TYPE_NOFREE;
+extern const struct sol_blob_type *SOL_BLOB_TYPE_NO_FREE;
 
 /**
  * @brief Creates a new blob instance of the given type @c type.

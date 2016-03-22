@@ -263,7 +263,7 @@ check_version(struct map_internal *map_internal)
 
     ret = sol_memmap_read_raw_do(map_internal->resolved_path, entry, mask, &buf);
     if (ret >= 0 && (version == 0 || version == 255)) {
-        blob = sol_blob_new(SOL_BLOB_TYPE_NOFREE, NULL, &map_internal->map->api_version, sizeof(uint16_t));
+        blob = sol_blob_new(SOL_BLOB_TYPE_NO_FREE, NULL, &map_internal->map->api_version, sizeof(uint16_t));
         SOL_NULL_CHECK(blob, false);
 
         /* No version on file, we should be initialising it */
