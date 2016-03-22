@@ -203,7 +203,7 @@ write_cb(char *data, size_t size, size_t nmemb, void *connp)
         if (ret < 0)
             return 0;
 
-        r = sol_buffer_remove_data(&connection->buffer, ret, 0);
+        r = sol_buffer_remove_data(&connection->buffer, 0, ret);
         SOL_INT_CHECK(r, < 0, 0);
     }
 

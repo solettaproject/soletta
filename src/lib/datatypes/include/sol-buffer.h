@@ -885,8 +885,8 @@ int sol_buffer_ensure_nul_byte(struct sol_buffer *buf);
  * It's removed up to the buffer's size in case of @c size greater than used data.
  *
  * @param buf The buffer (already-initialized)
- * @param size Amount of data (in bytes) that should be removed
  * @param offset Position (from begin of the buffer) where
+ * @param size Amount of data (in bytes) that should be removed
  * @c size bytes will be removed
  *
  * @return @c 0 on success, error code (always negative) otherwise
@@ -894,7 +894,7 @@ int sol_buffer_ensure_nul_byte(struct sol_buffer *buf);
  * @note the buffer keeps its capacity after this function, it means,
  * the data is not released. If that is wanted, one should call @ref sol_buffer_trim
  */
-int sol_buffer_remove_data(struct sol_buffer *buf, size_t size, size_t offset);
+int sol_buffer_remove_data(struct sol_buffer *buf, size_t offset, size_t size);
 
 /**
  * @}

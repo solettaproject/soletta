@@ -662,7 +662,7 @@ sol_json_double_to_str(const double value, struct sol_buffer *buf)
         size_t offset = decimal_point - (char *)buf->data + 1;
         *decimal_point = '.';
 
-        ret = sol_buffer_remove_data(buf, decimal_len - 1, offset);
+        ret = sol_buffer_remove_data(buf, offset, decimal_len - 1);
         SOL_INT_CHECK(ret, < 0, ret);
     }
 
