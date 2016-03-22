@@ -110,7 +110,7 @@
         ],
         "data_type": "struct drange_arithmetic_node_type",
         "extra_methods": {
-          "func": "sol_drange_modulo"
+          "func": "sol_drange_mod"
         }
       },
       "out_ports": [

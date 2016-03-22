@@ -58,7 +58,7 @@ sol_drange_div(const struct sol_drange *var0, const struct sol_drange *var1, str
 }
 
 SOL_API int
-sol_drange_modulo(const struct sol_drange *var0, const struct sol_drange *var1, struct sol_drange *result)
+sol_drange_mod(const struct sol_drange *var0, const struct sol_drange *var1, struct sol_drange *result)
 {
     SOL_NULL_CHECK(var0, -EINVAL);
     SOL_NULL_CHECK(var1, -EINVAL);
@@ -245,7 +245,7 @@ sol_irange_div(const struct sol_irange *var0, const struct sol_irange *var1, str
 }
 
 SOL_API int
-sol_irange_modulo(const struct sol_irange *var0, const struct sol_irange *var1, struct sol_irange *result)
+sol_irange_mod(const struct sol_irange *var0, const struct sol_irange *var1, struct sol_irange *result)
 {
     SOL_NULL_CHECK(var0, -EINVAL);
     SOL_NULL_CHECK(var1, -EINVAL);
