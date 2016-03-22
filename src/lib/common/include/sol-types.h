@@ -203,7 +203,7 @@ struct sol_drange_spec {
  *
  * @return @c 0 on success, error code (always negative) otherwise.
  */
-int sol_drange_addition(const struct sol_drange *var0, const struct sol_drange *var1, struct sol_drange *result);
+int sol_drange_add(const struct sol_drange *var0, const struct sol_drange *var1, struct sol_drange *result);
 
 /**
  * @brief Divides the double range @c var0 by @c var1 and stores the result in @c result.
@@ -343,7 +343,7 @@ struct sol_irange_spec {
  *
  * @return @c 0 on success, error code (always negative) otherwise.
  */
-int sol_irange_addition(const struct sol_irange *var0, const struct sol_irange *var1, struct sol_irange *result);
+int sol_irange_add(const struct sol_irange *var0, const struct sol_irange *var1, struct sol_irange *result);
 
 /**
  * @brief Divides the integer range @c var0 by @c var1 and stores the result in @c result.
