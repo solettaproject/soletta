@@ -27,21 +27,21 @@
 SOL_LOG_INTERNAL_DECLARE(_sol_worker_thread_log_domain, "worker-thread");
 
 SOL_API struct sol_worker_thread *
-sol_worker_thread_new(const struct sol_worker_thread_spec *spec)
+sol_worker_thread_new(const struct sol_worker_thread_config *config)
 {
-    SOL_NULL_CHECK(spec, NULL);
-    SOL_NULL_CHECK(spec->iterate, NULL);
+    SOL_NULL_CHECK(config, NULL);
+    SOL_NULL_CHECK(config->iterate, NULL);
 
 #ifndef SOL_NO_API_VERSION
-    if (SOL_UNLIKELY(spec->api_version != SOL_WORKER_THREAD_SPEC_API_VERSION)) {
+    if (SOL_UNLIKELY(config->api_version != SOL_WORKER_THREAD_CONFIG_API_VERSION)) {
         SOL_WRN("Couldn't create worker thread with unsupported version '%u', "
             "expected version is '%u'",
-            spec->api_version, SOL_WORKER_THREAD_SPEC_API_VERSION);
+            config->api_version, SOL_WORKER_THREAD_CONFIG_API_VERSION);
         return NULL;
     }
 #endif
 
-    return sol_worker_thread_impl_new(spec);
+    return sol_worker_thread_impl_new(config);
 }
 
 SOL_API void
@@ -52,7 +52,7 @@ sol_worker_thread_cancel(struct sol_worker_thread *thread)
 }
 
 SOL_API bool
-sol_worker_thread_cancel_check(const struct sol_worker_thread *thread)
+sol_worker_thread_is_cancelled(const struct sol_worker_thread *thread)
 {
     SOL_NULL_CHECK(thread, false);
     return sol_worker_thread_impl_cancel_check(thread);

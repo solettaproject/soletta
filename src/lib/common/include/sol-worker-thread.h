@@ -42,13 +42,13 @@ extern "C" {
 struct sol_worker_thread;
 
 /**
- * @struct sol_worker_thread_spec
+ * @struct sol_worker_thread_config
  * @brief Worker thread functions and context data specification.
  */
-struct sol_worker_thread_spec {
+struct sol_worker_thread_config {
 #ifndef SOL_NO_API_VERSION
-#define SOL_WORKER_THREAD_SPEC_API_VERSION (1)
-    /** must match SOL_WORKER_THREAD_SPEC_API_VERSION in runtime */
+#define SOL_WORKER_THREAD_CONFIG_API_VERSION (1)
+    /** must match SOL_WORKER_THREAD_CONFIG_API_VERSION in runtime */
     uint16_t api_version;
 #endif
     /** the context data to give to all functions. */
@@ -130,12 +130,12 @@ struct sol_worker_thread_spec {
  * @return newly allocated worker thread handle on success or @c NULL
  * on errors.
  *
- * @see sol_worker_thread_spec
+ * @see sol_worker_thread_config
  * @see sol_worker_thread_cancel()
  * @see sol_worker_thread_feedback()
  * @see sol_idle_add()
  */
-struct sol_worker_thread *sol_worker_thread_new(const struct sol_worker_thread_spec *spec);
+struct sol_worker_thread *sol_worker_thread_new(const struct sol_worker_thread_config *worker_config);
 
 /**
  * Cancel a worker thread.
@@ -171,7 +171,7 @@ void sol_worker_thread_cancel(struct sol_worker_thread *thread);
  *
  * @see sol_worker_thread_cancel()
  */
-bool sol_worker_thread_cancel_check(const struct sol_worker_thread *thread);
+bool sol_worker_thread_is_cancelled(const struct sol_worker_thread *thread);
 
 /**
  * Schedule feedback from the worker to the main thread.
