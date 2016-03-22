@@ -52,7 +52,7 @@ sol_worker_thread_cancel(struct sol_worker_thread *thread)
 }
 
 SOL_API bool
-sol_worker_thread_cancel_check(const struct sol_worker_thread *thread)
+sol_worker_thread_is_cancelled(const struct sol_worker_thread *thread)
 {
     SOL_NULL_CHECK(thread, false);
     return sol_worker_thread_impl_cancel_check(thread);
