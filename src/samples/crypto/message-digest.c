@@ -239,7 +239,7 @@ startup(void)
                 size_t clen = remaining > chunk_size ? chunk_size : remaining;
                 uint8_t *cmem = (uint8_t *)blob->mem + offset;
                 bool is_last = offset + clen == blob->size;
-                struct sol_blob *chunk = sol_blob_new(SOL_BLOB_TYPE_NOFREE,
+                struct sol_blob *chunk = sol_blob_new(SOL_BLOB_TYPE_NO_FREE,
                     blob, cmem, clen);
                 if (!chunk) {
                     fprintf(stderr, "ERROR: could not create chunk blob at "
