@@ -606,15 +606,15 @@ struct sol_mainloop_source;
  *
  * @note MT-safe if compiled with threads support.
  */
-struct sol_mainloop_source *sol_mainloop_source_add(const struct sol_mainloop_source_type *type, const void *data);
+struct sol_mainloop_source *sol_mainloop_add_source(const struct sol_mainloop_source_type *type, const void *data);
 
 /**
  * @brief Destroy a source of main loop events.
  *
  * @param handle a valid handle previously created with
- *        sol_mainloop_source_add().
+ *        sol_mainloop_add_source().
  *
- * @see sol_mainloop_source_add()
+ * @see sol_mainloop_add_source()
  *
  * @note MT-safe if compiled with threads support.
  */
@@ -624,12 +624,12 @@ void sol_mainloop_source_del(struct sol_mainloop_source *handle);
  * @brief Retrieve the user data (context) given to the source at creation time.
  *
  * @param handle a valid handle previously created with
- *        sol_mainloop_source_add().
+ *        sol_mainloop_add_source().
  *
- * @return whatever was given to sol_mainloop_source_add() as second
+ * @return whatever was given to sol_mainloop_add_source() as second
  *         parameter. NULL is a valid return.
  *
- * @see sol_mainloop_source_add()
+ * @see sol_mainloop_add_source()
  *
  * @note MT-safe if compiled with threads support.
  */
@@ -911,7 +911,7 @@ struct sol_mainloop_implementation {
      * represent the source. It will be given to
      * sol_mainloop_source_del() in order to remove it.
      *
-     * This function will be called whenever sol_mainloop_source_add()
+     * This function will be called whenever sol_mainloop_add_source()
      * is called.
      *
      * Must not be NULL.
@@ -922,7 +922,7 @@ struct sol_mainloop_implementation {
      * Function to be called to remove mainloop event source.
      *
      * This function receives the handle returned by
-     * sol_mainloop_source_add() (and thus @c source_add), deleting
+     * sol_mainloop_add_source() (and thus @c source_add), deleting
      * it so it is not used anymore.
      *
      * This function will be called whenever sol_mainloop_source_del() is called.
@@ -973,7 +973,7 @@ const struct sol_mainloop_implementation *sol_mainloop_get_implementation(void);
  * Node.JS application. In this case we want to forward requests to
  * that mainloop and be as lean as possible.
  *
- * This is an alternative to sol_mainloop_source_add(), in that case
+ * This is an alternative to sol_mainloop_add_source(), in that case
  * Soletta would be the host and other main loops can be the guest,
  * see sol-glib-integration.h for one example.
  *
@@ -981,7 +981,7 @@ const struct sol_mainloop_implementation *sol_mainloop_get_implementation(void);
  *       sol_timeout_add(), sol_timeout_del(), sol_fd_add(),
  *       sol_fd_del(), sol_fd_set_flags(), sol_fd_get_flags(),
  *       sol_child_watch_add() and sol_child_watch_del(),
- *       sol_mainloop_source_add(), sol_mainloop_source_del() and
+ *       sol_mainloop_add_source(), sol_mainloop_source_del() and
  *       sol_mainloop_source_get_data() may be called from threads,
  *       then handle these as such.
  *
