@@ -142,7 +142,7 @@ parse_args(int argc, char *argv[])
         args.provide_sim_nodes = true;
     }
 
-    sol_args_set(argc - optind, &argv[optind]);
+    sol_set_args(argc - optind, &argv[optind]);
 
     return true;
 }
