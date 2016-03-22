@@ -599,7 +599,7 @@ sol_util_base16_decode(void *buf, size_t buflen, const struct sol_str_slice slic
 
     input = slice.data;
     output = buf;
-    a = decode_case == SOL_DECODE_UPERCASE ? 'A' : 'a';
+    a = decode_case == SOL_DECODE_UPPERCASE ? 'A' : 'a';
     f = a + 5;
     A = decode_case == SOL_DECODE_BOTH ? 'A' : a;
     F = A + 5;

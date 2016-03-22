@@ -414,7 +414,7 @@ test_base16_decode(void)
         if (i == 0)
             decode_case = SOL_DECODE_LOWERCASE;
         else if (i == 1)
-            decode_case = SOL_DECODE_UPERCASE;
+            decode_case = SOL_DECODE_UPPERCASE;
         else
             decode_case = SOL_DECODE_BOTH;
 
@@ -432,14 +432,14 @@ test_base16_decode(void)
 
         memset(outstr, 0xff, sizeof(outstr));
         r = sol_util_base16_decode(outstr, sizeof(outstr), slice, !i ?
-            SOL_DECODE_UPERCASE : SOL_DECODE_LOWERCASE);
+            SOL_DECODE_UPPERCASE : SOL_DECODE_LOWERCASE);
     }
 
     /* short sequence (not multiple of 2) */
     slice = sol_str_slice_from_str("1");
     memset(outstr, 0xff, sizeof(outstr));
     r = sol_util_base16_decode(outstr, sizeof(outstr), slice,
-        SOL_DECODE_UPERCASE);
+        SOL_DECODE_UPPERCASE);
     ASSERT_INT_EQ(r, -EINVAL);
 }
 
