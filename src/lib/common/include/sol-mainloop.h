@@ -544,7 +544,7 @@ struct sol_mainloop_source_type {
      * @brief Function to be called when the source is deleted.
      *
      * It is called when the source is explicitly deleted using
-     * sol_mainloop_source_del() or when sol_shutdown() is called.
+     * sol_mainloop_del_source() or when sol_shutdown() is called.
      *
      * May be NULL.
      */
@@ -602,7 +602,7 @@ struct sol_mainloop_source;
  *
  * @return the new main loop source instance or @c NULL on failure
  *
- * @see sol_mainloop_source_del()
+ * @see sol_mainloop_del_source()
  *
  * @note MT-safe if compiled with threads support.
  */
@@ -618,7 +618,7 @@ struct sol_mainloop_source *sol_mainloop_add_source(const struct sol_mainloop_so
  *
  * @note MT-safe if compiled with threads support.
  */
-void sol_mainloop_source_del(struct sol_mainloop_source *handle);
+void sol_mainloop_del_source(struct sol_mainloop_source *handle);
 
 /**
  * @brief Retrieve the user data (context) given to the source at creation time.
@@ -909,7 +909,7 @@ struct sol_mainloop_implementation {
      *
      * This function must return an internal handle that will
      * represent the source. It will be given to
-     * sol_mainloop_source_del() in order to remove it.
+     * sol_mainloop_del_source() in order to remove it.
      *
      * This function will be called whenever sol_mainloop_add_source()
      * is called.
@@ -925,7 +925,7 @@ struct sol_mainloop_implementation {
      * sol_mainloop_add_source() (and thus @c source_add), deleting
      * it so it is not used anymore.
      *
-     * This function will be called whenever sol_mainloop_source_del() is called.
+     * This function will be called whenever sol_mainloop_del_source() is called.
      *
      * Must not be NULL.
      */
@@ -981,7 +981,7 @@ const struct sol_mainloop_implementation *sol_mainloop_get_implementation(void);
  *       sol_timeout_add(), sol_timeout_del(), sol_fd_add(),
  *       sol_fd_del(), sol_fd_set_flags(), sol_fd_get_flags(),
  *       sol_child_watch_add() and sol_child_watch_del(),
- *       sol_mainloop_add_source(), sol_mainloop_source_del() and
+ *       sol_mainloop_add_source(), sol_mainloop_del_source() and
  *       sol_mainloop_source_get_data() may be called from threads,
  *       then handle these as such.
  *

@@ -377,7 +377,7 @@ sol_mainloop_add_source(const struct sol_mainloop_source_type *type, const void 
 }
 
 SOL_API void
-sol_mainloop_source_del(struct sol_mainloop_source *handle)
+sol_mainloop_del_source(struct sol_mainloop_source *handle)
 {
     SOL_NULL_CHECK(handle);
     mainloop_impl->source_del(handle);
