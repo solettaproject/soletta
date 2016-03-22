@@ -338,7 +338,7 @@ sol_bus_close(void)
 
         s = sol_mainloop_source_get_data(_ctx.mainloop_source);
         sd_event_unref(s->event);
-        sol_mainloop_source_del(_ctx.mainloop_source);
+        sol_mainloop_del_source(_ctx.mainloop_source);
         _ctx.mainloop_source = NULL;
     }
 }
