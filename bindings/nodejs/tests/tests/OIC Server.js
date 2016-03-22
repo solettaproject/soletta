@@ -22,10 +22,7 @@ var testUtils = require( "../assert-to-console" );
 var theResource;
 var anError = {};
 
-console.log( JSON.stringify( { assertionCount: 4 } ) );
-
-testUtils.assert( "strictEqual", soletta.sol_oic_server_init(), 0,
-	"sol_oic_server_init() is successful" );
+console.log( JSON.stringify( { assertionCount: 3 } ) );
 
 theResource = soletta.sol_oic_server_add_resource( {
 		path: "/a/" + process.argv[ 2 ],

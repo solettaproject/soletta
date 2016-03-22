@@ -30,8 +30,6 @@ var theInterval;
 
 console.log( JSON.stringify( { assertionCount: 0 } ) );
 
-soletta.sol_oic_server_init();
-
 theResource = soletta.sol_oic_server_add_resource( _.extend( {
 		interface: "oic.if.baseline",
 		resource_type: "core.light",
