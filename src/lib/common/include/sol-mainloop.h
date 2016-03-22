@@ -454,7 +454,7 @@ bool sol_child_watch_del(struct sol_child_watch *handle);
  */
 #ifndef SOL_SET_API_VERSION
 /* keep doxygen happy */
-#define SOL_SET_API_VERSION(x)
+#define SOL_SET_API_VERSION(expression)
 #undef SOL_SET_API_VERSION
 #endif
 
