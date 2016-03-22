@@ -217,7 +217,7 @@ int sol_drange_add(const struct sol_drange *var0, const struct sol_drange *var1,
  *
  * @return @c 0 on success, error code (always negative) otherwise.
  */
-int sol_drange_division(const struct sol_drange *var0, const struct sol_drange *var1, struct sol_drange *result);
+int sol_drange_div(const struct sol_drange *var0, const struct sol_drange *var1, struct sol_drange *result);
 
 /**
  * @brief Calculates the module of the double range @c var0 by @c var1
@@ -357,7 +357,7 @@ int sol_irange_add(const struct sol_irange *var0, const struct sol_irange *var1,
  *
  * @return @c 0 on success, error code (always negative) otherwise.
  */
-int sol_irange_division(const struct sol_irange *var0, const struct sol_irange *var1, struct sol_irange *result);
+int sol_irange_div(const struct sol_irange *var0, const struct sol_irange *var1, struct sol_irange *result);
 
 /**
  * @brief Calculates the module of the integer range @c var0 by @c var1

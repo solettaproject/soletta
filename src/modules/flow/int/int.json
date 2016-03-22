@@ -246,7 +246,7 @@
         ],
         "data_type": "struct irange_arithmetic_node_type",
         "extra_methods": {
-          "func": "sol_irange_division"
+          "func": "sol_irange_div"
         }
       },
       "out_ports": [
