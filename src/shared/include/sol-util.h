@@ -551,7 +551,7 @@ ssize_t sol_util_base16_encode(void *buf, size_t buflen, const struct sol_str_sl
  *        slice.len / 2.
  * @param slice the slice to decode, it must be a set of 0-9 or
  *        letters A-F (if uppercase) or a-f, otherwise decode fails.
- * @param decode_case if SOL_DECODE_UPERCASE, uppercase letters ABCDEF are
+ * @param decode_case if SOL_DECODE_UPPERCASE, uppercase letters ABCDEF are
  *        used, if SOL_DECODE_LOWERCASE, lowercase abcdef are used instead.
  *        If SOL_DECODE_BOTH both, lowercase and uppercase, letters can be
  *        used.
