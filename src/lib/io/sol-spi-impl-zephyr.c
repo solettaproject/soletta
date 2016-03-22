@@ -26,8 +26,6 @@
 #include "sol-log-internal.h"
 SOL_LOG_INTERNAL_DECLARE_STATIC(_log_domain, "spi");
 
-#include "sol-io-common-zephyr.h"
-
 #include "sol-macros.h"
 #include "sol-mainloop.h"
 #include "sol-spi.h"
@@ -209,8 +207,8 @@ spi_read_timeout_cb(void *data)
     ret = spi_transceive(spi->dev, (uint8_t *)spi->transfer.tx,
         spi->transfer.tx ? spi->transfer.count : 0, spi->transfer.rx,
         spi->transfer.rx ? spi->transfer.count : 0);
-    if (ret != DEV_OK)
-        spi->transfer.status = zephyr_err_to_errno(ret);
+    if (ret < 0)
+        spi->transfer.status = ret;
     else
         spi->transfer.status = spi->transfer.count;
 

@@ -30,8 +30,6 @@
 #include "sol-log-internal.h"
 SOL_LOG_INTERNAL_DECLARE_STATIC(_log_domain, "aio");
 
-#include "sol-io-common-zephyr.h"
-
 #include "sol-aio.h"
 #include "sol-mainloop.h"
 #include "sol-vector.h"
@@ -140,11 +138,8 @@ static bool
 aio_read_timeout_cb(void *data)
 {
     struct sol_aio *aio = data;
-    int ret;
 
-    ret = adc_read(aio->dev, &aio->table);
-    if (ret != DEV_OK)
-        aio->async.value = zephyr_err_to_errno(ret);
+    aio->async.value = adc_read(aio->dev, &aio->table);
 
     aio->async.timeout = NULL;
     aio_read_dispatch(aio);
