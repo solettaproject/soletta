@@ -1507,7 +1507,7 @@ double_to_buffer(double val,
         SOL_INT_CHECK(r, < 0, r);
         t = DTST_NAN;
     } else if (fpclassify(val) == FP_INFINITE) {
-        if (sol_drange_val_equal(copysign(1., val), 1.)) {
+        if (sol_util_double_equal(copysign(1., val), 1.)) {
             static struct sol_str_slice slice = SOL_STR_SLICE_LITERAL("nan");
             r = sol_buffer_append_slice(out, slice);
             SOL_INT_CHECK(r, < 0, r);

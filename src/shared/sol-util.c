@@ -1042,3 +1042,24 @@ err_exit:
     sol_buffer_fini(buf);
     return r;
 }
+
+SOL_API bool
+sol_util_double_equal(double var0, double var1)
+{
+    double abs_var0, abs_var1, diff;
+
+    diff = fabs(var0 - var1);
+
+    /* when a or b are close to zero relative error isn't meaningful -
+     * it handles subnormal case */
+    if (fpclassify(var0) == FP_ZERO || fpclassify(var1) == FP_ZERO ||
+        isless(diff, DBL_MIN)) {
+        return isless(diff, (DBL_EPSILON * DBL_MIN));
+    }
+
+    /* use relative error for other cases */
+    abs_var0 = fabs(var0);
+    abs_var1 = fabs(var1);
+
+    return isless(diff / fmin((abs_var0 + abs_var1), DBL_MAX), DBL_EPSILON);
+}

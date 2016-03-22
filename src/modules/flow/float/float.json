@@ -485,7 +485,7 @@
         ],
         "data_type": "struct drange_comparison_node_type",
         "extra_methods": {
-          "func": "sol_drange_val_equal"
+          "func": "sol_util_double_equal"
         }
       },
       "out_ports": [

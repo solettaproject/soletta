@@ -20,7 +20,7 @@
 #include "sol-json.h"
 #include "sol-util-internal.h"
 #include "sol-log.h"
-#include "sol-types.h"
+#include "sol-util.h"
 #include <float.h>
 
 #define TOKENS (const enum sol_json_type[])
@@ -527,7 +527,7 @@ test_json_token_get_double(void)
         token.end = buf + strlen(itr->str);
         retval = sol_json_token_get_double(&token, &value);
         if (itr->expected_return == 0 && retval == 0) {
-            if (sol_drange_val_equal(itr->reference, value)) {
+            if (sol_util_double_equal(itr->reference, value)) {
                 SOL_DBG("OK: parsed '%s' as %g", itr->str, value);
             } else {
                 SOL_WRN("FAILED: parsed '%s' as %.64g where %.64g was expected"
@@ -554,7 +554,7 @@ test_json_token_get_double(void)
                     itr->expected_return, sol_util_strerrora(-itr->expected_return),
                     retval, sol_util_strerrora(-retval), value);
                 FAIL();
-            } else if (!sol_drange_val_equal(itr->reference, value)) {
+            } else if (!sol_util_double_equal(itr->reference, value)) {
                 SOL_WRN("FAILED: parsing '%s' should result in %.64g"
                     ", but got %.64g (difference = %g)",
                     itr->str, itr->reference, value, itr->reference - value);
