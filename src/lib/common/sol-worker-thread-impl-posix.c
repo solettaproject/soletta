@@ -25,7 +25,7 @@
 #include "sol-worker-thread-impl.h"
 
 struct sol_worker_thread_posix {
-    struct sol_worker_thread_spec spec;
+    struct sol_worker_thread_config config;
     struct sol_idle *idler;
     pthread_mutex_t lock;
     pthread_t thread;
@@ -82,8 +82,8 @@ sol_worker_thread_finished(void *data)
 
     SOL_DBG("worker thread %p finished", thread);
 
-    if (thread->spec.finished)
-        thread->spec.finished((void *)thread->spec.data);
+    if (thread->config.finished)
+        thread->config.finished((void *)thread->config.data);
 
     free(thread);
     return false;
@@ -93,22 +93,22 @@ static void *
 sol_worker_thread_do(void *data)
 {
     struct sol_worker_thread_posix *thread = data;
-    struct sol_worker_thread_spec *spec = &thread->spec;
+    struct sol_worker_thread_config *config = &thread->config;
 
     SOL_DBG("worker thread %p started", thread);
 
-    if (spec->setup) {
-        if (!spec->setup((void *)spec->data))
+    if (config->setup) {
+        if (!config->setup((void *)config->data))
             goto end;
     }
 
     while (!sol_worker_thread_impl_cancel_check(thread)) {
-        if (!spec->iterate((void *)spec->data))
+        if (!config->iterate((void *)config->data))
             break;
     }
 
-    if (spec->cleanup)
-        spec->cleanup((void *)spec->data);
+    if (config->cleanup)
+        config->cleanup((void *)config->data);
 
 end:
     if (sol_worker_thread_lock(thread)) {
@@ -127,7 +127,7 @@ extern void sol_mainloop_posix_signals_block(void);
 extern void sol_mainloop_posix_signals_unblock(void);
 
 void *
-sol_worker_thread_impl_new(const struct sol_worker_thread_spec *spec)
+sol_worker_thread_impl_new(const struct sol_worker_thread_config *config)
 {
     pthread_mutexattr_t attrs;
     struct sol_worker_thread_posix *thread;
@@ -136,7 +136,7 @@ sol_worker_thread_impl_new(const struct sol_worker_thread_spec *spec)
     thread = calloc(1, sizeof(*thread));
     SOL_NULL_CHECK(thread, NULL);
 
-    thread->spec = *spec;
+    thread->config = *config;
 
     r = pthread_mutexattr_init(&attrs);
     SOL_INT_CHECK_GOTO(r, != 0, error_mutex);
@@ -185,8 +185,8 @@ sol_worker_thread_impl_cancel(void *handle)
 
     cancel_set(thread);
 
-    if (thread->spec.cancel)
-        thread->spec.cancel((void *)thread->spec.data);
+    if (thread->config.cancel)
+        thread->config.cancel((void *)thread->config.data);
 
     pthread_join(thread->thread, NULL);
     thread->thread = 0;
@@ -206,7 +206,7 @@ sol_worker_thread_feedback_dispatch(void *data)
         sol_worker_thread_unlock(thread);
     }
 
-    thread->spec.feedback((void *)thread->spec.data);
+    thread->config.feedback((void *)thread->config.data);
     return false;
 }
 
@@ -216,7 +216,7 @@ sol_worker_thread_impl_feedback(void *handle)
     struct sol_worker_thread_posix *thread = handle;
 
     SOL_NULL_CHECK(thread);
-    SOL_NULL_CHECK(thread->spec.feedback);
+    SOL_NULL_CHECK(thread->config.feedback);
 
     if (sol_worker_thread_impl_cancel_check(thread)) {
         SOL_WRN("worker thread %p is not running.", thread);
