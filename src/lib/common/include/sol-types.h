@@ -246,7 +246,7 @@ int sol_drange_mod(const struct sol_drange *var0, const struct sol_drange *var1,
  *
  * @return @c 0 on success, error code (always negative) otherwise.
  */
-int sol_drange_multiplication(const struct sol_drange *var0, const struct sol_drange *var1, struct sol_drange *result);
+int sol_drange_mul(const struct sol_drange *var0, const struct sol_drange *var1, struct sol_drange *result);
 
 /**
  * @brief Subtracts the double range @c var1 from @c var0 and stores the result in @c result.
@@ -386,7 +386,7 @@ int sol_irange_mod(const struct sol_irange *var0, const struct sol_irange *var1,
  *
  * @return @c 0 on success, error code (always negative) otherwise.
  */
-int sol_irange_multiplication(const struct sol_irange *var0, const struct sol_irange *var1, struct sol_irange *result);
+int sol_irange_mul(const struct sol_irange *var0, const struct sol_irange *var1, struct sol_irange *result);
 
 /**
  * @brief Subtracts the integer range @c var1 from @c var0 and stores the result in @c result.
