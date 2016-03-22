@@ -29,14 +29,6 @@
 
 using namespace v8;
 
-NAN_METHOD(bind_sol_oic_server_init) {
-    info.GetReturnValue().Set(Nan::New(sol_oic_server_init()));
-}
-
-NAN_METHOD(bind_sol_oic_server_shutdown) {
-    sol_oic_server_shutdown();
-}
-
 class SolOicServerResource : public JSHandle<SolOicServerResource> {
 public:
     static const char *jsClassName() { return "SolOicServerResource"; }
