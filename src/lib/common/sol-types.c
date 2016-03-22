@@ -109,36 +109,15 @@ sol_drange_subtraction(const struct sol_drange *var0, const struct sol_drange *v
 }
 
 SOL_API bool
-sol_drange_val_equal(double var0, double var1)
-{
-    double abs_var0, abs_var1, diff;
-
-    diff = fabs(var0 - var1);
-
-    /* when a or b are close to zero relative error isn't meaningful -
-     * it handles subnormal case */
-    if (fpclassify(var0) == FP_ZERO || fpclassify(var1) == FP_ZERO ||
-        isless(diff, DBL_MIN)) {
-        return isless(diff, (DBL_EPSILON * DBL_MIN));
-    }
-
-    /* use relative error for other cases */
-    abs_var0 = fabs(var0);
-    abs_var1 = fabs(var1);
-
-    return isless(diff / fmin((abs_var0 + abs_var1), DBL_MAX), DBL_EPSILON);
-}
-
-SOL_API bool
 sol_drange_equal(const struct sol_drange *var0, const struct sol_drange *var1)
 {
     SOL_NULL_CHECK(var0, false);
     SOL_NULL_CHECK(var1, false);
 
-    if (sol_drange_val_equal(var0->val, var1->val) &&
-        sol_drange_val_equal(var0->min, var1->min) &&
-        sol_drange_val_equal(var0->max, var1->max) &&
-        sol_drange_val_equal(var0->step, var1->step))
+    if (sol_util_double_equal(var0->val, var1->val) &&
+        sol_util_double_equal(var0->min, var1->min) &&
+        sol_util_double_equal(var0->max, var1->max) &&
+        sol_util_double_equal(var0->step, var1->step))
         return true;
 
     return false;

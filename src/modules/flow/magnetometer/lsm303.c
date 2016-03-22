@@ -62,31 +62,31 @@ timer_sched(struct magnetometer_lsm303_data *mdata, uint32_t timeout_ms, bool (*
 static bool
 _get_range_bits_and_gain(double range, uint8_t *range_bit, uint16_t *gain_xy, uint16_t *gain_z)
 {
-    if (sol_drange_val_equal(range, 1.3)) {
+    if (sol_util_double_equal(range, 1.3)) {
         *range_bit = 0x01;
         *gain_xy = 1100;
         *gain_z = 980;
-    } else if (sol_drange_val_equal(range, 1.9)) {
+    } else if (sol_util_double_equal(range, 1.9)) {
         *range_bit = 0x02;
         *gain_xy = 855;
         *gain_z = 760;
-    } else if (sol_drange_val_equal(range, 2.5)) {
+    } else if (sol_util_double_equal(range, 2.5)) {
         *range_bit = 0x03;
         *gain_xy = 670;
         *gain_z = 600;
-    } else if (sol_drange_val_equal(range, 4.0)) {
+    } else if (sol_util_double_equal(range, 4.0)) {
         *range_bit = 0x04;
         *gain_xy = 450;
         *gain_z = 400;
-    } else if (sol_drange_val_equal(range, 4.5)) {
+    } else if (sol_util_double_equal(range, 4.5)) {
         *range_bit = 0x05;
         *gain_xy = 400;
         *gain_z = 355;
-    } else if (sol_drange_val_equal(range, 5.6)) {
+    } else if (sol_util_double_equal(range, 5.6)) {
         *range_bit = 0x06;
         *gain_xy = 330;
         *gain_z = 295;
-    } else if (sol_drange_val_equal(range, 8.1)) {
+    } else if (sol_util_double_equal(range, 8.1)) {
         *range_bit = 0x07;
         *gain_xy = 230;
         *gain_z = 205;

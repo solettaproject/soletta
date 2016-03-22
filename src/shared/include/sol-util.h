@@ -1026,6 +1026,19 @@ sol_util_le64_to_cpu(uint64_t val)
 int sol_util_unescape_quotes(const struct sol_str_slice slice, struct sol_buffer *buf);
 
 /**
+ * @brief Checks @c var0 and @c var1 for equality.
+ *
+ * It uses relative comparison to account for impressions caused by floating point arithmetics,
+ * so give preference to use this function instead of comparing the numbers directly.
+ *
+ * @param var0 First argument
+ * @param var1 Second argument
+ *
+ * @return @c true if both values are equal, @c false otherwise.
+ */
+bool sol_util_double_equal(double var0, double var1);
+
+/**
  * @}
  */
 

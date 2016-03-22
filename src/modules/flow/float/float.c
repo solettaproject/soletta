@@ -478,7 +478,7 @@ drange_val_greater_or_equal(double var0, double var1)
 static bool
 drange_val_not_equal(double var0, double var1)
 {
-    return !sol_drange_val_equal(var0, var1);
+    return !sol_util_double_equal(var0, var1);
 }
 
 static int
@@ -609,11 +609,11 @@ direction_check(struct drange_wave_generator_trapezoidal_data *mdata,
     struct sol_drange *v = &mdata->t_state.val;
     struct t_state *t_state = &mdata->t_state;
 
-    if (sol_drange_val_equal(v->val, v->max)) {
+    if (sol_util_double_equal(v->val, v->max)) {
         if (reset_max_cnt)
             t_state->max_tick_cnt = mdata->ticks_at_max;
         direction_switch(mdata, true);
-    } else if (sol_drange_val_equal(v->val, v->min)) {
+    } else if (sol_util_double_equal(v->val, v->min)) {
         if (reset_min_cnt)
             t_state->min_tick_cnt = mdata->ticks_at_min;
         direction_switch(mdata, false);

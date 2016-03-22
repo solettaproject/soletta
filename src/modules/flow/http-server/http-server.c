@@ -98,7 +98,7 @@ static struct sol_ptr_vector servers = SOL_PTR_VECTOR_INIT;
         if ((fpclassify(mdata->value.field_) == FP_ZERO) && (errno != 0)) { \
             return -errno; \
         } \
-        if (!sol_drange_val_equal(mdata->value.field_, d)) { \
+        if (!sol_util_double_equal(mdata->value.field_, d)) { \
             mdata->value.field_ = d; \
             ret_ = 1; \
         } \

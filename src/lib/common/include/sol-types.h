@@ -262,18 +262,6 @@ int sol_drange_multiplication(const struct sol_drange *var0, const struct sol_dr
  */
 int sol_drange_subtraction(const struct sol_drange *var0, const struct sol_drange *var1, struct sol_drange *result);
 
-/**
- * @brief Checks @c var0 and @c var1 for equality.
- *
- * It uses relative comparison to account for impressions caused by floating point arithmetics,
- * so give preference to use this function instead of comparing the numbers directly.
- *
- * @param var0 First argument
- * @param var1 Second argument
- *
- * @return @c true if both values are equal, @c false otherwise.
- */
-bool sol_drange_val_equal(double var0, double var1);
 
 /**
  * @brief Checks the double ranges @c var0 and @c var1 for equality.

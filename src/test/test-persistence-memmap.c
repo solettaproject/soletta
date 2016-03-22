@@ -232,7 +232,7 @@ read_one(void)
 
     r = sol_memmap_read_double("double_only_val", &d);
     ASSERT_INT_EQ(r, 0);
-    ASSERT(sol_drange_val_equal(d, 97.36));
+    ASSERT(sol_util_double_equal(d, 97.36));
 
     r = sol_memmap_read_string("string", &string);
     ASSERT_INT_EQ(r, 0);
@@ -261,7 +261,7 @@ read_one(void)
 
     r = sol_memmap_read_double("double_only_val2", &d);
     ASSERT_INT_EQ(r, 0);
-    ASSERT(sol_drange_val_equal(d, 97.36));
+    ASSERT(sol_util_double_equal(d, 97.36));
 
     r = sol_memmap_read_string("string2", &string);
     ASSERT_INT_EQ(r, 0);
@@ -350,7 +350,7 @@ read_two(void)
 
     r = sol_memmap_read_double("double_only_val", &d);
     ASSERT_INT_EQ(r, 0);
-    ASSERT(sol_drange_val_equal(d, 107.36));
+    ASSERT(sol_util_double_equal(d, 107.36));
 
     r = sol_memmap_read_string("string", &string);
     ASSERT_INT_EQ(r, 0);
@@ -379,7 +379,7 @@ read_two(void)
 
     r = sol_memmap_read_double("double_only_val2", &d);
     ASSERT_INT_EQ(r, 0);
-    ASSERT(sol_drange_val_equal(d, 107.36));
+    ASSERT(sol_util_double_equal(d, 107.36));
 
     r = sol_memmap_read_string("string2", &string);
     ASSERT_INT_EQ(r, 0);
