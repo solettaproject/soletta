@@ -1001,14 +1001,14 @@ bool sol_mainloop_set_implementation(const struct sol_mainloop_implementation *i
 /**
  * @brief Gets the argument count the application was launched with, if any.
  *
- * @return The @c argc value as set by sol_args_set() or #SOL_MAIN()
+ * @return The @c argc value as set by sol_set_args() or #SOL_MAIN()
  */
 int sol_argc(void);
 
 /**
  * @brief Gets the list of arguments the application was launched with, if any.
  *
- * @return The @c argv value as set by sol_args_set() or #SOL_MAIN()
+ * @return The @c argv value as set by sol_set_args() or #SOL_MAIN()
  */
 char **sol_argv(void);
 
@@ -1016,7 +1016,7 @@ char **sol_argv(void);
  * @brief Sets a new list of arguments and its count.
  *
  * A reference to the @a argv pointer will be kept, so it must be valid at least
- * until sol_args_set() is called again to set different arguments.
+ * until sol_set_args() is called again to set different arguments.
  * This function is useful in cases where the main application may have
  * arguments to handle and others that need to be passed forward to other
  * sub-systems. For example, the flow systems has node types to retrieve the
@@ -1028,7 +1028,7 @@ char **sol_argv(void);
  * @param argc The count of elements in @a argv
  * @param argv Array of nul terminated strings, each represents one argument
  */
-void sol_args_set(int argc, char *argv[]);
+void sol_set_args(int argc, char *argv[]);
 
 /**
  * @brief Structure used to keep the application main callbacks.

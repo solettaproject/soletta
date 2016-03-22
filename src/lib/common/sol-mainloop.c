@@ -455,7 +455,7 @@ sol_argv(void)
 }
 
 SOL_API void
-sol_args_set(int argc, char *argv[])
+sol_set_args(int argc, char *argv[])
 {
     _argc = argc;
     _argv = argv;
