@@ -218,8 +218,8 @@ sol_aio_get_value(struct sol_aio *aio,
     const void *cb_data)
 {
 #ifdef WORKER_THREAD
-    struct sol_worker_thread_spec spec = {
-        SOL_SET_API_VERSION(.api_version = SOL_WORKER_THREAD_SPEC_API_VERSION, )
+    struct sol_worker_thread_config config = {
+        SOL_SET_API_VERSION(.api_version = SOL_WORKER_THREAD_CONFIG_API_VERSION, )
         .setup = NULL,
         .cleanup = NULL,
         .iterate = aio_get_value_worker_thread_iterate,
@@ -239,7 +239,7 @@ sol_aio_get_value(struct sol_aio *aio,
     aio->async.cb_data = cb_data;
 
 #ifdef WORKER_THREAD
-    aio->async.worker = sol_worker_thread_new(&spec);
+    aio->async.worker = sol_worker_thread_new(&config);
     SOL_NULL_CHECK(aio->async.worker, NULL);
 
     return (struct sol_aio_pending *)aio->async.worker;
