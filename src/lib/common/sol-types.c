@@ -94,7 +94,7 @@ sol_drange_mul(const struct sol_drange *var0, const struct sol_drange *var1, str
 }
 
 SOL_API int
-sol_drange_subtraction(const struct sol_drange *var0, const struct sol_drange *var1, struct sol_drange *result)
+sol_drange_sub(const struct sol_drange *var0, const struct sol_drange *var1, struct sol_drange *result)
 {
     SOL_NULL_CHECK(var0, -EINVAL);
     SOL_NULL_CHECK(var1, -EINVAL);
@@ -146,10 +146,10 @@ sol_drange_compose(const struct sol_drange_spec *spec, double value, struct sol_
 #define SOL_IRANGE_ADD_UNDERFLOW(var0, var1) \
     ((var1 < 0) && (var0 < INT32_MIN - var1))
 
-#define SOL_IRANGE_SUBTRACTION_OVERFLOW(var0, var1) \
+#define SOL_IRANGE_SUB_OVERFLOW(var0, var1) \
     ((var1 < 0) && (var0 > INT32_MAX + var1))
 
-#define SOL_IRANGE_SUBTRACTION_UNDERFLOW(var0, var1) \
+#define SOL_IRANGE_SUB_UNDERFLOW(var0, var1) \
     ((var1 > 0) && (var0 < INT32_MIN + var1))
 
 #define SOL_IRANGE_MUL_OVERFLOW(var0, var1) \
@@ -259,12 +259,12 @@ sol_irange_mod(const struct sol_irange *var0, const struct sol_irange *var1, str
 
     result->step = 1;
 
-    if (SOL_IRANGE_SUBTRACTION_UNDERFLOW(var1->min, 1))
+    if (SOL_IRANGE_SUB_UNDERFLOW(var1->min, 1))
         result->min = INT32_MIN;
     else
         result->min = var1->min - 1;
 
-    if (SOL_IRANGE_SUBTRACTION_UNDERFLOW(var1->max, 1))
+    if (SOL_IRANGE_SUB_UNDERFLOW(var1->max, 1))
         result->max = INT32_MIN;
     else
         result->max = var1->max - 1;
@@ -308,16 +308,16 @@ sol_irange_mul(const struct sol_irange *var0, const struct sol_irange *var1, str
 }
 
 SOL_API int
-sol_irange_subtraction(const struct sol_irange *var0, const struct sol_irange *var1, struct sol_irange *result)
+sol_irange_sub(const struct sol_irange *var0, const struct sol_irange *var1, struct sol_irange *result)
 {
     SOL_NULL_CHECK(var0, -EINVAL);
     SOL_NULL_CHECK(var1, -EINVAL);
     SOL_NULL_CHECK(result, -EINVAL);
 
-    if (SOL_IRANGE_SUBTRACTION_OVERFLOW(var0->val, var1->val)) {
+    if (SOL_IRANGE_SUB_OVERFLOW(var0->val, var1->val)) {
         SOL_WRN("Subtraction overflow: %" PRId32 ", %" PRId32, var0->val, var1->val);
         return -EOVERFLOW;
-    } else if (SOL_IRANGE_SUBTRACTION_UNDERFLOW(var0->val, var1->val)) {
+    } else if (SOL_IRANGE_SUB_UNDERFLOW(var0->val, var1->val)) {
         SOL_WRN("Subtraction underflow: %" PRId32 ", %" PRId32, var0->val, var1->val);
         return -EOVERFLOW;
     } else
@@ -325,16 +325,16 @@ sol_irange_subtraction(const struct sol_irange *var0, const struct sol_irange *v
 
     result->step = 1;
 
-    if (SOL_IRANGE_SUBTRACTION_OVERFLOW(var0->min, var1->min))
+    if (SOL_IRANGE_SUB_OVERFLOW(var0->min, var1->min))
         result->min = INT32_MAX;
-    else if (SOL_IRANGE_SUBTRACTION_UNDERFLOW(var0->min, var1->min))
+    else if (SOL_IRANGE_SUB_UNDERFLOW(var0->min, var1->min))
         result->min = INT32_MIN;
     else
         result->min = var0->min - var1->min;
 
-    if (SOL_IRANGE_SUBTRACTION_OVERFLOW(var0->max, var1->max))
+    if (SOL_IRANGE_SUB_OVERFLOW(var0->max, var1->max))
         result->max = INT32_MAX;
-    else if (SOL_IRANGE_SUBTRACTION_UNDERFLOW(var0->max, var1->max))
+    else if (SOL_IRANGE_SUB_UNDERFLOW(var0->max, var1->max))
         result->max = INT32_MIN;
     else
         result->max = var0->max - var1->max;
@@ -406,7 +406,7 @@ sol_rgb_set_max(struct sol_rgb *color, uint32_t max_value)
 
 #undef SOL_IRANGE_ADD_OVERFLOW
 #undef SOL_IRANGE_ADD_UNDERFLOW
-#undef SOL_IRANGE_SUBTRACTION_OVERFLOW
-#undef SOL_IRANGE_SUBTRACTION_UNDERFLOW
+#undef SOL_IRANGE_SUB_OVERFLOW
+#undef SOL_IRANGE_SUB_UNDERFLOW
 #undef SOL_IRANGE_MUL_OVERFLOW
 #undef SOL_IRANGE_MUL_UNDERFLOW
