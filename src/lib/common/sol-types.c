@@ -79,7 +79,7 @@ sol_drange_mod(const struct sol_drange *var0, const struct sol_drange *var1, str
 }
 
 SOL_API int
-sol_drange_multiplication(const struct sol_drange *var0, const struct sol_drange *var1, struct sol_drange *result)
+sol_drange_mul(const struct sol_drange *var0, const struct sol_drange *var1, struct sol_drange *result)
 {
     SOL_NULL_CHECK(var0, -EINVAL);
     SOL_NULL_CHECK(var1, -EINVAL);
@@ -152,12 +152,12 @@ sol_drange_compose(const struct sol_drange_spec *spec, double value, struct sol_
 #define SOL_IRANGE_SUBTRACTION_UNDERFLOW(var0, var1) \
     ((var1 > 0) && (var0 < INT32_MIN + var1))
 
-#define SOL_IRANGE_MULTIPLICATION_OVERFLOW(var0, var1) \
+#define SOL_IRANGE_MUL_OVERFLOW(var0, var1) \
     ((var0 == INT32_MAX) && (var1 == -1)) || \
     ((var0 > 0) && (var1 > 0) && (var0 > INT32_MAX / var1)) || \
     ((var0 < 0) && (var1 < 0) && (var0 < INT32_MAX / var1))
 
-#define SOL_IRANGE_MULTIPLICATION_UNDERFLOW(var0, var1) \
+#define SOL_IRANGE_MUL_UNDERFLOW(var0, var1) \
     ((var0 > 0) && (var1 < -1) && (var0 > INT32_MIN / var1)) || \
     ((var0 < 0) && (var1 > 0) && (var0 < INT32_MIN / var1))
 
@@ -273,7 +273,7 @@ sol_irange_mod(const struct sol_irange *var0, const struct sol_irange *var1, str
 }
 
 SOL_API int
-sol_irange_multiplication(const struct sol_irange *var0, const struct sol_irange *var1, struct sol_irange *result)
+sol_irange_mul(const struct sol_irange *var0, const struct sol_irange *var1, struct sol_irange *result)
 {
     SOL_NULL_CHECK(var0, -EINVAL);
     SOL_NULL_CHECK(var1, -EINVAL);
@@ -281,25 +281,25 @@ sol_irange_multiplication(const struct sol_irange *var0, const struct sol_irange
 
     result->step = 1;
 
-    if (SOL_IRANGE_MULTIPLICATION_OVERFLOW(var0->val, var1->val)) {
+    if (SOL_IRANGE_MUL_OVERFLOW(var0->val, var1->val)) {
         SOL_WRN("Multiplication overflow: %" PRId32 ", %" PRId32, var0->val, var1->val);
         return -EOVERFLOW;
-    } else if (SOL_IRANGE_MULTIPLICATION_UNDERFLOW(var0->val, var1->val)) {
+    } else if (SOL_IRANGE_MUL_UNDERFLOW(var0->val, var1->val)) {
         SOL_WRN("Multiplication underflow: %" PRId32 ", %" PRId32, var0->val, var1->val);
         return -EOVERFLOW;
     } else
         result->val = var0->val * var1->val;
 
-    if (SOL_IRANGE_MULTIPLICATION_OVERFLOW(var0->min, var1->min))
+    if (SOL_IRANGE_MUL_OVERFLOW(var0->min, var1->min))
         result->min = INT32_MAX;
-    else if (SOL_IRANGE_MULTIPLICATION_UNDERFLOW(var0->min, var1->min))
+    else if (SOL_IRANGE_MUL_UNDERFLOW(var0->min, var1->min))
         result->min = INT32_MIN;
     else
         result->min = var0->min * var1->min;
 
-    if (SOL_IRANGE_MULTIPLICATION_OVERFLOW(var0->max, var1->max))
+    if (SOL_IRANGE_MUL_OVERFLOW(var0->max, var1->max))
         result->max = INT32_MAX;
-    else if (SOL_IRANGE_MULTIPLICATION_UNDERFLOW(var0->max, var1->max))
+    else if (SOL_IRANGE_MUL_UNDERFLOW(var0->max, var1->max))
         result->max = INT32_MIN;
     else
         result->max = var0->max * var1->max;
@@ -408,5 +408,5 @@ sol_rgb_set_max(struct sol_rgb *color, uint32_t max_value)
 #undef SOL_IRANGE_ADD_UNDERFLOW
 #undef SOL_IRANGE_SUBTRACTION_OVERFLOW
 #undef SOL_IRANGE_SUBTRACTION_UNDERFLOW
-#undef SOL_IRANGE_MULTIPLICATION_OVERFLOW
-#undef SOL_IRANGE_MULTIPLICATION_UNDERFLOW
+#undef SOL_IRANGE_MUL_OVERFLOW
+#undef SOL_IRANGE_MUL_UNDERFLOW

@@ -321,7 +321,7 @@
         ],
         "data_type": "struct irange_arithmetic_node_type",
         "extra_methods": {
-          "func": "sol_irange_multiplication"
+          "func": "sol_irange_mul"
         }
       },
       "out_ports": [
