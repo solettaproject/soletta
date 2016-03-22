@@ -171,7 +171,7 @@ void sol_worker_thread_cancel(struct sol_worker_thread *thread);
  *
  * @see sol_worker_thread_cancel()
  */
-bool sol_worker_thread_cancel_check(const struct sol_worker_thread *thread);
+bool sol_worker_thread_is_cancelled(const struct sol_worker_thread *thread);
 
 /**
  * Schedule feedback from the worker to the main thread.

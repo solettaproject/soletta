@@ -586,7 +586,7 @@ _sol_message_digest_thread_iterate(void *data)
         return false;
 
     current = _sol_message_digest_peek_first_pending_blob(handle);
-    while (current && !sol_worker_thread_cancel_check(handle->thread)) {
+    while (current && !sol_worker_thread_is_cancelled(handle->thread)) {
         struct sol_blob *blob;
 
         _sol_message_digest_feed_blob(handle);
@@ -596,7 +596,7 @@ _sol_message_digest_thread_iterate(void *data)
             break;
     }
 
-    while (handle->digest && !sol_worker_thread_cancel_check(handle->thread))
+    while (handle->digest && !sol_worker_thread_is_cancelled(handle->thread))
         _sol_message_digest_receive_digest(handle);
 
     return true;
