@@ -894,7 +894,7 @@ int sol_buffer_ensure_nul_byte(struct sol_buffer *buf);
  * @note the buffer keeps its capacity after this function, it means,
  * the data is not released. If that is wanted, one should call @ref sol_buffer_trim
  */
-int sol_buffer_remove_data(struct sol_buffer *buf, size_t size, size_t offset);
+int sol_buffer_remove_data(struct sol_buffer *buf, size_t offset, size_t size);
 
 /**
  * @}
