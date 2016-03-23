@@ -133,9 +133,9 @@ session_from_linkaddr(const struct sol_network_link_addr *addr,
 static void
 clear_queue_item(struct queue_item *item)
 {
-    sol_util_secure_clear_memory(item->buffer.data, item->buffer.capacity);
+    sol_util_clear_memory_secure(item->buffer.data, item->buffer.capacity);
     sol_buffer_fini(&item->buffer);
-    sol_util_secure_clear_memory(item, sizeof(*item));
+    sol_util_clear_memory_secure(item, sizeof(*item));
 }
 
 static void
@@ -154,7 +154,7 @@ static void
 free_queue(struct sol_vector *vec)
 {
     clear_queue(vec);
-    sol_util_secure_clear_memory(vec, sizeof(*vec));
+    sol_util_clear_memory_secure(vec, sizeof(*vec));
 }
 
 static void
@@ -172,7 +172,7 @@ sol_socket_dtls_del(struct sol_socket *socket)
 
     sol_socket_del(s->wrapped);
 
-    sol_util_secure_clear_memory(s, sizeof(*s));
+    sol_util_clear_memory_secure(s, sizeof(*s));
     free(s);
 }
 
@@ -319,7 +319,7 @@ call_user_read_cb(struct dtls_context_t *ctx, session_t *session, uint8_t *buf, 
     }
 
     buf_copy = sol_util_memdup(buf, len);
-    sol_util_secure_clear_memory(buf, len);
+    sol_util_clear_memory_secure(buf, len);
     SOL_NULL_CHECK(buf_copy, -EINVAL);
 
     item = sol_vector_append(&socket->read.queue);
@@ -342,7 +342,7 @@ call_user_read_cb(struct dtls_context_t *ctx, session_t *session, uint8_t *buf, 
     return -EINVAL;
 
 no_item:
-    sol_util_secure_clear_memory(buf_copy, len);
+    sol_util_clear_memory_secure(buf_copy, len);
     free(buf_copy);
     return -ENOMEM;
 }
@@ -386,7 +386,7 @@ encrypt_payload(struct sol_socket_dtls *s)
         SOL_DBG("Sent everything, will remove from queue");
 
     sol_buffer_fini(&item->buffer);
-    sol_util_secure_clear_memory(item, sizeof(*item));
+    sol_util_clear_memory_secure(item, sizeof(*item));
     sol_vector_del(&s->write.queue, 0);
 
     return true;
