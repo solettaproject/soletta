@@ -137,10 +137,10 @@ creds_add(struct creds *creds, const char *id, size_t id_len,
     return true;
 
 no_psk:
-    sol_util_secure_clear_memory(item->id.data, id_len);
+    sol_util_clear_memory_secure(item->id.data, id_len);
     free(item->id.data);
 no_id:
-    sol_util_secure_clear_memory(item, sizeof(*item));
+    sol_util_clear_memory_secure(item, sizeof(*item));
     sol_vector_del(&creds->items, creds->items.len - 1);
 
     return false;
@@ -154,15 +154,15 @@ creds_clear(void *data)
     uint16_t idx;
 
     SOL_VECTOR_FOREACH_IDX (&creds->items, iter, idx) {
-        sol_util_secure_clear_memory(iter->id.data, iter->id.slice.len);
-        sol_util_secure_clear_memory(iter->psk.data, iter->psk.slice.len);
+        sol_util_clear_memory_secure(iter->id.data, iter->id.slice.len);
+        sol_util_clear_memory_secure(iter->psk.data, iter->psk.slice.len);
 
         free(iter->id.data);
         free(iter->psk.data);
     }
     sol_vector_clear(&creds->items);
 
-    sol_util_secure_clear_memory(creds, sizeof(*creds));
+    sol_util_clear_memory_secure(creds, sizeof(*creds));
     free(creds);
 }
 
@@ -285,11 +285,11 @@ creds_init(const void *data)
     }
 
 out:
-    sol_util_secure_clear_memory(&scanner, sizeof(scanner));
-    sol_util_secure_clear_memory(&token, sizeof(token));
-    sol_util_secure_clear_memory(&reason, sizeof(reason));
+    sol_util_clear_memory_secure(&scanner, sizeof(scanner));
+    sol_util_clear_memory_secure(&token, sizeof(token));
+    sol_util_clear_memory_secure(&reason, sizeof(reason));
 
-    sol_util_secure_clear_memory(file_data, length);
+    sol_util_clear_memory_secure(file_data, length);
     free(file_data);
 
     return creds;
@@ -303,7 +303,7 @@ sol_oic_security_del_full(struct sol_oic_security *security, bool is_server)
     sol_coap_server_unref(security->server);
     sol_coap_server_unref(security->server_dtls);
 
-    sol_util_secure_clear_memory(security, sizeof(*security));
+    sol_util_clear_memory_secure(security, sizeof(*security));
     free(security);
 }
 

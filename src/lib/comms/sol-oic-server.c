@@ -588,7 +588,7 @@ sol_oic_server_shutdown_internal(void)
     free(oic_server.server_info);
     free(oic_server.plat_info);
 
-    sol_util_secure_clear_memory(&oic_server, sizeof(oic_server));
+    sol_util_clear_memory_secure(&oic_server, sizeof(oic_server));
 }
 
 void

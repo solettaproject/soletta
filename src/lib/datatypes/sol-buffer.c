@@ -43,7 +43,7 @@ secure_realloc(struct sol_buffer *buf, size_t new_size)
     memcpy(new_data, buf->data, sol_util_min(new_size, buf->capacity));
 
 end:
-    sol_util_secure_clear_memory(buf->data, buf->capacity);
+    sol_util_clear_memory_secure(buf->data, buf->capacity);
     free(buf->data);
     return new_data;
 }
@@ -869,7 +869,7 @@ sol_buffer_fini(struct sol_buffer *buf)
     if (!buf)
         return;
     if (buf->flags & SOL_BUFFER_FLAGS_CLEAR_MEMORY)
-        sol_util_secure_clear_memory(buf->data, buf->capacity);
+        sol_util_clear_memory_secure(buf->data, buf->capacity);
     if (!(buf->flags & SOL_BUFFER_FLAGS_NO_FREE))
         free(buf->data);
     buf->data = NULL;
