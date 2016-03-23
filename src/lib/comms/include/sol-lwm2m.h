@@ -87,12 +87,6 @@ struct sol_lwm2m_server;
 struct sol_lwm2m_client_info;
 
 /**
- * @struct sol_lwm2m_client_object_instance
- * @brief A handle that contains information about a client object instance.
- */
-struct sol_lwm2m_client_object_instance;
-
-/**
  * @struct sol_lwm2m_client_object
  * @brief A handle of a client's object.
  * @see sol_lwm2m_client_info_get_objects()
