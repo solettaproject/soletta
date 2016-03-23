@@ -883,7 +883,7 @@ sol_util_uint32_mul(const uint32_t a, const uint32_t b, uint32_t *out)
 }
 
 SOL_API bool
-sol_util_uuid_str_valid(const char *str)
+sol_util_uuid_str_is_valid(const char *str)
 {
     size_t i, len;
 

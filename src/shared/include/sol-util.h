@@ -384,7 +384,7 @@ int sol_util_uuid_gen(bool upcase, bool with_hyphens, char id[SOL_STATIC_ARRAY_S
  *
  * @return @c true if it's valid, @c false otherwise.
  */
-bool sol_util_uuid_str_valid(const char *str);
+bool sol_util_uuid_str_is_valid(const char *str);
 
 /**
  * @brief Restricts a number between two other numbers.

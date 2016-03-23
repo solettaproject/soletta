@@ -45,7 +45,7 @@ validate_machine_id(char id[SOL_STATIC_ARRAY_SIZE(33)])
 {
     id[32] = '\0';
 
-    if (!sol_util_uuid_str_valid(id))
+    if (!sol_util_uuid_str_is_valid(id))
         return -EINVAL;
 
     return 0;

@@ -949,7 +949,7 @@ sol_platform_impl_set_target(const char *target)
 static int
 validate_machine_id(char id[SOL_STATIC_ARRAY_SIZE(33)])
 {
-    if (!sol_util_uuid_str_valid(id))
+    if (!sol_util_uuid_str_is_valid(id))
         return -EINVAL;
 
     return 0;
