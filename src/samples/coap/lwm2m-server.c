@@ -124,7 +124,7 @@ location_changed_cb(void *data,
 
         r = sol_lwm2m_tlv_get_bytes(tlv, &bytes, &len);
         if (r < 0) {
-            fprintf(stderr, "Could not the %s value from client %s\n",
+            fprintf(stderr, "Could not get the %s value from client %s\n",
                 prop, name);
             break;
         }
@@ -206,7 +206,7 @@ create_location_obj(struct sol_lwm2m_server *server,
         (int64_t)time(NULL));
 
     if (r < 0) {
-        fprintf(stderr, "Could not init the longitude resource\n");
+        fprintf(stderr, "Could not init the timestamp resource\n");
         return;
     }
 
