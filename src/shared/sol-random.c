@@ -284,7 +284,7 @@ sol_random_new(const struct sol_random_impl *impl, uint64_t seed)
 
     engine->impl = impl;
     if (!engine->impl->init(engine, seed)) {
-        sol_util_secure_clear_memory(engine, impl->struct_size);
+        sol_util_clear_memory_secure(engine, impl->struct_size);
         free(engine);
         return NULL;
     }
@@ -300,7 +300,7 @@ sol_random_del(struct sol_random *engine)
     if (engine->impl->shutdown)
         engine->impl->shutdown(engine);
 
-    sol_util_secure_clear_memory(engine, engine->impl->struct_size);
+    sol_util_clear_memory_secure(engine, engine->impl->struct_size);
     free(engine);
 }
 

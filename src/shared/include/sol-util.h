@@ -632,7 +632,7 @@ sol_util_base16_calculate_decoded_len(const struct sol_str_slice slice)
  * @param len The buf length
  */
 static inline void
-sol_util_secure_clear_memory(void *buf, size_t len)
+sol_util_clear_memory_secure(void *buf, size_t len)
 {
     memset(buf, 0, len);
 
