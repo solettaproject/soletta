@@ -124,7 +124,7 @@ sol_i2c_speed_to_str(enum sol_i2c_speed speed)
         [SOL_I2C_SPEED_3MBIT_400KBIT] = "3400kbps"
     };
 
-    if (speed < SOL_UTIL_ARRAY_SIZE(speed_names))
+    if (speed < sol_util_array_size(speed_names))
         return speed_names[speed];
 
     return NULL;

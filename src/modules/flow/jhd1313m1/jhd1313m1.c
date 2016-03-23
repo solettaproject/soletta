@@ -1006,7 +1006,7 @@ color_cmd_queue(struct lcd_data *mdata,
     uint32_t *color = colors;
     unsigned i;
 
-    for (i = 0; i < SOL_UTIL_ARRAY_SIZE(colors); i++) {
+    for (i = 0; i < sol_util_array_size(colors); i++) {
         int r = command_queue_append(mdata, RGB_ADDR, COLOR_ADDR[i], *color++);
         SOL_INT_CHECK(r, < 0, r);
     }

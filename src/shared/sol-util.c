@@ -320,7 +320,7 @@ sol_util_uuid_string_from_bytes(bool uppercase, bool with_hyphens, const uint8_t
     SOL_INT_CHECK(r, < 0, r);
 
     if (with_hyphens) {
-        for (i = 0; i < SOL_UTIL_ARRAY_SIZE(hyphens_pos); i++) {
+        for (i = 0; i < sol_util_array_size(hyphens_pos); i++) {
             r = sol_buffer_insert_slice(uuid_str, hyphens_pos[i], hyphen);
             SOL_INT_CHECK(r, < 0, r);
         }
@@ -345,7 +345,7 @@ sol_util_uuid_bytes_from_string(struct sol_str_slice uuid_str, struct sol_buffer
     if (uuid_str.len == 32)
         return sol_buffer_append_from_base16(uuid_bytes, uuid_str, SOL_DECODE_BOTH);
 
-    for (i = 1; i < SOL_UTIL_ARRAY_SIZE(slices); i++) {
+    for (i = 1; i < sol_util_array_size(slices); i++) {
         uuid_str.len = slices[i] - slices[i - 1] - 1;
         r = sol_buffer_append_from_base16(uuid_bytes, uuid_str, SOL_DECODE_BOTH);
         SOL_INT_CHECK(r, < 0, r);

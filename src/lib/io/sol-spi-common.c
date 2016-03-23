@@ -51,7 +51,7 @@ sol_spi_mode_to_str(enum sol_spi_mode spi_mode)
         [SOL_SPI_MODE_3] = "mode3"
     };
 
-    if (spi_mode < SOL_UTIL_ARRAY_SIZE(spi_mode_names))
+    if (spi_mode < sol_util_array_size(spi_mode_names))
         return spi_mode_names[spi_mode];
 
     return NULL;

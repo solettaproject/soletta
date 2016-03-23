@@ -95,7 +95,7 @@ startup()
     const void *v;
     int arr[10];
 
-    SOL_UTIL_ARRAY_SIZE(arr);
+    sol_util_array_size(arr);
 
     sol_util_strerrora(2);
 

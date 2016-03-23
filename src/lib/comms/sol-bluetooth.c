@@ -179,7 +179,7 @@ sol_bt_transport_to_str(enum sol_bt_transport transport)
         [SOL_BT_TRANSPORT_BREDR] = "bredr",
     };
 
-    if (transport < SOL_UTIL_ARRAY_SIZE(transports))
+    if (transport < sol_util_array_size(transports))
         return transports[transport];
 
     return NULL;

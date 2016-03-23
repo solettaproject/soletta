@@ -55,7 +55,7 @@ test_align_power2(void)
         { 17, 32 },
     };
 
-    for (i = 0; i < SOL_UTIL_ARRAY_SIZE(table); i++) {
+    for (i = 0; i < sol_util_array_size(table); i++) {
         unsigned int actual;
         actual = align_power2(table[i].input);
 
@@ -306,7 +306,7 @@ test_base64_encode(void)
 
     slice = sol_str_slice_from_str(instr);
 
-    for (i = 0; i < SOL_UTIL_ARRAY_SIZE(expectstrs); i++) {
+    for (i = 0; i < sol_util_array_size(expectstrs); i++) {
         struct sol_str_slice exp = sol_str_slice_from_str(expectstrs[i]);
 
         memset(outstr, 0xff, sizeof(outstr));
@@ -339,7 +339,7 @@ test_base64_decode(void)
 
     exp = sol_str_slice_from_str(expstr);
 
-    for (i = 0; i < SOL_UTIL_ARRAY_SIZE(instrs); i++) {
+    for (i = 0; i < sol_util_array_size(instrs); i++) {
         slice = sol_str_slice_from_str(instrs[i]);
 
         memset(outstr, 0xff, sizeof(outstr));
@@ -475,7 +475,7 @@ test_unicode_utf_conversion(void)
     uint8_t read, written;
 
     str_len = sizeof(utf8_string);
-    for (i = 0; i < SOL_UTIL_ARRAY_SIZE(unicode_codes); i++) {
+    for (i = 0; i < sol_util_array_size(unicode_codes); i++) {
         code = sol_util_unicode_code_from_utf8(p, str_len, &read);
         ASSERT_INT_EQ(code, unicode_codes[i]);
 
@@ -501,7 +501,7 @@ test_unicode_utf_conversion(void)
     r = sol_util_utf8_from_unicode_code(utf8_buf, 0, 0x0);
     ASSERT_INT_EQ(r, -EINVAL);
 
-    for (i = 0; i < SOL_UTIL_ARRAY_SIZE(invalid_utf8); i++) {
+    for (i = 0; i < sol_util_array_size(invalid_utf8); i++) {
         code = sol_util_unicode_code_from_utf8(invalid_utf8[i],
             sizeof(invalid_utf8[i]), NULL);
         ASSERT_INT_EQ(code, -EINVAL);
@@ -579,7 +579,7 @@ test_escape_quotes(void)
     };
     size_t i;
 
-    for (i = 0; i < SOL_UTIL_ARRAY_SIZE(escape_tests); i++) {
+    for (i = 0; i < sol_util_array_size(escape_tests); i++) {
         struct sol_buffer buf;
         int r;
 

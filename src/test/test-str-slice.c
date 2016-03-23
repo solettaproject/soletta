@@ -45,7 +45,7 @@ test_str_slice_split_iterate(void)
           3, { "Hello", "Bye", "WhatAHugeDelimiter", NULL } }
     };
 
-    for (i = 0; i < SOL_UTIL_ARRAY_SIZE(table); i++) {
+    for (i = 0; i < sol_util_array_size(table); i++) {
         struct sol_str_slice token = SOL_STR_SLICE_EMPTY;
         const char *itr = NULL;
         size_t iterations = 0;
@@ -88,7 +88,7 @@ test_str_slice_to_int(void)
         CONVERT_FAIL(100000000000000000000000000000, -ERANGE),
     };
 
-    for (i = 0; i < SOL_UTIL_ARRAY_SIZE(table); i++) {
+    for (i = 0; i < sol_util_array_size(table); i++) {
         int error, value = 0;
         error = sol_str_slice_to_int(table[i].input, &value);
         ASSERT_INT_EQ(error, table[i].output_error);
@@ -121,7 +121,7 @@ test_str_slice_str_eq(void)
         TEST_NOT_EQUAL("whatever", NULL),
     };
 
-    for (i = 0; i < SOL_UTIL_ARRAY_SIZE(table); i++) {
+    for (i = 0; i < sol_util_array_size(table); i++) {
         bool ret;
         ret = sol_str_slice_str_eq(table[i].input, table[i].cmp);
         ASSERT_INT_EQ(ret, table[i].output_value);
@@ -159,7 +159,7 @@ test_str_slice_remove_leading_whitespace(void)
         TEST_EQUAL("without leading whitespace"),
     };
 
-    for (i = 0; i < SOL_UTIL_ARRAY_SIZE(table); i++) {
+    for (i = 0; i < sol_util_array_size(table); i++) {
         struct sol_str_slice slice;
         slice = sol_str_slice_remove_leading_whitespace(table[i].input);
         ASSERT(sol_str_slice_eq(table[i].input, slice) == table[i].equal);
@@ -196,7 +196,7 @@ test_str_slice_remove_trailing_whitespace(void)
         TEST_EQUAL("without trailing whitespace"),
     };
 
-    for (i = 0; i < SOL_UTIL_ARRAY_SIZE(table); i++) {
+    for (i = 0; i < sol_util_array_size(table); i++) {
         struct sol_str_slice slice;
         slice = sol_str_slice_remove_trailing_whitespace(table[i].input);
         ASSERT(sol_str_slice_eq(table[i].input, slice) == table[i].equal);
@@ -239,7 +239,7 @@ test_str_slice_trim(void)
         TEST_EQUAL("without trailing whitespace"),
     };
 
-    for (i = 0; i < SOL_UTIL_ARRAY_SIZE(table); i++) {
+    for (i = 0; i < sol_util_array_size(table); i++) {
         struct sol_str_slice slice;
         slice = sol_str_slice_trim(table[i].input);
         ASSERT(sol_str_slice_eq(table[i].input, slice) == table[i].equal);
@@ -272,7 +272,7 @@ test_str_slice_to_string(void)
         SOL_STR_SLICE_LITERAL("")
     };
 
-    for (i = 0; i < SOL_UTIL_ARRAY_SIZE(input); i++) {
+    for (i = 0; i < sol_util_array_size(input); i++) {
         char *s = sol_str_slice_to_string(input[i]);
         ASSERT(sol_str_slice_str_eq(input[i], s));
         free(s);

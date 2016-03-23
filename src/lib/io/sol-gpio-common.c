@@ -101,7 +101,7 @@ sol_gpio_direction_to_str(enum sol_gpio_direction direction)
         [SOL_GPIO_DIR_IN] = "in"
     };
 
-    if (direction < SOL_UTIL_ARRAY_SIZE(direction_names))
+    if (direction < sol_util_array_size(direction_names))
         return direction_names[direction];
 
     return NULL;
@@ -134,7 +134,7 @@ sol_gpio_edge_to_str(enum sol_gpio_edge edge)
         [SOL_GPIO_EDGE_BOTH] = "any"
     };
 
-    if (edge < SOL_UTIL_ARRAY_SIZE(edge_names))
+    if (edge < sol_util_array_size(edge_names))
         return edge_names[edge];
 
     return NULL;
@@ -165,7 +165,7 @@ sol_gpio_drive_to_str(enum sol_gpio_drive drive)
         [SOL_GPIO_DRIVE_PULL_DOWN] = "down"
     };
 
-    if (drive < SOL_UTIL_ARRAY_SIZE(drive_names))
+    if (drive < sol_util_array_size(drive_names))
         return drive_names[drive];
 
     return NULL;

@@ -370,7 +370,7 @@ sol_log_level_to_str(uint8_t level, char *buf, size_t buflen)
     if (buflen < 1)
         return;
 
-    if (level < SOL_UTIL_ARRAY_SIZE(level_names)) {
+    if (level < sol_util_array_size(level_names)) {
         if (level_names[level]) {
             strncpy(buf, level_names[level], buflen - 1);
             buf[buflen - 1] = '\0';
@@ -393,7 +393,7 @@ sol_log_get_level_color(uint8_t level)
     };
 
     SOL_LOG_INIT_CHECK("level=%hhu", level);
-    if (level < SOL_UTIL_ARRAY_SIZE(level_colors)) {
+    if (level < sol_util_array_size(level_colors)) {
         if (level_colors[level])
             return level_colors[level];
     }

@@ -159,7 +159,7 @@ sol_memdesc_type_to_str(enum sol_memdesc_type type)
         [SOL_MEMDESC_TYPE_ARRAY] = "array",
     };
 
-    if (type < SOL_UTIL_ARRAY_SIZE(strs))
+    if (type < sol_util_array_size(strs))
         return strs[type];
 
     return NULL;

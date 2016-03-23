@@ -224,7 +224,7 @@ setup_device(void *cb_data, struct sol_i2c *i2c, uint8_t reg, uint8_t *data, ssi
         return;
     }
 
-    if (mdata->init_step >= SOL_UTIL_ARRAY_SIZE(initialization_data)) {
+    if (mdata->init_step >= sol_util_array_size(initialization_data)) {
 
         mdata->fully_initialized = true;
 
