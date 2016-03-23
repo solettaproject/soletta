@@ -524,7 +524,7 @@ pid_controller_process(struct sol_flow_node *node, void *data,
 
     now = sol_util_timespec_get_current();
     sol_util_timespec_sub(&now, &priv->last_time, &dt);
-    dt_sec = ((double)sol_util_msec_from_timespec(&dt) / (double)SOL_MSEC_PER_SEC);
+    dt_sec = ((double)sol_util_msec_from_timespec(&dt) / (double)SOL_UTIL_MSEC_PER_SEC);
 
     error = priv->set_point - value;
     p = error;

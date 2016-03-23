@@ -56,27 +56,27 @@ extern "C" {
 /**
  * @brief number of nanoseconds in a second: 1,000,000,000.
  */
-#define SOL_NSEC_PER_SEC 1000000000ULL
+#define SOL_UTIL_NSEC_PER_SEC 1000000000ULL
 
 /**
  * @brief number of milliseconds in a second: 1,000.
  */
-#define SOL_MSEC_PER_SEC 1000ULL
+#define SOL_UTIL_MSEC_PER_SEC 1000ULL
 
 /**
  * @brief number of microseconds in a second: 1,000,000.
  */
-#define SOL_USEC_PER_SEC 1000000ULL
+#define SOL_UTIL_USEC_PER_SEC 1000000ULL
 
 /**
  * @brief number of nanoseconds in a milliseconds: 1,000,000,000 / 1,000 = 1,000,000.
  */
-#define SOL_NSEC_PER_MSEC 1000000ULL
+#define SOL_UTIL_NSEC_PER_MSEC 1000000ULL
 
 /**
  * @brief  number of nanoseconds in a microsecond: 1,000,000,000 / 1,000,000 = 1,000.
  */
-#define SOL_NSEC_PER_USEC 1000ULL
+#define SOL_UTIL_NSEC_PER_USEC 1000ULL
 
 /**
  * @brief Gets the minimum value
@@ -139,8 +139,8 @@ sol_util_timespec_sum(const struct timespec *t1, const struct timespec *t2, stru
 {
     result->tv_nsec = t1->tv_nsec + t2->tv_nsec;
     result->tv_sec = t1->tv_sec + t2->tv_sec;
-    if ((unsigned long long)result->tv_nsec >= SOL_NSEC_PER_SEC) {
-        result->tv_nsec -= SOL_NSEC_PER_SEC;
+    if ((unsigned long long)result->tv_nsec >= SOL_UTIL_NSEC_PER_SEC) {
+        result->tv_nsec -= SOL_UTIL_NSEC_PER_SEC;
         result->tv_sec++;
     }
 }
@@ -158,7 +158,7 @@ sol_util_timespec_sub(const struct timespec *t1, const struct timespec *t2, stru
     result->tv_nsec = t1->tv_nsec - t2->tv_nsec;
     result->tv_sec = t1->tv_sec - t2->tv_sec;
     if (result->tv_nsec < 0) {
-        result->tv_nsec += SOL_NSEC_PER_SEC;
+        result->tv_nsec += SOL_UTIL_NSEC_PER_SEC;
         result->tv_sec--;
     }
 }
@@ -196,8 +196,8 @@ sol_util_timespec_from_msec(const int msec)
 {
     struct timespec ts;
 
-    ts.tv_sec = msec / SOL_MSEC_PER_SEC;
-    ts.tv_nsec = (msec % SOL_MSEC_PER_SEC) * SOL_NSEC_PER_MSEC;
+    ts.tv_sec = msec / SOL_UTIL_MSEC_PER_SEC;
+    ts.tv_nsec = (msec % SOL_UTIL_MSEC_PER_SEC) * SOL_UTIL_NSEC_PER_MSEC;
     return ts;
 }
 
@@ -213,8 +213,8 @@ sol_util_timespec_from_usec(const int usec)
 {
     struct timespec ts;
 
-    ts.tv_sec = usec / SOL_USEC_PER_SEC;
-    ts.tv_nsec = (usec % SOL_USEC_PER_SEC) * SOL_NSEC_PER_USEC;
+    ts.tv_sec = usec / SOL_UTIL_USEC_PER_SEC;
+    ts.tv_nsec = (usec % SOL_UTIL_USEC_PER_SEC) * SOL_UTIL_NSEC_PER_USEC;
     return ts;
 }
 
@@ -228,7 +228,7 @@ sol_util_timespec_from_usec(const int usec)
 static inline int
 sol_util_msec_from_timespec(const struct timespec *ts)
 {
-    return ts->tv_sec * SOL_MSEC_PER_SEC + ts->tv_nsec / SOL_NSEC_PER_MSEC;
+    return ts->tv_sec * SOL_UTIL_MSEC_PER_SEC + ts->tv_nsec / SOL_UTIL_NSEC_PER_MSEC;
 }
 
 /**
@@ -241,7 +241,7 @@ sol_util_msec_from_timespec(const struct timespec *ts)
 static inline int
 sol_util_usec_from_timespec(const struct timespec *ts)
 {
-    return ts->tv_sec * SOL_USEC_PER_SEC + ts->tv_nsec / SOL_NSEC_PER_USEC;
+    return ts->tv_sec * SOL_UTIL_USEC_PER_SEC + ts->tv_nsec / SOL_UTIL_NSEC_PER_USEC;
 }
 
 /**

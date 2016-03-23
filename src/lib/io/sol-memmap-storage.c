@@ -605,7 +605,7 @@ resolve_i2c_path(const char *path, char **resolved_path)
 
         ret = 0;
         /* Let's wait up to one second */
-        if (!sol_util_busy_wait_file(*resolved_path, SOL_NSEC_PER_SEC)) {
+        if (!sol_util_busy_wait_file(*resolved_path, SOL_UTIL_NSEC_PER_SEC)) {
             ret = -ENODEV;
             free(*resolved_path);
             goto end;

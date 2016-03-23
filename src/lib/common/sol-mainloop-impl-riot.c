@@ -117,7 +117,7 @@ sleeptime_until_next_timeout(uint32_t *sleeptime)
     if (!ret)
         return false;
 
-    *sleeptime = ts.tv_sec * SOL_USEC_PER_SEC + ts.tv_nsec / SOL_NSEC_PER_USEC;
+    *sleeptime = ts.tv_sec * SOL_UTIL_USEC_PER_SEC + ts.tv_nsec / SOL_UTIL_NSEC_PER_USEC;
     return true;
 }
 
