@@ -36,6 +36,7 @@
 #include "sol-oic-cbor.h"
 #include "sol-oic-common.h"
 #include "sol-oic-server.h"
+#include "sol-oic-security.h"
 
 SOL_LOG_INTERNAL_DECLARE(_sol_oic_server_log_domain, "oic-server");
 
@@ -45,6 +46,7 @@ struct sol_oic_server {
     struct sol_ptr_vector resources;
     struct sol_oic_platform_information *plat_info;
     struct sol_oic_server_information *server_info;
+    struct sol_oic_security *security;
     int refcnt;
 };
 
@@ -448,6 +450,13 @@ sol_oic_server_ref(void)
 
     oic_server.refcnt++;
 
+    oic_server.security = sol_oic_server_security_add(oic_server.server,
+        oic_server.dtls_server);
+    if (!oic_server.security) {
+        SOL_WRN("OIC server security subsystem could not be initialized");
+        goto error_shutdown;
+    }
+
     res = sol_oic_server_add_resource_internal(&oic_d_resource_type, NULL,
         SOL_OIC_FLAG_DISCOVERABLE | SOL_OIC_FLAG_ACTIVE);
     SOL_NULL_CHECK_GOTO(res, error_shutdown);
@@ -476,6 +485,9 @@ sol_oic_server_shutdown_internal(void)
     struct sol_oic_server_resource *res;
     uint16_t idx;
 
+    if (oic_server.security)
+        sol_oic_server_security_del(oic_server.security);
+
     SOL_PTR_VECTOR_FOREACH_REVERSE_IDX (&oic_server.resources, res, idx)
         sol_oic_server_del_resource_internal(res);
 
@@ -489,6 +501,8 @@ sol_oic_server_shutdown_internal(void)
 
     free(oic_server.server_info);
     free(oic_server.plat_info);
+
+    sol_util_secure_clear_memory(&oic_server, sizeof(oic_server));
 }
 
 void

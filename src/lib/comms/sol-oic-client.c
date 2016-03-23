@@ -34,6 +34,7 @@
 #include "sol-oic-cbor.h"
 #include "sol-oic-common.h"
 #include "sol-oic-server.h"
+#include "sol-oic-security.h"
 
 #define POLL_OBSERVE_TIMEOUT_MS 10000
 
@@ -58,6 +59,7 @@
 struct sol_oic_client {
     struct sol_coap_server *server;
     struct sol_coap_server *dtls_server;
+    struct sol_oic_security *security;
 };
 
 struct find_resource_ctx {
@@ -1118,8 +1120,15 @@ sol_oic_client_new(void)
 
     client->dtls_server = sol_coap_secure_server_new(&servaddr);
     if (!client->dtls_server) {
+        client->security = NULL;
+
         SOL_INT_CHECK_GOTO(errno, != ENOSYS, error_create_dtls_server);
         SOL_INF("DTLS support not built-in, only making non-secure requests");
+    } else {
+        client->security = sol_oic_client_security_add(client->server,
+            client->dtls_server);
+        if (!client->security)
+            SOL_WRN("Could not enable security features for OIC client");
     }
 
     return client;
