@@ -565,3 +565,21 @@ err_rename:
 
     return r;
 }
+
+SOL_API bool
+sol_util_busy_wait_file(const char *path, uint64_t nanoseconds)
+{
+    struct stat st;
+    struct timespec start = sol_util_timespec_get_current();
+
+    while (stat(path, &st)) {
+        struct timespec elapsed, now = sol_util_timespec_get_current();
+
+        sol_util_timespec_sub(&now, &start, &elapsed);
+        if ((uint64_t)elapsed.tv_sec >= (nanoseconds / SOL_NSEC_PER_SEC) &&
+            (uint64_t)elapsed.tv_nsec >= (nanoseconds % SOL_NSEC_PER_SEC))
+            return false;
+    }
+
+    return true;
+}
