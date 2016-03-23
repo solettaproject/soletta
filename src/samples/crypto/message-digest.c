@@ -54,7 +54,7 @@ print_time(const struct feed_ctx *ctx, size_t amount, const char *prefix)
     const char *s_unit, *r_unit;
 
     sol_util_timespec_sub(&now, &ctx->start, &elapsed);
-    seconds = elapsed.tv_sec + (double)elapsed.tv_nsec / SOL_NSEC_PER_SEC;
+    seconds = elapsed.tv_sec + (double)elapsed.tv_nsec / SOL_UTIL_NSEC_PER_SEC;
 
     size = amount;
     if (size >= 1.0e9) {

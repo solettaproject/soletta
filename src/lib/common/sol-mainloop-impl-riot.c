@@ -114,7 +114,7 @@ sleeptime_until_next_timeout(void)
         if (ts.tv_sec < 0)
             sleeptime = 0;
         else
-            sleeptime = ts.tv_sec * SOL_USEC_PER_SEC + ts.tv_nsec / SOL_NSEC_PER_USEC;
+            sleeptime = ts.tv_sec * SOL_UTIL_USEC_PER_SEC + ts.tv_nsec / SOL_UTIL_NSEC_PER_USEC;
     }
 
     return sleeptime;
