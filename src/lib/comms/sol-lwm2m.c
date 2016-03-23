@@ -2254,7 +2254,7 @@ extract_path(struct sol_lwm2m_client *client, struct sol_coap_packet *req,
     int i, j, r, count;
 
     r = sol_coap_find_options(req, SOL_COAP_OPTION_URI_PATH, path,
-        SOL_UTIL_ARRAY_SIZE(path));
+        sol_util_array_size(path));
     count = r;
     SOL_INT_CHECK_GOTO(r, < 0, err_exit);
     r = -ENOENT;
@@ -3360,7 +3360,7 @@ get_binding_and_lifetime(struct sol_lwm2m_client *client, int64_t server_id,
     }
 
     SOL_VECTOR_FOREACH_IDX (&ctx->instances, instance, i) {
-        r = read_resources(client, ctx, instance, res, SOL_UTIL_ARRAY_SIZE(res),
+        r = read_resources(client, ctx, instance, res, sol_util_array_size(res),
             SERVER_OBJECT_SERVER_ID, SERVER_OBJECT_LIFETIME,
             SERVER_OBJECT_BINDING);
         SOL_INT_CHECK(r, < 0, r);
@@ -3374,13 +3374,13 @@ get_binding_and_lifetime(struct sol_lwm2m_client *client, int64_t server_id,
             r = 0;
             goto exit;
         }
-        clear_resource_array(res, SOL_UTIL_ARRAY_SIZE(res));
+        clear_resource_array(res, sol_util_array_size(res));
     }
 
     return -ENOENT;
 
 exit:
-    clear_resource_array(res, SOL_UTIL_ARRAY_SIZE(res));
+    clear_resource_array(res, sol_util_array_size(res));
     return r;
 }
 
@@ -3512,7 +3512,7 @@ register_reply(struct sol_coap_server *server,
     SOL_INT_CHECK_GOTO(code, != SOL_COAP_RSPCODE_CREATED, err_exit);
 
     r = sol_coap_find_options(pkt, SOL_COAP_OPTION_LOCATION_PATH, path,
-        SOL_UTIL_ARRAY_SIZE(path));
+        sol_util_array_size(path));
     SOL_INT_CHECK_GOTO(r, != 2, err_exit);
 
     conn_ctx->location = sol_str_slice_to_string(path[1]);
@@ -3751,7 +3751,7 @@ sol_lwm2m_client_start(struct sol_lwm2m_client *client)
     }
 
     SOL_VECTOR_FOREACH_IDX (&ctx->instances, instance, i) {
-        r = read_resources(client, ctx, instance, res, SOL_UTIL_ARRAY_SIZE(res),
+        r = read_resources(client, ctx, instance, res, sol_util_array_size(res),
             SECURITY_SERVER_URI, SECURITY_SERVER_IS_BOOTSTRAP,
             SECURITY_SERVER_ID);
         SOL_INT_CHECK_GOTO(r, < 0, err_exit);
@@ -3764,7 +3764,7 @@ sol_lwm2m_client_start(struct sol_lwm2m_client *client)
             SOL_NULL_CHECK_GOTO(conn_ctx, err_clear);
             has_server = true;
         }
-        clear_resource_array(res, SOL_UTIL_ARRAY_SIZE(res));
+        clear_resource_array(res, sol_util_array_size(res));
     }
 
     if (!has_server) {
@@ -3795,7 +3795,7 @@ sol_lwm2m_client_start(struct sol_lwm2m_client *client)
     return 0;
 
 err_clear:
-    clear_resource_array(res, SOL_UTIL_ARRAY_SIZE(res));
+    clear_resource_array(res, sol_util_array_size(res));
 err_exit:
     return r;
 }

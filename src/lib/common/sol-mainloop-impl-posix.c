@@ -273,7 +273,7 @@ static const struct siginfo_handler siginfo_handler[] = {
     SIG(SIGUSR2, NULL),
 #undef SIG
 };
-#define SIGINFO_HANDLER_COUNT SOL_UTIL_ARRAY_SIZE(siginfo_handler)
+#define SIGINFO_HANDLER_COUNT sol_util_array_size(siginfo_handler)
 
 static struct sigaction sa_orig[SIGINFO_HANDLER_COUNT];
 static sigset_t sig_blockset, sig_origset;

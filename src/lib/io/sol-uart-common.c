@@ -53,7 +53,7 @@ sol_uart_baud_rate_to_str(enum sol_uart_baud_rate baud_rate)
         [SOL_UART_BAUD_RATE_115200] = "baud-115200"
     };
 
-    if (baud_rate < SOL_UTIL_ARRAY_SIZE(baud_rate_names))
+    if (baud_rate < sol_util_array_size(baud_rate_names))
         return baud_rate_names[baud_rate];
 
     return NULL;
@@ -84,7 +84,7 @@ sol_uart_parity_to_str(enum sol_uart_parity parity)
         [SOL_UART_PARITY_ODD] = "odd"
     };
 
-    if (parity < SOL_UTIL_ARRAY_SIZE(parity_names))
+    if (parity < sol_util_array_size(parity_names))
         return parity_names[parity];
 
     return NULL;
@@ -113,7 +113,7 @@ sol_uart_stop_bits_to_str(enum sol_uart_stop_bits stop_bits)
         [SOL_UART_STOP_BITS_TWO] = "stopbits-2"
     };
 
-    if (stop_bits < SOL_UTIL_ARRAY_SIZE(stop_bits_names))
+    if (stop_bits < sol_util_array_size(stop_bits_names))
         return stop_bits_names[stop_bits];
 
     return NULL;
@@ -147,7 +147,7 @@ sol_uart_data_bits_to_str(enum sol_uart_data_bits data_bits)
         [SOL_UART_DATA_BITS_5] = "databits-5"
     };
 
-    if (data_bits < SOL_UTIL_ARRAY_SIZE(data_bits_names))
+    if (data_bits < sol_util_array_size(data_bits_names))
         return data_bits_names[data_bits];
 
     return NULL;

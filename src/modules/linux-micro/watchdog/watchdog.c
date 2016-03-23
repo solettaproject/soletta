@@ -80,7 +80,7 @@ watchdog_show_info_flags(const char *msg, uint32_t flags, uint32_t options)
             msg, flags, options);
 
         itr = map;
-        itr_end = itr + SOL_UTIL_ARRAY_SIZE(map);
+        itr_end = itr + sol_util_array_size(map);
         for (; itr < itr_end; itr++) {
             if (itr->flag & options) {
                 if (itr->flag & flags)

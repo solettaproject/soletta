@@ -101,7 +101,7 @@ sol_pwm_alignment_to_str(enum sol_pwm_alignment pwm_alignment)
         [SOL_PWM_ALIGNMENT_CENTER] = "center"
     };
 
-    if (pwm_alignment < SOL_UTIL_ARRAY_SIZE(alignment_names))
+    if (pwm_alignment < sol_util_array_size(alignment_names))
         return alignment_names[pwm_alignment];
 
     return NULL;
@@ -130,7 +130,7 @@ sol_pwm_polarity_to_str(enum sol_pwm_polarity pwm_polarity)
         [SOL_PWM_POLARITY_INVERSED] = "inversed"
     };
 
-    if (pwm_polarity < SOL_UTIL_ARRAY_SIZE(polarity_names))
+    if (pwm_polarity < sol_util_array_size(polarity_names))
         return polarity_names[pwm_polarity];
 
     return NULL;

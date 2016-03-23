@@ -211,9 +211,9 @@ create_location_obj(struct sol_lwm2m_server *server,
     }
 
     r = sol_lwm2m_server_create_object_instance(server, cinfo, "/6", res,
-        SOL_UTIL_ARRAY_SIZE(res), create_cb, NULL);
+        sol_util_array_size(res), create_cb, NULL);
 
-    for (i = 0; i < SOL_UTIL_ARRAY_SIZE(res); i++)
+    for (i = 0; i < sol_util_array_size(res); i++)
         sol_lwm2m_resource_clear(&res[i]);
 
     if (r < 0)
