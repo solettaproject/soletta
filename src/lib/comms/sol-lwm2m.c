@@ -1128,7 +1128,7 @@ sol_lwm2m_client_info_get_location(const struct sol_lwm2m_client_info *client)
 }
 
 SOL_API const char *
-sol_lwm2m_client_info_get_sms(const struct sol_lwm2m_client_info *client)
+sol_lwm2m_client_info_get_sms_number(const struct sol_lwm2m_client_info *client)
 {
     SOL_NULL_CHECK(client, NULL);
 
@@ -1847,7 +1847,7 @@ is_resource_set(const char *path)
 }
 
 SOL_API int
-sol_lwm2m_server_management_write(struct sol_lwm2m_server *server,
+sol_lwm2m_server_write(struct sol_lwm2m_server *server,
     struct sol_lwm2m_client_info *client, const char *path,
     struct sol_lwm2m_resource *resources, size_t len,
     sol_lwm2m_server_management_status_response_cb cb, const void *data)
@@ -1867,7 +1867,7 @@ sol_lwm2m_server_management_write(struct sol_lwm2m_server *server,
 }
 
 SOL_API int
-sol_lwm2m_server_management_execute(struct sol_lwm2m_server *server,
+sol_lwm2m_server_execute_resource(struct sol_lwm2m_server *server,
     struct sol_lwm2m_client_info *client, const char *path, const char *args,
     sol_lwm2m_server_management_status_response_cb cb, const void *data)
 {
@@ -1880,7 +1880,7 @@ sol_lwm2m_server_management_execute(struct sol_lwm2m_server *server,
 }
 
 SOL_API int
-sol_lwm2m_server_management_delete(struct sol_lwm2m_server *server,
+sol_lwm2m_server_delete_object_instance(struct sol_lwm2m_server *server,
     struct sol_lwm2m_client_info *client, const char *path,
     sol_lwm2m_server_management_status_response_cb cb, const void *data)
 {
@@ -1893,7 +1893,7 @@ sol_lwm2m_server_management_delete(struct sol_lwm2m_server *server,
 }
 
 SOL_API int
-sol_lwm2m_server_management_create(struct sol_lwm2m_server *server,
+sol_lwm2m_server_create_object_instance(struct sol_lwm2m_server *server,
     struct sol_lwm2m_client_info *client, const char *path,
     struct sol_lwm2m_resource *resources, size_t len,
     sol_lwm2m_server_management_status_response_cb cb, const void *data)
@@ -1908,7 +1908,7 @@ sol_lwm2m_server_management_create(struct sol_lwm2m_server *server,
 }
 
 SOL_API int
-sol_lwm2m_server_management_read(struct sol_lwm2m_server *server,
+sol_lwm2m_server_read(struct sol_lwm2m_server *server,
     struct sol_lwm2m_client_info *client, const char *path,
     sol_lwm2m_server_content_cb cb, const void *data)
 {
@@ -1936,7 +1936,7 @@ sol_lwm2m_tlv_clear(struct sol_lwm2m_tlv *tlv)
 }
 
 SOL_API void
-sol_lwm2m_tlv_array_clear(struct sol_vector *tlvs)
+sol_lwm2m_tlv_list_clear(struct sol_vector *tlvs)
 {
     uint16_t i;
     struct sol_lwm2m_tlv *tlv;
@@ -2023,7 +2023,7 @@ sol_lwm2m_parse_tlv(const struct sol_str_slice content, struct sol_vector *out)
 err_would_overflow:
     r = -EOVERFLOW;
 err_exit:
-    sol_lwm2m_tlv_array_clear(out);
+    sol_lwm2m_tlv_list_clear(out);
     return r;
 }
 
@@ -2037,7 +2037,7 @@ is_resource(struct sol_lwm2m_tlv *tlv)
 }
 
 SOL_API int
-sol_lwm2m_tlv_to_int(struct sol_lwm2m_tlv *tlv, int64_t *value)
+sol_lwm2m_tlv_get_int(struct sol_lwm2m_tlv *tlv, int64_t *value)
 {
     int8_t i8;
     int16_t i16;
@@ -2079,7 +2079,7 @@ sol_lwm2m_tlv_to_int(struct sol_lwm2m_tlv *tlv, int64_t *value)
 }
 
 SOL_API int
-sol_lwm2m_tlv_to_bool(struct sol_lwm2m_tlv *tlv, bool *value)
+sol_lwm2m_tlv_get_bool(struct sol_lwm2m_tlv *tlv, bool *value)
 {
     char v;
 
@@ -2102,7 +2102,7 @@ sol_lwm2m_tlv_to_bool(struct sol_lwm2m_tlv *tlv, bool *value)
 }
 
 SOL_API int
-sol_lwm2m_tlv_to_float(struct sol_lwm2m_tlv *tlv, double *value)
+sol_lwm2m_tlv_get_float(struct sol_lwm2m_tlv *tlv, double *value)
 {
     SOL_NULL_CHECK(tlv, -EINVAL);
     SOL_NULL_CHECK(value, -EINVAL);
@@ -2125,7 +2125,7 @@ sol_lwm2m_tlv_to_float(struct sol_lwm2m_tlv *tlv, double *value)
 }
 
 SOL_API int
-sol_lwm2m_tlv_to_obj_link(struct sol_lwm2m_tlv *tlv,
+sol_lwm2m_tlv_get_obj_link(struct sol_lwm2m_tlv *tlv,
     uint16_t *object_id, uint16_t *instance_id)
 {
     int32_t i = 0;
@@ -2593,7 +2593,7 @@ handle_write(struct sol_lwm2m_client *client,
         SOL_INT_CHECK(r, < 0, SOL_COAP_RSPCODE_BAD_REQUEST);
         r = obj_ctx->obj->write_tlv((void *)obj_instance->data,
             (void *)client->user_data, client, obj_instance->id, &tlvs);
-        sol_lwm2m_tlv_array_clear(&tlvs);
+        sol_lwm2m_tlv_list_clear(&tlvs);
         SOL_INT_CHECK(r, < 0, SOL_COAP_RSPCODE_BAD_REQUEST);
     } else if (content_format == SOL_LWM2M_CONTENT_TYPE_TEXT ||
         content_format == SOL_LWM2M_CONTENT_TYPE_OPAQUE) {
@@ -3805,7 +3805,7 @@ sol_lwm2m_client_stop(struct sol_lwm2m_client *client)
 }
 
 SOL_API int
-sol_lwm2m_send_update(struct sol_lwm2m_client *client)
+sol_lwm2m_client_send_update(struct sol_lwm2m_client *client)
 {
     SOL_NULL_CHECK(client, -EINVAL);
 
@@ -3841,7 +3841,7 @@ notification_already_sent(struct sol_ptr_vector *vector, const void *ptr)
 }
 
 SOL_API int
-sol_lwm2m_notify_observers(struct sol_lwm2m_client *client, const char **paths)
+sol_lwm2m_client_notify(struct sol_lwm2m_client *client, const char **paths)
 {
     size_t i;
     struct sol_ptr_vector already_sent = SOL_PTR_VECTOR_INIT;
