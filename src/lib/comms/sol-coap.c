@@ -1623,6 +1623,7 @@ join_mcast_groups(struct sol_socket *s, const struct sol_network_link *link)
     struct sol_network_link_addr groupaddr = { };
     struct sol_network_link_addr *addr;
     uint16_t i;
+    int ret;
 
     if (!(link->flags & SOL_NETWORK_LINK_RUNNING) && !(link->flags & SOL_NETWORK_LINK_MULTICAST))
         return 0;
@@ -1632,19 +1633,19 @@ join_mcast_groups(struct sol_socket *s, const struct sol_network_link *link)
 
         if (addr->family == SOL_NETWORK_FAMILY_INET) {
             sol_network_link_addr_from_str(&groupaddr, IPV4_ALL_COAP_NODES_GROUP);
-            if (sol_socket_join_group(s, link->index, &groupaddr) < 0)
-                return -errno;
+            if ((ret = sol_socket_join_group(s, link->index, &groupaddr)) < 0)
+                return ret;
 
             continue;
         }
 
         sol_network_link_addr_from_str(&groupaddr, IPV6_ALL_COAP_NODES_SCOPE_LOCAL);
-        if (sol_socket_join_group(s, link->index, &groupaddr) < 0)
-            return -errno;
+        if ((ret = sol_socket_join_group(s, link->index, &groupaddr)) < 0)
+            return ret;
 
         sol_network_link_addr_from_str(&groupaddr, IPV6_ALL_COAP_NODES_SCOPE_SITE);
-        if (sol_socket_join_group(s, link->index, &groupaddr) < 0)
-            return -errno;
+        if ((ret = sol_socket_join_group(s, link->index, &groupaddr)) < 0)
+            return ret;
     }
 
     return 0;
@@ -1672,7 +1673,7 @@ sol_coap_server_new_full(enum sol_socket_type type, const struct sol_network_lin
     struct sol_coap_server *server;
     struct sol_socket *s;
     uint16_t i;
-    int on = 1;
+    int on = 1, ret;
 
     SOL_LOG_INTERNAL_INIT_ONCE;
 
@@ -1682,15 +1683,15 @@ sol_coap_server_new_full(enum sol_socket_type type, const struct sol_network_lin
         return NULL;
     }
 
-    if (sol_socket_setsockopt(s, SOL_SOCKET_LEVEL_SOCKET,
-        SOL_SOCKET_OPTION_REUSEADDR, &on, sizeof(on)) < 0) {
-        SOL_WRN("Could not set socket's option: %s", sol_util_strerrora(errno));
+    if ((ret = sol_socket_setsockopt(s, SOL_SOCKET_LEVEL_SOCKET,
+        SOL_SOCKET_OPTION_REUSEADDR, &on, sizeof(on))) < 0) {
+        SOL_WRN("Could not set socket's option: %s", sol_util_strerrora(-ret));
         sol_socket_del(s);
         return NULL;
     }
 
-    if (sol_socket_bind(s, servaddr) < 0) {
-        SOL_WRN("Could not bind socket (%d): %s", errno, sol_util_strerrora(errno));
+    if ((ret = sol_socket_bind(s, servaddr)) < 0) {
+        SOL_WRN("Could not bind socket (%d): %s", -ret, sol_util_strerrora(-ret));
         sol_socket_del(s);
         return NULL;
     }
@@ -1734,10 +1735,10 @@ sol_coap_server_new_full(enum sol_socket_type type, const struct sol_network_lin
                 /* Not considering an error,
                  * because direct packets will work still.
                  */
-                if (join_mcast_groups(s, link) < 0) {
+                if ((ret = join_mcast_groups(s, link)) < 0) {
                     char *name = sol_network_link_get_name(link);
                     SOL_WRN("Could not join multicast group, iface %s (%d): %s",
-                        name, errno, sol_util_strerrora(errno));
+                        name, -ret, sol_util_strerrora(-ret));
                     free(name);
                 }
             }
