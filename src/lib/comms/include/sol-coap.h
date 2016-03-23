@@ -60,6 +60,12 @@ extern "C" {
  * as multicast support, very low overhead, and simplicity
  * for constrained environments.
  *
+ * Relevant RFCs:
+ * - https://tools.ietf.org/html/rfc7252: The Constrained Application
+ *   Protocol (CoAP)
+ * - https://tools.ietf.org/html/rfc7641: Observing Resources in the
+ *   Constrained Application Protocol (CoAP)
+ *
  * @{
  */
 
