@@ -89,6 +89,10 @@ config TEST_VECTOR
 	bool "vector"
 	default y
 
+config TEST_LIST
+    bool "list"
+    default y
+
 config TEST_JSON
 	bool "json"
 	default y
