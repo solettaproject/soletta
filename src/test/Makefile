@@ -63,6 +63,9 @@ test-test-str-table-$(TEST_STR_TABLE) := test.c test-str-table.c
 test-$(TEST_VECTOR) += test-vector
 test-test-vector-$(TEST_VECTOR) := test.c test-vector.c
 
+test-$(TEST_LIST) += test-list
+test-test-list-$(TEST_LIST) := test.c test-list.c
+
 test-$(TEST_BUFFER) += test-buffer
 test-test-buffer-$(TEST_BUFFER) := test.c test-buffer.c
 
