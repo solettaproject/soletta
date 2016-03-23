@@ -52,8 +52,9 @@ struct http_data {
         struct sol_drange d;
         struct sol_rgb rgb;
         struct sol_direction_vector dir_vector;
-        bool b;
+        struct sol_blob *blob;
         char *s;
+        bool b;
     } value;
 
     struct server_data *sdata;
@@ -66,9 +67,14 @@ struct http_server_node_type {
     struct sol_flow_node_type base;
     int (*post_cb)(struct http_data *mdata, struct sol_flow_node *node,
         struct sol_http_param_value *value);
-    int (*response_cb)(struct http_data *mdata, struct sol_buffer *content, bool json);
-    int (*process_cb)(struct http_data *mdata, const struct sol_flow_packet *packet);
+    int (*response_cb)(struct http_data *mdata, struct sol_buffer *content,
+        bool json);
+    int (*process_cb)(struct http_data *mdata,
+        const struct sol_flow_packet *packet);
     void (*send_packet_cb)(struct http_data *mdata, struct sol_flow_node *node);
+    int (*handle_response_cb)(struct sol_flow_node *node,
+        struct sol_http_request *request, struct sol_http_response *response,
+        bool *updated);
 };
 
 static struct sol_ptr_vector servers = SOL_PTR_VECTOR_INIT;
@@ -201,16 +207,86 @@ server_unref(struct server_data *sdata)
 }
 
 static int
+common_handle_response_cb(struct sol_flow_node *node,
+    struct sol_http_request *request, struct sol_http_response *response,
+    bool *updated)
+{
+    int r;
+    uint16_t idx;
+    bool send_json, err_r;
+    struct sol_http_param_value *value;
+    struct http_data *mdata = sol_flow_node_get_private_data(node);
+    const struct http_server_node_type *type;
+
+    send_json = false;
+
+    type = (const struct http_server_node_type *)
+        sol_flow_node_get_type(node);
+
+    SOL_HTTP_PARAMS_FOREACH_IDX (sol_http_request_get_params(request),
+        value, idx) {
+        switch (value->type) {
+        case SOL_HTTP_PARAM_POST_FIELD:
+            r = type->post_cb(mdata, node, value);
+            response->response_code = SOL_HTTP_STATUS_BAD_REQUEST;
+            SOL_INT_CHECK_GOTO(r, < 0, err_exit);
+            if (r == 0)
+                continue;
+
+            *updated = true;
+            break;
+        case SOL_HTTP_PARAM_HEADER:
+            if (sol_str_slice_str_caseeq(value->value.key_value.key,
+                HTTP_HEADER_ACCEPT)) {
+                if (sol_str_slice_str_contains(value->value.key_value.value,
+                    HTTP_HEADER_CONTENT_TYPE_JSON))
+                    send_json = true;
+            }
+            break;
+        default:
+            break;
+        }
+    }
+
+    if (send_json) {
+        r = sol_buffer_append_printf(&response->content,
+            "{\"%s\":", mdata->path);
+        SOL_INT_CHECK_GOTO(r, < 0, err_exit);
+    }
+
+    r = type->response_cb(mdata, &response->content, send_json);
+    SOL_INT_CHECK_GOTO(r, < 0, err_exit);
+
+    if (send_json) {
+        r = sol_buffer_append_char(&response->content, '}');
+        SOL_INT_CHECK_GOTO(r, < 0, err_exit);
+    }
+
+    err_r = sol_http_param_add(&response->param, SOL_HTTP_REQUEST_PARAM_HEADER(
+        HTTP_HEADER_CONTENT_TYPE, (send_json) ? HTTP_HEADER_CONTENT_TYPE_JSON :
+        HTTP_HEADER_CONTENT_TYPE_TEXT));
+
+    if (!err_r) {
+        r = -ENOMEM;
+        SOL_WRN("Could not set the Content-Type");
+        goto err_exit;
+    }
+
+    return 0;
+
+err_exit:
+    return r;
+}
+
+static int
 common_response_cb(void *data, struct sol_http_request *request)
 {
     int r = 0;
-    uint16_t idx;
-    bool send_json = false, updated = false;
     enum sol_http_method method;
     struct sol_flow_node *node = data;
     struct http_data *mdata = sol_flow_node_get_private_data(node);
     const struct http_server_node_type *type;
-    struct sol_http_param_value *value;
+    bool updated = false;
     struct sol_http_response response = {
         SOL_SET_API_VERSION(.api_version = SOL_HTTP_RESPONSE_API_VERSION, )
         .content = SOL_BUFFER_INIT_EMPTY,
@@ -228,66 +304,29 @@ common_response_cb(void *data, struct sol_http_request *request)
         SOL_INF("HTTP Method not allowed. Method: %d", (int)method);
         response.response_code = SOL_HTTP_STATUS_FORBIDDEN;
         r = sol_http_server_send_response(request, &response);
-        if (r < 0)
-            SOL_WRN("Could not send the forbidden response");
+        if (r < 0) {
+            sol_flow_send_error_packet_str(node, -r,
+                "Could not send the forbidden repsonse");
+        }
         return 0;
     }
 
-    SOL_HTTP_PARAMS_FOREACH_IDX (sol_http_request_get_params(request), value, idx) {
-        switch (value->type) {
-        case SOL_HTTP_PARAM_POST_FIELD:
-            r = type->post_cb(mdata, node, value);
-            response.response_code = SOL_HTTP_STATUS_BAD_REQUEST;
-            SOL_INT_CHECK_GOTO(r, < 0, end);
-            if (r == 0)
-                continue;
-
-            updated = true;
-            break;
-        case SOL_HTTP_PARAM_HEADER:
-            if (sol_str_slice_str_caseeq(value->value.key_value.key, HTTP_HEADER_ACCEPT)) {
-                if (sol_str_slice_str_contains(value->value.key_value.value, HTTP_HEADER_CONTENT_TYPE_JSON))
-                    send_json = true;
-            }
-            break;
-        default:
-            break;
-        }
-    }
-
-    response.response_code = SOL_HTTP_STATUS_INTERNAL_SERVER_ERROR;
-
-    if (send_json) {
-        r = sol_buffer_append_printf(&response.content, "{\"%s\":", mdata->path);
-        SOL_INT_CHECK_GOTO(r, < 0, end);
-    }
-
-    r = type->response_cb(mdata, &response.content, send_json);
+    r = type->handle_response_cb(node, request, &response, &updated);
     SOL_INT_CHECK_GOTO(r, < 0, end);
-
-    if (send_json) {
-        r = sol_buffer_append_char(&response.content, '}');
-        SOL_INT_CHECK_GOTO(r, < 0, end);
-    }
-
-    r = sol_http_param_add(&response.param, SOL_HTTP_REQUEST_PARAM_HEADER(
-        HTTP_HEADER_CONTENT_TYPE, (send_json) ? HTTP_HEADER_CONTENT_TYPE_JSON : HTTP_HEADER_CONTENT_TYPE_TEXT));
-    SOL_INT_CHECK_GOTO(r, != true, end);
 
     if (updated) {
         r = sol_http_server_set_last_modified(mdata->sdata->server,
             mdata->path, time(NULL));
         SOL_INT_CHECK_GOTO(r, < 0, end);
+
+        if (sol_http_request_get_method(request) == SOL_HTTP_METHOD_POST)
+            type->send_packet_cb(mdata, node);
     }
 
     response.response_code = SOL_HTTP_STATUS_OK;
-
     r = sol_http_server_send_response(request, &response);
     response.response_code = SOL_HTTP_STATUS_INTERNAL_SERVER_ERROR;
     SOL_INT_CHECK_GOTO(r, < 0, end);
-
-    if ((method == SOL_HTTP_METHOD_POST) && type->send_packet_cb && updated)
-        type->send_packet_cb(mdata, node);
 
 end:
     if (r < 0) {
@@ -298,7 +337,7 @@ end:
         sol_http_params_clear(&response.param);
         if (!sol_http_param_add(&response.param, SOL_HTTP_REQUEST_PARAM_HEADER(
             HTTP_HEADER_CONTENT_TYPE, HTTP_HEADER_CONTENT_TYPE_TEXT))) {
-            SOL_WRN("could not set response content-type: text/plain: %s", sol_util_strerrora(-r));
+            SOL_WRN("could not set response content-type: text/plain:");
         }
 
         /* response_code was set before goto, so use as-is */
@@ -992,6 +1031,162 @@ direction_vector_open(struct sol_flow_node *node, void *data,
 
     mdata->value.dir_vector = opts->value;
     return 0;
+}
+
+static void
+blob_close(struct sol_flow_node *node, void *data)
+{
+    struct http_data *mdata = data;
+
+    if (mdata->value.blob)
+        sol_blob_unref(mdata->value.blob);
+    stop_server(mdata);
+}
+
+static int
+blob_open(struct sol_flow_node *node, void *data,
+    const struct sol_flow_node_options *options)
+{
+    int r;
+    struct http_data *mdata = data;
+    struct sol_flow_node_type_http_server_blob_options *opts =
+        (struct sol_flow_node_type_http_server_blob_options *)options;
+
+    SOL_FLOW_NODE_OPTIONS_SUB_API_CHECK(options,
+        SOL_FLOW_NODE_TYPE_HTTP_SERVER_BLOB_OPTIONS_API_VERSION,
+        -EINVAL);
+
+    r = common_open(node, mdata, opts->path, opts->allowed_methods,
+        opts->port);
+    SOL_INT_CHECK(r, < 0, r);
+
+    return 0;
+}
+
+static int
+replace_json_blob(struct http_data *mdata, struct sol_blob *blob)
+{
+    if (mdata->value.blob)
+        sol_blob_unref(mdata->value.blob);
+
+    mdata->value.blob = sol_blob_ref(blob);
+    SOL_NULL_CHECK(mdata->value.blob, -ENOMEM);
+    return 0;
+}
+
+static int
+blob_process_cb(struct http_data *mdata,
+    const struct sol_flow_packet *packet)
+{
+    int r;
+    struct sol_blob *blob;
+    const struct sol_flow_packet_type *packet_type;
+
+    packet_type = sol_flow_packet_get_type(packet);
+
+    if (packet_type == SOL_FLOW_PACKET_TYPE_JSON_OBJECT)
+        r = sol_flow_packet_get_json_object(packet, &blob);
+    else if (packet_type == SOL_FLOW_PACKET_TYPE_JSON_ARRAY)
+        r = sol_flow_packet_get_json_array(packet, &blob);
+    else
+        r = sol_flow_packet_get_blob(packet, &blob);
+
+    SOL_INT_CHECK(r, < 0, r);
+    return replace_json_blob(mdata, blob);
+}
+
+static void
+blob_send_packet_cb(struct http_data *mdata,
+    struct sol_flow_node *node)
+{
+    sol_flow_send_blob_packet(node,
+        SOL_FLOW_NODE_TYPE_HTTP_SERVER_BLOB__OUT__OUT, mdata->value.blob);
+}
+
+static int
+blob_handle_response_cb(struct sol_flow_node *node,
+    struct sol_http_request *request, struct sol_http_response *response,
+    bool *updated)
+{
+    int r;
+    struct http_data *mdata = sol_flow_node_get_private_data(node);
+
+    if (sol_http_request_get_method(request) == SOL_HTTP_METHOD_POST) {
+        struct sol_blob *blob = NULL;
+        void *blob_mem = NULL;
+        struct sol_http_param_value *param;
+        uint16_t i;
+
+        SOL_HTTP_PARAMS_FOREACH_IDX (sol_http_request_get_params(request),
+            param, i) {
+            if (param->type != SOL_HTTP_PARAM_POST_DATA)
+                continue;
+
+            blob_mem = sol_util_memdup(param->value.data.value.data,
+                param->value.data.value.len);
+            SOL_NULL_CHECK(blob_mem, -ENOMEM);
+            blob = sol_blob_new(SOL_BLOB_TYPE_DEFAULT, NULL,
+                blob_mem, param->value.data.value.len);
+            break;
+        }
+
+        if (!blob && blob_mem) {
+            free(blob_mem);
+            SOL_WRN("Could not create a blob to hold the json data");
+            return -ENOMEM;
+        } else if (!blob && !blob_mem) {
+            SOL_WRN("The POST request has no POST data!");
+            return -ENOENT;
+        }
+
+        r = replace_json_blob(mdata, blob);
+        sol_blob_unref(blob);
+        SOL_INT_CHECK(r, < 0, r);
+        *updated = true;
+    }
+
+    if (!mdata->value.blob) {
+        response->response_code = SOL_HTTP_STATUS_NOT_FOUND;
+        return 0;
+    }
+
+    r = sol_buffer_append_bytes(&response->content,
+        (uint8_t *)mdata->value.blob->mem, mdata->value.blob->size);
+    SOL_INT_CHECK(r, < 0, r);
+
+    if (!sol_http_param_add(&response->param, SOL_HTTP_REQUEST_PARAM_HEADER(
+        HTTP_HEADER_CONTENT_TYPE, HTTP_HEADER_CONTENT_TYPE_JSON))) {
+        SOL_WRN("Could not set the Content-Type:application/json");
+        return -ENOMEM;
+    }
+
+    return 0;
+}
+
+static void
+json_send_packet_cb(struct http_data *mdata,
+    struct sol_flow_node *node)
+{
+    struct sol_json_scanner object_scanner, array_scanner;
+
+    sol_json_scanner_init(&object_scanner, mdata->value.blob->mem,
+        mdata->value.blob->size);
+    sol_json_scanner_init(&array_scanner, mdata->value.blob->mem,
+        mdata->value.blob->size);
+
+    if (sol_json_is_valid_type(&object_scanner, SOL_JSON_TYPE_OBJECT_START)) {
+        sol_flow_send_json_object_packet(node,
+            SOL_FLOW_NODE_TYPE_HTTP_SERVER_JSON__OUT__OBJECT,
+            mdata->value.blob);
+    } else if (sol_json_is_valid_type(&array_scanner,
+        SOL_JSON_TYPE_ARRAY_START)) {
+        sol_flow_send_json_array_packet(node,
+            SOL_FLOW_NODE_TYPE_HTTP_SERVER_JSON__OUT__ARRAY,
+            mdata->value.blob);
+    } else {
+        sol_flow_send_error_packet(node, EINVAL,
+            "Invalid json format - It will not be sent");
+    }
 }
 
 /* ---------------------------  static files ----------------------------------------- */
