@@ -91,9 +91,9 @@ static struct sol_ptr_vector servers = SOL_PTR_VECTOR_INIT;
     do { \
         errno = 0; \
         if ((is_unsigned_)) \
-            var_ = sol_util_strtoul(value->value.key_value.value.data, NULL, value->value.key_value.value.len, 0); \
+            var_ = sol_util_strtoul_n(value->value.key_value.value.data, NULL, value->value.key_value.value.len, 0); \
         else \
-            var_ = sol_util_strtol(value->value.key_value.value.data, NULL, value->value.key_value.value.len, 0); \
+            var_ = sol_util_strtol_n(value->value.key_value.value.data, NULL, value->value.key_value.value.len, 0); \
         if (errno != 0) { \
             return -errno; \
         } \
@@ -107,7 +107,7 @@ static struct sol_ptr_vector servers = SOL_PTR_VECTOR_INIT;
     do { \
         double d; \
         errno = 0; \
-        d = sol_util_strtodn(value->value.key_value.value.data, NULL, \
+        d = sol_util_strtod_n(value->value.key_value.value.data, NULL, \
             value->value.key_value.value.len, false); \
         if ((fpclassify(mdata->value.field_) == FP_ZERO) && (errno != 0)) { \
             return -errno; \
