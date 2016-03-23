@@ -781,23 +781,23 @@ test_remove_data(void)
     ASSERT_INT_EQ(buf.used, strlen("ABCDEFGHI"));
     ASSERT_STR_EQ(buf.data, "ABCDEFGHI");
 
-    err = sol_buffer_remove_data(&buf, strlen("ABC"), 0);
+    err = sol_buffer_remove_data(&buf, 0, strlen("ABC"));
     ASSERT_INT_EQ(err, 0);
     ASSERT_INT_EQ(buf.used, strlen("DEFGHI"));
 
-    err = sol_buffer_remove_data(&buf, strlen("GHI"), 3);
+    err = sol_buffer_remove_data(&buf, 0, strlen("GHI"));
     ASSERT_INT_EQ(err, 0);
     ASSERT_INT_EQ(buf.used, strlen("DEF"));
 
-    err = sol_buffer_remove_data(&buf, strlen("DEF"), 0);
-    ASSERT_INT_EQ(err, 0);
-    ASSERT_INT_EQ(buf.used, 0);
-
-    err = sol_buffer_remove_data(&buf, 100, 0);
+    err = sol_buffer_remove_data(&buf, 0, strlen("DEF"));
     ASSERT_INT_EQ(err, 0);
     ASSERT_INT_EQ(buf.used, 0);
 
     err = sol_buffer_remove_data(&buf, 0, 100);
+    ASSERT_INT_EQ(err, 0);
+    ASSERT_INT_EQ(buf.used, 0);
+
+    err = sol_buffer_remove_data(&buf, 100, 0);
     ASSERT_INT_EQ(err, -EINVAL);
 
     sol_buffer_fini(&buf);

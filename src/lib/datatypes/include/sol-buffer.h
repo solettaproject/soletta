@@ -131,7 +131,7 @@ struct sol_buffer {
  * Used by functions @ref sol_buffer_append_from_base16 or @ref sol_buffer_insert_from_base16.
  */
 enum sol_decode_case {
-    SOL_DECODE_UPERCASE,
+    SOL_DECODE_UPPERCASE,
     SOL_DECODE_LOWERCASE,
     SOL_DECODE_BOTH
 };
@@ -627,7 +627,7 @@ int sol_buffer_append_as_base16(struct sol_buffer *buf, const struct sol_str_sli
  *        sol_buffer_append_from_base16().
  * @param slice the slice to decode, it must be a set of 0-9 or
  *        letters A-F (if uppercase) or a-f, otherwise decode fails.
- * @param decode_case if SOL_DECODE_UPERCASE, uppercase letters ABCDEF are
+ * @param decode_case if SOL_DECODE_UPPERCASE, uppercase letters ABCDEF are
  *        used, if SOL_DECODE_LOWERCASE, lowercase abcdef are used instead.
  *        If SOL_DECODE_BOTH both, lowercase and uppercase, letters can be
  *        used.
@@ -650,7 +650,7 @@ int sol_buffer_insert_from_base16(struct sol_buffer *buf, size_t pos, const stru
  *        slice.
  * @param slice the slice to decode, it must be a set of 0-9 or
  *        letters A-F (if uppercase) or a-f, otherwise decode fails.
- * @param decode_case if SOL_DECODE_UPERCASE, uppercase letters ABCDEF are
+ * @param decode_case if SOL_DECODE_UPPERCASE, uppercase letters ABCDEF are
  *        used, if SOL_DECODE_LOWERCASE, lowercase abcdef are used instead.
  *        If SOL_DECODE_BOTH both, lowercase and uppercase, letters can be
  *        used.
@@ -894,7 +894,7 @@ int sol_buffer_ensure_nul_byte(struct sol_buffer *buf);
  * @note the buffer keeps its capacity after this function, it means,
  * the data is not released. If that is wanted, one should call @ref sol_buffer_trim
  */
-int sol_buffer_remove_data(struct sol_buffer *buf, size_t size, size_t offset);
+int sol_buffer_remove_data(struct sol_buffer *buf, size_t offset, size_t size);
 
 /**
  * @}

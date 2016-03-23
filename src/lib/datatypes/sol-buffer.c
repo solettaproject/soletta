@@ -792,7 +792,7 @@ sol_buffer_append_from_base16(struct sol_buffer *buf, const struct sol_str_slice
 }
 
 SOL_API int
-sol_buffer_remove_data(struct sol_buffer *buf, size_t size, size_t offset)
+sol_buffer_remove_data(struct sol_buffer *buf, size_t offset, size_t size)
 {
     int r;
     size_t total;

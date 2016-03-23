@@ -45,7 +45,7 @@ test_coap_parse_empty_pdu(void)
     ASSERT(pkt);
 
     ASSERT(!sol_coap_packet_get_payload(pkt, &buf, &offset));
-    ASSERT(!sol_buffer_remove_data(buf, offset, 0));
+    ASSERT(!sol_buffer_remove_data(buf, 0, offset));
     ASSERT(!sol_buffer_insert_bytes(buf, 0, pdu, sizeof(pdu)));
 
     ASSERT(!coap_packet_parse(pkt));
@@ -85,7 +85,7 @@ test_coap_parse_simple_pdu(void)
     ASSERT(pkt);
 
     ASSERT(!sol_coap_packet_get_payload(pkt, &buf, &offset));
-    ASSERT(!sol_buffer_remove_data(buf, offset, 0));
+    ASSERT(!sol_buffer_remove_data(buf, 0, offset));
     ASSERT(!sol_buffer_insert_bytes(buf, 0, pdu, sizeof(pdu)));
 
     ASSERT(!coap_packet_parse(pkt));
@@ -137,13 +137,13 @@ test_coap_parse_illegal_token_length(void)
     ASSERT(pkt);
 
     ASSERT(!sol_coap_packet_get_payload(pkt, &buf, &offset));
-    ASSERT(!sol_buffer_remove_data(buf, offset, 0));
+    ASSERT(!sol_buffer_remove_data(buf, 0, offset));
     ASSERT(!sol_buffer_insert_bytes(buf, 0, pdu, sizeof(pdu)));
 
     ASSERT(coap_packet_parse(pkt));
 
     pdu[0] = 0x5f;
-    ASSERT(!sol_buffer_remove_data(buf, offset, 0));
+    ASSERT(!sol_buffer_remove_data(buf, 0, offset));
     ASSERT(!sol_buffer_insert_bytes(buf, 0, pdu, sizeof(pdu)));
 
     ASSERT(coap_packet_parse(pkt));
@@ -166,7 +166,7 @@ test_coap_parse_options_that_exceed_pdu(void)
     ASSERT(pkt);
 
     ASSERT(!sol_coap_packet_get_payload(pkt, &buf, &offset));
-    ASSERT(!sol_buffer_remove_data(buf, offset, 0));
+    ASSERT(!sol_buffer_remove_data(buf, 0, offset));
     ASSERT(!sol_buffer_insert_bytes(buf, 0, pdu, sizeof(pdu)));
 
     ASSERT(coap_packet_parse(pkt));
@@ -188,7 +188,7 @@ test_coap_parse_without_options_with_payload(void)
     ASSERT(pkt);
 
     ASSERT(!sol_coap_packet_get_payload(pkt, &buf, &offset));
-    ASSERT(!sol_buffer_remove_data(buf, offset, 0));
+    ASSERT(!sol_buffer_remove_data(buf, 0, offset));
     ASSERT(!sol_buffer_insert_bytes(buf, 0, pdu, sizeof(pdu)));
 
     ASSERT(!coap_packet_parse(pkt));
@@ -211,7 +211,7 @@ test_coap_payload_simple(void)
     ASSERT(pkt);
 
     ASSERT(!sol_coap_packet_get_payload(pkt, &buf, &offset));
-    ASSERT(!sol_buffer_remove_data(buf, offset, 0));
+    ASSERT(!sol_buffer_remove_data(buf, 0, offset));
     ASSERT(!sol_buffer_insert_bytes(buf, 0, pdu, sizeof(pdu)));
 
     ASSERT_INT_EQ(buf->used - offset, sizeof("payload"));
@@ -266,7 +266,7 @@ test_coap_find_options(void)
     ASSERT(pkt);
 
     ASSERT(!sol_coap_packet_get_payload(pkt, &buf, &offset));
-    ASSERT(!sol_buffer_remove_data(buf, offset, 0));
+    ASSERT(!sol_buffer_remove_data(buf, 0, offset));
     ASSERT(!sol_buffer_insert_bytes(buf, 0, pdu, sizeof(pdu)));
 
     ASSERT(!coap_packet_parse(pkt));
