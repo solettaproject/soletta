@@ -57,6 +57,7 @@ obj-networking-$(OIC) += \
     sol-oic-client.o \
     sol-oic-common.o \
     sol-oic-server.o \
+    sol-oic-security.o
 
 obj-networking-$(OIC)-extra-cflags += \
     -Wno-cpp \
