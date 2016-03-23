@@ -198,12 +198,12 @@ convert_fbp_to_dot(struct sol_fbp_graph *g, const char *out)
         }
 
         SOL_VECTOR_FOREACH_IDX (&node->in_ports, port, i) {
-            fprintf(dot_file, "\t\t\t<tr><td port=\"%.*s\" border=\"1\" align=\"left\" bgcolor=\"#%06x\">"
+            fprintf(dot_file, "\t\t\t<tr><td port=\"IN_%.*s\" border=\"1\" align=\"left\" bgcolor=\"#%06x\">"
                 "<font point-size=\"10\" color=\"#%06x\">◎ %.*s</font></td></tr>\n",
                 SOL_STR_SLICE_PRINT(port->name), input_color, input_label_color, SOL_STR_SLICE_PRINT(port->name));
         }
         SOL_VECTOR_FOREACH_IDX (&node->out_ports, port, i) {
-            fprintf(dot_file, "\t\t\t<tr><td port=\"%.*s\" border=\"1\" align=\"right\" bgcolor=\"#%06x\">"
+            fprintf(dot_file, "\t\t\t<tr><td port=\"OUT_%.*s\" border=\"1\" align=\"right\" bgcolor=\"#%06x\">"
                 "<font point-size=\"10\" color=\"#%06x\">%.*s ◉</font></td></tr>\n",
                 SOL_STR_SLICE_PRINT(port->name), output_color, output_label_color, SOL_STR_SLICE_PRINT(port->name));
         }
@@ -215,7 +215,7 @@ convert_fbp_to_dot(struct sol_fbp_graph *g, const char *out)
         struct sol_fbp_node *out_node = sol_vector_get(&g->nodes, conn->dst);
 
         /* Node:Port -> Node:Port */
-        fprintf(dot_file, "\t\"%.*s\":%.*s:e -> \"%.*s\":%.*s:w [color=\"#%06x\"]\n",
+        fprintf(dot_file, "\t\"%.*s\":OUT_%.*s:e -> \"%.*s\":IN_%.*s:w [color=\"#%06x\"]\n",
             SOL_STR_SLICE_PRINT(in_node->name),
             SOL_STR_SLICE_PRINT(conn->src_port),
             SOL_STR_SLICE_PRINT(out_node->name),
