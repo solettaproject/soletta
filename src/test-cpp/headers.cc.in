@@ -125,7 +125,7 @@ startup()
     SOL_PTR_VECTOR_FOREACH_IDX(&v2, i, j);
     SOL_PTR_VECTOR_FOREACH_REVERSE_IDX(&v2, i, j);
 
-    struct sol_list list = SOL_LIST_INIT, *itr, *itr2;
+    struct sol_list list = SOL_LIST_INIT(list), *itr, *itr2;
 
     SOL_LIST_FOREACH(&list, itr);
 
