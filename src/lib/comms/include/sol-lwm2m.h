@@ -177,7 +177,7 @@ enum sol_lwm2m_registration_event {
      */
     SOL_LWM2M_REGISTRATION_EVENT_UNREGISTER,
     /**
-     * Indicates that the server is discarting a client, since
+     * Indicates that the server is discarding a client, since
      * the server did not hear from it after some time.
      */
     SOL_LWM2M_REGISTRATION_EVENT_TIMEOUT
@@ -192,8 +192,8 @@ enum sol_lwm2m_content_type {
      */
     SOL_LWM2M_CONTENT_TYPE_TEXT = 1541,
     /**
-     * The content type of the message is undeterminated, in order
-     * words, is an array of bytes.
+     * The content type of the message is undeterminated, in other
+     * words, it is an array of bytes.
      */
     SOL_LWM2M_CONTENT_TYPE_OPAQUE = 1544,
     /**
@@ -217,7 +217,7 @@ enum sol_lwm2m_tlv_type {
      */
     SOL_LWM2M_TLV_TYPE_OBJECT_INSTANCE = 0,
     /**
-     * The TLV repreents an resource instance.
+     * The TLV represents an resource instance.
      */
     SOL_LWM2M_TLV_TYPE_RESOURCE_INSTANCE = 64,
     /**
@@ -340,7 +340,7 @@ struct sol_lwm2m_resource {
 /**
  * @brief Convinent macro to initialize a LWM2M resource.
  *
- * This macro will first the set LWM2M resource api version then
+ * This macro will first set the LWM2M resource api version then
  * call sol_lwm2m_resource_init().
  *
  * @param ret_value_ The return value of sol_lwm2m_resource_init()
@@ -365,7 +365,7 @@ struct sol_lwm2m_resource {
  *
  * All the functions in this struct will be called by the sol-lwm2m infra,
  * when the LWM2M server request an operation.
- * For exampe, when the a LWM2M server requests the creation for a LWM2M
+ * For example, when the LWM2M server requests the creation for a LWM2M
  * location object, the create function will be called.
  * When a LWM2M object does not support a certain operation,
  * one must not implement the corresponding method.
@@ -409,7 +409,7 @@ struct sol_lwm2m_object {
      * When the LWM2M server requests to read an object, object instance
      * or a single resource, this function will be triggered.
      * This function will read one resource at time, in case
-     * the LWM2M server wants the read an object instance or all instances
+     * the LWM2M server wants to read an object instance or all instances
      * of an object the LWM2M client infrastructure will call this function
      * several times requesting to read each resource.
      *
@@ -441,7 +441,7 @@ struct sol_lwm2m_object {
      * @param res_id The resource id that is being written.
      * @param res The resource content.
      * @return 0 on success or -errno on error.
-     * @note This function is only called with the LWM2M server explicitly
+     * @note This function is only called when the LWM2M server explicitly
      * says that the content type of the write operation is a text or
      * an opaque type.
      */
@@ -517,10 +517,10 @@ struct sol_lwm2m_object {
  * one must call #sol_lwm2m_client_start.
  *
  * @param name The LWM2M client name, must not be @c NULL.
- * @param path The Objectes path, may be @c NUL.
+ * @param path The Objects path, may be @c NULL.
  * @param sms The SMS number, may be @c NULL.
  * @param objects The implemented objects, must not be @c NULL and must be @c NULL terminated.
- * @param data The users data that will be passed to the object callbacks. (create, execute, read, write and del).
+ * @param data The user's data that will be passed to the object callbacks. (create, execute, read, write and del).
  * @return A LWM2M client handle or @c NULL on error
  * @see sol_lwm2m_client_del()
  * @see sol_lwm2m_add_object_instance()
@@ -544,7 +544,7 @@ void sol_lwm2m_client_del(struct sol_lwm2m_client *client);
 /**
  * @brief Creates an object instance.
  *
- * @param client The client to create the object instance..
+ * @param client The client to create the object instance in.
  * @param obj The object that the instance should be created.
  * @param data The instance data.
  * @return 0 on success, -errno on error.
@@ -611,7 +611,7 @@ int sol_lwm2m_notify_observers(struct sol_lwm2m_client *client, const char **pat
 /**
  * @brief Clears a #sol_lwm2m_resource.
  *
- * @param resource The resource to ne cleared.
+ * @param resource The resource to be cleared.
  * @see sol_lwm2m_resource_init()
  */
 void sol_lwm2m_resource_clear(struct sol_lwm2m_resource *resource);
@@ -694,7 +694,7 @@ typedef void (*sol_lwm2m_server_content_cb)
  * @param server The LW2M server
  * @param client The LWM2M client
  * @param path The client's path
- * @param response_code The operation @c response_code
+ * @param response_code The operation's @c response_code
  * @param data User data.
  * @see sol_lwl2m_server_management_write()
  * @see sol_lwl2m_server_management_execute()
@@ -791,12 +791,12 @@ int sol_lwm2m_tlv_to_obj_link(struct sol_lwm2m_tlv *tlv, uint16_t *object_id, ui
 /**
  * @brief Adds a registration monitor.
  *
- * This function register a monitor, making it easir to observe a LWM2M client's life cycle.
+ * This function register a monitor, making it easier to observe a LWM2M client's life cycle.
  * This means that everytime a LWM2M client is registered, updated, deleted or timedout,
  * @c cb will be called.
  *
  * @param server The LWM2M server.
- * @param cb The previous registered callback.
+ * @param cb A callback used to inform registration events.
  * @param data The user data to @c cb.
  * @return 0 on success, -errno on error.
  * @see sol_lwm2m_server_add_registration_monitor()
@@ -828,14 +828,14 @@ int sol_lwm2m_server_del_registration_monitor(struct sol_lwm2m_server *server,
 const struct sol_ptr_vector *sol_lwm2m_server_get_clients(const struct sol_lwm2m_server *server);
 
 /**
- * @brief Observers an client object, instance or resource.
+ * @brief Observes a client object, instance or resource.
  *
  * Every time the observed path changes, the client will notify the LWM2M server.
  *
  * @param server The LWM2M server.
  * @param client The LWM2M client to be observed.
  * @param path The path to be observed (Example: /3/0/0).
- * @param cb A callback to eb called when the observed path changes.
+ * @param cb A callback to be called when the observed path changes.
  * @param data User data to @c cb
  * @return 0 on success, -errno on error.
  * @see #sol_lwm2m_server_content_cb
@@ -922,7 +922,7 @@ int sol_lwm2m_server_management_execute(struct sol_lwm2m_server *server,
  *
  * @param server The LWM2M server.
  * @param client The LWM2M client info to create an object instance.
- * @param path The object path to create be created (Example /1).
+ * @param path The object path to be created (Example /1).
  * @param resources An array of #sol_lwm2m_resource which contains the required resources to create an object.
  * @param len The length of @c resources.
  * @param cb A callback to be called when the create operation is completed.
@@ -967,7 +967,7 @@ void sol_lwm2m_server_del(struct sol_lwm2m_server *server);
 /**
  * @brief Gets the name of client.
  *
- * @param client The LWM2M cliento info.
+ * @param client The LWM2M client info.
  * @return The @c client name or @c NULL on error.
  */
 const char *sol_lwm2m_client_info_get_name(const struct sol_lwm2m_client_info *client);
@@ -1030,7 +1030,7 @@ enum sol_lwm2m_binding_mode sol_lwm2m_client_info_get_binding_mode(const struct 
 const struct sol_network_link_addr *sol_lwm2m_client_info_get_address(const struct sol_lwm2m_client_info *client);
 
 /**
- * @brief Get client objects.
+ * @brief Get client's objects.
  *
  * @param client The LWM2M client info.
  * @return A array of #sol_lwm2m_client_object or @c NULL on error.
@@ -1054,7 +1054,7 @@ int sol_lwm2m_client_object_get_id(const struct sol_lwm2m_client_object *object,
 /**
  * @brief Gets the instances of a given object.
  *
- * @param object The LWM2M object object to get the instances.
+ * @param object The LWM2M object to get the instances.
  * @return An array of uint16_t or @c NULL on error.
  * @note Be adviced that it's not recommended to store object
  * instances pointers, because they might be deleted by other LWM2M servers,
