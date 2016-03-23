@@ -411,7 +411,7 @@ string_formatted_close(struct sol_flow_node *node, void *data)
 static inline double
 strtod_no_locale(const char *nptr, char **endptr)
 {
-    return sol_util_strtodn(nptr, endptr, -1, false);
+    return sol_util_strtod_n(nptr, endptr, -1, false);
 }
 
 static double

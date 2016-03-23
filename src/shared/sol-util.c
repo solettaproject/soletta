@@ -74,7 +74,7 @@ sol_util_memdup(const void *data, size_t len)
 }
 
 SOL_API long int
-sol_util_strtol(const char *nptr, char **endptr, ssize_t len, int base)
+sol_util_strtol_n(const char *nptr, char **endptr, ssize_t len, int base)
 {
     char *tmpbuf, *tmpbuf_endptr;
     long int r;
@@ -93,7 +93,7 @@ sol_util_strtol(const char *nptr, char **endptr, ssize_t len, int base)
 }
 
 SOL_API unsigned long int
-sol_util_strtoul(const char *nptr, char **endptr, ssize_t len, int base)
+sol_util_strtoul_n(const char *nptr, char **endptr, ssize_t len, int base)
 {
     char *tmpbuf, *tmpbuf_endptr;
     unsigned long int r;
@@ -111,7 +111,7 @@ sol_util_strtoul(const char *nptr, char **endptr, ssize_t len, int base)
 }
 
 SOL_API double
-sol_util_strtodn(const char *nptr, char **endptr, ssize_t len, bool use_locale)
+sol_util_strtod_n(const char *nptr, char **endptr, ssize_t len, bool use_locale)
 {
     char *tmpbuf, *tmpbuf_endptr;
     double value;

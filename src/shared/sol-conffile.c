@@ -964,7 +964,7 @@ iterate_dir_cb(void *data, const char *dir_path, struct dirent *en)
     sep = strchr(en->d_name, '-');
 
     if (sep) {
-        precedence = sol_util_strtoul
+        precedence = sol_util_strtoul_n
                 (en->d_name, &endptr, sep - en->d_name, 10);
         if (endptr == en->d_name || errno != 0)
             SOL_INF("Could not parse the precedence for file '%s' - "

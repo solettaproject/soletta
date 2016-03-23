@@ -689,7 +689,7 @@ _get_authority(const struct sol_str_slice partial_uri,
         port_slice.len = itr - port_slice.data;
         if (port_slice.len) {
             char *endptr;
-            *port = sol_util_strtol(port_slice.data, &endptr,
+            *port = sol_util_strtol_n(port_slice.data, &endptr,
                 port_slice.len, 10);
             if (endptr == port_slice.data) {
                 SOL_WRN("Could not convert the host port to integer."
@@ -1041,7 +1041,7 @@ sol_http_parse_content_type_priorities(const struct sol_str_slice content_type,
                 double qvalue;
                 char *endptr = NULL;
 
-                qvalue = sol_util_strtodn(qvalue_slice.data, &endptr,
+                qvalue = sol_util_strtod_n(qvalue_slice.data, &endptr,
                     qvalue_slice.len, false);
                 if (errno < 0 || endptr == qvalue_slice.data) {
                     SOL_WRN("Could not convert the value from the content type: %.*s",

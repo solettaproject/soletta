@@ -174,7 +174,7 @@ get_member_memory(const struct sol_flow_node_options_member_description *member,
 static inline double
 strtod_no_locale(const char *nptr, char **endptr)
 {
-    return sol_util_strtodn(nptr, endptr, -1, false);
+    return sol_util_strtod_n(nptr, endptr, -1, false);
 }
 
 static void
