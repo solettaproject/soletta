@@ -1684,7 +1684,7 @@ direction_vector_convert(struct sol_flow_node *node, void *data, uint16_t port, 
         mdata->output_value.z = val;
     }
 
-    for (i = 0; i < SOL_UTIL_ARRAY_SIZE(mdata->output_initialized); i++) {
+    for (i = 0; i < sol_util_array_size(mdata->output_initialized); i++) {
         if (!mdata->output_initialized[i])
             return 0;
     }

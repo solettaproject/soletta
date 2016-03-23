@@ -51,7 +51,7 @@ extern "C" {
 /**
  * @brief Calculates the number of elements in an array
  */
-#define SOL_UTIL_ARRAY_SIZE(arr) (sizeof(arr) / sizeof((arr)[0]))
+#define sol_util_array_size(arr) (sizeof(arr) / sizeof((arr)[0]))
 
 /**
  * @brief number of nanoseconds in a second: 1,000,000,000.

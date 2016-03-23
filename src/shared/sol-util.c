@@ -325,14 +325,14 @@ sol_util_uuid_gen(bool upcase,
     r = uuid_gen(&uuid);
     SOL_INT_CHECK(r, < 0, r);
 
-    for (i = 0; i < SOL_UTIL_ARRAY_SIZE(uuid.bytes); i++) {
+    for (i = 0; i < sol_util_array_size(uuid.bytes); i++) {
         r = sol_buffer_append_printf(&buf, upcase ? "%02hhX" : "%02hhx",
             uuid.bytes[i]);
         SOL_INT_CHECK_GOTO(r, < 0, err);
     }
 
     if (with_hyphens) {
-        for (i = 0; i < SOL_UTIL_ARRAY_SIZE(hyphens_pos); i++) {
+        for (i = 0; i < sol_util_array_size(hyphens_pos); i++) {
             r = sol_buffer_insert_slice(&buf, hyphens_pos[i], hyphen);
             SOL_INT_CHECK_GOTO(r, < 0, err);
         }

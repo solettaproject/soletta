@@ -527,10 +527,10 @@ create_obj(struct sol_lwm2m_server *server, struct sol_lwm2m_client_info *cinfo)
         SOL_LWM2M_RESOURCE_DATA_TYPE_INT, ARRAY_VALUE_ONE, ARRAY_VALUE_TWO);
     ASSERT(r == 0);
     r = sol_lwm2m_server_management_create(server, cinfo, "/999", res,
-        SOL_UTIL_ARRAY_SIZE(res), create_cb, NULL);
+        sol_util_array_size(res), create_cb, NULL);
     ASSERT(r == 0);
 
-    for (i = 0; i < SOL_UTIL_ARRAY_SIZE(res); i++)
+    for (i = 0; i < sol_util_array_size(res); i++)
         sol_lwm2m_resource_clear(&res[i]);
 }
 

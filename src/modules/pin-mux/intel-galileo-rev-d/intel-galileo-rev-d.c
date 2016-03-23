@@ -120,7 +120,7 @@ static const struct mux_description *const aio_dev_0[] = {
 };
 
 static const struct mux_controller aio_controller_list[] = {
-    { SOL_UTIL_ARRAY_SIZE(aio_dev_0), aio_dev_0 },
+    { sol_util_array_size(aio_dev_0), aio_dev_0 },
 };
 
 //GPIO
@@ -154,7 +154,7 @@ static const struct mux_description *const pwm_dev_0[8] = {
 };
 
 static const struct mux_controller pwm_controller_list[] = {
-    { SOL_UTIL_ARRAY_SIZE(pwm_dev_0), pwm_dev_0 },
+    { sol_util_array_size(pwm_dev_0), pwm_dev_0 },
 };
 
 // =============================================================================
@@ -162,25 +162,25 @@ static const struct mux_controller pwm_controller_list[] = {
 static int
 _set_aio(const int device, const int pin)
 {
-    return mux_set_aio(device, pin, aio_controller_list, (int)SOL_UTIL_ARRAY_SIZE(aio_controller_list));
+    return mux_set_aio(device, pin, aio_controller_list, (int)sol_util_array_size(aio_controller_list));
 }
 
 static int
 _set_gpio(const uint32_t pin, const enum sol_gpio_direction dir)
 {
-    return mux_set_gpio(pin, dir, gpio_dev_0, (uint32_t)SOL_UTIL_ARRAY_SIZE(gpio_dev_0));
+    return mux_set_gpio(pin, dir, gpio_dev_0, (uint32_t)sol_util_array_size(gpio_dev_0));
 }
 
 static int
 _set_i2c(const uint8_t bus)
 {
-    return mux_set_i2c(bus, i2c_dev_0, SOL_UTIL_ARRAY_SIZE(i2c_dev_0));
+    return mux_set_i2c(bus, i2c_dev_0, sol_util_array_size(i2c_dev_0));
 }
 
 static int
 _set_pwm(const int device, const int channel)
 {
-    return mux_set_pwm(device, channel, pwm_controller_list, (int)SOL_UTIL_ARRAY_SIZE(pwm_controller_list));
+    return mux_set_pwm(device, channel, pwm_controller_list, (int)sol_util_array_size(pwm_controller_list));
 }
 
 SOL_PIN_MUX_DECLARE(INTEL_GALILEO_REV_D,
