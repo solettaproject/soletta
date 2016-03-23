@@ -135,7 +135,7 @@ int sol_util_timespec_get_realtime(struct timespec *t);
  * @param result Variable used to store the sum's result.
  */
 static inline void
-sol_util_timespec_sum(const struct timespec *t1, const struct timespec *t2, struct timespec *result)
+sol_util_timespec_add(const struct timespec *t1, const struct timespec *t2, struct timespec *result)
 {
     result->tv_nsec = t1->tv_nsec + t2->tv_nsec;
     result->tv_sec = t1->tv_sec + t2->tv_sec;
