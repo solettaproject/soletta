@@ -282,6 +282,26 @@ bool sol_util_iterate_dir(const char *path, bool (*iterate_dir_cb)(void *data, c
  */
 int sol_util_move_file(const char *old_path, const char *new_path, mode_t mode);
 
+#ifdef SOL_PLATFORM_LINUX
+/**
+ * @brief Wait for some file to become available.
+ *
+ * When dealing with sysfs, it's really common to perform an action that
+ * will create new files on sysfs. This function helps those who need
+ * to wait for some of these files.
+ *
+ * @param path where to look for the file
+ * @param nanoseconds how much time to wait
+ *
+ * @return @c true if file come to existence before @a nanoseconds.
+ * @c false if wait ended after timeout
+ *
+ * @note This function blocks current thread on a busy wait. Use with
+ * caution.
+ */
+bool sol_util_busy_wait_file(const char *path, uint64_t nanoseconds);
+#endif
+
 /**
  * @}
  */
