@@ -670,7 +670,7 @@ sol_util_clear_memory_secure(void *buf, size_t len)
  *         NAN, @c INF (positive or negative). See the strtod(3)
  *         documentation for the details.
  */
-double sol_util_strtodn(const char *nptr, char **endptr, ssize_t len, bool use_locale);
+double sol_util_strtod_n(const char *nptr, char **endptr, ssize_t len, bool use_locale);
 
 /**
  * @brief Wrapper over strtol() that consumes up to @c len bytes
@@ -696,7 +696,7 @@ double sol_util_strtodn(const char *nptr, char **endptr, ssize_t len, bool use_l
  *
  * @return the converted value, if any.
  */
-long int sol_util_strtol(const char *nptr, char **endptr, ssize_t len, int base);
+long int sol_util_strtol_n(const char *nptr, char **endptr, ssize_t len, int base);
 
 /**
  * @brief Wrapper over strtoul() that consumes up to @c len bytes
@@ -722,7 +722,7 @@ long int sol_util_strtol(const char *nptr, char **endptr, ssize_t len, int base)
  *
  * @return the converted value, if any.
  */
-unsigned long int sol_util_strtoul(const char *nptr, char **endptr, ssize_t len, int base);
+unsigned long int sol_util_strtoul_n(const char *nptr, char **endptr, ssize_t len, int base);
 
 /**
  * @brief Swaps the bytes of a 16 bytes unsigned int

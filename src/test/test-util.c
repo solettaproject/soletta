@@ -225,7 +225,7 @@ test_strtodn(void)
             continue;
         }
 
-        value = sol_util_strtodn(buf, &endptr, slen, itr->use_locale);
+        value = sol_util_strtod_n(buf, &endptr, slen, itr->use_locale);
         reterr = errno;
 
         endptr_offset = endptr - buf;

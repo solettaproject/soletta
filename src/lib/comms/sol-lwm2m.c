@@ -398,7 +398,7 @@ fill_client_objects(struct sol_lwm2m_client_info *cinfo,
     int r;
 
 #define TO_INT(_data, _endptr, _len, _i, _label) \
-    _i = sol_util_strtol(_data, &_endptr, _len, 10); \
+    _i = sol_util_strtol_n(_data, &_endptr, _len, 10); \
     if (_endptr == _data || errno != 0 ) { \
         SOL_WRN("Could not convert object to int. (%.*s)", \
             SOL_STR_SLICE_PRINT(*object)); \
@@ -590,7 +590,7 @@ fill_client_info(struct sol_lwm2m_client_info *cinfo,
             SOL_NULL_CHECK_GOTO(cinfo->name, err_cinfo_prop);
         } else if (sol_str_slice_str_eq(key, "lt")) {
             char *endptr;
-            cinfo->lifetime = sol_util_strtoul(value.data, &endptr,
+            cinfo->lifetime = sol_util_strtoul_n(value.data, &endptr,
                 value.len, 10);
             if (endptr == value.data || errno != 0) {
                 SOL_WRN("Could not convert the lifetime to integer."
@@ -2191,7 +2191,7 @@ extract_path(struct sol_lwm2m_client *client, struct sol_coap_packet *req,
         i < count; i++, j++) {
         char *end;
         //Only numbers are allowed.
-        path_id[j] = sol_util_strtoul(path[i].data, &end, path[i].len, 10);
+        path_id[j] = sol_util_strtoul_n(path[i].data, &end, path[i].len, 10);
         if (end == path[i].data || end != path[i].data + path[i].len ||
             errno != 0) {
             SOL_WRN("Could not convert %.*s to integer",
@@ -3873,7 +3873,7 @@ sol_lwm2m_notify_observers(struct sol_lwm2m_client *client, const char **paths)
             char *end;
             if (j == 0)
                 continue;
-            path[k++] = sol_util_strtoul(token->data, &end, token->len, 10);
+            path[k++] = sol_util_strtoul_n(token->data, &end, token->len, 10);
             if (end == token->data || end != token->data + token->len ||
                 errno != 0) {
                 r = -errno;

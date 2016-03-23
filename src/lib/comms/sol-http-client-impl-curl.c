@@ -659,7 +659,7 @@ set_headers_from_params(CURL *curl, const struct sol_http_params *params,
 
         if (sol_str_slice_str_caseeq(key, "Content-Length")) {
             curl_off_t len;
-            len = sol_util_strtol(iter->value.key_value.value.data, NULL,
+            len = sol_util_strtol_n(iter->value.key_value.value.data, NULL,
                 iter->value.key_value.value.len, 0);
 
             curl_easy_setopt(curl, CURLOPT_POSTFIELDSIZE_LARGE, len);
