@@ -620,7 +620,7 @@ sol_platform_impl_set_system_clock(int64_t timestamp)
     service = sol_bus_client_get_service(_ctx.timedate);
     SOL_NULL_CHECK(service, -EINVAL);
 
-    r = sol_util_int64_mul(timestamp, SOL_USEC_PER_SEC, &timestamp_micro);
+    r = sol_util_int64_mul(timestamp, SOL_UTIL_USEC_PER_SEC, &timestamp_micro);
     SOL_INT_CHECK(r, < 0, r);
 
     bus = sol_bus_get(NULL);
