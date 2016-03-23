@@ -66,9 +66,15 @@ struct sol_list {
 
 /**
  * @def SOL_LIST_INIT
- * @brief Helper macro to initialize a @c sol_list structure.
+ * @brief Helper macro to initialize a @c sol_list structure. Example:
+ *
+ * @code
+ * struct sol_list mylist = SOL_LIST_INIT(mylist);
+ * @endcode
+ *
+ * @param name List to be initialized
  */
-#define SOL_LIST_INIT { NULL, NULL }
+#define SOL_LIST_INIT(name) { &(name), &(name) }
 
 /**
  * @def SOL_LIST_GET_CONTAINER(list, type, member)
