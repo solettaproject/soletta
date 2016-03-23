@@ -18,6 +18,7 @@
 
 #define JS_CODE_START \
     "#include \"duktape.h\"\n" \
+    "#include \"sol-macros.h\"\n" \
     "struct js_metatype_port_in {\n" \
     "    struct sol_flow_port_type_in base;\n" \
     "    const char *name;\n" \
@@ -720,6 +721,9 @@
     "}\n" \
     "static int\n" \
     "js_metatype_simple_port_process(struct sol_flow_node *node, void *data, uint16_t port, uint16_t conn_id,\n" \
+    "    const struct sol_flow_packet *packet) SOL_ATTR_UNUSED;\n" \
+    "static int\n" \
+    "js_metatype_simple_port_process(struct sol_flow_node *node, void *data, uint16_t port, uint16_t conn_id,\n" \
     "    const struct sol_flow_packet *packet)\n" \
     "{\n" \
     "    duk_context **duk_ctx = data;\n" \
@@ -733,6 +737,8 @@
     "    duk_pop_n(*duk_ctx, 3);\n" \
     "    return r;\n" \
     "}\n" \
+    "static int js_metatype_composed_port_process(struct sol_flow_node *node, void *data,\n" \
+    "    uint16_t port, uint16_t conn_id, const struct sol_flow_packet *packet) SOL_ATTR_UNUSED;\n" \
     "static int\n" \
     "js_metatype_composed_port_process(struct sol_flow_node *node, void *data,\n" \
     "    uint16_t port, uint16_t conn_id, const struct sol_flow_packet *packet)\n" \
