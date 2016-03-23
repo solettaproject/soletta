@@ -727,7 +727,7 @@ unsigned long int sol_util_strtoul(const char *nptr, char **endptr, ssize_t len,
 /**
  * @brief Swaps the bytes of a 16 bytes unsigned int
  */
-#define sol_uint16_bytes_swap(val) \
+#define sol_util_uint16_bytes_swap(val) \
     ((uint16_t)((((val) >> 8) & 0xff) | (((val) & 0xff) << 8)))
 
 /**
@@ -746,7 +746,7 @@ static inline uint16_t
 sol_util_cpu_to_be16(uint16_t val)
 {
 #if __BYTE_ORDER__ == __ORDER_LITTLE_ENDIAN__
-    return sol_uint16_bytes_swap(val);
+    return sol_util_uint16_bytes_swap(val);
 #else
     return val;
 #endif
@@ -768,7 +768,7 @@ static inline uint16_t
 sol_util_cpu_to_le16(uint16_t val)
 {
 #if __BYTE_ORDER__ == __ORDER_BIG_ENDIAN__
-    return sol_uint16_bytes_swap(val);
+    return sol_util_uint16_bytes_swap(val);
 #else
     return val;
 #endif
@@ -790,7 +790,7 @@ static inline uint16_t
 sol_util_be16_to_cpu(uint16_t val)
 {
 #if __BYTE_ORDER__ == __ORDER_LITTLE_ENDIAN__
-    return sol_uint16_bytes_swap(val);
+    return sol_util_uint16_bytes_swap(val);
 #else
     return val;
 #endif
@@ -812,7 +812,7 @@ static inline uint16_t
 sol_util_le16_to_cpu(uint16_t val)
 {
 #if __BYTE_ORDER__ == __ORDER_BIG_ENDIAN__
-    return sol_uint16_bytes_swap(val);
+    return sol_util_uint16_bytes_swap(val);
 #else
     return val;
 #endif
@@ -821,7 +821,7 @@ sol_util_le16_to_cpu(uint16_t val)
 /**
  * @brief Swaps the bytes of a 32 bytes unsigned int
  */
-#define sol_uint32_bytes_swap(val) \
+#define sol_util_uint32_bytes_swap(val) \
     ((uint32_t)((((val) & 0xff000000) >> 24) | (((val) & 0x00ff0000) >>  8) | \
     (((val) & 0x0000ff00) <<  8) | (((val) & 0x000000ff) << 24)))
 
@@ -841,7 +841,7 @@ static inline uint32_t
 sol_util_cpu_to_be32(uint32_t val)
 {
 #if __BYTE_ORDER__ == __ORDER_LITTLE_ENDIAN__
-    return sol_uint32_bytes_swap(val);
+    return sol_util_uint32_bytes_swap(val);
 #else
     return val;
 #endif
@@ -863,7 +863,7 @@ static inline uint32_t
 sol_util_cpu_to_le32(uint32_t val)
 {
 #if __BYTE_ORDER__ == __ORDER_BIG_ENDIAN__
-    return sol_uint32_bytes_swap(val);
+    return sol_util_uint32_bytes_swap(val);
 #else
     return val;
 #endif
@@ -885,7 +885,7 @@ static inline uint32_t
 sol_util_be32_to_cpu(uint32_t val)
 {
 #if __BYTE_ORDER__ == __ORDER_LITTLE_ENDIAN__
-    return sol_uint32_bytes_swap(val);
+    return sol_util_uint32_bytes_swap(val);
 #else
     return val;
 #endif
@@ -907,7 +907,7 @@ static inline uint32_t
 sol_util_le32_to_cpu(uint32_t val)
 {
 #if __BYTE_ORDER__ == __ORDER_BIG_ENDIAN__
-    return sol_uint32_bytes_swap(val);
+    return sol_util_uint32_bytes_swap(val);
 #else
     return val;
 #endif
@@ -916,7 +916,7 @@ sol_util_le32_to_cpu(uint32_t val)
 /**
  * @brief Swaps the bytes of a 32 bytes unsigned int
  */
-#define sol_uint64_bytes_swap(val) \
+#define sol_util_uint64_bytes_swap(val) \
     ((uint64_t)((((val) & 0xff00000000000000ull) >> 56) \
     | (((val) & 0x00ff000000000000ull) >> 40) | (((val) & 0x0000ff0000000000ull) >> 24) \
     | (((val) & 0x000000ff00000000ull) >> 8) | (((val) & 0x00000000ff000000ull) << 8) \
@@ -939,7 +939,7 @@ static inline uint64_t
 sol_util_cpu_to_be64(uint64_t val)
 {
 #if __BYTE_ORDER__ == __ORDER_LITTLE_ENDIAN__
-    return sol_uint64_bytes_swap(val);
+    return sol_util_uint64_bytes_swap(val);
 #else
     return val;
 #endif
@@ -961,7 +961,7 @@ static inline uint64_t
 sol_util_cpu_to_le64(uint64_t val)
 {
 #if __BYTE_ORDER__ == __ORDER_BIG_ENDIAN__
-    return sol_uint64_bytes_swap(val);
+    return sol_util_uint64_bytes_swap(val);
 #else
     return val;
 #endif
@@ -983,7 +983,7 @@ static inline uint64_t
 sol_util_be64_to_cpu(uint64_t val)
 {
 #if __BYTE_ORDER__ == __ORDER_LITTLE_ENDIAN__
-    return sol_uint64_bytes_swap(val);
+    return sol_util_uint64_bytes_swap(val);
 #else
     return val;
 #endif
@@ -1005,7 +1005,7 @@ static inline uint64_t
 sol_util_le64_to_cpu(uint64_t val)
 {
 #if __BYTE_ORDER__ == __ORDER_BIG_ENDIAN__
-    return sol_uint64_bytes_swap(val);
+    return sol_util_uint64_bytes_swap(val);
 #else
     return val;
 #endif
