@@ -456,7 +456,7 @@ struct sol_lwm2m_object {
      * The @c tlvs arrays contains #sol_lwm2m_tlv which is the
      * data that the LWM2M server demands to be written.
      * Since TLV is a binary type, one must call
-     * #sol_lwm2m_tlv_to_int and friends function to obtain the TLV value.
+     * #sol_lwm2m_tlv_get_int and friends function to obtain the TLV value.
      *
      * @param instance_data The instance data.
      * @param user_data The data provided during sol_lwm2m_client_new().
@@ -591,7 +591,7 @@ int sol_lwm2m_client_stop(struct sol_lwm2m_client *client);
  * @param client The client to send the update request.
  * @return 0 on success, -errno on error.
  */
-int sol_lwm2m_send_update(struct sol_lwm2m_client *client);
+int sol_lwm2m_client_send_update(struct sol_lwm2m_client *client);
 
 /**
  * @brief Notifies all the observing LWM2M servers that a resource has changed.
@@ -606,7 +606,7 @@ int sol_lwm2m_send_update(struct sol_lwm2m_client *client);
  * write in a object resource, the LWM2M client infrastruct will automatically notify all
  * observing servers.
  */
-int sol_lwm2m_notify_observers(struct sol_lwm2m_client *client, const char **paths);
+int sol_lwm2m_client_notify(struct sol_lwm2m_client *client, const char **paths);
 
 /**
  * @brief Clears a #sol_lwm2m_resource.
@@ -676,7 +676,7 @@ typedef void (*sol_lwm2m_server_registration_event_cb)(void *data,
  * @param content The reponse content.
  * @param data User data.
  * @see sol_lwm2m_server_add_observer()
- * @see sol_lwm2m_server_management_read()
+ * @see sol_lwm2m_server_read()
  * @see sol_lwm2m_parse_tlv()
  */
 typedef void (*sol_lwm2m_server_content_cb)
@@ -696,10 +696,10 @@ typedef void (*sol_lwm2m_server_content_cb)
  * @param path The client's path
  * @param response_code The operation's @c response_code
  * @param data User data.
- * @see sol_lwl2m_server_management_write()
- * @see sol_lwl2m_server_management_execute()
- * @see sol_lwl2m_server_management_create()
- * @see sol_lwl2m_server_management_delete()
+ * @see sol_lwm2m_server_write()
+ * @see sol_lwm2m_server_execute_resource()
+ * @see sol_lwm2m_server_create_object_instance()
+ * @see sol_lwm2m_server_delete_object_instance()
  */
 typedef void (*sol_lwm2m_server_management_status_response_cb)(
     void *data,
@@ -732,7 +732,7 @@ int sol_lwm2m_parse_tlv(const struct sol_str_slice content, struct sol_vector *t
  *
  * @param tlvs The TLVs array to be cleared.
  */
-void sol_lwm2m_tlv_array_clear(struct sol_vector *tlvs);
+void sol_lwm2m_tlv_list_clear(struct sol_vector *tlvs);
 
 /**
  * @brief Clear a TLV.
@@ -748,7 +748,7 @@ void sol_lwm2m_tlv_clear(struct sol_lwm2m_tlv *tlv);
  * @param value The converted value.
  * @return 0 on success, -errno on error.
  */
-int sol_lwm2m_tlv_to_float(struct sol_lwm2m_tlv *tlv, double *value);
+int sol_lwm2m_tlv_get_float(struct sol_lwm2m_tlv *tlv, double *value);
 
 /**
  * @brief Converts an TLV value to boolean value.
@@ -757,7 +757,7 @@ int sol_lwm2m_tlv_to_float(struct sol_lwm2m_tlv *tlv, double *value);
  * @param value The converted value.
  * @return 0 on success, -errno on error.
  */
-int sol_lwm2m_tlv_to_bool(struct sol_lwm2m_tlv *tlv, bool *value);
+int sol_lwm2m_tlv_get_bool(struct sol_lwm2m_tlv *tlv, bool *value);
 
 /**
  * @brief Converts an TLV value to int value.
@@ -766,7 +766,7 @@ int sol_lwm2m_tlv_to_bool(struct sol_lwm2m_tlv *tlv, bool *value);
  * @param value The converted value.
  * @return 0 on success, -errno on error.
  */
-int sol_lwm2m_tlv_to_int(struct sol_lwm2m_tlv *tlv, int64_t *value);
+int sol_lwm2m_tlv_get_int(struct sol_lwm2m_tlv *tlv, int64_t *value);
 
 /**
  *
@@ -786,7 +786,7 @@ int sol_lwm2m_tlv_get_bytes(struct sol_lwm2m_tlv *tlv, uint8_t **bytes, uint16_t
  * @param instance_id the instance id.
  * @return 0 on success, -errno on error.
  */
-int sol_lwm2m_tlv_to_obj_link(struct sol_lwm2m_tlv *tlv, uint16_t *object_id, uint16_t *instance_id);
+int sol_lwm2m_tlv_get_obj_link(struct sol_lwm2m_tlv *tlv, uint16_t *object_id, uint16_t *instance_id);
 
 /**
  * @brief Adds a registration monitor.
@@ -879,7 +879,7 @@ int sol_lwm2m_server_del_observer(struct sol_lwm2m_server *server,
  *
  * @see #sol_lwm2m_server_management_status_response_cb
  */
-int sol_lwm2m_server_management_write(struct sol_lwm2m_server *server,
+int sol_lwm2m_server_write(struct sol_lwm2m_server *server,
     struct sol_lwm2m_client_info *client, const char *path,
     struct sol_lwm2m_resource *resources, size_t len,
     sol_lwm2m_server_management_status_response_cb cb, const void *data);
@@ -896,7 +896,7 @@ int sol_lwm2m_server_management_write(struct sol_lwm2m_server *server,
  *
  * @see #sol_lwm2m_server_management_status_response_cb
  */
-int sol_lwm2m_server_management_delete(struct sol_lwm2m_server *server,
+int sol_lwm2m_server_delete_object_instance(struct sol_lwm2m_server *server,
     struct sol_lwm2m_client_info *client, const char *path,
     sol_lwm2m_server_management_status_response_cb cb, const void *data);
 
@@ -913,7 +913,7 @@ int sol_lwm2m_server_management_delete(struct sol_lwm2m_server *server,
  *
  * @see #sol_lwm2m_server_management_status_response_cb
  */
-int sol_lwm2m_server_management_execute(struct sol_lwm2m_server *server,
+int sol_lwm2m_server_execute_resource(struct sol_lwm2m_server *server,
     struct sol_lwm2m_client_info *client, const char *path, const char *args,
     sol_lwm2m_server_management_status_response_cb cb, const void *data);
 
@@ -933,7 +933,7 @@ int sol_lwm2m_server_management_execute(struct sol_lwm2m_server *server,
  *
  * @see #sol_lwm2m_server_management_status_response_cb
  */
-int sol_lwm2m_server_management_create(struct sol_lwm2m_server *server,
+int sol_lwm2m_server_create_object_instance(struct sol_lwm2m_server *server,
     struct sol_lwm2m_client_info *client, const char *path,
     struct sol_lwm2m_resource *resources, size_t len,
     sol_lwm2m_server_management_status_response_cb cb, const void *data);
@@ -950,7 +950,7 @@ int sol_lwm2m_server_management_create(struct sol_lwm2m_server *server,
  *
  * @see #sol_lwm2m_server_content_cb
  */
-int sol_lwm2m_server_management_read(struct sol_lwm2m_server *server,
+int sol_lwm2m_server_read(struct sol_lwm2m_server *server,
     struct sol_lwm2m_client_info *client, const char *path,
     sol_lwm2m_server_content_cb cb, const void *data);
 
@@ -991,7 +991,7 @@ const char *sol_lwm2m_client_info_get_location(const struct sol_lwm2m_client_inf
  * @param client The LWM2M client info.
  * @return The SMS number or @c NULL.
  */
-const char *sol_lwm2m_client_info_get_sms(const struct sol_lwm2m_client_info *client);
+const char *sol_lwm2m_client_info_get_sms_number(const struct sol_lwm2m_client_info *client);
 
 /**
  * @brief Gets the client objects path.

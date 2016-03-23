@@ -132,7 +132,7 @@ location_changed_cb(void *data,
         printf("Client %s %s is %.*s\n", name, prop, (int)len, bytes);
     }
 
-    sol_lwm2m_tlv_array_clear(&tlvs);
+    sol_lwm2m_tlv_list_clear(&tlvs);
 }
 
 static void
@@ -210,7 +210,7 @@ create_location_obj(struct sol_lwm2m_server *server,
         return;
     }
 
-    r = sol_lwm2m_server_management_create(server, cinfo, "/6", res,
+    r = sol_lwm2m_server_create_object_instance(server, cinfo, "/6", res,
         SOL_UTIL_ARRAY_SIZE(res), create_cb, NULL);
 
     for (i = 0; i < SOL_UTIL_ARRAY_SIZE(res); i++)

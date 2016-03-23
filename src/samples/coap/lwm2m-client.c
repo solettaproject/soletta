@@ -108,7 +108,7 @@ change_location(void *data)
     printf("New latitude: %s - New longitude: %s\n", instance_ctx->latitude,
         instance_ctx->longitude);
 
-    r = sol_lwm2m_notify_observers(instance_ctx->client, paths);
+    r = sol_lwm2m_client_notify(instance_ctx->client, paths);
 
     if (r < 0) {
         fprintf(stderr, "Could not notify the observers\n");
@@ -182,7 +182,7 @@ create_location_obj(void *user_data, struct sol_lwm2m_client *client,
             r = sol_lwm2m_tlv_get_bytes(tlv, &bytes, &bytes_len);
             prop = &instance_ctx->longitude;
         } else
-            r = sol_lwm2m_tlv_to_int(tlv, &instance_ctx->timestamp);
+            r = sol_lwm2m_tlv_get_int(tlv, &instance_ctx->timestamp);
 
         if (r < 0) {
             fprintf(stderr, "Could not get the tlv value for resource %"
@@ -204,13 +204,13 @@ create_location_obj(void *user_data, struct sol_lwm2m_client *client,
     instance_ctx->client = client;
     *instance_data = instance_ctx;
     *has_location_instance = true;
-    sol_lwm2m_tlv_array_clear(&tlvs);
+    sol_lwm2m_tlv_list_clear(&tlvs);
     printf("Location object created\n");
 
     return 0;
 
 err_free_tlvs:
-    sol_lwm2m_tlv_array_clear(&tlvs);
+    sol_lwm2m_tlv_list_clear(&tlvs);
 err_free_timeout:
     sol_timeout_del(instance_ctx->timeout);
     free(instance_ctx->longitude);
@@ -325,7 +325,7 @@ execute_server_obj(void *instance_data, void *user_data,
     if (res_id != SERVER_OBJ_REGISTRATION_UPDATE_RES_ID)
         return -EINVAL;
 
-    return sol_lwm2m_send_update(client);
+    return sol_lwm2m_client_send_update(client);
 }
 
 static int
