@@ -1,0 +1,22 @@
+DECLARE=http-light-server:fbp:http-server.fbp
+DECLARE=persistence-light-server:fbp:persistence.fbp
+
+oic_server(oic/server-light)
+http_server(http-light-server)
+
+persistence(persistence-light-server:default_state=true,default_power=100)
+
+http_server OUT_POWER -> IN_POWER persistence
+http_server OUT_STATE -> IN_STATE persistence
+
+persistence OUT_POWER -> IN_POWER http_server
+persistence OUT_STATE -> IN_STATE http_server
+
+oic_server OUT_POWER -> IN_POWER http_server
+oic_server OUT_STATE -> IN_STATE http_server
+
+http_server OUT_POWER -> IN_POWER oic_server
+http_server OUT_STATE -> IN_STATE oic_server
+
+# show machine-id as device-id
+_(platform/machine-id) OUT -> IN _(console:prefix="OIC device-id: ")

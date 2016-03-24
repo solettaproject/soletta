@@ -1,0 +1,35 @@
+OUTPORT=power_value.OUT:POWER
+OUTPORT=state_value.OUT:STATE
+
+INPORT=power_value.SET:POWER
+INPORT=state_value_from_boolean.IN:STATE
+
+increase_button(IncreaseButton)
+decrease_button(DecreaseButton)
+state_button(StateButton)
+quit_button(QuitButton)
+
+_(constant/string:value="Press 'a' to change state, 'j' to increase power and 'k' to decrease it, 'q' to quit.") OUT -> IN _(console:prefix="Hint: ")
+
+quit_button OUT -> QUIT _(app/quit)
+
+power_value(int/accumulator:setup_value=min:0|max:100|step:1,initial_value=50,send_initial_packet=false)
+state_value_as_int(int/accumulator:setup_value=min:0|max:1|step:1,send_initial_packet=false)
+
+increase_button OUT -> IN _(boolean/filter) TRUE -> INC power_value
+decrease_button OUT -> IN _(boolean/filter) TRUE -> DEC power_value
+
+power_value OUT -> IN _(console:prefix="Power value changed: ")
+
+state_button OUT -> IN _(boolean/filter) TRUE -> INC state_value_as_int
+
+state_value_from_boolean(converter/boolean-to-int)
+state_value(converter/int-to-boolean)
+
+# offer an entry point in the correct type (INPORT=...)
+state_value_from_boolean OUT -> SET state_value_as_int
+
+# provide final value with the correct type (OUTPORT=...)
+state_value_as_int OUT -> IN state_value
+
+state_value OUT -> IN _(console:prefix="State changed: ")

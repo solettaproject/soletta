@@ -1,0 +1,12 @@
+INPORT=power.IN:IN_POWER
+INPORT=state.IN:IN_STATE
+
+OUTPORT=power.OUT:OUT_POWER
+OUTPORT=state.OUT:OUT_STATE
+
+OPTION=power.default_value:default_power
+OPTION=state.default_value:default_state
+
+power(persistence/int:name="power",storage=fs)
+state(persistence/boolean:name="state",storage=fs)
+

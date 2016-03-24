@@ -1,0 +1,24 @@
+DECLARE=controller:fbp:controller.fbp
+
+cmdline_arguments(app/argc-argv)
+cmdline_arguments ERROR -> IN cmdline_usage(converter/empty-to-string:output_value="Missing device ID in the command line. Example: 2f3089a1dbfb43d38cab64383bdf9380") OUT -> IN _(console:prefix="ERROR: ")
+cmdline_usage OUT -> IN _(converter/empty-to-int:output_value=1) OUT -> CODE _(app/quit)
+_(constant/int:value=1) OUT -> IN cmdline_arguments
+
+# create a controller
+controller(controller)
+
+oic(oic/client-light)
+cmdline_arguments OUT -> DEVICE_ID oic
+
+oic OUT_POWER -> POWER controller
+oic OUT_STATE -> STATE controller
+
+controller POWER -> IN_POWER oic
+controller STATE -> IN_STATE oic
+
+# This prints server current state. It is not updated
+# when this client updates server though: only if server is changed
+# elsewhere `oic` node will send output packets.
+oic OUT_POWER -> IN _(console:prefix="Server power level is: ")
+oic OUT_STATE -> IN _(console:prefix="Server state is: ")

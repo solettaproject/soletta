@@ -1,0 +1,50 @@
+DECLARE=controller:fbp:controller.fbp
+
+# create a controller
+controller(controller)
+
+cmdline_arguments(app/argc-argv)
+cmdline_arguments ERROR -> IN cmdline_usage(converter/empty-to-string:output_value="Missing URL in the command line. Example: http://localhost:8002") OUT -> IN _(console:prefix="ERROR: ")
+cmdline_usage OUT -> IN _(converter/empty-to-int:output_value=1) OUT -> CODE _(app/quit)
+_(constant/int:value=1) OUT -> IN cmdline_arguments
+
+# Build URL for each resource
+state_url(string/concatenate:separator="/")
+cmdline_arguments OUT -> IN[0] state_url
+_(constant/string:value="state") OUT -> IN[1] state_url
+
+power_url(string/concatenate:separator="/")
+cmdline_arguments OUT -> IN[0] power_url
+_(constant/string:value="power") OUT -> IN[1] power_url
+
+# HTTP provides no callback or observe, so trigger will keep polling
+# server for status
+trigger_get(timer:interval=1000)
+
+note(console:prefix="note: ")
+
+http_power(http-client/int)
+power_url OUT -> URL http_power
+http_power ERROR -> IN _(converter/empty-to-string:output_value="Error communicating with HTTP server at /power. Check if the server is running.") OUT -> IN note 
+
+# load power level from server
+trigger_get OUT -> GET http_power
+http_power OUT -> POWER controller
+http_power OUT -> IN _(console:prefix="Server power level is: ")
+
+# Notify server of power level change
+controller POWER -> POST http_power
+
+# define http client for 'state' property
+http_state(http-client/boolean)
+http_state ERROR -> IN _(converter/empty-to-string:output_value="Error communicating with HTTP server at /state. Check if the server is running.") OUT -> IN note
+state_url OUT -> URL http_state
+
+# load state from server
+trigger_get OUT -> GET http_state
+http_state OUT -> STATE controller
+http_state OUT -> IN _(console:prefix="Server state is: ")
+
+# notify server of state change
+controller STATE -> POST http_state
+

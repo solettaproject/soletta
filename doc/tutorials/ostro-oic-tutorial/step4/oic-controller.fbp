@@ -1,0 +1,47 @@
+increase_button(keyboard/boolean:binary_code=106)
+decrease_button(keyboard/boolean:binary_code=107)
+state_button(keyboard/boolean:binary_code=97)
+quit_button(keyboard/boolean:binary_code=113)
+
+_(constant/string:value="Press 'a' to change state, 'j' to increase power and 'k' to decrease it, 'q' to quit.") OUT -> IN _(console:prefix="Hint: ")
+
+quit_button OUT -> QUIT _(app/quit)
+
+cmdline_arguments(app/argc-argv)
+cmdline_arguments ERROR -> IN cmdline_usage(converter/empty-to-string:output_value="Missing device ID in the command line. Example: 2f3089a1dbfb43d38cab64383bdf9380") OUT -> IN _(console:prefix="ERROR: ")
+cmdline_usage OUT -> IN _(converter/empty-to-int:output_value=1) OUT -> CODE _(app/quit)
+_(constant/int:value=1) OUT -> IN cmdline_arguments
+
+power_value(int/accumulator:setup_value=min:0|max:100|step:1,initial_value=50,send_initial_packet=false)
+state_value_as_int(int/accumulator:setup_value=min:0|max:1|step:1,send_initial_packet=false)
+
+increase_button OUT -> IN _(boolean/filter) TRUE -> INC power_value
+decrease_button OUT -> IN _(boolean/filter) TRUE -> DEC power_value
+
+power_value OUT -> IN _(console:prefix="Power value changed: ")
+
+oic(oic/client-light)
+cmdline_arguments OUT -> DEVICE_ID oic
+
+oic OUT_POWER -> SET power_value
+power_value OUT -> IN_POWER oic
+
+state_button OUT -> IN _(boolean/filter) TRUE -> INC state_value_as_int
+
+state_value_from_boolean(converter/boolean-to-int)
+state_value(converter/int-to-boolean)
+
+oic OUT_STATE -> IN state_value_from_boolean
+state_value OUT -> IN_STATE oic
+
+state_value_from_boolean OUT -> SET state_value_as_int
+state_value_as_int OUT -> IN state_value
+
+state_value OUT -> IN _(console:prefix="State changed: ")
+
+# This prints server current state. It is not updated
+# when this client updates server though: only if server is changed
+# elsewhere `oic` node will send output packets.
+oic OUT_POWER -> IN _(console:prefix="Server power level is: ")
+oic OUT_STATE -> IN _(console:prefix="Server state is: ")
+
