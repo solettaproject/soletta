@@ -1641,11 +1641,11 @@ send_string_packet(struct sol_flow_node *src, uint16_t src_port, const char *val
 if __name__ == '__main__':
     import argparse
     parser = argparse.ArgumentParser()
-    parser.add_argument("--schema-dir",
-                        help="Directory where JSON schemas are located. "
+    parser.add_argument("schema_dirs",
+                        help="Directories where JSON schemas are located. "
                         "Names must start with 'oic.r.' or 'core.' and use "
                         "extension '.json'",
-                        required=True)
+                        nargs="+")
     parser.add_argument("--node-type-json",
                         help="Path to store the master JSON with node type information",
                         required=True)
@@ -1671,22 +1671,24 @@ if __name__ == '__main__':
 
     generated = []
     print('Generating code for schemas: ', end='')
-    for path in (f for f in os.listdir(args.schema_dir) if seems_schema(f)):
-        print(path, end=', ')
+    for schema_dir in args.schema_dirs:
+        for path in (f for f in os.listdir(schema_dir) if seems_schema(f)):
+            print(path, end=', ')
 
-        try:
-            for code in generate_for_schema(args.schema_dir, path, json_name):
-                generated.append(code)
-        except KeyError as e:
-            if e.args[0] == 'array':
-                print("(arrays unsupported)", end=' ')
-            else:
-                raise e
-        except Exception as e:
-            print('Ignoring %s due to exception in generator. '
-                  'Traceback follows:' % path, file=sys.stderr)
-            traceback.print_exc(e, file=sys.stderr)
-            continue
+            try:
+                for code in generate_for_schema(schema_dir, path, \
+                        json_name):
+                    generated.append(code)
+            except KeyError as e:
+                if e.args[0] == 'array':
+                    print("(arrays unsupported)", end=' ')
+                else:
+                    raise e
+            except Exception as e:
+                print('Ignoring %s due to exception in generator. '
+                      'Traceback follows:' % path, file=sys.stderr)
+                traceback.print_exc(e, file=sys.stderr)
+                continue
 
     print('\nWriting master JSON: %s' % args.node_type_json)
     open(args.node_type_json, 'w+', encoding='UTF-8').write(
