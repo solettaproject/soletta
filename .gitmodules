@@ -18,3 +18,8 @@
 	url = https://github.com/mavlink/c_library.git
 	ignore = dirty
 	branch = master
+[submodule "src/thirdparty/oic-data-models"]
+	path = src/thirdparty/oic-data-models
+	url = https://github.com/OpenInterConnect/IoTDataModels
+	ignore = dirty
+	branch = master

@@ -58,7 +58,7 @@ Before you start, check the [build requirements](https://github.com/solettaproje
 
 Some Soletta parts depends on projects that can be fetched via
 git submodules:
- * OIC depends on [tinycbor](https://github.com/01org/tinycbor) and [tinydtls](https://projects.eclipse.org/projects/iot.tinydtls)
+ * OIC depends on [tinycbor](https://github.com/01org/tinycbor), [tinydtls](https://projects.eclipse.org/projects/iot.tinydtls) and [IoTDataModels](https://github.com/OpenInterConnect/IoTDataModels)
  * JS metatypes depends on [duktape](http://duktape.org/)
  * Mavlink API depends on [mavlink](http://qgroundcontrol.org/mavlink/start)
 
