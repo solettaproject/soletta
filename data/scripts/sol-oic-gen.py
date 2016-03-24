@@ -37,7 +37,7 @@ def load_json_schema(directory, path, schemas={}):
         return schemas[path]
 
     data = json.load(open(os.path.join(directory, path), "r", encoding='UTF-8'))
-    if not data['$schema'].startswith("http://json-schema.org/schema"):
+    if not data['$schema'].startswith("http://json-schema.org/"):
         raise ValueError("not a JSON schema")
 
     definitions = data.get("definitions", {})
