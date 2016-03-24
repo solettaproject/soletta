@@ -354,14 +354,15 @@ def generate_object_from_repr_vec_fn_common_c(name, props):
 
     update_state = []
     for field_name, field_props in props.items():
-        if not 'enum' in field_props and field_props.get('type') == 'string':
-            update_state.append("""\
+        if not 'enum' in field_props:
+            if field_props.get('type') == 'string':
+                update_state.append("""\
     if (check_updated_string(state->%(name)s, fields.%(name)s)) {
         free(state->%(name)s);\
 """ % {"name": field_name})
 
-        else:
-            update_state.append("""\
+            else:
+                update_state.append("""\
     if (%(c_check_updated)s(state->%(name)s, fields.%(name)s)) {\
 """ % {"name": field_name,
        "c_check_updated": JSON_TO_FLOW_CHECK_UPDATED[field_props['type']]})
