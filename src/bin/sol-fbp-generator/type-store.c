@@ -699,6 +699,23 @@ read_options(struct decoder *d, struct sol_vector *options)
 }
 
 static bool
+is_valid_symbol(const char *symbol)
+{
+    size_t i;
+
+    for (i = 0; symbol[i]; i++) {
+        if ((i == 0 && isdigit((int)symbol[i])) ||
+            (symbol[i] != '_' && !isalnum((int)symbol[i]))) {
+            fprintf(stderr, "Symbol '%s' with invalid character '%c' - pos: '%zu'\n",
+                    symbol, symbol[i], i);
+            return false;
+        }
+    }
+
+    return true;
+}
+
+static bool
 read_type(struct decoder *d, struct type_description *desc)
 {
     if (!accept(d, SOL_JSON_TYPE_OBJECT_START))
@@ -760,6 +777,10 @@ read_type(struct decoder *d, struct type_description *desc)
     if (!desc->name || !desc->symbol)
         return false;
 
+    if ((desc->options_symbol && !is_valid_symbol(desc->options_symbol))
+        || !is_valid_symbol(desc->symbol))
+        return false;
+
     if (desc->options.len > 0 && !desc->options_symbol)
         return false;
 
@@ -796,6 +817,7 @@ type_store_read_from_json(struct type_store *store, struct sol_str_slice input)
         if (!read_type(&decoder, desc)) {
             type_description_fini(desc);
             sol_vector_del_last(&store->types);
+            return false;
         }
 
         if (peek(d) != SOL_JSON_TYPE_ELEMENT_SEP)
