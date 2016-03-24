@@ -766,11 +766,10 @@ int sol_lwm2m_tlv_get_int(struct sol_lwm2m_tlv *tlv, int64_t *value);
  *
  * @brief Get TLV content is plain bytes.
  * @param tlv The tlv data.
- * @param bytes The content.
- * @param len The length of @c bytes
+ * @param buf The buffer to store the content.
  * @return 0 on succes, -errno on error.
  */
-int sol_lwm2m_tlv_get_bytes(struct sol_lwm2m_tlv *tlv, uint8_t **bytes, uint16_t *len);
+int sol_lwm2m_tlv_get_bytes(struct sol_lwm2m_tlv *tlv, struct sol_buffer *buf);
 
 /**
  * @brief Converts an TLV value to object link.

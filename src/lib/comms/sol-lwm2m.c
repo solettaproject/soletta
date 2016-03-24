@@ -2149,19 +2149,14 @@ sol_lwm2m_tlv_get_obj_link(struct sol_lwm2m_tlv *tlv,
 }
 
 SOL_API int
-sol_lwm2m_tlv_get_bytes(struct sol_lwm2m_tlv *tlv, uint8_t **bytes,
-    uint16_t *len)
+sol_lwm2m_tlv_get_bytes(struct sol_lwm2m_tlv *tlv, struct sol_buffer *buf)
 {
     SOL_NULL_CHECK(tlv, -EINVAL);
-    SOL_NULL_CHECK(bytes, -EINVAL);
-    SOL_NULL_CHECK(len, -EINVAL);
+    SOL_NULL_CHECK(buf, -EINVAL);
     SOL_INT_CHECK(is_resource(tlv), < 0, -EINVAL);
     LWM2M_TLV_CHECK_API(tlv, -EINVAL);
 
-    *bytes = (uint8_t *)tlv->content.data;
-    *len = tlv->content.used;
-
-    return 0;
+    return sol_buffer_append_bytes(buf, (uint8_t *)tlv->content.data, tlv->content.used);
 }
 
 SOL_API void

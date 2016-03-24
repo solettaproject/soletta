@@ -112,8 +112,7 @@ location_changed_cb(void *data,
 
     SOL_VECTOR_FOREACH_IDX (&tlvs, tlv, i) {
         const char *prop;
-        uint8_t *bytes;
-        uint16_t len;
+        SOL_BUFFER_DECLARE_STATIC(buf, 32);
 
         if (tlv->id == LATITUDE_ID)
             prop = "latitude";
@@ -122,14 +121,15 @@ location_changed_cb(void *data,
         else
             continue;
 
-        r = sol_lwm2m_tlv_get_bytes(tlv, &bytes, &len);
+        r = sol_lwm2m_tlv_get_bytes(tlv, &buf);
         if (r < 0) {
             fprintf(stderr, "Could not get the %s value from client %s\n",
                 prop, name);
             break;
         }
 
-        printf("Client %s %s is %.*s\n", name, prop, (int)len, bytes);
+        printf("Client %s %s is %.*s\n", name, prop, (int)buf.used, (char *)buf.data);
+        sol_buffer_fini(&buf);
     }
 
     sol_lwm2m_tlv_list_clear(&tlvs);
