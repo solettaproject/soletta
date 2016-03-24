@@ -8,6 +8,14 @@
  * Links: [Site](http://duktape.org) -
    [Repository](https://github.com/svaarala/duktape)
 
+## OpenInterConnect - IoTDataModels
+  * oic-data-models are IoT data models to be used by OIC protocol.
+    JSON files in this repository should be used by sol-oic-gen to
+    create Soletta components for such resources.
+  * License: BSD 2-Clause as can see on [Readme.md](https://github.com/OpenInterConnect/IoTDataModels/blob/master/README.md)
+  * Links: [Site](http://openconnectivity.org/)
+  [Repository](https://github.com/OpenInterConnect/IoTDataModels)
+
 ## MAVLink
  * Lightweight communication protocol between Micro Air Vehicles (swarm)
    and/or ground control stations.
