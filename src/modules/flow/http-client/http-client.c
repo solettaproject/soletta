@@ -556,7 +556,7 @@ string_process_token(struct sol_flow_node *node,
     result = strndup(value->start + 1, value->end - value->start - 2);
     if (result) {
         return sol_flow_send_string_take_packet(node,
-            SOL_FLOW_NODE_TYPE_HTTP_CLIENT_BOOLEAN__OUT__OUT, result);
+            SOL_FLOW_NODE_TYPE_HTTP_CLIENT_STRING__OUT__OUT, result);
     }
 
     return -ENOMEM;
@@ -574,7 +574,7 @@ string_process_data(struct sol_flow_node *node,
 
     if (result) {
         return sol_flow_send_string_take_packet(node,
-            SOL_FLOW_NODE_TYPE_HTTP_CLIENT_BOOLEAN__OUT__OUT, result);
+            SOL_FLOW_NODE_TYPE_HTTP_CLIENT_STRING__OUT__OUT, result);
     }
 
     return -ENOMEM;
