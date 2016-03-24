@@ -607,6 +607,7 @@ resolve_i2c_path(const char *path, char **resolved_path)
         /* Let's wait up to one second */
         if (!sol_util_busy_wait_file(*resolved_path, SOL_NSEC_PER_SEC)) {
             ret = -ENODEV;
+            free(*resolved_path);
             goto end;
         }
     }
@@ -687,6 +688,7 @@ sol_memmap_remove_map(const struct sol_memmap_map *map)
                 sol_timeout_del(map_internal->timeout);
                 perform_pending_writes(map_internal);
             }
+            free(map_internal->resolved_path);
             return sol_vector_del(&memory_maps, i);
         }
     }
