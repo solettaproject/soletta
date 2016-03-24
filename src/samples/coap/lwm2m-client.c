@@ -169,17 +169,14 @@ create_location_obj(void *user_data, struct sol_lwm2m_client *client,
     }
 
     SOL_VECTOR_FOREACH_IDX (&tlvs, tlv, i) {
-        uint8_t *bytes;
-        uint16_t bytes_len;
+        SOL_BUFFER_DECLARE_STATIC(buf, 32);
         char **prop = NULL;
 
-        bytes_len = 0;
-
         if (tlv->id == LOCATION_OBJ_LATITUDE_RES_ID) {
-            r = sol_lwm2m_tlv_get_bytes(tlv, &bytes, &bytes_len);
+            r = sol_lwm2m_tlv_get_bytes(tlv, &buf);
             prop = &instance_ctx->latitude;
         } else if (tlv->id == LOCATION_OBJ_LONGITUDE_RES_ID) {
-            r = sol_lwm2m_tlv_get_bytes(tlv, &bytes, &bytes_len);
+            r = sol_lwm2m_tlv_get_bytes(tlv, &buf);
             prop = &instance_ctx->longitude;
         } else
             r = sol_lwm2m_tlv_get_int(tlv, &instance_ctx->timestamp);
@@ -190,8 +187,8 @@ create_location_obj(void *user_data, struct sol_lwm2m_client *client,
             goto err_free_tlvs;
         }
 
-        if (bytes_len) {
-            *prop = strndup((const char *)bytes, bytes_len);
+        if (buf.used) {
+            *prop = strndup((const char *)buf.data, buf.used);
             if (!*prop) {
                 r = -ENOMEM;
                 fprintf(stderr, "Could not copy the longitude/latitude"
@@ -199,6 +196,7 @@ create_location_obj(void *user_data, struct sol_lwm2m_client *client,
                 goto err_free_tlvs;
             }
         }
+        sol_buffer_fini(&buf);
     }
 
     instance_ctx->client = client;

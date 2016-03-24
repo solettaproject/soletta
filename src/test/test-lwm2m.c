@@ -135,7 +135,7 @@ server_object_read(void *instance_data, void *user_data,
 
 /*
    This function is used by the lwm2m client and server to check if the tlv
-   are its values are valid. However the lwm2m server will pass NULL as
+   and its values are valid. However the lwm2m server will pass NULL as
    the second argument.
  */
 static void
@@ -147,8 +147,8 @@ check_tlv_and_save(struct sol_vector *tlvs, struct dummy_ctx *ctx)
     int r;
 
     SOL_VECTOR_FOREACH_IDX (tlvs, tlv, i) {
-        uint8_t *buf;
-        uint16_t len, obj, instance;
+        SOL_BUFFER_DECLARE_STATIC(buf, 32); // watch sizes of STR and OPAQUE_STR
+        uint16_t obj, instance;
         bool b;
         int64_t int64;
         double fp;
@@ -156,22 +156,22 @@ check_tlv_and_save(struct sol_vector *tlvs, struct dummy_ctx *ctx)
         if (tlv->type == SOL_LWM2M_TLV_TYPE_RESOURCE_WITH_VALUE) {
             switch (tlv->id) {
             case DUMMY_OBJECT_STRING_ID:
-                r = sol_lwm2m_tlv_get_bytes(tlv, &buf, &len);
+                r = sol_lwm2m_tlv_get_bytes(tlv, &buf);
                 ASSERT(r == 0);
-                ASSERT(len == strlen(STR));
-                ASSERT(!memcmp(STR, buf, len));
+                ASSERT(buf.used == strlen(STR));
+                ASSERT(!memcmp(STR, buf.data, buf.used));
                 if (ctx) {
-                    ctx->str1 = strndup((const char *)buf, len);
+                    ctx->str1 = strndup((const char *)buf.data, buf.used);
                     ASSERT(ctx->str1 != NULL);
                 }
                 break;
             case DUMMY_OBJECT_OPAQUE_ID:
-                r = sol_lwm2m_tlv_get_bytes(tlv, &buf, &len);
+                r = sol_lwm2m_tlv_get_bytes(tlv, &buf);
                 ASSERT(r == 0);
-                ASSERT(len == strlen(OPAQUE_STR));
-                ASSERT(!memcmp(OPAQUE_STR, buf, len));
+                ASSERT(buf.used == strlen(OPAQUE_STR));
+                ASSERT(!memcmp(OPAQUE_STR, buf.data, buf.used));
                 if (ctx) {
-                    ctx->opaque = strndup((const char *)buf, len);
+                    ctx->opaque = strndup((const char *)buf.data, buf.used);
                     ASSERT(ctx->opaque != NULL);
                 }
                 break;
@@ -232,6 +232,7 @@ check_tlv_and_save(struct sol_vector *tlvs, struct dummy_ctx *ctx)
             if (ctx)
                 ctx->array[tlv->id] = int64;
         }
+        sol_buffer_fini(&buf);
     }
     first = false;
 }
