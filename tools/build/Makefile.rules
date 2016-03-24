@@ -89,7 +89,8 @@ parse-common-module = \
 	$(eval $(4)-type    := $($(5))) \
 	$(call gen-artifact,$(1),$(filter %.json,$(artifacts)),"",$(4)) \
 	$(if $(obj-$(1)-$(3)-oic), \
-		$(eval oic-gens     += $(dir $(2))) \
+		$(eval oic-gens             += $(dir $(2))) \
+		$(eval oic-gens-$(dir $(2)) := $(dir $(2)) $(obj-$(1)-$(3)-oic-dirs)) \
 	) \
 	$(foreach obj,$(mod-objs), \
 		$(eval dest-obj        := $($(obj)-dest-obj)) \
@@ -378,14 +379,14 @@ define make-oic-gen
 $(addprefix $(addprefix $(1), $(notdir $(abspath $(1)))), .json) $(addprefix $(addprefix $(1), $(notdir $(abspath $(1)))), .c) $(addprefix $(addprefix $(1), $(notdir $(abspath $(1)))), -gen.c) $(addprefix $(addprefix $(1), $(notdir $(abspath $(1)))), .h): $(FLOW_OIC_GEN_SCRIPT)
 	$(Q)echo "     "GEN"   "$$@
 	$(Q)$(PYTHON) $(FLOW_OIC_GEN_SCRIPT) \
-		--schema-dir=$(1) \
 		--node-type-json=$(addprefix $(addprefix $(1), $(notdir $(abspath $(1)))), .json) \
 		--node-type-impl=$(addprefix $(addprefix $(1), $(notdir $(abspath $(1)))), .c) \
 		--node-type-gen-c=$(addprefix $(notdir $(abspath $(1))), -gen.c) \
-		--node-type-gen-h=$(addprefix sol-flow/, $(addprefix $(notdir $(abspath $(1))), .h)) >/dev/null
+		--node-type-gen-h=$(addprefix sol-flow/, $(addprefix $(notdir $(abspath $(1))), .h)) \
+		$(2)
 	$(eval cleanup-files += $(addprefix $(addprefix $(1), $(notdir $(abspath $(1)))), .json) $(addprefix $(addprefix $(1), $(notdir $(abspath $(1)))), .c))
 endef
-$(foreach gen,$(sort $(oic-gens)),$(eval $(call make-oic-gen,$(gen))))
+$(foreach gen,$(sort $(oic-gens)),$(eval $(call make-oic-gen,$(gen),$(oic-gens-$(gen)))))
 
 define make-gen
 $($(1)-hdr) $($(1)-src) $($(1)-desc): $(1) $(NODE_TYPE_GEN_SCRIPT)
