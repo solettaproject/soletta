@@ -969,6 +969,8 @@ sol_platform_impl_load_locales(char **locale_cache)
         value.data = sep + 1;
         key.len = sep - key.data;
         value.len = strlen(line) - key.len - 1;
+        if (!value.len)
+            goto ignore;
 
         category = system_locale_to_sol_locale(key);
         if (category != SOL_PLATFORM_LOCALE_UNKNOWN) {
@@ -980,6 +982,8 @@ sol_platform_impl_load_locales(char **locale_cache)
             sol_buffer_fini(&buf);
             SOL_NULL_CHECK_GOTO(locale_cache[category], err_nomem);
         }
+
+ignore:
         free(line);
         line = NULL;
     }
