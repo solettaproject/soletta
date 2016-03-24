@@ -1668,6 +1668,10 @@ if __name__ == '__main__':
     args = parser.parse_args()
 
     def seems_schema(path):
+        # TODO properly handle update, batch and error files
+        if path.endswith('-Update.json') or path.endswith('-Error.json') or \
+            path.endswith('-Batch.json'):
+            return False
         return path.endswith('.json') and (path.startswith('oic.r.') or path.startswith('core.'))
 
     json_name = os.path.basename(args.node_type_json)
