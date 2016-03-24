@@ -1687,7 +1687,7 @@ if __name__ == '__main__':
             except Exception as e:
                 print('Ignoring %s due to exception in generator. '
                       'Traceback follows:' % path, file=sys.stderr)
-                traceback.print_exc(e, file=sys.stderr)
+                traceback.print_exc(file=sys.stderr)
                 continue
 
     print('\nWriting master JSON: %s' % args.node_type_json)
