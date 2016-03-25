@@ -194,7 +194,7 @@ sol_mainloop_common_timeout_process(void)
             continue;
         }
 
-        sol_util_timespec_sum(&now, &timeout->timeout, &timeout->expire);
+        sol_util_timespec_add(&now, &timeout->timeout, &timeout->expire);
         r = sol_ptr_vector_update_sorted(&TIMEOUT_PROCESS, i, timeout_compare);
         if (r < 0)
             break;
@@ -558,14 +558,14 @@ sol_mainloop_impl_timeout_add(uint32_t timeout_ms, bool (*cb)(void *data), const
 
     sol_mainloop_impl_lock();
 
-    timeout->timeout.tv_sec = timeout_ms / SOL_MSEC_PER_SEC;
-    timeout->timeout.tv_nsec = (timeout_ms % SOL_MSEC_PER_SEC) * SOL_NSEC_PER_MSEC;
+    timeout->timeout.tv_sec = timeout_ms / SOL_UTIL_MSEC_PER_SEC;
+    timeout->timeout.tv_nsec = (timeout_ms % SOL_UTIL_MSEC_PER_SEC) * SOL_UTIL_NSEC_PER_MSEC;
     timeout->cb = cb;
     timeout->data = data;
     timeout->remove_me = false;
 
     now = sol_util_timespec_get_current();
-    sol_util_timespec_sum(&now, &timeout->timeout, &timeout->expire);
+    sol_util_timespec_add(&now, &timeout->timeout, &timeout->expire);
     ret = sol_ptr_vector_insert_sorted(&timeout_vector, timeout, timeout_compare);
     SOL_INT_CHECK_GOTO(ret, < 0, clean);
 

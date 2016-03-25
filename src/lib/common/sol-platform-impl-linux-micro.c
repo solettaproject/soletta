@@ -344,7 +344,7 @@ load_initial_services(void)
     };
     int err = 0;
 
-    for (itr = paths; itr < paths + SOL_UTIL_ARRAY_SIZE(paths); itr++) {
+    for (itr = paths; itr < paths + sol_util_array_size(paths); itr++) {
         struct sol_file_reader *reader = sol_file_reader_open(*itr);
         if (!reader && errno == ENOENT) {
             SOL_DBG("no initial services to load at '%s'", *itr);
@@ -384,7 +384,7 @@ setup_pid1(void)
     int err;
     pid_t pid;
 
-    for (mnt = mount_table; mnt < mount_table + SOL_UTIL_ARRAY_SIZE(mount_table); mnt++) {
+    for (mnt = mount_table; mnt < mount_table + sol_util_array_size(mount_table); mnt++) {
         const char *source = mnt->source ? mnt->source : "none";
 
         SOL_DBG("creating %s", mnt->target);
@@ -418,7 +418,7 @@ setup_pid1(void)
         }
     }
 
-    for (sym = symlink_table; sym < symlink_table + SOL_UTIL_ARRAY_SIZE(symlink_table); sym++) {
+    for (sym = symlink_table; sym < symlink_table + sol_util_array_size(symlink_table); sym++) {
         SOL_DBG("symlinking '%s' to '%s'", sym->source, sym->target);
         err = symlink(sym->target, sym->source);
         if (err < 0) {
@@ -498,7 +498,7 @@ teardown_pid1(void)
                 continue;
             }
 
-            for (idx = 0; idx < SOL_UTIL_ARRAY_SIZE(mount_table); idx++) {
+            for (idx = 0; idx < sol_util_array_size(mount_table); idx++) {
                 if (streq(mount_table[idx].target, path)) {
                     should_umount = false;
                     break;
@@ -625,7 +625,7 @@ gdb_exec(const char *gdb_comm)
         _exit(EXIT_FAILURE);
     }
 
-    for (i = 0; i < SOL_UTIL_ARRAY_SIZE(paths); i++) {
+    for (i = 0; i < sol_util_array_size(paths); i++) {
         if (execl(paths[i], paths[i], gdb_comm, argv[0], NULL) == -1)
             SOL_DBG("failed to exec %s - %s", paths[i],
                 sol_util_strerrora(errno));
@@ -949,7 +949,7 @@ sol_platform_impl_set_target(const char *target)
 static int
 validate_machine_id(char id[SOL_STATIC_ARRAY_SIZE(33)])
 {
-    if (!sol_util_uuid_str_valid(id))
+    if (!sol_util_uuid_str_is_valid(id))
         return -EINVAL;
 
     return 0;

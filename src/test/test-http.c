@@ -100,7 +100,7 @@ test_split_urls(void)
         SET_PARAMS("foo://@localhost", "foo", "", "", "localhost", "", "", "", 0, 0, false),
     };
 
-    for (i = 0; i < SOL_UTIL_ARRAY_SIZE(test_split); i++) {
+    for (i = 0; i < sol_util_array_size(test_split); i++) {
         struct sol_http_url splitted;
         struct sol_http_params params;
         struct sol_buffer out_uri = SOL_BUFFER_INIT_EMPTY;

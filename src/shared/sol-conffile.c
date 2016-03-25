@@ -646,7 +646,7 @@ _load_json_from_dirs(const char *file, char **full_path, struct sol_file_reader 
 
     search_dirs[0] = curr_dir = get_current_dir_name();
 
-    for (i = 0; i < SOL_UTIL_ARRAY_SIZE(search_dirs); i++) {
+    for (i = 0; i < sol_util_array_size(search_dirs); i++) {
         char *filename;
 
         if (asprintf(&filename, "%s/%s", search_dirs[i], file) < 0 || !filename) {
@@ -860,7 +860,7 @@ _add_lookup_path(struct sol_vector *vector, char *appname, char *appdir, const c
 
     _add_formated_lookup_path(&files, "sol-flow.json");
 
-    for (i = 0; i < SOL_UTIL_ARRAY_SIZE(search_dirs); i++) {
+    for (i = 0; i < sol_util_array_size(search_dirs); i++) {
         if (!search_dirs[i])
             continue;
 

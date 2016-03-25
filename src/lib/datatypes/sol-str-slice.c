@@ -33,7 +33,7 @@ sol_str_slice_to_int(const struct sol_str_slice s, int *value)
     SOL_INT_CHECK(s.len, == 0, -EINVAL);
     SOL_NULL_CHECK(value, -EINVAL);
 
-    v = sol_util_strtol(s.data, &endptr, s.len, 0);
+    v = sol_util_strtol_n(s.data, &endptr, s.len, 0);
 
     if (errno)
         return -errno;

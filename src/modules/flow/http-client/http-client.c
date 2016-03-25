@@ -715,7 +715,7 @@ float_process_data(struct sol_flow_node *node,
     SOL_HTTP_RESPONSE_CHECK_API(response, EINVAL);
 
     errno = 0;
-    value = sol_util_strtodn(response->content.data, NULL, -1, false);
+    value = sol_util_strtod_n(response->content.data, NULL, -1, false);
     if (errno)
         return -errno;
 
@@ -821,7 +821,7 @@ hex_str_to_decimal(const char *start, ssize_t len, uint32_t *value)
     char *endptr = NULL;
 
     errno = 0;
-    *value = sol_util_strtoul(start, &endptr, len, 16);
+    *value = sol_util_strtoul_n(start, &endptr, len, 16);
 
     if (errno != 0 || endptr == start) {
         SOL_WRN("Could not convert the string '%.*s' to decimal",
@@ -1000,7 +1000,7 @@ direction_vector_process_data(struct sol_flow_node *node,
 
         errno = 0;
         endptr = NULL;
-        components[i] = sol_util_strtodn(token.data, &endptr, len, false);
+        components[i] = sol_util_strtod_n(token.data, &endptr, len, false);
 
         if (errno != 0 || endptr == token.data) {
             SOL_WRN("Could not parse the component to double. '%.*s'",

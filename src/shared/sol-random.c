@@ -104,7 +104,7 @@ static bool
 engine_mt19937_init(struct sol_random *generic, uint64_t seed)
 {
     struct sol_random_mt19937 *engine = (struct sol_random_mt19937 *)generic;
-    const size_t state_array_size = SOL_UTIL_ARRAY_SIZE(engine->state);
+    const size_t state_array_size = sol_util_array_size(engine->state);
     size_t i;
 
     if (!seed)
@@ -122,7 +122,7 @@ static uint32_t
 engine_mt19937_generate_uint32(struct sol_random *generic)
 {
     struct sol_random_mt19937 *engine = (struct sol_random_mt19937 *)generic;
-    const size_t state_array_size = SOL_UTIL_ARRAY_SIZE(engine->state);
+    const size_t state_array_size = sol_util_array_size(engine->state);
     uint32_t y;
 
     if (engine->index == 0) {
@@ -284,7 +284,7 @@ sol_random_new(const struct sol_random_impl *impl, uint64_t seed)
 
     engine->impl = impl;
     if (!engine->impl->init(engine, seed)) {
-        sol_util_secure_clear_memory(engine, impl->struct_size);
+        sol_util_clear_memory_secure(engine, impl->struct_size);
         free(engine);
         return NULL;
     }
@@ -300,7 +300,7 @@ sol_random_del(struct sol_random *engine)
     if (engine->impl->shutdown)
         engine->impl->shutdown(engine);
 
-    sol_util_secure_clear_memory(engine, engine->impl->struct_size);
+    sol_util_clear_memory_secure(engine, engine->impl->struct_size);
     free(engine);
 }
 

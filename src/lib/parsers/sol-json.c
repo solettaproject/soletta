@@ -403,7 +403,7 @@ sol_json_token_get_double(const struct sol_json_token *token, double *value)
     SOL_NULL_CHECK(token, -EINVAL);
     SOL_NULL_CHECK(value, -EINVAL);
 
-    *value = sol_util_strtodn(token->start, &endptr,
+    *value = sol_util_strtod_n(token->start, &endptr,
         sol_json_token_get_size(token), false);
 
     r = -errno;

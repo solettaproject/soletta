@@ -74,7 +74,7 @@ sol_util_memdup(const void *data, size_t len)
 }
 
 SOL_API long int
-sol_util_strtol(const char *nptr, char **endptr, ssize_t len, int base)
+sol_util_strtol_n(const char *nptr, char **endptr, ssize_t len, int base)
 {
     char *tmpbuf, *tmpbuf_endptr;
     long int r;
@@ -93,7 +93,7 @@ sol_util_strtol(const char *nptr, char **endptr, ssize_t len, int base)
 }
 
 SOL_API unsigned long int
-sol_util_strtoul(const char *nptr, char **endptr, ssize_t len, int base)
+sol_util_strtoul_n(const char *nptr, char **endptr, ssize_t len, int base)
 {
     char *tmpbuf, *tmpbuf_endptr;
     unsigned long int r;
@@ -111,7 +111,7 @@ sol_util_strtoul(const char *nptr, char **endptr, ssize_t len, int base)
 }
 
 SOL_API double
-sol_util_strtodn(const char *nptr, char **endptr, ssize_t len, bool use_locale)
+sol_util_strtod_n(const char *nptr, char **endptr, ssize_t len, bool use_locale)
 {
     char *tmpbuf, *tmpbuf_endptr;
     double value;
@@ -325,14 +325,14 @@ sol_util_uuid_gen(bool upcase,
     r = uuid_gen(&uuid);
     SOL_INT_CHECK(r, < 0, r);
 
-    for (i = 0; i < SOL_UTIL_ARRAY_SIZE(uuid.bytes); i++) {
+    for (i = 0; i < sol_util_array_size(uuid.bytes); i++) {
         r = sol_buffer_append_printf(&buf, upcase ? "%02hhX" : "%02hhx",
             uuid.bytes[i]);
         SOL_INT_CHECK_GOTO(r, < 0, err);
     }
 
     if (with_hyphens) {
-        for (i = 0; i < SOL_UTIL_ARRAY_SIZE(hyphens_pos); i++) {
+        for (i = 0; i < sol_util_array_size(hyphens_pos); i++) {
             r = sol_buffer_insert_slice(&buf, hyphens_pos[i], hyphen);
             SOL_INT_CHECK_GOTO(r, < 0, err);
         }
@@ -883,7 +883,7 @@ sol_util_uint32_mul(const uint32_t a, const uint32_t b, uint32_t *out)
 }
 
 SOL_API bool
-sol_util_uuid_str_valid(const char *str)
+sol_util_uuid_str_is_valid(const char *str)
 {
     size_t i, len;
 

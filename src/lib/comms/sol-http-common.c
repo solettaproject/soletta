@@ -688,7 +688,7 @@ _get_authority(const struct sol_str_slice partial_uri,
         port_slice.len = itr - port_slice.data;
         if (port_slice.len) {
             char *endptr;
-            *port = sol_util_strtol(port_slice.data, &endptr,
+            *port = sol_util_strtol_n(port_slice.data, &endptr,
                 port_slice.len, 10);
             if (endptr == port_slice.data) {
                 SOL_WRN("Could not convert the host port to integer."

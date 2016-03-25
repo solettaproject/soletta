@@ -151,9 +151,9 @@ clear_queue(struct sol_vector *vec)
     uint16_t idx;
 
     SOL_VECTOR_FOREACH_IDX (vec, item, idx) {
-        sol_util_secure_clear_memory(item->buffer.data, item->buffer.capacity);
+        sol_util_clear_memory_secure(item->buffer.data, item->buffer.capacity);
         sol_buffer_fini(&item->buffer);
-        sol_util_secure_clear_memory(item, sizeof(*item));
+        sol_util_clear_memory_secure(item, sizeof(*item));
     }
 
     sol_vector_clear(vec);
@@ -163,7 +163,7 @@ static void
 free_queue(struct sol_vector *vec)
 {
     clear_queue(vec);
-    sol_util_secure_clear_memory(vec, sizeof(*vec));
+    sol_util_clear_memory_secure(vec, sizeof(*vec));
 }
 
 static void
@@ -181,7 +181,7 @@ sol_socket_dtls_del(struct sol_socket *socket)
 
     sol_socket_del(s->wrapped);
 
-    sol_util_secure_clear_memory(s, sizeof(*s));
+    sol_util_clear_memory_secure(s, sizeof(*s));
     free(s);
 }
 
@@ -207,10 +207,10 @@ static int
 remove_item_from_vector(struct sol_vector *vec, struct queue_item *item,
     int retval)
 {
-    sol_util_secure_clear_memory(item->buffer.data, item->buffer.capacity);
+    sol_util_clear_memory_secure(item->buffer.data, item->buffer.capacity);
     sol_buffer_fini(&item->buffer);
 
-    sol_util_secure_clear_memory(item, sizeof(*item));
+    sol_util_clear_memory_secure(item, sizeof(*item));
     sol_vector_del(vec, 0);
 
     return retval;
@@ -247,7 +247,7 @@ sol_socket_dtls_recvmsg(struct sol_socket *socket, void *buf, size_t len, struct
     }
 
     memcpy(buf, item->buffer.data, len);
-    sol_util_secure_clear_memory(item->buffer.data, len);
+    sol_util_clear_memory_secure(item->buffer.data, len);
 
     buf_copy = sol_util_memdup((const char *)item->buffer.data + len,
         item->buffer.used - len);
@@ -365,7 +365,7 @@ call_user_read_cb(struct dtls_context_t *ctx, session_t *session, uint8_t *buf, 
     }
 
     buf_copy = sol_util_memdup(buf, len);
-    sol_util_secure_clear_memory(buf, len);
+    sol_util_clear_memory_secure(buf, len);
     SOL_NULL_CHECK(buf_copy, -EINVAL);
 
     item = sol_vector_append(&socket->read.queue);
@@ -387,7 +387,7 @@ call_user_read_cb(struct dtls_context_t *ctx, session_t *session, uint8_t *buf, 
     return -EINVAL;
 
 no_item:
-    sol_util_secure_clear_memory(buf_copy, len);
+    sol_util_clear_memory_secure(buf_copy, len);
     free(buf_copy);
     return -ENOMEM;
 }
@@ -430,9 +430,9 @@ encrypt_payload(struct sol_socket_dtls *s)
     else
         SOL_DBG("Sent everything, will remove from queue");
 
-    sol_util_secure_clear_memory(item->buffer.data, item->buffer.capacity);
+    sol_util_clear_memory_secure(item->buffer.data, item->buffer.capacity);
     sol_buffer_fini(&item->buffer);
-    sol_util_secure_clear_memory(item, sizeof(*item));
+    sol_util_clear_memory_secure(item, sizeof(*item));
     sol_vector_del(&s->write.queue, 0);
 
     return true;
@@ -692,10 +692,10 @@ creds_add(struct creds *creds, const char *id, size_t id_len,
     return true;
 
 no_psk:
-    sol_util_secure_clear_memory(item->id, strlen(id));
+    sol_util_clear_memory_secure(item->id, strlen(id));
     free(item->id);
 no_id:
-    sol_util_secure_clear_memory(item, sizeof(*item));
+    sol_util_clear_memory_secure(item, sizeof(*item));
     sol_vector_del_last(&creds->items);
 
     return false;
@@ -708,18 +708,18 @@ creds_clear(struct creds *creds)
     uint16_t idx;
 
     SOL_VECTOR_FOREACH_IDX (&creds->items, iter, idx) {
-        sol_util_secure_clear_memory(iter->id, DTLS_PSK_ID_LEN);
-        sol_util_secure_clear_memory(iter->psk, DTLS_PSK_KEY_LEN);
+        sol_util_clear_memory_secure(iter->id, DTLS_PSK_ID_LEN);
+        sol_util_clear_memory_secure(iter->psk, DTLS_PSK_KEY_LEN);
 
         free(iter->id);
         free(iter->psk);
     }
     sol_vector_clear(&creds->items);
 
-    sol_util_secure_clear_memory(creds->id, strlen(creds->id));
+    sol_util_clear_memory_secure(creds->id, strlen(creds->id));
     free(creds->id);
 
-    sol_util_secure_clear_memory(creds, sizeof(*creds));
+    sol_util_clear_memory_secure(creds, sizeof(*creds));
 }
 
 static bool
@@ -848,7 +848,7 @@ sol_socket_dtls_set_handshake_cipher(struct sol_socket *s,
 
     SOL_INT_CHECK(socket->dtls_magic, != dtls_magic, -EINVAL);
 
-    if ((size_t)cipher >= SOL_UTIL_ARRAY_SIZE(conv_tbl))
+    if ((size_t)cipher >= sol_util_array_size(conv_tbl))
         return -EINVAL;
 
     dtls_select_cipher(socket->context, conv_tbl[cipher]);

@@ -71,7 +71,7 @@ find_getty_cmd(void)
     const char **itr, **itr_end;
 
     itr = cmds;
-    itr_end = itr + SOL_UTIL_ARRAY_SIZE(cmds);
+    itr_end = itr + sol_util_array_size(cmds);
     for (; itr < itr_end; itr++) {
         if (access(*itr, R_OK | X_OK) == 0)
             return *itr;
@@ -251,7 +251,7 @@ parse_var(const char *start, size_t len)
     const struct spec *itr, *itr_end;
 
     itr = specs;
-    itr_end = itr + SOL_UTIL_ARRAY_SIZE(specs);
+    itr_end = itr + sol_util_array_size(specs);
     for (; itr < itr_end; itr++) {
         if (itr->prefixlen < len &&
             memcmp(itr->prefix, start, itr->prefixlen) == 0) {

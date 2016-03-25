@@ -51,32 +51,32 @@ extern "C" {
 /**
  * @brief Calculates the number of elements in an array
  */
-#define SOL_UTIL_ARRAY_SIZE(arr) (sizeof(arr) / sizeof((arr)[0]))
+#define sol_util_array_size(arr) (sizeof(arr) / sizeof((arr)[0]))
 
 /**
  * @brief number of nanoseconds in a second: 1,000,000,000.
  */
-#define SOL_NSEC_PER_SEC 1000000000ULL
+#define SOL_UTIL_NSEC_PER_SEC 1000000000ULL
 
 /**
  * @brief number of milliseconds in a second: 1,000.
  */
-#define SOL_MSEC_PER_SEC 1000ULL
+#define SOL_UTIL_MSEC_PER_SEC 1000ULL
 
 /**
  * @brief number of microseconds in a second: 1,000,000.
  */
-#define SOL_USEC_PER_SEC 1000000ULL
+#define SOL_UTIL_USEC_PER_SEC 1000000ULL
 
 /**
  * @brief number of nanoseconds in a milliseconds: 1,000,000,000 / 1,000 = 1,000,000.
  */
-#define SOL_NSEC_PER_MSEC 1000000ULL
+#define SOL_UTIL_NSEC_PER_MSEC 1000000ULL
 
 /**
  * @brief  number of nanoseconds in a microsecond: 1,000,000,000 / 1,000,000 = 1,000.
  */
-#define SOL_NSEC_PER_USEC 1000ULL
+#define SOL_UTIL_NSEC_PER_USEC 1000ULL
 
 /**
  * @brief Gets the current time (Monotonic).
@@ -103,12 +103,12 @@ int sol_util_timespec_get_realtime(struct timespec *t);
  * @param result Variable used to store the sum's result.
  */
 static inline void
-sol_util_timespec_sum(const struct timespec *t1, const struct timespec *t2, struct timespec *result)
+sol_util_timespec_add(const struct timespec *t1, const struct timespec *t2, struct timespec *result)
 {
     result->tv_nsec = t1->tv_nsec + t2->tv_nsec;
     result->tv_sec = t1->tv_sec + t2->tv_sec;
-    if ((unsigned long long)result->tv_nsec >= SOL_NSEC_PER_SEC) {
-        result->tv_nsec -= SOL_NSEC_PER_SEC;
+    if ((unsigned long long)result->tv_nsec >= SOL_UTIL_NSEC_PER_SEC) {
+        result->tv_nsec -= SOL_UTIL_NSEC_PER_SEC;
         result->tv_sec++;
     }
 }
@@ -126,7 +126,7 @@ sol_util_timespec_sub(const struct timespec *t1, const struct timespec *t2, stru
     result->tv_nsec = t1->tv_nsec - t2->tv_nsec;
     result->tv_sec = t1->tv_sec - t2->tv_sec;
     if (result->tv_nsec < 0) {
-        result->tv_nsec += SOL_NSEC_PER_SEC;
+        result->tv_nsec += SOL_UTIL_NSEC_PER_SEC;
         result->tv_sec--;
     }
 }
@@ -164,8 +164,8 @@ sol_util_timespec_from_msec(const int msec)
 {
     struct timespec ts;
 
-    ts.tv_sec = msec / SOL_MSEC_PER_SEC;
-    ts.tv_nsec = (msec % SOL_MSEC_PER_SEC) * SOL_NSEC_PER_MSEC;
+    ts.tv_sec = msec / SOL_UTIL_MSEC_PER_SEC;
+    ts.tv_nsec = (msec % SOL_UTIL_MSEC_PER_SEC) * SOL_UTIL_NSEC_PER_MSEC;
     return ts;
 }
 
@@ -179,7 +179,7 @@ sol_util_timespec_from_msec(const int msec)
 static inline int
 sol_util_msec_from_timespec(const struct timespec *ts)
 {
-    return ts->tv_sec * SOL_MSEC_PER_SEC + ts->tv_nsec / SOL_NSEC_PER_MSEC;
+    return ts->tv_sec * SOL_UTIL_MSEC_PER_SEC + ts->tv_nsec / SOL_UTIL_NSEC_PER_MSEC;
 }
 
 /**
@@ -384,7 +384,7 @@ int sol_util_uuid_gen(bool upcase, bool with_hyphens, char id[SOL_STATIC_ARRAY_S
  *
  * @return @c true if it's valid, @c false otherwise.
  */
-bool sol_util_uuid_str_valid(const char *str);
+bool sol_util_uuid_str_is_valid(const char *str);
 
 /**
  * @brief Restricts a number between two other numbers.
@@ -632,7 +632,7 @@ sol_util_base16_calculate_decoded_len(const struct sol_str_slice slice)
  * @param len The buf length
  */
 static inline void
-sol_util_secure_clear_memory(void *buf, size_t len)
+sol_util_clear_memory_secure(void *buf, size_t len)
 {
     memset(buf, 0, len);
 
@@ -670,7 +670,7 @@ sol_util_secure_clear_memory(void *buf, size_t len)
  *         NAN, @c INF (positive or negative). See the strtod(3)
  *         documentation for the details.
  */
-double sol_util_strtodn(const char *nptr, char **endptr, ssize_t len, bool use_locale);
+double sol_util_strtod_n(const char *nptr, char **endptr, ssize_t len, bool use_locale);
 
 /**
  * @brief Wrapper over strtol() that consumes up to @c len bytes
@@ -696,7 +696,7 @@ double sol_util_strtodn(const char *nptr, char **endptr, ssize_t len, bool use_l
  *
  * @return the converted value, if any.
  */
-long int sol_util_strtol(const char *nptr, char **endptr, ssize_t len, int base);
+long int sol_util_strtol_n(const char *nptr, char **endptr, ssize_t len, int base);
 
 /**
  * @brief Wrapper over strtoul() that consumes up to @c len bytes
@@ -722,12 +722,12 @@ long int sol_util_strtol(const char *nptr, char **endptr, ssize_t len, int base)
  *
  * @return the converted value, if any.
  */
-unsigned long int sol_util_strtoul(const char *nptr, char **endptr, ssize_t len, int base);
+unsigned long int sol_util_strtoul_n(const char *nptr, char **endptr, ssize_t len, int base);
 
 /**
  * @brief Swaps the bytes of a 16 bytes unsigned int
  */
-#define sol_uint16_bytes_swap(val) \
+#define sol_util_uint16_bytes_swap(val) \
     ((uint16_t)((((val) >> 8) & 0xff) | (((val) & 0xff) << 8)))
 
 /**
@@ -746,7 +746,7 @@ static inline uint16_t
 sol_util_cpu_to_be16(uint16_t val)
 {
 #if __BYTE_ORDER__ == __ORDER_LITTLE_ENDIAN__
-    return sol_uint16_bytes_swap(val);
+    return sol_util_uint16_bytes_swap(val);
 #else
     return val;
 #endif
@@ -768,7 +768,7 @@ static inline uint16_t
 sol_util_cpu_to_le16(uint16_t val)
 {
 #if __BYTE_ORDER__ == __ORDER_BIG_ENDIAN__
-    return sol_uint16_bytes_swap(val);
+    return sol_util_uint16_bytes_swap(val);
 #else
     return val;
 #endif
@@ -790,7 +790,7 @@ static inline uint16_t
 sol_util_be16_to_cpu(uint16_t val)
 {
 #if __BYTE_ORDER__ == __ORDER_LITTLE_ENDIAN__
-    return sol_uint16_bytes_swap(val);
+    return sol_util_uint16_bytes_swap(val);
 #else
     return val;
 #endif
@@ -812,7 +812,7 @@ static inline uint16_t
 sol_util_le16_to_cpu(uint16_t val)
 {
 #if __BYTE_ORDER__ == __ORDER_BIG_ENDIAN__
-    return sol_uint16_bytes_swap(val);
+    return sol_util_uint16_bytes_swap(val);
 #else
     return val;
 #endif
@@ -821,7 +821,7 @@ sol_util_le16_to_cpu(uint16_t val)
 /**
  * @brief Swaps the bytes of a 32 bytes unsigned int
  */
-#define sol_uint32_bytes_swap(val) \
+#define sol_util_uint32_bytes_swap(val) \
     ((uint32_t)((((val) & 0xff000000) >> 24) | (((val) & 0x00ff0000) >>  8) | \
     (((val) & 0x0000ff00) <<  8) | (((val) & 0x000000ff) << 24)))
 
@@ -841,7 +841,7 @@ static inline uint32_t
 sol_util_cpu_to_be32(uint32_t val)
 {
 #if __BYTE_ORDER__ == __ORDER_LITTLE_ENDIAN__
-    return sol_uint32_bytes_swap(val);
+    return sol_util_uint32_bytes_swap(val);
 #else
     return val;
 #endif
@@ -863,7 +863,7 @@ static inline uint32_t
 sol_util_cpu_to_le32(uint32_t val)
 {
 #if __BYTE_ORDER__ == __ORDER_BIG_ENDIAN__
-    return sol_uint32_bytes_swap(val);
+    return sol_util_uint32_bytes_swap(val);
 #else
     return val;
 #endif
@@ -885,7 +885,7 @@ static inline uint32_t
 sol_util_be32_to_cpu(uint32_t val)
 {
 #if __BYTE_ORDER__ == __ORDER_LITTLE_ENDIAN__
-    return sol_uint32_bytes_swap(val);
+    return sol_util_uint32_bytes_swap(val);
 #else
     return val;
 #endif
@@ -907,7 +907,7 @@ static inline uint32_t
 sol_util_le32_to_cpu(uint32_t val)
 {
 #if __BYTE_ORDER__ == __ORDER_BIG_ENDIAN__
-    return sol_uint32_bytes_swap(val);
+    return sol_util_uint32_bytes_swap(val);
 #else
     return val;
 #endif
@@ -916,7 +916,7 @@ sol_util_le32_to_cpu(uint32_t val)
 /**
  * @brief Swaps the bytes of a 32 bytes unsigned int
  */
-#define sol_uint64_bytes_swap(val) \
+#define sol_util_uint64_bytes_swap(val) \
     ((uint64_t)((((val) & 0xff00000000000000ull) >> 56) \
     | (((val) & 0x00ff000000000000ull) >> 40) | (((val) & 0x0000ff0000000000ull) >> 24) \
     | (((val) & 0x000000ff00000000ull) >> 8) | (((val) & 0x00000000ff000000ull) << 8) \
@@ -939,7 +939,7 @@ static inline uint64_t
 sol_util_cpu_to_be64(uint64_t val)
 {
 #if __BYTE_ORDER__ == __ORDER_LITTLE_ENDIAN__
-    return sol_uint64_bytes_swap(val);
+    return sol_util_uint64_bytes_swap(val);
 #else
     return val;
 #endif
@@ -961,7 +961,7 @@ static inline uint64_t
 sol_util_cpu_to_le64(uint64_t val)
 {
 #if __BYTE_ORDER__ == __ORDER_BIG_ENDIAN__
-    return sol_uint64_bytes_swap(val);
+    return sol_util_uint64_bytes_swap(val);
 #else
     return val;
 #endif
@@ -983,7 +983,7 @@ static inline uint64_t
 sol_util_be64_to_cpu(uint64_t val)
 {
 #if __BYTE_ORDER__ == __ORDER_LITTLE_ENDIAN__
-    return sol_uint64_bytes_swap(val);
+    return sol_util_uint64_bytes_swap(val);
 #else
     return val;
 #endif
@@ -1005,7 +1005,7 @@ static inline uint64_t
 sol_util_le64_to_cpu(uint64_t val)
 {
 #if __BYTE_ORDER__ == __ORDER_BIG_ENDIAN__
-    return sol_uint64_bytes_swap(val);
+    return sol_util_uint64_bytes_swap(val);
 #else
     return val;
 #endif

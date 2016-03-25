@@ -1128,7 +1128,7 @@ error_create_dtls_server:
     sol_coap_server_unref(client->server);
 
 error_create_server:
-    sol_util_secure_clear_memory(client, sizeof(*client));
+    sol_util_clear_memory_secure(client, sizeof(*client));
     free(client);
 
     return NULL;
@@ -1144,6 +1144,6 @@ sol_oic_client_del(struct sol_oic_client *client)
     if (client->dtls_server)
         sol_coap_server_unref(client->dtls_server);
 
-    sol_util_secure_clear_memory(client, sizeof(*client));
+    sol_util_clear_memory_secure(client, sizeof(*client));
     free(client);
 }

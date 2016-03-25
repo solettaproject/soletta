@@ -54,7 +54,7 @@ SOL_LOG_INTERNAL_DECLARE(_sol_mavlink_log_domain, "mavlink");
 #define TYPE_MODE_MAPPING(_mode_map, _type) \
     { \
         .mapping = (struct sol_mavlink_mode_mapping *)_mode_map, \
-        .len = SOL_UTIL_ARRAY_SIZE(_mode_map), \
+        .len = sol_util_array_size(_mode_map), \
         .type = _type, \
     } \
 
@@ -255,7 +255,7 @@ sol_mavlink_armed_transition(struct sol_mavlink *mavlink, uint8_t base_mode)
     if (mavlink->custom_mode_enabled)
         mask = MAV_MODE_FLAG_CUSTOM_MODE_ENABLED;
 
-    for (i = 0; i < SOL_UTIL_ARRAY_SIZE(armed_transitions); i++) {
+    for (i = 0; i < sol_util_array_size(armed_transitions); i++) {
         uint8_t from, to;
         const struct sol_mavlink_armed_trans *curr = &armed_transitions[i];
 

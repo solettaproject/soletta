@@ -62,7 +62,7 @@ on_fork(void *data)
         NULL
     };
 
-    for (i = 0; i < SOL_UTIL_ARRAY_SIZE(daemon_possible_paths); i++) {
+    for (i = 0; i < sol_util_array_size(daemon_possible_paths); i++) {
         argv[0] = daemon_possible_paths[i];
         SOL_INF("attempting to exec %s", daemon_possible_paths[i]);
         execvpe(argv[0], (char *const *)argv, (char *const *)envp);

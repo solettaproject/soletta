@@ -43,7 +43,7 @@ sol_mainloop_impl_platform_init(void)
 
     nano_fifo_init(&_sol_mainloop_pending_events);
     nano_fifo_init(&_sol_mainloop_free_events);
-    for (i = 0; i < SOL_UTIL_ARRAY_SIZE(_events); i++) {
+    for (i = 0; i < sol_util_array_size(_events); i++) {
         struct me_fifo_entry *mfe;
 
         mfe = &_events[i];

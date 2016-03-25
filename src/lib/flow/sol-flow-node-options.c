@@ -53,7 +53,7 @@ get_member_memory(const struct sol_flow_node_options_member_description *member,
         _min_val, _min_str, _min_str_len) \
     do { \
         char *start, *end, backup; \
-        int field_cnt_max = SOL_UTIL_ARRAY_SIZE(store_vals); \
+        int field_cnt_max = sol_util_array_size(store_vals); \
         if (keys_schema) break; \
         start = buf; \
         end = strchr(start, SUBOPTION_SEPARATOR); \
@@ -174,7 +174,7 @@ get_member_memory(const struct sol_flow_node_options_member_description *member,
 static inline double
 strtod_no_locale(const char *nptr, char **endptr)
 {
-    return sol_util_strtodn(nptr, endptr, -1, false);
+    return sol_util_strtod_n(nptr, endptr, -1, false);
 }
 
 static void
@@ -591,7 +591,7 @@ sol_flow_node_named_options_parse_member(
     if (m->type == 0) {
         r = -EINVAL;
         SOL_DBG("Unitialized member type for name=\"%s\": \"%s\"", m->name, value);
-    } else if (m->type < SOL_UTIL_ARRAY_SIZE(options_parse_functions)) {
+    } else if (m->type < sol_util_array_size(options_parse_functions)) {
         if (mdesc->required)
             init_member_suboptions(m);
         else

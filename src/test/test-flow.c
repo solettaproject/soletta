@@ -248,8 +248,8 @@ static const struct sol_flow_node_type test_node_type = {
 
     .init_type = test_node_init_type,
 
-    .ports_in_count = SOL_UTIL_ARRAY_SIZE(test_ports_in),
-    .ports_out_count = SOL_UTIL_ARRAY_SIZE(test_ports_out),
+    .ports_in_count = sol_util_array_size(test_ports_in),
+    .ports_out_count = sol_util_array_size(test_ports_out),
     .get_port_in = test_node_get_port_in,
     .get_port_out = test_node_get_port_out,
 };
@@ -1150,7 +1150,7 @@ named_options_init_from_strv(void)
         r = sol_flow_node_named_options_init_from_strv(&named_opts, node_type,
             strv);
         ASSERT(r >= 0);
-        ASSERT_INT_EQ(named_opts.count, SOL_UTIL_ARRAY_SIZE(strv) - 1);
+        ASSERT_INT_EQ(named_opts.count, sol_util_array_size(strv) - 1);
 
         m = named_opts.members;
         ASSERT_STR_EQ(m->name, "initial_value");
@@ -1166,7 +1166,7 @@ named_options_init_from_strv(void)
         r = sol_flow_node_named_options_init_from_strv(&named_opts, node_type,
             strv);
         ASSERT(r >= 0);
-        ASSERT_INT_EQ(named_opts.count, SOL_UTIL_ARRAY_SIZE(strv) - 1);
+        ASSERT_INT_EQ(named_opts.count, sol_util_array_size(strv) - 1);
 
         m = named_opts.members;
         ASSERT_STR_EQ(m->name, "setup_value");
@@ -1184,7 +1184,7 @@ named_options_init_from_strv(void)
         r = sol_flow_node_named_options_init_from_strv(&named_opts, node_type,
             strv);
         ASSERT(r >= 0);
-        ASSERT_INT_EQ(named_opts.count, SOL_UTIL_ARRAY_SIZE(strv) - 1);
+        ASSERT_INT_EQ(named_opts.count, sol_util_array_size(strv) - 1);
 
         m = named_opts.members;
         ASSERT_STR_EQ(m->name, "setup_value");
@@ -1219,7 +1219,7 @@ named_options_init_from_strv(void)
 
         r = sol_flow_node_named_options_init_from_strv(&named_opts, node_type, strv);
         ASSERT(r >= 0);
-        ASSERT_INT_EQ(named_opts.count, SOL_UTIL_ARRAY_SIZE(strv) - 1);
+        ASSERT_INT_EQ(named_opts.count, sol_util_array_size(strv) - 1);
 
         m = named_opts.members;
         ASSERT_STR_EQ(m->name, "pin");
@@ -1256,7 +1256,7 @@ named_options_init_from_strv(void)
 
         r = sol_flow_node_named_options_init_from_strv(&named_opts, node_type, strv);
         ASSERT(r >= 0);
-        ASSERT_INT_EQ(named_opts.count, SOL_UTIL_ARRAY_SIZE(strv) - 1);
+        ASSERT_INT_EQ(named_opts.count, sol_util_array_size(strv) - 1);
 
         m = named_opts.members;
         ASSERT_STR_EQ(m->name, "prefix");
@@ -1325,7 +1325,7 @@ node_options_new(void)
     /* One option */
     ASSERT(sol_flow_get_node_type("timer", SOL_FLOW_NODE_TYPE_TIMER, &node_type) == 0);
     named_opts.members = one_option;
-    named_opts.count = SOL_UTIL_ARRAY_SIZE(one_option);
+    named_opts.count = sol_util_array_size(one_option);
     r = sol_flow_node_options_new(node_type, &named_opts, &opts);
     ASSERT(r >= 0);
     timer_opts = (struct sol_flow_node_type_timer_options *)opts;
@@ -1334,13 +1334,13 @@ node_options_new(void)
 
     /* Unknown option */
     named_opts.members = unknown_option;
-    named_opts.count = SOL_UTIL_ARRAY_SIZE(unknown_option);
+    named_opts.count = sol_util_array_size(unknown_option);
     r = sol_flow_node_options_new(node_type, &named_opts, &opts);
     ASSERT(r < 0);
 
     /* Wrong type */
     named_opts.members = wrong_type;
-    named_opts.count = SOL_UTIL_ARRAY_SIZE(wrong_type);
+    named_opts.count = sol_util_array_size(wrong_type);
     r = sol_flow_node_options_new(node_type, &named_opts, &opts);
     ASSERT(r < 0);
 
@@ -1348,7 +1348,7 @@ node_options_new(void)
     /* Multiple options */
     ASSERT(sol_flow_get_node_type("pwm", SOL_FLOW_NODE_TYPE_PWM, &node_type) == 0);
     named_opts.members = multiple_options;
-    named_opts.count = SOL_UTIL_ARRAY_SIZE(multiple_options);
+    named_opts.count = sol_util_array_size(multiple_options);
     r = sol_flow_node_options_new(node_type, &named_opts, &opts);
     ASSERT(r >= 0);
     pwm_opts = (struct sol_flow_node_type_pwm_options *)opts;
@@ -1363,7 +1363,7 @@ node_options_new(void)
     /* String options */
     ASSERT(sol_flow_get_node_type("console", SOL_FLOW_NODE_TYPE_CONSOLE, &node_type) == 0);
     named_opts.members = string_options;
-    named_opts.count = SOL_UTIL_ARRAY_SIZE(string_options);
+    named_opts.count = sol_util_array_size(string_options);
     r = sol_flow_node_options_new(node_type, &named_opts, &opts);
     ASSERT(r >= 0);
     console_opts = (struct sol_flow_node_type_console_options *)opts;
