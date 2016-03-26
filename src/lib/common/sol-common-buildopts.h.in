@@ -19,6 +19,7 @@
 #pragma once
 
 {{
+st.on_value("PLATFORM_UNIX", "y", "#define SOL_PLATFORM_UNIX 1", "")
 st.on_value("PLATFORM_LINUX", "y", "#define SOL_PLATFORM_LINUX 1", "")
 st.on_value("PLATFORM_RIOTOS", "y", "#define SOL_PLATFORM_RIOT 1", "")
 st.on_value("PLATFORM_CONTIKI", "y", "#define SOL_PLATFORM_CONTIKI 1", "")
@@ -34,7 +35,7 @@ st.on_value("NO_API_VERSION_NEEDED", "y", "#define SOL_NO_API_VERSION 1", "")
 st.on_value("MODULES", "y", "#define SOL_DYNAMIC_MODULES 1", "")
 }}
 
-#ifdef SOL_PLATFORM_LINUX
+#ifdef SOL_PLATFORM_UNIX
 #define SOL_MAINLOOP_FD_ENABLED 1
 #define SOL_MAINLOOP_FORK_WATCH_ENABLED 1
 #endif

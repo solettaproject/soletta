@@ -32,6 +32,11 @@ config DETECT_BOARD_NAME
 config PLATFORM_LINUX
 	bool
 
+config PLATFORM_UNIX
+        bool "unix"
+	depends on HAVE_UNIX
+	default y
+
 choice
 	prompt "Target platform"
 	default PLATFORM_SYSTEMD if LINUX && HAVE_SYSTEMD
@@ -168,7 +173,7 @@ config MAINLOOP_ZEPHYR_MICRO
 
 choice
 	prompt "Mainloop"
-	default MAINLOOP_POSIX if LINUX
+        default MAINLOOP_POSIX if UNIX
 	default MAINLOOP_RIOTOS if RIOT
 	default MAINLOOP_CONTIKI if CONTIKI
 	default MAINLOOP_ZEPHYR if ZEPHYR
@@ -206,7 +211,7 @@ choice
 
 config MAINLOOP_GLIB
 	bool "glib"
-	depends on LINUX && HAVE_GLIB
+	depends on UNIX && HAVE_GLIB
 	help
             The mainloop is implementated on top of Glib.
 
@@ -221,7 +226,7 @@ config MAINLOOP_GLIB
 
 config MAINLOOP_POSIX
 	bool "posix"
-	depends on LINUX
+	depends on UNIX
 	help
             The mainloop is implementated on top of poll(2) syscall.
 
@@ -261,8 +266,8 @@ config PTHREAD
 
 config THREADS
 	bool "Thread safety"
-	depends on (HAVE_PTHREAD_H && LINUX) || RIOT
-	select PTHREAD if LINUX
+	depends on (HAVE_PTHREAD_H && UNIX) || RIOT
+	select PTHREAD if UNIX
 	default y
 	help
             Allow usage of threads in Soletta applications.

@@ -1,3 +1,4 @@
 config FLOW_NODE_TYPE_PLATFORM
 	tristate "Node type: platform"
+        depends on PLATFORM_RIOTOS || PLATFORM_CONTIKI || PLATFORM_LINUX
 	default y
