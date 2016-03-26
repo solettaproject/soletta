@@ -181,22 +181,22 @@ ptr_vector_find_sorted(const struct sol_ptr_vector *pv, uint16_t low, uint16_t h
 {
     uint16_t mid;
 
-    *dir = compare(ptr, sol_ptr_vector_get_nocheck(pv, low));
+    *dir = compare(ptr, sol_ptr_vector_get_no_check(pv, low));
     if (*dir <= 0 || low == high)
         return low;
 
-    *dir = compare(ptr, sol_ptr_vector_get_nocheck(pv, high));
+    *dir = compare(ptr, sol_ptr_vector_get_no_check(pv, high));
     if (*dir >= 0)
         return high;
 
     while (true) {
         if (low == high) {
-            *dir = compare(ptr, sol_ptr_vector_get_nocheck(pv, low));
+            *dir = compare(ptr, sol_ptr_vector_get_no_check(pv, low));
             return low;
         }
 
         mid = ((uint32_t)low + (uint32_t)high) >> 1;
-        *dir = compare(ptr, sol_ptr_vector_get_nocheck(pv, mid));
+        *dir = compare(ptr, sol_ptr_vector_get_no_check(pv, mid));
         if (*dir == 0)
             return mid;
         if (*dir < 0)
@@ -243,7 +243,7 @@ sol_ptr_vector_insert_sorted(struct sol_ptr_vector *pv, const void *ptr, int (*c
     index = ptr_vector_find_sorted(pv, 0, pv->base.len - 1, ptr, compare, &dir);
     while (dir == 0 && index < pv->base.len - 1U) {
         index++;
-        dir = compare(ptr, sol_ptr_vector_get_nocheck(pv, index));
+        dir = compare(ptr, sol_ptr_vector_get_no_check(pv, index));
     }
 
     if (dir >= 0)
@@ -267,15 +267,15 @@ sol_ptr_vector_update_sorted(struct sol_ptr_vector *pv, uint16_t i, int (*compar
     if (pv->base.len == 1)
         return 0;
 
-    ptr = sol_ptr_vector_get_nocheck(pv, i);
+    ptr = sol_ptr_vector_get_no_check(pv, i);
     if (i > 0) {
-        other = sol_ptr_vector_get_nocheck(pv, i - 1);
+        other = sol_ptr_vector_get_no_check(pv, i - 1);
         if (compare_cb(other, ptr) > 0)
             goto fix_it;
     }
 
     if (i + 1 < pv->base.len) {
-        other = sol_ptr_vector_get_nocheck(pv, i + 1);
+        other = sol_ptr_vector_get_no_check(pv, i + 1);
         if (compare_cb(ptr, other) >= 0)
             goto fix_it;
     }
