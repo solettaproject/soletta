@@ -293,11 +293,8 @@ http_composed_client_request_finished(void *data,
         return;
     }
 
-    if (!response->content.used) {
-        sol_flow_send_error_packet(node, EINVAL,
-            "Empty response from %s", cdata->url);
+    if (!response->content.used)
         return;
-    }
 
     if (streq(response->content_type, "application/json")) {
         struct sol_json_scanner scanner;
