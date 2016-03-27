@@ -569,6 +569,7 @@ http_server_handler(void *data, struct MHD_Connection *connection, const char *u
         sol_buffer_init(&req->buffer);
         req->connection = connection;
         *ptr = req;
+        req->method = http_server_get_method(method);
         return MHD_YES;
     }
 
@@ -576,7 +577,6 @@ http_server_handler(void *data, struct MHD_Connection *connection, const char *u
     MHD_get_connection_values(connection, MHD_GET_ARGUMENT_KIND, headers_iterator, req);
     MHD_get_connection_values(connection, MHD_COOKIE_KIND, headers_iterator, req);
 
-    req->method = http_server_get_method(method);
     switch (req->method) {
     case SOL_HTTP_METHOD_POST:
         req->len += *upload_data_size;
