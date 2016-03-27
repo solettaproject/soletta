@@ -296,10 +296,10 @@ end:
             "Could not serve request: %s", sol_util_strerrora(-r));
 
         sol_http_params_clear(&response.param);
-        r = sol_http_param_add(&response.param, SOL_HTTP_REQUEST_PARAM_HEADER(
-            HTTP_HEADER_CONTENT_TYPE, HTTP_HEADER_CONTENT_TYPE_TEXT));
-        if (r < 0)
+        if (!sol_http_param_add(&response.param, SOL_HTTP_REQUEST_PARAM_HEADER(
+            HTTP_HEADER_CONTENT_TYPE, HTTP_HEADER_CONTENT_TYPE_TEXT))) {
             SOL_WRN("could not set response content-type: text/plain: %s", sol_util_strerrora(-r));
+        }
 
         /* response_code was set before goto, so use as-is */
         sol_http_server_send_response(request, &response);
