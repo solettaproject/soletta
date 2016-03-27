@@ -606,7 +606,7 @@ http_server_handler(void *data, struct MHD_Connection *connection, const char *u
             copy = sol_buffer_steal(&req->buffer, &len);
             req->param.value.data.value = SOL_STR_SLICE_STR(copy, len);
             if (!sol_http_param_add(&req->params, req->param)) {
-                SOL_WRN("Could not add %.*s key",
+                SOL_WRN("Could not add %.*s value",
                     SOL_STR_SLICE_PRINT(req->param.value.data.value));
                 return MHD_NO;
             }
