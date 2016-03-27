@@ -33,7 +33,9 @@ obj-networking-$(PLATFORM_LINUX) += \
 
 obj-networking-$(COAP) += \
     coap.o \
-    sol-coap.o
+    sol-coap.o \
+    sol-coap-transport.o \
+    sol-coap-transport-ip.o
 
 obj-$(OIC) += tinycbor.mod
 
@@ -113,7 +115,9 @@ headers-$(NETWORK) += \
     include/sol-network.h
 
 headers-$(COAP) += \
-    include/sol-coap.h
+    include/sol-coap.h \
+    include/sol-coap-transport.h \
+    include/sol-coap-transport-ip.h
 
 headers-$(OIC) += \
     include/sol-oic-common.h \

@@ -25,6 +25,8 @@
 
 #include "tinycbor/cbor.h"
 #include "sol-coap.h"
+#include "sol-coap-transport.h"
+#include "sol-coap-transport-ip.h"
 #include "sol-json.h"
 #include "sol-log-internal.h"
 #include "sol-macros.h"
@@ -41,7 +43,9 @@ SOL_LOG_INTERNAL_DECLARE(_sol_oic_server_log_domain, "oic-server");
 
 struct sol_oic_server {
     struct sol_coap_server *server;
+    struct sol_coap_transport *transport;
     struct sol_coap_server *dtls_server;
+    struct sol_coap_transport *dtls_transport;
     struct sol_ptr_vector resources;
     struct sol_oic_platform_information *plat_info;
     struct sol_oic_server_information *server_info;
@@ -460,22 +464,29 @@ sol_oic_server_ref(void)
     server_info = init_static_server_info();
     SOL_NULL_CHECK_GOTO(server_info, error);
 
-    oic_server.server = sol_coap_server_new(&servaddr);
-    if (!oic_server.server) {
-        r = -ENOMEM;
-        goto error;
-    }
+    oic_server.transport = sol_coap_transport_ip_new(&servaddr);
+    SOL_NULL_CHECK_GOTO(oic_server.transport, error);
+
+    oic_server.server = sol_coap_server_new(oic_server.transport);
+    SOL_NULL_CHECK_GOTO(oic_server.transport, error);
 
     r = sol_coap_server_register_resource(oic_server.server,
         &oic_res_coap_resource, NULL);
     SOL_INT_CHECK_GOTO(r, < 0, error);
 
     servaddr.port = OIC_COAP_SERVER_DTLS_PORT;
-    oic_server.dtls_server = sol_coap_secure_server_new(&servaddr);
-    if (!oic_server.dtls_server) {
+
+    oic_server.dtls_transport = sol_coap_transport_ip_secure_new(&servaddr);
+    if (!oic_server.dtls_transport) {
         if (errno == ENOSYS) {
             SOL_INF("DTLS support not built in, OIC server running in insecure mode");
         } else {
+            SOL_INF("DTLS server could not be created for OIC server: %s",
+                sol_util_strerrora(errno));
+        }
+    } else {
+        oic_server.dtls_server = sol_coap_server_new(oic_server.dtls_transport);
+        if (!oic_server.dtls_transport) {
             SOL_INF("DTLS server could not be created for OIC server: %s",
                 sol_util_strerrora(errno));
         }
@@ -499,6 +510,10 @@ sol_oic_server_ref(void)
 error:
     if (oic_server.server)
         sol_coap_server_unref(oic_server.server);
+    if (oic_server.transport)
+        sol_coap_transport_ip_del(oic_server.transport);
+    if (oic_server.dtls_transport)
+        sol_coap_transport_ip_del(oic_server.dtls_transport);
 
     free(server_info);
     free(plat_info);
@@ -525,6 +540,11 @@ sol_oic_server_shutdown_internal(void)
         &oic_res_coap_resource);
 
     sol_coap_server_unref(oic_server.server);
+
+    if (oic_server.transport)
+        sol_coap_transport_ip_del(oic_server.transport);
+    if (oic_server.dtls_transport)
+        sol_coap_transport_ip_del(oic_server.dtls_transport);
 
     free(oic_server.server_info);
     free(oic_server.plat_info);

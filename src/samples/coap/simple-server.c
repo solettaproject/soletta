@@ -25,7 +25,6 @@
 #include <stdlib.h>
 #include <string.h>
 #include <sys/ioctl.h>
-#include <sys/socket.h>
 
 #include "sol-log.h"
 #include "sol-mainloop.h"
@@ -34,6 +33,8 @@
 #include "sol-vector.h"
 
 #include "sol-coap.h"
+#include "sol-coap-transport.h"
+#include "sol-coap-transport-ip.h"
 
 #define DEFAULT_UDP_PORT 5683
 
@@ -242,13 +243,15 @@ main(int argc, char *argv[])
 {
     struct light_context context = { .resource = &light };
     struct sol_coap_server *server;
+    struct sol_coap_transport *transport;
     char old_led_state;
     struct sol_network_link_addr servaddr = { .family = SOL_NETWORK_FAMILY_INET6,
                                               .port = DEFAULT_UDP_PORT };
 
     sol_init();
 
-    server = sol_coap_server_new(&servaddr);
+    transport = sol_coap_transport_ip_new(&servaddr);
+    server = sol_coap_server_new(transport);
     if (!server) {
         SOL_WRN("Could not create a coap server using port %d.", DEFAULT_UDP_PORT);
         return -1;

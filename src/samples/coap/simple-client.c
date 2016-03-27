@@ -25,7 +25,6 @@
 #include <stdlib.h>
 #include <string.h>
 #include <sys/ioctl.h>
-#include <sys/socket.h>
 
 #include "sol-log.h"
 #include "sol-mainloop.h"
@@ -34,6 +33,7 @@
 #include "sol-vector.h"
 
 #include "sol-coap.h"
+#include "sol-coap-transport-ip.h"
 
 #define DEFAULT_UDP_PORT 5683
 
@@ -100,6 +100,7 @@ int
 main(int argc, char *argv[])
 {
     struct sol_coap_server *server;
+    struct sol_coap_transport *transport;
     struct sol_str_slice *path;
     struct sol_network_link_addr cliaddr = { };
     struct sol_coap_packet *req;
@@ -117,7 +118,13 @@ main(int argc, char *argv[])
         return 0;
     }
 
-    server = sol_coap_server_new(&servaddr);
+    transport = sol_coap_transport_ip_new(&servaddr);
+    if (!transport) {
+        SOL_WRN("Could not create a coap transport.");
+        return -1;
+    }
+
+    server = sol_coap_server_new(transport);
     if (!server) {
         SOL_WRN("Could not create a coap server.");
         return -1;
@@ -166,6 +173,7 @@ main(int argc, char *argv[])
     sol_run();
 
     sol_coap_server_unref(server);
+    sol_coap_transport_ip_del(transport);
     free(path);
 
     return 0;
