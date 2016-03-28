@@ -14,18 +14,13 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
+get-validator(test/string-validator:sequence="Hi!")
+post-validator(test/string-validator:sequence="Bye!")
 
-BlobPath(app/argv:index=1)
-get_string(http-client/string:url="https://raw.githubusercontent.com/solettaproject/soletta/master/src/modules/flow/aio/aio.c", accept=null) OUT -> IN StringResponse(console)
-get_string ERROR -> IN ErrorString(console)
+_(constant/string:value="Hi!") OUT -> IN _(converter/string-to-blob) OUT -> IN server(http-server/blob:path="/test", port=8080)
 
-_(constant/string:value="https://raw.githubusercontent.com/solettaproject/soletta/master/doc/node-types-html/images/button_back.png") OUT -> URL get_blob(http-client/blob)
+server OUT -> IN _(converter/blob-to-string) OUT -> IN post-validator OUT -> RESULT test-post(test/result)
 
-get_blob ERROR -> IN ErrorBlob(console)
+_(constant/empty) OUT -> GET client(http-client/blob:url="http://localhost:8080/test") OUT -> IN _(converter/blob-to-string) OUT -> IN get-validator OUT -> RESULT test-get(test/result)
 
-get_blob OUT -> IN Writer(file/writer:permissions=777)
-
-BlobPath OUT -> PATH Writer
-
-_(constant/empty) OUT -> GET get_string
-_(constant/empty) OUT -> GET get_blob
+client OUT -> IN _(converter/empty-to-string:output_value="Bye!") OUT -> IN _(converter/string-to-blob) OUT -> POST client

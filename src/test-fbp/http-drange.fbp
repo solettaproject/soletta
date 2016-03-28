@@ -26,9 +26,9 @@ blob-to-str(converter/blob-to-string)
 
 server(http-server/float:path=/test,port=8080)
 
-get-blob(http-client/get-blob:url="http://localhost:8080/test")
-get-string(http-client/get-string:url="http://localhost:8080/test")
-get-json(http-client/get-json:url="http://localhost:8080/test")
+get-blob(http-client/blob:url="http://localhost:8080/test")
+get-string(http-client/string:url="http://localhost:8080/test")
+get-json(http-client/json:url="http://localhost:8080/test")
 post(http-client/float:url="http://localhost:8080/test")
 
 server-validator(test/float-validator:sequence="1.5 5.4")
