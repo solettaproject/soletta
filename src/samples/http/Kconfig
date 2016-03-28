@@ -21,3 +21,8 @@ config SERVER_SAMPLE
 	bool "Server sample"
 	depends on HTTP_SAMPLES && HTTP_SERVER
 	default y
+
+config SERVER_SSE_SAMPLE
+	bool "Server sent events sample"
+	depends on HTTP_SAMPLES && HTTP_SERVER
+	default y
