@@ -203,10 +203,10 @@ creds_add_json_token(struct creds *creds, struct sol_json_scanner *scanner,
 
         sol_buffer_init_flags(&id_buf, id_buf_backing, sizeof(id_buf_backing),
             SOL_BUFFER_FLAGS_CLEAR_MEMORY | SOL_BUFFER_FLAGS_NO_NUL_BYTE |
-            SOL_BUFFER_FLAGS_NO_FREE);
+            SOL_BUFFER_FLAGS_MEMORY_NOT_OWNED);
         sol_buffer_init_flags(&psk_buf, psk_buf_backing, sizeof(psk_buf_backing),
             SOL_BUFFER_FLAGS_CLEAR_MEMORY | SOL_BUFFER_FLAGS_NO_NUL_BYTE |
-            SOL_BUFFER_FLAGS_NO_FREE);
+            SOL_BUFFER_FLAGS_MEMORY_NOT_OWNED);
 
         if (sol_buffer_append_from_base64(&id_buf, id, SOL_BASE64_MAP) < 0)
             goto finish_bufs;

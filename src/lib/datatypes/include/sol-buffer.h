@@ -90,10 +90,12 @@ enum sol_buffer_flags {
      */
     SOL_BUFFER_FLAGS_NO_NUL_BYTE = (1 << 2),
     /**
-     * @brief Securely clear buffer data before finishing; this implies the flag
-     * SOL_BUFFER_FLAGS_FIXED_CAPACITY, so buffer data won't be reallocated.
+     * @brief Securely clear buffer data before finishing. Prefer using this
+     * flag combined with SOL_BUFFER_FLAGS_FIXED_CAPACITY, because of resizing
+     * overhead: everytime buffer is resized, new memory is allocated, old
+     * memory is copied to new destination and old memory is cleared.
      */
-    SOL_BUFFER_FLAGS_CLEAR_MEMORY = (1 << 3) | SOL_BUFFER_FLAGS_FIXED_CAPACITY,
+    SOL_BUFFER_FLAGS_CLEAR_MEMORY = (1 << 3),
 };
 
 /**
