@@ -108,11 +108,6 @@ sol_gpio_open_raw(uint32_t pin, const struct sol_gpio_config *config)
         if (!device) {
             device = device_get_binding("GPIO_0");
             SOL_NULL_CHECK(device, NULL);
-        } else {
-            if (gpio_resume(device) < 0) {
-                SOL_WRN("Couldn't resume gpio");
-                return NULL;
-            }
         }
     } else {
         SOL_PTR_VECTOR_FOREACH_IDX (&opened_pins, g, i) {
@@ -197,12 +192,6 @@ sol_gpio_close(struct sol_gpio *gpio)
             }
             sol_ptr_vector_del(&opened_pins, i);
             break;
-        }
-    }
-
-    if (opened_pins.base.len == 0) {
-        if (gpio_suspend(device) < 0) {
-            SOL_WRN("Couldn't suspend gpio");
         }
     }
 
