@@ -43,11 +43,9 @@ _(constant/string:value="/master") OUT -> IN[2] temboo_domain
 temboo_domain OUT -> VALUE temboo_domain_param
 temboo_domain_param OUT -> PARAM_HEADER temboo_request
 
-#Forcing content-type in header to bypass a bug in http-client.
 _(constant/string:value="Content-Type") OUT -> KEY content_type_param(UrlParam)
 _(constant/string:value="application/json") OUT -> VALUE content_type_param
 content_type_param OUT -> PARAM_HEADER temboo_request
-_(constant/string:value="application/json") OUT -> CONTENT_TYPE temboo_request
 
 #Create request JSON
 json_input(json/create-object)
