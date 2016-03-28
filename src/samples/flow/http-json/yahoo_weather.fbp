@@ -37,7 +37,7 @@ location_param OUT -> PARAM url
 location_param OUT -> CREATE url
 
 #Request
-url OUT -> URL get_json(http-client/get-json:content_type="application/json")
+url OUT -> URL get_json(http-client/json:accept="application/json")
 url OUT -> GET get_json
 
 #Parse results

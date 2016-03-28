@@ -1,0 +1,39 @@
+# This file is part of the Soletta Project
+#
+# Copyright (C) 2015 Intel Corporation. All rights reserved.
+#
+# Licensed under the Apache License, Version 2.0 (the "License");
+# you may not use this file except in compliance with the License.
+# You may obtain a copy of the License at
+#
+#     http://www.apache.org/licenses/LICENSE-2.0
+#
+# Unless required by applicable law or agreed to in writing, software
+# distributed under the License is distributed on an "AS IS" BASIS,
+# WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+# See the License for the specific language governing permissions and
+# limitations under the License.
+
+json-array(constant/string:value="[1, \"go\", true, 2.3]")
+json-object(constant/string:value="{\"key\":\"value\", \"key2\": 23}")
+array-validator(test/string-validator:sequence="[1, \"go\", true, 2.3]")
+server-array-validator(test/string-validator:sequence="[1, \"go\", true, 2.3]")
+object-validator(test/string-validator:sequence="{\"key\":\"value\", \"key2\": 23}")
+server-object-validator(test/string-validator:sequence="{\"key\":\"value\", \"key2\": 23}")
+
+json-array OUT -> IN _(converter/string-to-json-array) OUT -> ARRAY _(http-server/json:path="/test-get-array", port=8080)
+json-object OUT -> IN _(converter/string-to-json-object) OUT -> OBJECT _(http-server/json:path="/test-get-object", port=8080)
+
+_(constant/empty) OUT -> GET client-get-array(http-client/json:url="http://localhost:8080/test-get-array")
+client-get-array ARRAY -> IN _(converter/json-array-to-blob) OUT -> IN _(converter/blob-to-string) OUT -> IN array-validator
+array-validator OUT -> RESULT test_array(test/result)
+
+_(constant/empty) OUT -> GET client-get-object(http-client/json:url="http://localhost:8080/test-get-object")
+client-get-object OBJECT -> IN _(converter/json-object-to-blob) OUT -> IN _(converter/blob-to-string) OUT -> IN object-validator
+object-validator OUT -> RESULT test_object(test/result)
+
+_(http-server/json:path="/test-post-array", port=8080) ARRAY -> IN _(converter/json-array-to-blob) OUT -> IN _(converter/blob-to-string) OUT -> IN server-array-validator OUT -> RESULT test_array_post(test/result)
+json-array OUT -> IN _(converter/string-to-json-array) OUT -> POST_ARRAY _(http-client/json:url="http://localhost:8080/test-post-array")
+
+_(http-server/json:path="/test-post-object", port=8080) OBJECT -> IN _(converter/json-object-to-blob) OUT -> IN _(converter/blob-to-string) OUT -> IN server-object-validator OUT -> RESULT test_object_post(test/result)
+json-object OUT -> IN _(converter/string-to-json-object) OUT -> POST_OBJECT _(http-client/json:url="http://localhost:8080/test-post-object")
