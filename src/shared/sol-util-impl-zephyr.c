@@ -17,7 +17,7 @@
  */
 
 /* Zephyr includes */
-#include "microkernel.h"
+#include "nanokernel.h"
 
 #include "sol-util.h"
 
