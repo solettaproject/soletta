@@ -158,7 +158,8 @@ sol_oic_packet_cbor_close(struct sol_coap_packet *pkt,
                 goto end;
             }
             break;
-        }
+        } else
+            return err;
     }
 
 end:
@@ -200,16 +201,12 @@ sol_oic_packet_cbor_append(struct sol_oic_map_writer *writer,
                 goto end;
             }
             break;
-        }
+        } else
+            return err;
     }
 
     while (err == CborNoError || err & CborErrorOutOfMemory) {
         orig_encoder = writer->encoder, orig_map = writer->rep_map;
-
-        if (err & CborErrorOutOfMemory) {
-            r = enlarge_buffer(writer, orig_encoder, orig_map, next_buf_sz);
-            SOL_INT_CHECK_GOTO(r, < 0, end);
-        }
 
         switch (repr->type) {
         case SOL_OIC_REPR_TYPE_UINT:
@@ -261,14 +258,18 @@ sol_oic_packet_cbor_append(struct sol_oic_map_writer *writer,
             break;
         }
 
-        if (err == CborNoError) {
+        if (err & CborErrorOutOfMemory) {
+            r = enlarge_buffer(writer, orig_encoder, orig_map, next_buf_sz);
+            SOL_INT_CHECK_GOTO(r, < 0, end);
+        } else if (err == CborNoError) {
             r = buffer_used_bump(writer, writer->rep_map.ptr - orig_map.ptr);
             if (r < 0) {
                 err = CborErrorUnknownType;
                 goto end;
             }
             break;
-        }
+        } else
+            return err;
     }
 
 end:
