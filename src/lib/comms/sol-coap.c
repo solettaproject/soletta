@@ -1482,7 +1482,7 @@ static bool
 on_can_read(void *data, struct sol_socket *s)
 {
     struct sol_coap_server *server = data;
-    struct sol_network_link_addr cliaddr;
+    struct sol_network_link_addr cliaddr = { 0 };
     struct sol_coap_packet *pkt;
     ssize_t len;
     int err;

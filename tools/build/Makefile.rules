@@ -163,6 +163,8 @@ parse-sample = \
 		$(eval sample-$(1)-out  := $(subst $(top_srcdir)src/,$(build_stagedir),$(addprefix $(2),$(1)))) \
 	) \
 	$(eval sample-$(1)-srcs := $(subst .o,.c,$(sample-$(1)-srcs))) \
+	$(eval sample-$(1)-srcs += $(sample-$(1)-y-extra)) \
+	$(eval sample-$(1)-cflags := $(sample-$(1)-y-cflags)) \
 	$(eval $(1)-deps        := $(subst .mod,,$(sample-$(1)-y-deps))) \
 	$(eval samples-out      += $(sample-$(1)-out)) \
 	$(eval $(1)-dir         += $(2)) \
