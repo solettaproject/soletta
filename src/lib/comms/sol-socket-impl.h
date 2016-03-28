@@ -42,10 +42,4 @@ struct sol_socket_impl {
     int (*getsockopt)(struct sol_socket *s, enum sol_socket_level level, enum sol_socket_option optname, void *optval, size_t *optlen);
 };
 
-#ifdef SOL_PLATFORM_LINUX
-const struct sol_socket_impl *sol_socket_linux_get_impl(void);
-#elif defined(SOL_PLATFORM_RIOT)
-const struct sol_socket_impl *sol_socket_riot_get_impl(void);
-#elif defined(SOL_PLATFORM_ZEPHYR)
-const struct sol_socket_impl *sol_socket_zephyr_get_impl(void);
-#endif
+const struct sol_socket_impl *sol_socket_get_impl(void);
