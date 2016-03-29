@@ -131,7 +131,7 @@ on_seconds_packet(void *data, struct sol_flow_node *n, uint16_t port, const stru
 static void
 create_minutes(void)
 {
-    const struct sol_flow_node_type *type;
+    const struct sol_flow_node_type **type;
     struct sol_flow_node_named_options named_opts = {};
     const char *strv_opts[] = {
         "send_initial_packet=1",
@@ -161,13 +161,13 @@ create_minutes(void)
      * sol-flow/wallclock.h such as
      * SOL_FLOW_NODE_TYPE_WALLCLOCK_MINUTE__OUT__OUT.
      */
-    minutes_port_enabled = sol_flow_node_find_port_in(type, "ENABLED");
+    minutes_port_enabled = sol_flow_node_find_port_in(*type, "ENABLED");
     if (minutes_port_enabled == UINT16_MAX) {
         fputs("ERROR: couldn't find ouput port by name: ENABLED\n", stderr);
         sol_quit_with_code(EXIT_FAILURE);
         return;
     }
-    minutes_port_out = sol_flow_node_find_port_out(type, "OUT");
+    minutes_port_out = sol_flow_node_find_port_out(*type, "OUT");
     if (minutes_port_out == UINT16_MAX) {
         fputs("ERROR: couldn't find ouput port by name: OUT\n", stderr);
         sol_quit_with_code(EXIT_FAILURE);
@@ -210,7 +210,7 @@ create_minutes(void)
      * should go with option #2 and those that want to squeeze the
      * size and get performance should consider #1.
      */
-    err = sol_flow_node_named_options_init_from_strv(&named_opts, type, strv_opts);
+    err = sol_flow_node_named_options_init_from_strv(&named_opts, *type, strv_opts);
     if (err < 0) {
         fputs("could not parse options for wallclock/minute\n", stderr);
         sol_quit_with_code(EXIT_FAILURE);
@@ -218,7 +218,7 @@ create_minutes(void)
     }
 
     /* convert the named options in the actual options structure */
-    err = sol_flow_node_options_new(type, &named_opts, &opts);
+    err = sol_flow_node_options_new(*type, &named_opts, &opts);
     sol_flow_node_named_options_fini(&named_opts);
     if (err < 0) {
         fputs("could not create options for wallclock/minute\n", stderr);
@@ -242,18 +242,18 @@ create_minutes(void)
      * sol_flow_single_port_in_connect() and
      * sol_flow_single_port_out_connect().
      */
-    minutes = sol_flow_single_new("minutes", type, opts,
+    minutes = sol_flow_single_new("minutes", *type, opts,
         SOL_FLOW_SINGLE_CONNECTIONS(minutes_port_enabled),
         SOL_FLOW_SINGLE_CONNECTIONS(minutes_port_out),
         on_minutes_packet, NULL);
-    sol_flow_node_options_del(type, opts);
+    sol_flow_node_options_del(*type, opts);
 }
 
 
 static void
 create_seconds(void)
 {
-    const struct sol_flow_node_type *type;
+    const struct sol_flow_node_type **type;
     struct sol_flow_node_named_options named_opts = {};
     const char *strv_opts[] = {
         "send_initial_packet=1",
@@ -270,27 +270,27 @@ create_seconds(void)
         return;
     }
 
-    seconds_port_enabled = sol_flow_node_find_port_in(type, "ENABLED");
+    seconds_port_enabled = sol_flow_node_find_port_in(*type, "ENABLED");
     if (seconds_port_enabled == UINT16_MAX) {
         fputs("ERROR: couldn't find ouput port by name: ENABLED\n", stderr);
         sol_quit_with_code(EXIT_FAILURE);
         return;
     }
-    seconds_port_out = sol_flow_node_find_port_out(type, "OUT");
+    seconds_port_out = sol_flow_node_find_port_out(*type, "OUT");
     if (seconds_port_out == UINT16_MAX) {
         fputs("ERROR: couldn't find ouput port by name: OUT\n", stderr);
         sol_quit_with_code(EXIT_FAILURE);
         return;
     }
 
-    err = sol_flow_node_named_options_init_from_strv(&named_opts, type, strv_opts);
+    err = sol_flow_node_named_options_init_from_strv(&named_opts, *type, strv_opts);
     if (err < 0) {
         fputs("could not parse options for wallclock/second\n", stderr);
         sol_quit_with_code(EXIT_FAILURE);
         return;
     }
 
-    err = sol_flow_node_options_new(type, &named_opts, &opts);
+    err = sol_flow_node_options_new(*type, &named_opts, &opts);
     sol_flow_node_named_options_fini(&named_opts);
     if (err < 0) {
         fputs("could not create options for wallclock/second\n", stderr);
@@ -298,11 +298,11 @@ create_seconds(void)
         return;
     }
 
-    seconds = sol_flow_single_new("seconds", type, opts,
+    seconds = sol_flow_single_new("seconds", *type, opts,
         SOL_FLOW_SINGLE_CONNECTIONS(seconds_port_enabled),
         SOL_FLOW_SINGLE_CONNECTIONS(seconds_port_out),
         on_seconds_packet, NULL);
-    sol_flow_node_options_del(type, opts);
+    sol_flow_node_options_del(*type, opts);
 }
 
 static void

@@ -1140,14 +1140,14 @@ named_options_init_from_strv(void)
 {
     struct sol_flow_node_named_options named_opts;
     struct sol_flow_node_named_options_member *m;
-    const struct sol_flow_node_type *node_type;
+    const struct sol_flow_node_type **node_type;
     int r;
 
     ASSERT(sol_flow_get_node_type("int", SOL_FLOW_NODE_TYPE_INT_ACCUMULATOR, &node_type) == 0);
     {
         const char *strv[] = { "initial_value=1000", NULL };
 
-        r = sol_flow_node_named_options_init_from_strv(&named_opts, node_type,
+        r = sol_flow_node_named_options_init_from_strv(&named_opts, *node_type,
             strv);
         ASSERT(r >= 0);
         ASSERT_INT_EQ(named_opts.count, SOL_UTIL_ARRAY_SIZE(strv) - 1);
@@ -1163,7 +1163,7 @@ named_options_init_from_strv(void)
     {
         const char *strv[] = { "setup_value=20|60|2", NULL };
 
-        r = sol_flow_node_named_options_init_from_strv(&named_opts, node_type,
+        r = sol_flow_node_named_options_init_from_strv(&named_opts, *node_type,
             strv);
         ASSERT(r >= 0);
         ASSERT_INT_EQ(named_opts.count, SOL_UTIL_ARRAY_SIZE(strv) - 1);
@@ -1181,7 +1181,7 @@ named_options_init_from_strv(void)
     {
         const char *strv[] = { "setup_value=min:10|max:200|step:5", NULL };
 
-        r = sol_flow_node_named_options_init_from_strv(&named_opts, node_type,
+        r = sol_flow_node_named_options_init_from_strv(&named_opts, *node_type,
             strv);
         ASSERT(r >= 0);
         ASSERT_INT_EQ(named_opts.count, SOL_UTIL_ARRAY_SIZE(strv) - 1);
@@ -1199,7 +1199,7 @@ named_options_init_from_strv(void)
     {
         const char *strv[] = { "this_is_not_a_valid_field=100", NULL };
 
-        r = sol_flow_node_named_options_init_from_strv(&named_opts, node_type,
+        r = sol_flow_node_named_options_init_from_strv(&named_opts, *node_type,
             strv);
         ASSERT(r < 0);
     }
@@ -1207,7 +1207,7 @@ named_options_init_from_strv(void)
     {
         const char *wrong_formatting_strv[] = { "initial_value = 1000", NULL };
 
-        r = sol_flow_node_named_options_init_from_strv(&named_opts, node_type,
+        r = sol_flow_node_named_options_init_from_strv(&named_opts, *node_type,
             wrong_formatting_strv);
         ASSERT(r < 0);
     }
@@ -1217,7 +1217,7 @@ named_options_init_from_strv(void)
     {
         const char *strv[] = { "pin=2 7", "raw=true", "enabled=true", "period=42", "duty_cycle=88", NULL };
 
-        r = sol_flow_node_named_options_init_from_strv(&named_opts, node_type, strv);
+        r = sol_flow_node_named_options_init_from_strv(&named_opts, *node_type, strv);
         ASSERT(r >= 0);
         ASSERT_INT_EQ(named_opts.count, SOL_UTIL_ARRAY_SIZE(strv) - 1);
 
@@ -1254,7 +1254,7 @@ named_options_init_from_strv(void)
     {
         const char *strv[] = { "prefix=console prefix:", "suffix=. suffix!", "output_on_stdout=true", NULL };
 
-        r = sol_flow_node_named_options_init_from_strv(&named_opts, node_type, strv);
+        r = sol_flow_node_named_options_init_from_strv(&named_opts, *node_type, strv);
         ASSERT(r >= 0);
         ASSERT_INT_EQ(named_opts.count, SOL_UTIL_ARRAY_SIZE(strv) - 1);
 
@@ -1319,29 +1319,29 @@ node_options_new(void)
     struct sol_flow_node_type_console_options *console_opts;
     struct sol_flow_node_options *opts;
     struct sol_flow_node_named_options named_opts;
-    const struct sol_flow_node_type *node_type;
+    const struct sol_flow_node_type **node_type;
     int r;
 
     /* One option */
     ASSERT(sol_flow_get_node_type("timer", SOL_FLOW_NODE_TYPE_TIMER, &node_type) == 0);
     named_opts.members = one_option;
     named_opts.count = SOL_UTIL_ARRAY_SIZE(one_option);
-    r = sol_flow_node_options_new(node_type, &named_opts, &opts);
+    r = sol_flow_node_options_new(*node_type, &named_opts, &opts);
     ASSERT(r >= 0);
     timer_opts = (struct sol_flow_node_type_timer_options *)opts;
     ASSERT_INT_EQ(timer_opts->interval, 1000);
-    sol_flow_node_options_del(node_type, opts);
+    sol_flow_node_options_del(*node_type, opts);
 
     /* Unknown option */
     named_opts.members = unknown_option;
     named_opts.count = SOL_UTIL_ARRAY_SIZE(unknown_option);
-    r = sol_flow_node_options_new(node_type, &named_opts, &opts);
+    r = sol_flow_node_options_new(*node_type, &named_opts, &opts);
     ASSERT(r < 0);
 
     /* Wrong type */
     named_opts.members = wrong_type;
     named_opts.count = SOL_UTIL_ARRAY_SIZE(wrong_type);
-    r = sol_flow_node_options_new(node_type, &named_opts, &opts);
+    r = sol_flow_node_options_new(*node_type, &named_opts, &opts);
     ASSERT(r < 0);
 
 #ifdef USE_PWM
@@ -1349,7 +1349,7 @@ node_options_new(void)
     ASSERT(sol_flow_get_node_type("pwm", SOL_FLOW_NODE_TYPE_PWM, &node_type) == 0);
     named_opts.members = multiple_options;
     named_opts.count = SOL_UTIL_ARRAY_SIZE(multiple_options);
-    r = sol_flow_node_options_new(node_type, &named_opts, &opts);
+    r = sol_flow_node_options_new(*node_type, &named_opts, &opts);
     ASSERT(r >= 0);
     pwm_opts = (struct sol_flow_node_type_pwm_options *)opts;
     ASSERT_STR_EQ(pwm_opts->pin, "2 7");
@@ -1357,20 +1357,20 @@ node_options_new(void)
     ASSERT_INT_EQ(pwm_opts->enabled, true);
     ASSERT_INT_EQ(pwm_opts->period, 42);
     ASSERT_INT_EQ(pwm_opts->duty_cycle, 88);
-    sol_flow_node_options_del(node_type, opts);
+    sol_flow_node_options_del(*node_type, opts);
 #endif
 
     /* String options */
     ASSERT(sol_flow_get_node_type("console", SOL_FLOW_NODE_TYPE_CONSOLE, &node_type) == 0);
     named_opts.members = string_options;
     named_opts.count = SOL_UTIL_ARRAY_SIZE(string_options);
-    r = sol_flow_node_options_new(node_type, &named_opts, &opts);
+    r = sol_flow_node_options_new(*node_type, &named_opts, &opts);
     ASSERT(r >= 0);
     console_opts = (struct sol_flow_node_type_console_options *)opts;
     ASSERT(streq(console_opts->prefix, "console prefix:"));
     ASSERT(streq(console_opts->suffix, ". suffix!"));
     ASSERT_INT_EQ(console_opts->output_on_stdout, true);
-    sol_flow_node_options_del(node_type, opts);
+    sol_flow_node_options_del(*node_type, opts);
 }
 #endif
 
@@ -1406,47 +1406,47 @@ DEFINE_TEST(test_find_port);
 static void
 test_find_port(void)
 {
-    const struct sol_flow_node_type *node_type;
+    const struct sol_flow_node_type **node_type;
     uint16_t idx;
 
     ASSERT(sol_flow_get_node_type("boolean", SOL_FLOW_NODE_TYPE_BOOLEAN_AND, &node_type) == 0);
 
-    idx = sol_flow_node_find_port_out(node_type, "OUT");
+    idx = sol_flow_node_find_port_out(*node_type, "OUT");
     ASSERT_INT_EQ(idx, 0);
 
-    idx = sol_flow_node_find_port_out(node_type, "NON-EXISTENT");
+    idx = sol_flow_node_find_port_out(*node_type, "NON-EXISTENT");
     ASSERT_INT_EQ(idx, UINT16_MAX);
 
-    idx = sol_flow_node_find_port_in(node_type, "IN");
+    idx = sol_flow_node_find_port_in(*node_type, "IN");
     ASSERT_INT_EQ(idx, UINT16_MAX);
 
-    idx = sol_flow_node_find_port_in(node_type, "OUT[0]");
+    idx = sol_flow_node_find_port_in(*node_type, "OUT[0]");
     ASSERT_INT_EQ(idx, UINT16_MAX);
 
-    idx = sol_flow_node_find_port_in(node_type, "IN[0]");
+    idx = sol_flow_node_find_port_in(*node_type, "IN[0]");
     ASSERT_INT_EQ(idx, 0);
-    idx = sol_flow_node_find_port_in(node_type, "IN[ 0 ]");
+    idx = sol_flow_node_find_port_in(*node_type, "IN[ 0 ]");
     ASSERT_INT_EQ(idx, 0);
-    idx = sol_flow_node_find_port_in(node_type, "IN[ 0");
+    idx = sol_flow_node_find_port_in(*node_type, "IN[ 0");
     ASSERT_INT_EQ(idx, UINT16_MAX);
-    idx = sol_flow_node_find_port_in(node_type, "IN[");
+    idx = sol_flow_node_find_port_in(*node_type, "IN[");
     ASSERT_INT_EQ(idx, UINT16_MAX);
-    idx = sol_flow_node_find_port_in(node_type, "IN[]");
+    idx = sol_flow_node_find_port_in(*node_type, "IN[]");
     ASSERT_INT_EQ(idx, UINT16_MAX);
-    idx = sol_flow_node_find_port_in(node_type, "IN[X");
+    idx = sol_flow_node_find_port_in(*node_type, "IN[X");
     ASSERT_INT_EQ(idx, UINT16_MAX);
-    idx = sol_flow_node_find_port_in(node_type, "IN[-123]");
+    idx = sol_flow_node_find_port_in(*node_type, "IN[-123]");
     ASSERT_INT_EQ(idx, UINT16_MAX);
-    idx = sol_flow_node_find_port_in(node_type, "IN[1234567]");
+    idx = sol_flow_node_find_port_in(*node_type, "IN[1234567]");
     ASSERT_INT_EQ(idx, UINT16_MAX);
 
-    idx = sol_flow_node_find_port_in(node_type, "IN[1]");
+    idx = sol_flow_node_find_port_in(*node_type, "IN[1]");
     ASSERT_INT_EQ(idx, 1);
 
-    idx = sol_flow_node_find_port_in(node_type, "IN[2]");
+    idx = sol_flow_node_find_port_in(*node_type, "IN[2]");
     ASSERT_INT_EQ(idx, 2);
 
-    idx = sol_flow_node_find_port_in(node_type, "NON-EXISTENT");
+    idx = sol_flow_node_find_port_in(*node_type, "NON-EXISTENT");
     ASSERT_INT_EQ(idx, UINT16_MAX);
 }
 

@@ -106,7 +106,7 @@ static struct sol_flow_node *flow;
 static void
 startup(void)
 {
-    const struct sol_flow_node_type *console_type;
+    const struct sol_flow_node_type **console_type;
 
     if (sol_flow_get_node_type("console", SOL_FLOW_NODE_TYPE_CONSOLE, &console_type) < 0)
         return;
@@ -119,7 +119,7 @@ startup(void)
     nodes[0 /* reader */].type = SOL_FLOW_NODE_TYPE_CUSTOM_NODE_TYPES_READER;
     nodes[1 /* logic */].type = SOL_FLOW_NODE_TYPE_CUSTOM_NODE_TYPES_LOGIC;
     nodes[2 /* writer */].type = SOL_FLOW_NODE_TYPE_CUSTOM_NODE_TYPES_WRITER;
-    nodes[3 /* console */].type = console_type;
+    nodes[3 /* console */].type = *console_type;
 
     flow = sol_flow_static_new(NULL, nodes, conns);
 }

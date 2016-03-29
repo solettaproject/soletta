@@ -1655,15 +1655,15 @@ generate(struct sol_vector *fbp_data_vector)
         "static bool\n"
         "initialize_types(void)\n"
         "{\n"
-        "    const struct sol_flow_node_type *t;\n"
+        "    const struct sol_flow_node_type **t;\n"
         "    int i = 0;\n\n");
     SOL_VECTOR_FOREACH_IDX (&ctx->types_to_initialize, type, i) {
         out(
             "    if (sol_flow_get_node_type(\"%.*s\", %.*s, &t) < 0)\n"
             "        return false;\n"
-            "    if (t->init_type)\n"
-            "        t->init_type();\n"
-            "    external_types[i++] = t;\n",
+            "    if ((*t)->init_type)\n"
+            "        (*t)->init_type();\n"
+            "    external_types[i++] = *t;\n",
             SOL_STR_SLICE_PRINT(type->module),
             SOL_STR_SLICE_PRINT(type->symbol));
     }

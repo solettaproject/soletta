@@ -22,7 +22,7 @@
 #include "sol-modules.h"
 
 SOL_API int
-sol_flow_internal_get_node_type(const char *modname, const char *symbol, const struct sol_flow_node_type **type)
+sol_flow_internal_get_node_type(const char *modname, const char *symbol, const struct sol_flow_node_type ***type)
 {
     const struct sol_flow_node_type **ret;
 
@@ -30,7 +30,7 @@ sol_flow_internal_get_node_type(const char *modname, const char *symbol, const s
     if (!ret || !*ret)
         return -errno;
 
-    *type = *ret;
+    *type = ret;
     return 0;
 }
 
