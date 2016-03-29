@@ -20,6 +20,7 @@ interface GPIO: {
 
 dictionary GPIOPinInit {
   unsigned long pin;
+  DOMString name;
   GPIOPinDirection direction = "out";
   boolean activeLow = false;
   GPIOActiveEdge edge = "any";  // on which edge interrupts are generated
@@ -47,6 +48,8 @@ interface GPIOEvent: Event {
 This API transparently uses the underlying platform's GPIO numbering and does not do any mapping on its own. Soletta is using the Linux (sysfs) GPIO numbering.
 
 The ```open()``` method returns a ```GPIOPin``` object, enabling the possibility to set listeners to each pin, to read, write and close the pin.
+
+In ```GPIOPinInit```, either ```pin``` or ```name``` MUST be specified. The latter only works if a pin multiplexer module is present.
 
 The ```GPIOPin``` interface has all the properties of ```GPIOPinInit``` as read-only attributes.
 
@@ -82,13 +85,13 @@ The API implementation should register a callback with  the Soletta function ```
     console.log("Could not open GPIO pin 3 for writing.");
   });
 
-  // Open pin 1 as input, with interrupts and no polling (the default settings).
-  gpio.open({ pin: 1, direction: "in" })
+  // Open pin A1 as input, with interrupts and no polling (the default settings).
+  gpio.open({ name: 'A1', direction: "in" })
   .then((pin) => {
      pin.onchange = function(event) {
          console.log("GPIO pin " + pin.pin " value changed to " + event.value);
      };
-      console.log("Observing GPIO pin 1 changes.");
+      console.log("Observing GPIO pin A1 changes.");
   });
 
   // Open pin 2 as input, with polling only, with listener.
