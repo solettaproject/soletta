@@ -95,3 +95,12 @@
     VALIDATE_VALUE_TYPE(memberName, typecheck, message "." #memberName, \
     failReturn); \
     destination.memberName = (destinationType)memberName->accessor();
+
+#define VALIDATE_AND_ASSIGN_PTR(destination, memberName, destinationType, \
+        typecheck, message, failReturn, source, accessor) \
+    Local<Value> memberName = \
+        Nan::Get(source, Nan::New(#memberName).ToLocalChecked()) \
+        .ToLocalChecked(); \
+    VALIDATE_VALUE_TYPE(memberName, typecheck, message "." #memberName, \
+    failReturn); \
+    destination->memberName = (destinationType)memberName->accessor();
