@@ -405,10 +405,18 @@ static bool ardu_breakout = false;
 static int
 _mux_init(void)
 {
+    struct sol_gpio *tristate = NULL;
+    struct sol_gpio_config config;
+
     //Try to detect the Arduino Breakout
-    if (sol_util_write_file("/sys/class/gpio/export", "214") >= 0) {
+    SOL_SET_API_VERSION(config.api_version = SOL_GPIO_CONFIG_API_VERSION; )
+    config.dir = SOL_GPIO_DIR_OUT;
+
+    tristate = sol_gpio_open_raw(214, &config);
+    if (tristate) {
         ardu_breakout = true;
         apply_mux_desc(init_board, MODE_GPIO);
+        sol_gpio_close(tristate);
     }
 
     return 0;
