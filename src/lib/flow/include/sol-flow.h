@@ -1053,14 +1053,14 @@ struct sol_flow_port_type_in {
 
 #define sol_flow_get_node_type(_mod, _type, _var) sol_flow_internal_get_node_type(_mod, #_type, _var)
 
-int sol_flow_internal_get_node_type(const char *module, const char *symbol, const struct sol_flow_node_type **type);
+int sol_flow_internal_get_node_type(const char *modname, const char *symbol, const struct sol_flow_node_type ***type);
 
 #define sol_flow_get_packet_type(_mod, _type, _var) sol_flow_internal_get_packet_type(_mod, #_type, _var)
 
 int sol_flow_internal_get_packet_type(const char *module, const char *symbol, const struct sol_flow_packet_type **type);
 
 #else
-#define sol_flow_get_node_type(_mod, _type, _var) ({ (*(_var)) = _type; 0; })
+#define sol_flow_get_node_type(_mod, _type, _var) ({ (*(_var)) = &_type; 0; })
 #define sol_flow_get_packet_type(_mod, _type, _var) ({ (*(_var)) = _type; 0; })
 #endif /* SOL_DYNAMIC_MODULES */
 
