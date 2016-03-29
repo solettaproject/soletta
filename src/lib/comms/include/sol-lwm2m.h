@@ -644,62 +644,6 @@ void sol_lwm2m_resource_clear(struct sol_lwm2m_resource *resource);
 int sol_lwm2m_resource_init(struct sol_lwm2m_resource *resource,
     uint16_t id, uint16_t resource_len,
     enum sol_lwm2m_resource_data_type data_type, ...);
-/**
- * @brief Callback that is used to inform a LWM2M client registration event.
- *
- * @param server The LWM2M server.
- * @param cinfo The client that generated the registration event.
- * @param event The registration event itself.
- * @param data User data.
- * @see #sol_lwm2m_registration_event
- * @see sol_lwm2m_server_add_registration_monitor()
- */
-typedef void (*sol_lwm2m_server_registration_event_cb)(void *data,
-    struct sol_lwm2m_server *server,
-    struct sol_lwm2m_client_info *cinfo,
-    enum sol_lwm2m_registration_event event);
-
-/**
- * @brief Callback used to inform a observable/read response.
- *
- * @param server The LWM2M server
- * @param client The LWM2M client
- * @param path The client's path
- * @param response_code The reponse code.
- * @param content_type The reponse content type.
- * @param content The reponse content.
- * @param data User data.
- * @see sol_lwm2m_server_add_observer()
- * @see sol_lwm2m_server_read()
- * @see sol_lwm2m_parse_tlv()
- */
-typedef void (*sol_lwm2m_server_content_cb)
-    (void *data,
-    struct sol_lwm2m_server *server,
-    struct sol_lwm2m_client_info *client,
-    const char *path,
-    sol_coap_responsecode_t response_code,
-    enum sol_lwm2m_content_type content_type,
-    struct sol_str_slice content);
-
-/**
- * @brief Callback used to inform create/write/execute/delete response.
- *
- * @param server The LW2M server
- * @param client The LWM2M client
- * @param path The client's path
- * @param response_code The operation's @c response_code
- * @param data User data.
- * @see sol_lwm2m_server_write()
- * @see sol_lwm2m_server_execute_resource()
- * @see sol_lwm2m_server_create_object_instance()
- * @see sol_lwm2m_server_delete_object_instance()
- */
-typedef void (*sol_lwm2m_server_management_status_response_cb)(
-    void *data,
-    struct sol_lwm2m_server *server,
-    struct sol_lwm2m_client_info *client, const char *path,
-    sol_coap_responsecode_t response_code);
 
 /**
  * @brief Creates a new LWM2M server.
@@ -786,29 +730,36 @@ int sol_lwm2m_tlv_get_obj_link(struct sol_lwm2m_tlv *tlv, uint16_t *object_id, u
  *
  * This function register a monitor, making it easier to observe a LWM2M client's life cycle.
  * This means that everytime a LWM2M client is registered, updated, deleted or timedout,
- * @c cb will be called.
+ * @c sol_lwm2m_server_registration_event_cb will be called.
  *
  * @param server The LWM2M server.
- * @param cb A callback used to inform registration events.
- * @param data The user data to @c cb.
+ * @param sol_lwm2m_server_registration_event_cb A callback that is used to inform a LWM2M client registration event - @c data User data; @c server The LWM2M server; @c cinfo The client that generated the registration event; @c event The registration event itself.
+ * @param data The user data to @c sol_lwm2m_server_registration_event_cb.
  * @return 0 on success, -errno on error.
- * @see sol_lwm2m_server_add_registration_monitor()
- * @see #sol_lwm2m_server_registration_event_cb
+ * @see sol_lwm2m_server_del_registration_monitor()
  */
 int sol_lwm2m_server_add_registration_monitor(struct sol_lwm2m_server *server,
-    sol_lwm2m_server_registration_event_cb cb, const void *data);
+    void (*sol_lwm2m_server_registration_event_cb)(void *data,
+    struct sol_lwm2m_server *server,
+    struct sol_lwm2m_client_info *cinfo,
+    enum sol_lwm2m_registration_event event),
+    const void *data);
 
 /**
  * @brief Removes a registration monitor.
  *
  * @param server The LWM2M server.
- * @param cb The previous registered callback.
- * @param data The user data to @c cb.
+ * @param sol_lwm2m_server_registration_event_cb The previous registered callback. - @c data User data; @c server The LWM2M server; @c cinfo The client that generated the registration event; @c event The registration event itself.
+ * @param data The user data to @c sol_lwm2m_server_registration_event_cb.
  * @return 0 on success, -errno on error.
  * @see sol_lwm2m_server_add_registration_monitor()
  */
 int sol_lwm2m_server_del_registration_monitor(struct sol_lwm2m_server *server,
-    sol_lwm2m_server_registration_event_cb cb, const void *data);
+    void (*sol_lwm2m_server_registration_event_cb)(void *data,
+    struct sol_lwm2m_server *server,
+    struct sol_lwm2m_client_info *cinfo,
+    enum sol_lwm2m_registration_event event),
+    const void *data);
 
 /**
  * @brief Gets all registerd clients.
@@ -828,15 +779,22 @@ const struct sol_ptr_vector *sol_lwm2m_server_get_clients(const struct sol_lwm2m
  * @param server The LWM2M server.
  * @param client The LWM2M client to be observed.
  * @param path The path to be observed (Example: /3/0/0).
- * @param cb A callback to be called when the observed path changes.
- * @param data User data to @c cb
+ * @param sol_lwm2m_server_content_cb A callback to be called when the observed path changes, used to inform a observable/read response. - @c server The LWM2M server; @c client The LWM2M client; @c path The client's path; @c response_code The reponse code; @c content_type The reponse content type; @c content The reponse content; @c data User data.
+ * @param data User data to @c sol_lwm2m_server_content_cb
  * @return 0 on success, -errno on error.
- * @see #sol_lwm2m_server_content_cb
  * @see sol_lwm2m_server_del_observer()
  */
 int sol_lwm2m_server_add_observer(struct sol_lwm2m_server *server,
     struct sol_lwm2m_client_info *client,
-    const char *path, sol_lwm2m_server_content_cb cb, const void *data);
+    const char *path,
+    void (*sol_lwm2m_server_content_cb)(void *data,
+    struct sol_lwm2m_server *server,
+    struct sol_lwm2m_client_info *client,
+    const char *path,
+    sol_coap_responsecode_t response_code,
+    enum sol_lwm2m_content_type content_type,
+    struct sol_str_slice content),
+    const void *data);
 
 /**
  * @brief Unobserve a client object, instance or resource.
@@ -844,17 +802,24 @@ int sol_lwm2m_server_add_observer(struct sol_lwm2m_server *server,
  * @param server The LWM2M server.
  * @param client The LWM2M client to be unobserved.
  * @param path The path to be unobserved (Example: /3/0/0).
- * @param cb The previous registered callback.
- * @param data User data to @c cb
+ * @param sol_lwm2m_server_content_cb The previous registered callback. - @c server The LWM2M server; @c client The LWM2M client; @c path The client's path; @ response_code The reponse code; @c content_type The reponse content type; @c content The reponse content; @c data User data.
+ * @param data User data to @c sol_lwm2m_server_content_cb
  * @return 0 on success, -errno on error.
  *
  * @note In order do completly unobserve a path, all observers must be deleted.
- * @see #sol_lwm2m_server_content_cb
  * @see sol_lwm2m_server_add_observer()
  */
 int sol_lwm2m_server_del_observer(struct sol_lwm2m_server *server,
     struct sol_lwm2m_client_info *client,
-    const char *path,  sol_lwm2m_server_content_cb cb, const void *data);
+    const char *path,
+    void (*sol_lwm2m_server_content_cb)(void *data,
+    struct sol_lwm2m_server *server,
+    struct sol_lwm2m_client_info *client,
+    const char *path,
+    sol_coap_responsecode_t response_code,
+    enum sol_lwm2m_content_type content_type,
+    struct sol_str_slice content),
+    const void *data);
 
 /**
  * @brief Writes an object instance or resource.
@@ -864,18 +829,20 @@ int sol_lwm2m_server_del_observer(struct sol_lwm2m_server *server,
  * @param path The object path to be written (Example /1/1).
  * @param resources An array of #sol_lwm2m_resource
  * @param len The length of @c resources
- * @param cb A callback to be called when the write operation is completed.
- * @param data User data to @c cb
+ * @param sol_lwm2m_server_management_status_response_cb A callback to be called when the write operation is completed. - @c server The LW2M server; @c client The LWM2M client; @c path The client's path; @c response_code The operation's @c response_code; @c data User data.
+ * @param data User data to @c sol_lwm2m_server_management_status_response_cb
  * @return 0 on success, -errno on error.
  *
  * @note All data is sent using TLV.
- *
- * @see #sol_lwm2m_server_management_status_response_cb
  */
 int sol_lwm2m_server_write(struct sol_lwm2m_server *server,
     struct sol_lwm2m_client_info *client, const char *path,
     struct sol_lwm2m_resource *resources, size_t len,
-    sol_lwm2m_server_management_status_response_cb cb, const void *data);
+    void (*sol_lwm2m_server_management_status_response_cb)(void *data,
+    struct sol_lwm2m_server *server,
+    struct sol_lwm2m_client_info *client, const char *path,
+    sol_coap_responsecode_t response_code),
+    const void *data);
 
 /**
  * @brief Deletes an object instance on a client.
@@ -883,15 +850,17 @@ int sol_lwm2m_server_write(struct sol_lwm2m_server *server,
  * @param server The LWM2M server.
  * @param client The LWM2M client info to delete an object
  * @param path The object path to be deleted (Example /1/1).
- * @param cb A callback to be called when the delete operation is completed.
- * @param data User data to @c cb
+ * @param sol_lwm2m_server_management_status_response_cb A callback to be called when the delete operation is completed. - @c server The LW2M server; @c client The LWM2M client; @c path The client's path; @c response_code The operation's @c response_code; @c data User data.
+ * @param data User data to @c sol_lwm2m_server_management_status_response_cb
  * @return 0 on success, -errno on error.
- *
- * @see #sol_lwm2m_server_management_status_response_cb
  */
 int sol_lwm2m_server_delete_object_instance(struct sol_lwm2m_server *server,
     struct sol_lwm2m_client_info *client, const char *path,
-    sol_lwm2m_server_management_status_response_cb cb, const void *data);
+    void (*sol_lwm2m_server_management_status_response_cb)(void *data,
+    struct sol_lwm2m_server *server,
+    struct sol_lwm2m_client_info *client, const char *path,
+    sol_coap_responsecode_t response_code),
+    const void *data);
 
 /**
  * @brief Executes an resource on a client.
@@ -900,15 +869,17 @@ int sol_lwm2m_server_delete_object_instance(struct sol_lwm2m_server *server,
  * @param client The LWM2M client info to execute the resource.
  * @param path The object path to be executed (Example /1/1/8).
  * @param args Arguments to the execute command.
- * @param cb A callback to be called when the execute operation is completed.
- * @param data User data to @c cb
+ * @param sol_lwm2m_server_management_status_response_cb A callback to be called when the execute operation is completed. - @c server The LW2M server; @c client The LWM2M client; @c path The client's path; @c response_code The operation's @c response_code; @c data User data.
+ * @param data User data to @c sol_lwm2m_server_management_status_response_cb
  * @return 0 on success, -errno on error.
- *
- * @see #sol_lwm2m_server_management_status_response_cb
  */
 int sol_lwm2m_server_execute_resource(struct sol_lwm2m_server *server,
     struct sol_lwm2m_client_info *client, const char *path, const char *args,
-    sol_lwm2m_server_management_status_response_cb cb, const void *data);
+    void (*sol_lwm2m_server_management_status_response_cb)(void *data,
+    struct sol_lwm2m_server *server,
+    struct sol_lwm2m_client_info *client, const char *path,
+    sol_coap_responsecode_t response_code),
+    const void *data);
 
 /**
  * @brief Creates an object instance on a client.
@@ -918,18 +889,20 @@ int sol_lwm2m_server_execute_resource(struct sol_lwm2m_server *server,
  * @param path The object path to be created (Example /1).
  * @param resources An array of #sol_lwm2m_resource which contains the required resources to create an object.
  * @param len The length of @c resources.
- * @param cb A callback to be called when the create operation is completed.
- * @param data User data to @c cb
+ * @param sol_lwm2m_server_management_status_response_cb A callback to be called when the create operation is completed. - @c server The LW2M server; @c client The LWM2M client; @c path The client's path; @c response_code The operation's @c response_code; @c data User data.
+ * @param data User data to @c sol_lwm2m_server_management_status_response_cb
  * @return 0 on success, -errno on error.
  *
  * @note All data is sent using TLV.
- *
- * @see #sol_lwm2m_server_management_status_response_cb
  */
 int sol_lwm2m_server_create_object_instance(struct sol_lwm2m_server *server,
     struct sol_lwm2m_client_info *client, const char *path,
     struct sol_lwm2m_resource *resources, size_t len,
-    sol_lwm2m_server_management_status_response_cb cb, const void *data);
+    void (*sol_lwm2m_server_management_status_response_cb)(void *data,
+    struct sol_lwm2m_server *server,
+    struct sol_lwm2m_client_info *client, const char *path,
+    sol_coap_responsecode_t response_code),
+    const void *data);
 
 /**
  * @brief Reads an object, instance or object from a client.
@@ -937,15 +910,21 @@ int sol_lwm2m_server_create_object_instance(struct sol_lwm2m_server *server,
  * @param server The LWM2M server.
  * @param client The LWM2M client info to be read.
  * @param path The path to be read (Example /3/0/0).
- * @param cb A callback to be called when the read operation is completed.
- * @param data User data to @c cb
+ * @param sol_lwm2m_server_content_cb A callback to be called when the read operation is completed. - @c server The LWM2M server; @c client The LWM2M client; @c path The client's path; @c response_code The reponse code; @c content_type The reponse content type; @c content The reponse content; @c data User data.
+ * @param data User data to @c sol_lwm2m_server_content_cb
  * @return 0 on success, -errno on error.
- *
- * @see #sol_lwm2m_server_content_cb
  */
 int sol_lwm2m_server_read(struct sol_lwm2m_server *server,
-    struct sol_lwm2m_client_info *client, const char *path,
-    sol_lwm2m_server_content_cb cb, const void *data);
+    struct sol_lwm2m_client_info *client,
+    const char *path,
+    void (*sol_lwm2m_server_content_cb)(void *data,
+    struct sol_lwm2m_server *server,
+    struct sol_lwm2m_client_info *client,
+    const char *path,
+    sol_coap_responsecode_t response_code,
+    enum sol_lwm2m_content_type content_type,
+    struct sol_str_slice content),
+    const void *data);
 
 /**
  * @brief Deletes a server instance.

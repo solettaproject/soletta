@@ -285,7 +285,9 @@ dispatch_registration_event(struct sol_lwm2m_server *server,
     struct sol_monitors_entry *m;
 
     SOL_MONITORS_WALK (&server->registration, m, i)
-        ((sol_lwm2m_server_registration_event_cb)m->cb)((void *)m->data, server,
+        ((void (*)(void *, struct sol_lwm2m_server *,
+        struct sol_lwm2m_client_info *,
+        enum sol_lwm2m_registration_event))m->cb)((void *)m->data, server,
             cinfo, event);
 }
 
@@ -991,7 +993,14 @@ err_exit:
 
 static int
 observer_entry_add_monitor(struct observer_entry *entry,
-    sol_lwm2m_server_content_cb cb, const void *data)
+    void (*cb)(void *data,
+    struct sol_lwm2m_server *server,
+    struct sol_lwm2m_client_info *client,
+    const char *path,
+    sol_coap_responsecode_t response_code,
+    enum sol_lwm2m_content_type content_type,
+    struct sol_str_slice content),
+    const void *data)
 {
     struct sol_monitors_entry *e;
 
@@ -1002,7 +1011,14 @@ observer_entry_add_monitor(struct observer_entry *entry,
 
 static int
 observer_entry_del_monitor(struct observer_entry *entry,
-    sol_lwm2m_server_content_cb cb, const void *data)
+    void (*cb)(void *data,
+    struct sol_lwm2m_server *server,
+    struct sol_lwm2m_client_info *client,
+    const char *path,
+    sol_coap_responsecode_t response_code,
+    enum sol_lwm2m_content_type content_type,
+    struct sol_str_slice content),
+    const void *data)
 {
     int r;
 
@@ -1074,7 +1090,11 @@ sol_lwm2m_server_del(struct sol_lwm2m_server *server)
 
 SOL_API int
 sol_lwm2m_server_add_registration_monitor(struct sol_lwm2m_server *server,
-    sol_lwm2m_server_registration_event_cb cb, const void *data)
+    void (*cb)(void *data,
+    struct sol_lwm2m_server *server,
+    struct sol_lwm2m_client_info *cinfo,
+    enum sol_lwm2m_registration_event event),
+    const void *data)
 {
     struct sol_monitors_entry *m;
 
@@ -1089,7 +1109,11 @@ sol_lwm2m_server_add_registration_monitor(struct sol_lwm2m_server *server,
 
 SOL_API int
 sol_lwm2m_server_del_registration_monitor(struct sol_lwm2m_server *server,
-    sol_lwm2m_server_registration_event_cb cb, const void *data)
+    void (*cb)(void *data,
+    struct sol_lwm2m_server *server,
+    struct sol_lwm2m_client_info *cinfo,
+    enum sol_lwm2m_registration_event event),
+    const void *data)
 {
     int i;
 
@@ -1615,7 +1639,12 @@ observation_request_reply(struct sol_coap_server *coap_server,
     }
 
     SOL_MONITORS_WALK (&entry->monitors, m, i)
-        ((sol_lwm2m_server_content_cb)m->cb)((void *)m->data, entry->server,
+        ((void (*)(void *, struct sol_lwm2m_server *,
+        struct sol_lwm2m_client_info *,
+        const char *,
+        sol_coap_responsecode_t,
+        enum sol_lwm2m_content_type,
+        struct sol_str_slice))m->cb)((void *)m->data, entry->server,
             entry->cinfo, entry->path, code, type, content);
 
     return keep_alive;
@@ -1624,7 +1653,15 @@ observation_request_reply(struct sol_coap_server *coap_server,
 SOL_API int
 sol_lwm2m_server_add_observer(struct sol_lwm2m_server *server,
     struct sol_lwm2m_client_info *client,
-    const char *path, sol_lwm2m_server_content_cb cb, const void *data)
+    const char *path,
+    void (*cb)(void *data,
+    struct sol_lwm2m_server *server,
+    struct sol_lwm2m_client_info *client,
+    const char *path,
+    sol_coap_responsecode_t response_code,
+    enum sol_lwm2m_content_type content_type,
+    struct sol_str_slice content),
+    const void *data)
 {
     struct observer_entry *entry;
     struct sol_coap_packet *pkt;
@@ -1660,8 +1697,16 @@ sol_lwm2m_server_add_observer(struct sol_lwm2m_server *server,
 
 SOL_API int
 sol_lwm2m_server_del_observer(struct sol_lwm2m_server *server,
-    struct sol_lwm2m_client_info *client, const char *path,
-    sol_lwm2m_server_content_cb cb, const void *data)
+    struct sol_lwm2m_client_info *client,
+    const char *path,
+    void (*cb)(void *data,
+    struct sol_lwm2m_server *server,
+    struct sol_lwm2m_client_info *client,
+    const char *path,
+    sol_coap_responsecode_t response_code,
+    enum sol_lwm2m_content_type content_type,
+    struct sol_str_slice content),
+    const void *data)
 {
     struct observer_entry *entry;
     int r;
@@ -1767,13 +1812,21 @@ management_reply(struct sol_coap_server *server,
     case MANAGEMENT_EXECUTE:
         if (!code)
             sol_coap_header_get_code(req, &code);
-        ((sol_lwm2m_server_management_status_response_cb)ctx->cb)
+        ((void (*)(void *,
+        struct sol_lwm2m_server *,
+        struct sol_lwm2m_client_info *, const char *,
+        sol_coap_responsecode_t))ctx->cb)
             ((void *)ctx->data, ctx->server, ctx->cinfo, ctx->path, code);
         break;
     default: //Read
         if (!code)
             extract_content(req, &code, &content_type, &content);
-        ((sol_lwm2m_server_content_cb)ctx->cb)((void *)ctx->data, ctx->server,
+        ((void (*)(void *, struct sol_lwm2m_server *,
+        struct sol_lwm2m_client_info *,
+        const char *,
+        sol_coap_responsecode_t,
+        enum sol_lwm2m_content_type,
+        struct sol_str_slice))ctx->cb)((void *)ctx->data, ctx->server,
             ctx->cinfo, ctx->path, code, content_type, content);
         break;
     }
@@ -1850,7 +1903,11 @@ SOL_API int
 sol_lwm2m_server_write(struct sol_lwm2m_server *server,
     struct sol_lwm2m_client_info *client, const char *path,
     struct sol_lwm2m_resource *resources, size_t len,
-    sol_lwm2m_server_management_status_response_cb cb, const void *data)
+    void (*cb)(void *data,
+    struct sol_lwm2m_server *server,
+    struct sol_lwm2m_client_info *client, const char *path,
+    sol_coap_responsecode_t response_code),
+    const void *data)
 {
     sol_coap_method_t method = SOL_COAP_METHOD_PUT;
 
@@ -1869,7 +1926,11 @@ sol_lwm2m_server_write(struct sol_lwm2m_server *server,
 SOL_API int
 sol_lwm2m_server_execute_resource(struct sol_lwm2m_server *server,
     struct sol_lwm2m_client_info *client, const char *path, const char *args,
-    sol_lwm2m_server_management_status_response_cb cb, const void *data)
+    void (*cb)(void *data,
+    struct sol_lwm2m_server *server,
+    struct sol_lwm2m_client_info *client, const char *path,
+    sol_coap_responsecode_t response_code),
+    const void *data)
 {
     SOL_NULL_CHECK(server, -EINVAL);
     SOL_NULL_CHECK(client, -EINVAL);
@@ -1882,7 +1943,11 @@ sol_lwm2m_server_execute_resource(struct sol_lwm2m_server *server,
 SOL_API int
 sol_lwm2m_server_delete_object_instance(struct sol_lwm2m_server *server,
     struct sol_lwm2m_client_info *client, const char *path,
-    sol_lwm2m_server_management_status_response_cb cb, const void *data)
+    void (*cb)(void *data,
+    struct sol_lwm2m_server *server,
+    struct sol_lwm2m_client_info *client, const char *path,
+    sol_coap_responsecode_t response_code),
+    const void *data)
 {
     SOL_NULL_CHECK(server, -EINVAL);
     SOL_NULL_CHECK(client, -EINVAL);
@@ -1896,7 +1961,11 @@ SOL_API int
 sol_lwm2m_server_create_object_instance(struct sol_lwm2m_server *server,
     struct sol_lwm2m_client_info *client, const char *path,
     struct sol_lwm2m_resource *resources, size_t len,
-    sol_lwm2m_server_management_status_response_cb cb, const void *data)
+    void (*cb)(void *data,
+    struct sol_lwm2m_server *server,
+    struct sol_lwm2m_client_info *client, const char *path,
+    sol_coap_responsecode_t response_code),
+    const void *data)
 {
     SOL_NULL_CHECK(server, -EINVAL);
     SOL_NULL_CHECK(client, -EINVAL);
@@ -1909,8 +1978,16 @@ sol_lwm2m_server_create_object_instance(struct sol_lwm2m_server *server,
 
 SOL_API int
 sol_lwm2m_server_read(struct sol_lwm2m_server *server,
-    struct sol_lwm2m_client_info *client, const char *path,
-    sol_lwm2m_server_content_cb cb, const void *data)
+    struct sol_lwm2m_client_info *client,
+    const char *path,
+    void (*cb)(void *data,
+    struct sol_lwm2m_server *server,
+    struct sol_lwm2m_client_info *client,
+    const char *path,
+    sol_coap_responsecode_t response_code,
+    enum sol_lwm2m_content_type content_type,
+    struct sol_str_slice content),
+    const void *data)
 {
     SOL_NULL_CHECK(server, -EINVAL);
     SOL_NULL_CHECK(client, -EINVAL);
