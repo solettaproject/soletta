@@ -1665,7 +1665,7 @@ network_event(void *data, const struct sol_network_link *link, enum sol_network_
 }
 
 static struct sol_coap_server *
-sol_coap_server_new_full(enum sol_socket_type type, const struct sol_network_link_addr *servaddr)
+sol_coap_server_new_full(enum sol_socket_default_type type, const struct sol_network_link_addr *servaddr)
 {
     const struct sol_vector *links;
     struct sol_network_link *link;

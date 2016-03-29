@@ -31,9 +31,9 @@
 #include <errno.h>
 
 SOL_API struct sol_socket *
-sol_socket_new(int domain, enum sol_socket_type type, int protocol)
+sol_socket_new(int domain, enum sol_socket_default_type type, int protocol)
 {
-    const struct sol_socket_impl *impl = NULL;
+    const struct sol_socket_type *impl = NULL;
     struct sol_socket *socket;
 
 #ifdef DTLS
@@ -46,12 +46,15 @@ sol_socket_new(int domain, enum sol_socket_type type, int protocol)
 #endif
 
     impl = sol_socket_get_impl();
+    SOL_SOCKET_TYPE_CHECK_API_VERSION(impl, NULL);
 
     SOL_NULL_CHECK(impl, NULL);
 
-    socket = impl->new(domain, type, protocol);
-    if (socket)
+    socket = sol_socket_default_new(domain, type, protocol);
+    if (socket) {
         socket->impl = impl;
+        SOL_SET_API_VERSION(socket->api_version = SOL_SOCKET_TYPE_API_VERSION; )
+    }
 
 #ifdef DTLS
     if (dtls) {
@@ -72,6 +75,7 @@ SOL_API void
 sol_socket_del(struct sol_socket *s)
 {
     SOL_NULL_CHECK(s);
+    SOL_SOCKET_CHECK_API_VERSION(s);
     SOL_NULL_CHECK(s->impl->del);
 
     s->impl->del(s);
@@ -81,6 +85,7 @@ SOL_API int
 sol_socket_set_on_read(struct sol_socket *s, bool (*cb)(void *data, struct sol_socket *s), const void *data)
 {
     SOL_NULL_CHECK(s, -EINVAL);
+    SOL_SOCKET_CHECK_API_VERSION(s,-EINVAL);
     SOL_NULL_CHECK(s->impl->set_on_read, -ENOSYS);
 
     return s->impl->set_on_read(s, cb, data);
@@ -99,6 +104,7 @@ SOL_API ssize_t
 sol_socket_recvmsg(struct sol_socket *s, void *buf, size_t len, struct sol_network_link_addr *cliaddr)
 {
     SOL_NULL_CHECK(s, -EINVAL);
+    SOL_SOCKET_CHECK_API_VERSION(s, -EINVAL);
     SOL_NULL_CHECK(s->impl->recvmsg, -ENOSYS);
 
     return s->impl->recvmsg(s, buf, len, cliaddr);
@@ -109,6 +115,7 @@ sol_socket_sendmsg(struct sol_socket *s, const void *buf, size_t len,
     const struct sol_network_link_addr *cliaddr)
 {
     SOL_NULL_CHECK(s, -EINVAL);
+    SOL_SOCKET_CHECK_API_VERSION(s, -EINVAL);
     SOL_NULL_CHECK(s->impl->sendmsg, -ENOSYS);
 
     return s->impl->sendmsg(s, buf, len, cliaddr);
@@ -118,6 +125,7 @@ SOL_API int
 sol_socket_join_group(struct sol_socket *s, int ifindex, const struct sol_network_link_addr *group)
 {
     SOL_NULL_CHECK(s, -EINVAL);
+    SOL_SOCKET_CHECK_API_VERSION(s, -EINVAL);
     SOL_NULL_CHECK(s->impl->join_group, -ENOSYS);
 
     return s->impl->join_group(s, ifindex, group);
@@ -127,6 +135,7 @@ SOL_API int
 sol_socket_bind(struct sol_socket *s, const struct sol_network_link_addr *addr)
 {
     SOL_NULL_CHECK(s, -EINVAL);
+    SOL_SOCKET_CHECK_API_VERSION(s, -EINVAL);
     SOL_NULL_CHECK(s->impl->bind, -ENOSYS);
 
     return s->impl->bind(s, addr);
@@ -136,6 +145,7 @@ SOL_API int
 sol_socket_setsockopt(struct sol_socket *s, enum sol_socket_level level, enum sol_socket_option optname, const void *optval, size_t optlen)
 {
     SOL_NULL_CHECK(s, -EINVAL);
+    SOL_SOCKET_CHECK_API_VERSION(s, -EINVAL);
     SOL_NULL_CHECK(s->impl->setsockopt, -ENOSYS);
 
     return s->impl->setsockopt(s, level, optname, optval, optlen);
@@ -145,6 +155,7 @@ SOL_API int
 sol_socket_getsockopt(struct sol_socket *s, enum sol_socket_level level, enum sol_socket_option optname, void *optval, size_t *optlen)
 {
     SOL_NULL_CHECK(s, -EINVAL);
+    SOL_SOCKET_CHECK_API_VERSION(s, -EINVAL);
     SOL_NULL_CHECK(s->impl->getsockopt, -ENOSYS);
 
     return s->impl->getsockopt(s, level, optname, optval, optlen);

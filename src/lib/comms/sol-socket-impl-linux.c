@@ -134,8 +134,8 @@ to_sockaddr(const struct sol_network_link_addr *addr, struct sockaddr *sockaddr,
     return *socklen;
 }
 
-static struct sol_socket *
-sol_socket_linux_new(int domain, enum sol_socket_type type, int protocol)
+struct sol_socket *
+sol_socket_default_new(int domain, enum sol_socket_default_type type, int protocol)
 {
     struct sol_socket_linux *s;
     int fd, socktype = SOCK_CLOEXEC | SOCK_NONBLOCK;
@@ -501,10 +501,11 @@ sol_socket_linux_getsockopt(struct sol_socket *socket, enum sol_socket_level lev
     return 0;
 }
 
-const struct sol_socket_impl *
+const struct sol_socket_type *
 sol_socket_get_impl(void)
 {
-    static const struct sol_socket_impl impl = {
+    static const struct sol_socket_type impl = {
+        SOL_SET_API_VERSION(.api_version = SOL_SOCKET_TYPE_API_VERSION, )
         .bind = sol_socket_linux_bind,
         .join_group = sol_socket_linux_join_group,
         .sendmsg = sol_socket_linux_sendmsg,
@@ -512,7 +513,6 @@ sol_socket_get_impl(void)
         .set_on_write = sol_socket_linux_set_on_write,
         .set_on_read = sol_socket_linux_set_on_read,
         .del = sol_socket_linux_del,
-        .new = sol_socket_linux_new,
         .setsockopt = sol_socket_linux_setsockopt,
         .getsockopt = sol_socket_linux_getsockopt
     };

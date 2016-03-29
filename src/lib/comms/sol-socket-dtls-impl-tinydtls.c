@@ -701,7 +701,7 @@ get_psk_info(struct dtls_context_t *ctx, const session_t *session,
 struct sol_socket *
 sol_socket_dtls_wrap_socket(struct sol_socket *to_wrap)
 {
-    static const struct sol_socket_impl impl = {
+    static const struct sol_socket_type impl = {
         .bind = sol_socket_dtls_bind,
         .join_group = sol_socket_dtls_join_group,
         .sendmsg = sol_socket_dtls_sendmsg,
@@ -709,7 +709,6 @@ sol_socket_dtls_wrap_socket(struct sol_socket *to_wrap)
         .set_on_write = sol_socket_dtls_set_on_write,
         .set_on_read = sol_socket_dtls_set_on_read,
         .del = sol_socket_dtls_del,
-        .new = NULL,
         .setsockopt = sol_socket_dtls_setsockopt,
         .getsockopt = sol_socket_dtls_getsockopt
     };
