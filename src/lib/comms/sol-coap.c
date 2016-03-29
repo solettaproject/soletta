@@ -745,8 +745,8 @@ on_can_write(void *data, struct sol_socket *s)
     struct sol_coap_server *server = data;
     struct outgoing *outgoing;
     struct sol_buffer buf;
-    int err;
-    int idx;
+    int err, idx;
+    uint8_t type;
 
     if (sol_ptr_vector_get_len(&server->outgoing) == 0)
         return false;
@@ -757,6 +757,9 @@ on_can_write(void *data, struct sol_socket *s)
     }
     if (!outgoing)
         return false;
+
+    err = sol_coap_header_get_type(outgoing->pkt, &type);
+    SOL_INT_CHECK(err, < 0, err);
 
     err = prepare_buffer(outgoing, &buf);
     if (err)
@@ -769,8 +772,9 @@ on_can_write(void *data, struct sol_socket *s)
     if (err == -EAGAIN)
         return true;
 
-    SOL_DBG("CoAP packet sent (payload of %zu bytes, "
-        "buffer holding it with %zu bytes)",
+    SOL_DBG("CoAP packet sent (queue_len=%d) -- payload of %zu bytes, "
+        "buffer holding it with %zu bytes",
+        sol_ptr_vector_get_len(&server->outgoing),
         outgoing->pkt->buf.used, outgoing->pkt->buf.capacity);
     sol_coap_packet_debug(outgoing->pkt);
     if (err < 0) {
@@ -782,6 +786,23 @@ on_can_write(void *data, struct sol_socket *s)
         SOL_WRN("Could not send packet %d to %.*s (%d): %s", id,
             SOL_STR_SLICE_PRINT(sol_buffer_get_slice(&addr)), -err, sol_util_strerrora(-err));
         return false;
+    }
+
+    /* According to RFC 7641, section 4.5, "since RESET messages are
+     * transmitted unreliably, the client must be prepared in case the
+     * these are not received by the server. Thus, a server can always
+     * pretend that a RESET message rejecting a non-confirmable
+     * notification was lost. If a server does this, it could
+     * accelerate cancellation by sending the following notifications
+     * to that client in confirmable messages".
+     *
+     * By taking this shortcut we reduce memory usage A LOT and are
+     * able to run on very small devices with no memory issues.
+     */
+    if (type == SOL_COAP_TYPE_ACK || type == SOL_COAP_TYPE_RESET
+        || type == SOL_COAP_TYPE_NONCON) {
+        sol_ptr_vector_del(&server->outgoing, idx);
+        outgoing_free(outgoing);
     }
 
     if (sol_ptr_vector_get_len(&server->outgoing) == 0)
@@ -1558,7 +1579,7 @@ on_can_read(void *data, struct sol_socket *s)
     len = sol_socket_recvmsg(s, NULL, 0, NULL);
     SOL_INT_CHECK_GOTO(len, < 0, err_recv);
 
-    SOL_DBG("allocating %zd bytes for pkt", len);
+    SOL_DBG("allocating %zd bytes for pkt %p", len, pkt);
     err = sol_buffer_ensure(&pkt->buf, len);
     if (err < 0) {
         SOL_WRN("Could not allocate space (%zd bytes) to receive from socket"
