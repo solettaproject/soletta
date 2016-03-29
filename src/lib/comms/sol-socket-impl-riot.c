@@ -30,14 +30,15 @@
 struct sol_socket_riot {
     struct sol_socket base;
 
-    struct {
-        bool (*cb)(void *data, struct sol_socket *s);
-        const void *data;
-    } read, write;
+    bool (*on_can_read)(void *data, struct sol_socket *s);
+    bool (*on_can_write)(void *data, struct sol_socket *s);
+    const void *data;
     struct sol_timeout *write_timeout;
     gnrc_pktsnip_t *curr_pkt;
     gnrc_netreg_entry_t entry;
     gnrc_nettype_t type;
+    bool read_monitor;
+    bool write_monitor;
 };
 
 static struct sol_ptr_vector ipv6_udp_bound_sockets = SOL_PTR_VECTOR_INIT;
@@ -160,8 +161,11 @@ static void
 socket_udp_recv(struct sol_socket_riot *s, gnrc_pktsnip_t *pkt)
 {
     s->curr_pkt = pkt;
-    if (s->read.cb)
-        s->read.cb((void *)s->read.data, &s->base);
+    if (s->on_can_read && s->read_monitor) {
+        if (!s->on_can_read((void *)s->data, &s->base))
+            s->read_monitor = false;
+    }
+
     s->curr_pkt = NULL;
 }
 
@@ -170,10 +174,11 @@ write_timeout_cb(void *data)
 {
     struct sol_socket_riot *s = data;
 
-    if (s->write.cb((void *)s->write.data, &s->base))
+    if (s->on_can_write((void *)s->data, &s->base))
         return true;
 
     s->write_timeout = NULL;
+    s->write_monitor = false;
     return false;
 }
 
@@ -214,45 +219,6 @@ the_end:
     gnrc_pktbuf_release(pkt);
 }
 
-struct sol_socket *
-sol_socket_riot_new(int domain, enum sol_socket_type type, int protocol)
-{
-    struct sol_socket_riot *socket;
-
-    SOL_INT_CHECK_GOTO(domain, != SOL_NETWORK_FAMILY_INET6, unsupported_family);
-
-    socket = calloc(1, sizeof(*socket));
-    SOL_NULL_CHECK_GOTO(socket, socket_error);
-
-    switch (type) {
-    case SOL_SOCKET_UDP:
-        socket->type = GNRC_NETTYPE_UDP;
-        break;
-    default:
-        SOL_WRN("Unsupported socket type: %d", type);
-        goto unsupported_type;
-    }
-
-    socket->entry.demux_ctx = GNRC_NETREG_DEMUX_CTX_ALL;
-    socket->entry.pid = KERNEL_PID_UNDEF;
-    socket->type = GNRC_NETTYPE_UDP;
-
-    return &socket->base;
-
-socket_error:
-    errno = ENOMEM;
-    return NULL;
-
-unsupported_family:
-    errno = EAFNOSUPPORT;
-    return NULL;
-
-unsupported_type:
-    errno = EPROTOTYPE;
-    free(socket);
-    return NULL;
-}
-
 static void
 sol_socket_riot_del(struct sol_socket *s)
 {
@@ -265,35 +231,34 @@ sol_socket_riot_del(struct sol_socket *s)
 }
 
 static int
-sol_socket_riot_set_on_read(struct sol_socket *s, bool (*cb)(void *data, struct sol_socket *s), const void *data)
+sol_socket_riot_set_read_monitor(struct sol_socket *s, bool on)
 {
     struct sol_socket_riot *socket = (struct sol_socket_riot *)s;
 
-    SOL_NULL_CHECK(s, -EINVAL);
+    SOL_NULL_CHECK(socket->on_can_read, -EINVAL);
 
-    socket->read.cb = cb;
-    socket->read.data = data;
+    socket->read_monitor = on;
 
     return 0;
 }
 
 static int
-sol_socket_riot_set_on_write(struct sol_socket *s, bool (*cb)(void *data, struct sol_socket *s), const void *data)
+sol_socket_riot_set_write_monitor(struct sol_socket *s, bool on)
 {
     struct sol_socket_riot *socket = (struct sol_socket_riot *)s;
 
     SOL_NULL_CHECK(socket, -EINVAL);
+    SOL_NULL_CHECK(socket->on_can_write, -EINVAL);
 
-    if (cb && !socket->write_timeout) {
+    if (on && !socket->write_timeout) {
         socket->write_timeout = sol_timeout_add(0, write_timeout_cb, socket);
         SOL_NULL_CHECK(socket->write_timeout, -ENOMEM);
-    } else if (!cb && socket->write_timeout) {
+    } else if (!on) {
         sol_timeout_del(socket->write_timeout);
         socket->write_timeout = NULL;
     }
 
-    socket->write.cb = cb;
-    socket->write.data = data;
+    socket->write_monitor = on;
 
     return 0;
 }
@@ -308,7 +273,7 @@ sol_socket_riot_recvmsg(struct sol_socket *s, void *buf, size_t len, struct sol_
     return ipv6_udp_recvmsg(socket, buf, len, cliaddr);
 }
 
-static int
+static ssize_t
 sol_socket_riot_sendmsg(struct sol_socket *s, const void *buf, size_t len, const struct sol_network_link_addr *cliaddr)
 {
     struct sol_socket_riot *socket = (struct sol_socket_riot *)s;
@@ -357,37 +322,41 @@ sol_socket_riot_bind(struct sol_socket *s, const struct sol_network_link_addr *a
     return 0;
 }
 
-static int
-sol_socket_riot_setsockopt(struct sol_socket *socket, enum sol_socket_level level,
-    enum sol_socket_option optname, const void *optval, size_t optlen)
+struct sol_socket *
+sol_socket_ip_default_new(const struct sol_socket_options *options)
 {
-    SOL_DBG("Not implemented");
-    return 0;
-}
-
-static int
-sol_socket_riot_getsockopt(struct sol_socket *socket, enum sol_socket_level level,
-    enum sol_socket_option optname, void *optval, size_t *optlen)
-{
-    SOL_DBG("Not implemented");
-    return 0;
-}
-
-const struct sol_socket_impl *
-sol_socket_get_impl(void)
-{
-    static struct sol_socket_impl impl = {
+    struct sol_socket_riot *socket;
+    struct sol_socket_ip_options *opts = (struct sol_socket_ip_options *)options;
+    static struct sol_socket_type type = {
+        SOL_SET_API_VERSION(.api_version = SOL_SOCKET_TYPE_API_VERSION, )
         .bind = sol_socket_riot_bind,
         .join_group = sol_socket_riot_join_group,
         .sendmsg = sol_socket_riot_sendmsg,
         .recvmsg = sol_socket_riot_recvmsg,
-        .set_on_write = sol_socket_riot_set_on_write,
-        .set_on_read = sol_socket_riot_set_on_read,
-        .del = sol_socket_riot_del,
-        .new = sol_socket_riot_new,
-        .setsockopt = sol_socket_riot_setsockopt,
-        .getsockopt = sol_socket_riot_getsockopt
+        .set_write_monitor = sol_socket_riot_set_write_monitor,
+        .set_read_monitor = sol_socket_riot_set_read_monitor,
+        .del = sol_socket_riot_del
     };
 
-    return &impl;
+    SOL_INT_CHECK_GOTO(opts->family, != SOL_NETWORK_FAMILY_INET6, unsupported_family);
+
+    socket = calloc(1, sizeof(*socket));
+    SOL_NULL_CHECK_GOTO(socket, socket_error);
+
+    socket->base.type = &type;
+    socket->type = GNRC_NETTYPE_UDP;
+    socket->entry.demux_ctx = GNRC_NETREG_DEMUX_CTX_ALL;
+    socket->entry.pid = KERNEL_PID_UNDEF;
+    socket->on_can_read = options->on_can_read;
+    socket->on_can_write = options->on_can_write;
+
+    return &socket->base;
+
+socket_error:
+    errno = ENOMEM;
+    return NULL;
+
+unsupported_family:
+    errno = EAFNOSUPPORT;
+    return NULL;
 }

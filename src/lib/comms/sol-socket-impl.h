@@ -21,25 +21,47 @@
 #include "sol-network.h"
 #include "sol-socket.h"
 
-struct sol_socket_impl {
-    struct sol_socket *(*new)(int domain, enum sol_socket_type type, int protocol);
-    void (*del)(struct sol_socket *s);
+#ifndef SOL_NO_API_VERSION
 
-    int (*set_on_read)(struct sol_socket *s, bool (*cb)(void *data, struct sol_socket *s), const void *data);
-    int (*set_on_write)(struct sol_socket *s, bool (*cb)(void *data, struct sol_socket *s), const void *data);
+#define SOL_SOCKET_OPTIONS_CHECK_API_VERSION(options_, ...) \
+    if (SOL_UNLIKELY((options_)->api_version != \
+        SOL_SOCKET_OPTIONS_API_VERSION)) { \
+        SOL_ERR("Unexpected API version (socket options is %u, expected %u)", \
+            (options_)->api_version, SOL_SOCKET_OPTIONS_API_VERSION); \
+        return __VA_ARGS__; \
+    }
 
-    ssize_t (*recvmsg)(struct sol_socket *s, void *buf, size_t len, struct sol_network_link_addr *cliaddr);
+#define SOL_SOCKET_OPTIONS_CHECK_SUB_API_VERSION(options, expected, ...) \
+    do { \
+        SOL_NULL_CHECK(options, __VA_ARGS__); \
+        if (((const struct sol_socket_options *)options)->sub_api != (expected)) { \
+            SOL_WRN("" # options "(%p)->sub_api(%hu) != " \
+                "" # expected "(%hu)", \
+                (options), \
+                ((const struct sol_socket_options *)options)->sub_api, \
+                (expected)); \
+            return __VA_ARGS__; \
+        } \
+    } while (0)
 
-    int (*sendmsg)(struct sol_socket *s, const void *buf, size_t len,
-        const struct sol_network_link_addr *cliaddr);
+#define SOL_SOCKET_TYPE_CHECK_API_VERSION(type_, ...) \
+    if (SOL_UNLIKELY((type_)->api_version != \
+        SOL_SOCKET_TYPE_API_VERSION)) { \
+        SOL_ERR("Unexpected API version (socket type is %u, expected %u)", \
+            (type_)->api_version, SOL_SOCKET_TYPE_API_VERSION); \
+        return __VA_ARGS__; \
+    }
 
-    int (*join_group)(struct sol_socket *s, int ifindex, const struct sol_network_link_addr *group);
+#else
 
-    int (*bind)(struct sol_socket *s, const struct sol_network_link_addr *addr);
+#define SOL_SOCKET_TYPE_CHECK_API_VERSION(type_, ...)
+#define SOL_SOCKET_OPTIONS_CHECK_API_VERSION(options_, ...)
+#define SOL_SOCKET_OPTIONS_CHECK_SUB_API_VERSION(options_, expected_, ...)
 
-    int (*setsockopt)(struct sol_socket *s, enum sol_socket_level level, enum sol_socket_option optname, const void *optval, size_t optlen);
+#endif
 
-    int (*getsockopt)(struct sol_socket *s, enum sol_socket_level level, enum sol_socket_option optname, void *optval, size_t *optlen);
-};
+struct sol_socket *sol_socket_ip_default_new(const struct sol_socket_options *options);
 
-const struct sol_socket_impl *sol_socket_get_impl(void);
+#ifdef DTLS
+struct sol_socket *sol_socket_default_dtls_new(const struct sol_socket_options *options);
+#endif
