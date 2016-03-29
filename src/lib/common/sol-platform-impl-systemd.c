@@ -58,7 +58,7 @@ struct ctx {
     bool hostname_monitor_registered : 1;
 };
 
-static struct ctx _ctx;
+static struct ctx _ctx = { 0 };
 
 static bool
 _manager_set_system_state(void *data, const char *path, sd_bus_message *m)
