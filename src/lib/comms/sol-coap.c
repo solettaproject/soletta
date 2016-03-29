@@ -606,7 +606,7 @@ timeout_cb(void *data)
 
     outgoing->timeout = NULL;
 
-    sol_socket_set_on_write(server->socket, on_can_write, server);
+    sol_socket_set_write_monitor(server->socket, true);
 
     sol_network_link_addr_to_str(&outgoing->cliaddr, &addr);
 
@@ -837,7 +837,7 @@ enqueue_packet(struct sol_coap_server *server, struct sol_coap_packet *pkt,
     if (header)
         outgoing->header = sol_coap_packet_ref(header);
 
-    sol_socket_set_on_write(server->socket, on_can_write, server);
+    sol_socket_set_write_monitor(server->socket, true);
 
     return 0;
 }
@@ -1746,40 +1746,30 @@ network_event(void *data, const struct sol_network_link *link, enum sol_network_
 }
 
 static struct sol_coap_server *
-sol_coap_server_new_full(enum sol_socket_type type, const struct sol_network_link_addr *servaddr)
+sol_coap_server_new_full(struct sol_socket_default_options *options, const struct sol_network_link_addr *servaddr)
 {
     const struct sol_vector *links;
     struct sol_network_link *link;
     struct sol_coap_server *server;
     struct sol_socket *s;
     uint16_t i;
-    int on = 1, ret;
+    int ret;
 
     SOL_LOG_INTERNAL_INIT_ONCE;
 
-    s = sol_socket_new(servaddr->family, type, 0);
+    server = calloc(1, sizeof(*server));
+    SOL_NULL_CHECK(server, NULL);
+
+    options->data = server;
+    s = sol_socket_new(options);
     if (!s) {
         SOL_WRN("Could not create socket (%d): %s", errno, sol_util_strerrora(errno));
-        return NULL;
-    }
-
-    if ((ret = sol_socket_setsockopt(s, SOL_SOCKET_LEVEL_SOCKET,
-        SOL_SOCKET_OPTION_REUSEADDR, &on, sizeof(on))) < 0) {
-        SOL_WRN("Could not set socket's option: %s", sol_util_strerrora(-ret));
-        sol_socket_del(s);
-        return NULL;
+        goto err;
     }
 
     if ((ret = sol_socket_bind(s, servaddr)) < 0) {
         SOL_WRN("Could not bind socket (%d): %s", -ret, sol_util_strerrora(-ret));
-        sol_socket_del(s);
-        return NULL;
-    }
-
-    server = calloc(1, sizeof(*server));
-    if (!server) {
-        sol_socket_del(s);
-        return NULL;
+        goto err_bind;
     }
 
     server->refcnt = 1;
@@ -1790,14 +1780,11 @@ sol_coap_server_new_full(enum sol_socket_type type, const struct sol_network_lin
     sol_ptr_vector_init(&server->outgoing);
 
     server->socket = s;
-    if (sol_socket_set_on_read(s, on_can_read, server) < 0) {
-        free(server);
-        sol_socket_del(s);
-        return NULL;
-    }
+    ret = sol_socket_set_read_monitor(s, true);
+    SOL_INT_CHECK_GOTO(ret, < 0, err_monitor);
 
-    /* If type is SOL_SOCKET_DTLS, then it's only a unicast server. */
-    if (type == SOL_SOCKET_UDP && servaddr->port) {
+    /* If secure is enabled it's only a unicast server. */
+    if (!options->secure && servaddr->port) {
         /* From man 7 ip:
          *
          *   imr_address is the address of the local interface with which the
@@ -1828,26 +1815,44 @@ sol_coap_server_new_full(enum sol_socket_type type, const struct sol_network_lin
     sol_network_subscribe_events(network_event, server);
 
     SOL_DBG("New server %p on port %d%s", server, servaddr->port,
-        type == SOL_SOCKET_UDP ? "" : " (secure)");
+        !options->secure ? "" : " (secure)");
 
     return server;
+
+err_monitor:
+err_bind:
+    sol_socket_del(s);
+err:
+    free(server);
+    return NULL;
 }
 
 SOL_API struct sol_coap_server *
 sol_coap_server_new(const struct sol_network_link_addr *addr)
 {
-    return sol_coap_server_new_full(SOL_SOCKET_UDP, addr);
+    return sol_coap_server_new_full(
+        &((struct sol_socket_default_options) {
+        SOL_SET_API_VERSION(.api_version = SOL_SOCKET_DEFAULT_OPTIONS_API_VERSION, )
+        .on_can_read = on_can_read,
+        .on_can_write = on_can_write,
+        .secure = false,
+        .reuse_addr = true,
+        .family = addr->family,
+    }), addr);
 }
 
 SOL_API struct sol_coap_server *
 sol_coap_secure_server_new(const struct sol_network_link_addr *addr)
 {
-#ifdef DTLS
-    return sol_coap_server_new_full(SOL_SOCKET_DTLS, addr);
-#else
-    errno = ENOSYS;
-    return NULL;
-#endif
+    return sol_coap_server_new_full(
+        &((struct sol_socket_default_options) {
+        SOL_SET_API_VERSION(.api_version = SOL_SOCKET_DEFAULT_OPTIONS_API_VERSION, )
+        .on_can_read = on_can_read,
+        .on_can_write = on_can_write,
+        .secure = true,
+        .reuse_addr = true,
+        .family = addr->family,
+    }), addr);
 }
 
 SOL_API bool
