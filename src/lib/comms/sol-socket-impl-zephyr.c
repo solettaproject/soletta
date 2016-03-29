@@ -34,10 +34,9 @@ struct sol_socket_net_context;
 struct sol_socket_zephyr {
     struct sol_socket base;
 
-    struct {
-        bool (*cb)(void *data, struct sol_socket *s);
-        const void *data;
-    } read, write;
+    bool (*on_can_read)(void *data, struct sol_socket *s);
+    bool (*on_can_write)(void *data, struct sol_socket *s);
+    const void *data;
 
     struct sol_timeout *write_timeout;
 
@@ -47,6 +46,8 @@ struct sol_socket_zephyr {
 
     struct nano_sem lock;
     bool read_available;
+    bool read_monitor;
+    bool write_monitor;
 };
 
 #define RECV_STACKSIZE 256
@@ -69,9 +70,9 @@ socket_read_available(void *data)
     s->read_available = false;
     nano_task_sem_give(&s->lock);
 
-    if (s->read.cb)
+    if (s->read_monitor)
         while (count--)
-            s->read.cb((void *)s->read.data, &s->base);
+            s->read_monitor = s->on_can_read((void *)s->data, &s->base);
 }
 
 static void
@@ -109,33 +110,6 @@ socket_recv_fiber(int arg1, int arg2)
         if (buf)
             socket_signal_mainloop(ctx->socket, buf);
     }
-}
-
-static struct sol_socket *
-sol_socket_zephyr_new(int domain, enum sol_socket_type type, int protocol)
-{
-    struct sol_socket_zephyr *socket;
-
-    SOL_INT_CHECK_GOTO(domain, != SOL_NETWORK_FAMILY_INET6,
-        unsupported_family);
-
-    socket = calloc(1, sizeof(*socket));
-    SOL_NULL_CHECK_GOTO(socket, socket_error);
-
-    sol_ptr_vector_init(&socket->mcast_contexts);
-    sol_ptr_vector_init(&socket->bufs);
-    nano_sem_init(&socket->lock);
-    nano_sem_give(&socket->lock);
-
-    return &socket->base;
-
-socket_error:
-    errno = ENOMEM;
-    return NULL;
-
-unsupported_family:
-    errno = EAFNOSUPPORT;
-    return NULL;
 }
 
 static void
@@ -186,12 +160,13 @@ sol_socket_zephyr_del(struct sol_socket *s)
 }
 
 static int
-sol_socket_zephyr_set_on_read(struct sol_socket *s, bool (*cb)(void *data, struct sol_socket *s), const void *data)
+sol_socket_zephyr_set_read_monitor(struct sol_socket *s, bool on)
 {
     struct sol_socket_zephyr *socket = (struct sol_socket_zephyr *)s;
 
-    socket->read.cb = cb;
-    socket->read.data = data;
+    SOL_NULL_CHECK(socket->on_can_read, -EINVAL);
+
+    socket->read_monitor = on;
 
     return 0;
 }
@@ -201,28 +176,30 @@ write_timeout_cb(void *data)
 {
     struct sol_socket_zephyr *socket = data;
 
-    if (socket->write.cb((void *)socket->write.data, &socket->base))
+    if (socket->on_can_write((void *)socket->data, &socket->base))
         return true;
 
+    socket->write_monitor = false;
     socket->write_timeout = NULL;
     return false;
 }
 
 static int
-sol_socket_zephyr_set_on_write(struct sol_socket *s, bool (*cb)(void *data, struct sol_socket *s), const void *data)
+sol_socket_zephyr_set_write_monitor(struct sol_socket *s, bool on)
 {
     struct sol_socket_zephyr *socket = (struct sol_socket_zephyr *)s;
 
-    if (cb && !socket->write_timeout) {
+    SOL_NULL_CHECK(socket->on_can_write, -EINVAL);
+
+    if (on && !socket->write_timeout) {
         socket->write_timeout = sol_timeout_add(0, write_timeout_cb, socket);
         SOL_NULL_CHECK(socket->write_timeout, -ENOMEM);
-    } else if (!cb && socket->write_timeout) {
+    } else if (!on && socket->write_timeout) {
         sol_timeout_del(socket->write_timeout);
         socket->write_timeout = NULL;
     }
 
-    socket->write.cb = cb;
-    socket->write.data = data;
+    socket->write_monitor = on;
 
     return 0;
 }
@@ -271,7 +248,7 @@ sol_socket_zephyr_recvmsg(struct sol_socket *s, void *buf, size_t len, struct so
  */
 #include <ip/simple-udp.h>
 
-static int
+static ssize_t
 sol_socket_zephyr_sendmsg(struct sol_socket *s, const void *buf, size_t len, const struct sol_network_link_addr *cliaddr)
 {
     struct sol_socket_zephyr *socket = (struct sol_socket_zephyr *)s;
@@ -394,37 +371,43 @@ sol_socket_zephyr_bind(struct sol_socket *s, const struct sol_network_link_addr 
     return 0;
 }
 
-static int
-sol_socket_zephyr_setsockopt(struct sol_socket *socket, enum sol_socket_level level,
-    enum sol_socket_option optname, const void *optval, size_t optlen)
+struct sol_socket *
+sol_socket_ip_default_new(const struct sol_socket_options *options)
 {
-    SOL_DBG("Setting socket options for Zephyr not implemented");
-    return 0;
-}
-
-static int
-sol_socket_zephyr_getsockopt(struct sol_socket *socket, enum sol_socket_level level,
-    enum sol_socket_option optname, void *optval, size_t *optlen)
-{
-    SOL_DBG("Not implemented");
-    return 0;
-}
-
-const struct sol_socket_impl *
-sol_socket_get_impl(void)
-{
-    static struct sol_socket_impl impl = {
+    struct sol_socket_zephyr *socket;
+    struct sol_socket_ip_options *opts = (struct sol_socket_ip_options *)options;
+    static struct sol_socket_type type = {
+        SOL_SET_API_VERSION(.api_version = SOL_SOCKET_TYPE_API_VERSION, )
         .bind = sol_socket_zephyr_bind,
         .join_group = sol_socket_zephyr_join_group,
         .sendmsg = sol_socket_zephyr_sendmsg,
         .recvmsg = sol_socket_zephyr_recvmsg,
-        .set_on_write = sol_socket_zephyr_set_on_write,
-        .set_on_read = sol_socket_zephyr_set_on_read,
+        .set_write_monitor = sol_socket_zephyr_set_write_monitor,
+        .set_read_monitor = sol_socket_zephyr_set_read_monitor,
         .del = sol_socket_zephyr_del,
-        .new = sol_socket_zephyr_new,
-        .setsockopt = sol_socket_zephyr_setsockopt,
-        .getsockopt = sol_socket_zephyr_getsockopt
     };
 
-    return &impl;
+    SOL_INT_CHECK_GOTO(opts->family, != SOL_NETWORK_FAMILY_INET6,
+        unsupported_family);
+
+    socket = calloc(1, sizeof(*socket));
+    SOL_NULL_CHECK_GOTO(socket, socket_error);
+
+    socket->base.type = &type;
+    sol_ptr_vector_init(&socket->mcast_contexts);
+    sol_ptr_vector_init(&socket->bufs);
+    nano_sem_init(&socket->lock);
+    nano_sem_give(&socket->lock);
+    socket->on_can_write = options->on_can_write;
+    socket->on_can_read = options->on_can_read;
+
+    return &socket->base;
+
+socket_error:
+    errno = ENOMEM;
+    return NULL;
+
+unsupported_family:
+    errno = EAFNOSUPPORT;
+    return NULL;
 }
