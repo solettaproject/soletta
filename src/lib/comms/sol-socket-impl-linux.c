@@ -502,7 +502,7 @@ sol_socket_linux_getsockopt(struct sol_socket *socket, enum sol_socket_level lev
 }
 
 const struct sol_socket_impl *
-sol_socket_linux_get_impl(void)
+sol_socket_get_impl(void)
 {
     static const struct sol_socket_impl impl = {
         .bind = sol_socket_linux_bind,

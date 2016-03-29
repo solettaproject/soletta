@@ -45,11 +45,7 @@ sol_socket_new(int domain, enum sol_socket_type type, int protocol)
     }
 #endif
 
-#ifdef SOL_PLATFORM_LINUX
-    impl = sol_socket_linux_get_impl();
-#elif defined(SOL_PLATFORM_RIOT)
-    impl = sol_socket_riot_get_impl();
-#endif
+    impl = sol_socket_get_impl();
 
     SOL_NULL_CHECK(impl, NULL);
 
