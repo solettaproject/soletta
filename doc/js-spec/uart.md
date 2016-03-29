@@ -33,11 +33,17 @@ dictionary UARTInit {
 typedef (USVString or sequence<octet>) UARTData;
 
 [NoInterfaceObject]
-interface UARTConnection {
+interface UARTConnection: EventTarget {
   // has all the properties of UARTInit as read-only attributes
   void close();
   Promise<void> write(UARTData data);
+  attribute EventHandler<UARTEvent> onread;
 };
+
+interface UARTEvent: Event {
+  readonly attribute UARTData data;
+};
+
 ```
 The ```UARTData``` type refers to either a string or an array of octets (unsigned bytes) that MAY be represented as an array of numbers, or as ```ArrayBuffer``` or as ```Buffer```.
 
@@ -47,6 +53,9 @@ The callback provided to the Soletta C API for [write()](http://solettaproject.g
 ```javascript
   var uart = require('uart');
   uart.open({ port: "ttyS0" }).then( conn => {
+    conn.onread = function(event) {
+      console.log("UART data: " + event.data);
+    };
     conn.write("UART test").then(() => {
       console.log("Sent on UART.");
       conn.write([ 0, 1, 2, 3, 4 ]).then(() => {
