@@ -400,6 +400,19 @@ init_static_server_info(void)
     return info;
 }
 
+static bool
+oic_dtls_server_init(void)
+{
+    oic_server.security = sol_oic_server_security_add(oic_server.server,
+        oic_server.dtls_server);
+    if (!oic_server.security) {
+        SOL_WRN("OIC server security subsystem could not be initialized");
+        return false;
+    }
+
+    return true;
+}
+
 static int
 sol_oic_server_ref(void)
 {
@@ -433,6 +446,7 @@ sol_oic_server_ref(void)
         &oic_res_coap_resource, NULL);
     SOL_INT_CHECK_GOTO(r, < 0, error);
 
+    oic_server.security = NULL;
     servaddr.port = OIC_COAP_SERVER_DTLS_PORT;
     oic_server.dtls_server = sol_coap_secure_server_new(&servaddr);
     if (!oic_server.dtls_server) {
@@ -442,6 +456,10 @@ sol_oic_server_ref(void)
             SOL_INF("DTLS server could not be created for OIC server: %s",
                 sol_util_strerrora(errno));
         }
+    } else if (!oic_dtls_server_init()) {
+        SOL_INF("OIC server running in insecure mode.");
+        sol_coap_server_unref(oic_server.dtls_server);
+        oic_server.dtls_server = NULL;
     }
 
     oic_server.server_info = server_info;
@@ -449,13 +467,6 @@ sol_oic_server_ref(void)
     sol_ptr_vector_init(&oic_server.resources);
 
     oic_server.refcnt++;
-
-    oic_server.security = sol_oic_server_security_add(oic_server.server,
-        oic_server.dtls_server);
-    if (!oic_server.security) {
-        SOL_WRN("OIC server security subsystem could not be initialized");
-        goto error_shutdown;
-    }
 
     res = sol_oic_server_add_resource_internal(&oic_d_resource_type, NULL,
         SOL_OIC_FLAG_DISCOVERABLE | SOL_OIC_FLAG_ACTIVE);
