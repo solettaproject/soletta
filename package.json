@@ -4,6 +4,10 @@
   "description": "Node.js bindings for Soletta",
   "main": "index.js",
   "scripts": {
+    "preinstall": "echo '{}' > bindings/nodejs/generated/nodejs-bindings-sources.gyp",
+
+    "//": "Should not be needed once https://github.com/npm/npm/issues/12133 is fixed",
+    "install": "node-gyp rebuild",
     "test": "echo \"Error: no test specified\" && exit 1"
   },
   "repository": {
