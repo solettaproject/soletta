@@ -16,6 +16,11 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
+# This script covers the use case where the user installs soletta via npm. The
+# actual build happens via Soletta's own build system, but before we fire it up
+# we configure it to make sure the node.js bindings get built and we handle the
+# case where npm wants a debug build by turning on Soletta's own debug build.
+
 if test "x${V}x" != "xx"; then
 	set -x
 fi
@@ -27,8 +32,16 @@ unset PYTHON_PATH || exit 1
 # Configure with defaults
 make alldefconfig || exit 1
 
+# Turn on node.js bindings and build with RPATH
+sed -i .config -r -e 's/(# )?USE_NODEJS.*$/USE_NODEJS=y/'
+export RPATH="y"
+
 if test "x${npm_config_debug}x" = "xtruex"; then
-	sed -i .config -r -e 's/(# )?CONFIG_CFLAGS.*$/CONFIG_CFLAGS="-g -O0"/'
+
+	# If debug is on, turn off release build and optimization, and turn on debug build and symbols
+	sed -i .config -r -e 's/(# )?BUILD_TYPE_DEBUG.*$/BUILD_TYPE_DEBUG=y/'
+	sed -i .config -r -e 's/(# )?BUILD_TYPE_RELEASE.*$/# BUILD_TYPE_RELEASE is not set/'
 fi
 
-USE_NODEJS="y" RPATH="y" make || exit 1
+# Finally, we fire up the build
+make || exit 1
