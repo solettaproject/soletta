@@ -634,50 +634,24 @@ pending_reply_free(struct pending_reply *reply)
     free(reply);
 }
 
-static bool
-user_wants_to_retry_by_id(struct sol_coap_server *server, uint16_t id)
-{
-    uint16_t i;
-    struct pending_reply *reply;
-
-    SOL_PTR_VECTOR_FOREACH_REVERSE_IDX (&server->pending, reply, i) {
-        if (reply->id != id)
-            continue;
-
-        if (reply->cb(server, NULL, NULL, (void *)reply->data))
-            return true;
-        sol_ptr_vector_del(&server->pending, i);
-        pending_reply_free(reply);
-    }
-
-    return false;
-}
-
-static bool
-user_wants_to_retry(struct sol_coap_server *server, struct sol_coap_packet *pkt)
-{
-    uint16_t id;
-
-    sol_coap_header_get_id(pkt, &id);
-
-    return user_wants_to_retry_by_id(server, id);
-}
-
 /* This is mostly for !CON packets, which do not go to the outgoing
  * list but also keep a context of their own, for response handling */
 static bool
 pending_timeout_cb(void *data)
 {
-    struct pending_reply *pending_reply = data;
-    struct sol_coap_server *server = pending_reply->server;
+    struct pending_reply *reply = data;
+    struct sol_coap_server *server = reply->server;
 
-    /* The pending context will be kept, as the user wishes */
-    if (user_wants_to_retry_by_id(server, pending_reply->id))
+    if (reply->cb(server, NULL, NULL, (void *)reply->data))
         return true;
 
-    /* If such ID was found, the struct is now properly deleted as
-     * well */
-    pending_reply->timeout = NULL;
+    sol_ptr_vector_remove(&server->pending, reply);
+
+    /* Timeout will be free'd when 'false' is returned */
+    reply->timeout = NULL;
+
+    pending_reply_free(reply);
+
     return false;
 }
 
@@ -688,29 +662,22 @@ timeout_expired(struct sol_coap_server *server, struct outgoing *outgoing)
     int timeout;
     uint16_t i, id;
     uint8_t type;
-    int max_retransmit;
     bool expired = false;
 
     sol_coap_header_get_type(outgoing->pkt, &type);
-    if (type == SOL_COAP_TYPE_CON) {
-        max_retransmit = MAX_RETRANSMIT;
-        timeout = ACK_TIMEOUT_MS << outgoing->counter++;
-    } else
-        /* no re-transmissions for !CON packets, we just keep a
-         * pending_reply for a while */
-        return expired;
+    /* no re-transmissions for !CON packets, we just keep a
+     * pending_reply for a while */
+    if (type != SOL_COAP_TYPE_CON)
+	    return false;
 
-    if (outgoing->counter > max_retransmit) {
+    timeout = ACK_TIMEOUT_MS << outgoing->counter++;
+
+    if (outgoing->counter > MAX_RETRANSMIT) {
         SOL_PTR_VECTOR_FOREACH_REVERSE_IDX (&server->outgoing, o, i) {
             if (o == outgoing) {
                 sol_coap_header_get_id(outgoing->pkt, &id);
                 SOL_DBG("packet id %d dropped, after %d transmissions",
                     id, outgoing->counter);
-
-                if (user_wants_to_retry(server, outgoing->pkt)) {
-                    expired = true;
-                    break;
-                }
 
                 sol_ptr_vector_del(&server->outgoing, i);
                 outgoing_free(o);
@@ -739,7 +706,8 @@ prepare_buffer(struct outgoing *outgoing, struct sol_buffer *buffer)
 
     if (!header) {
         sol_buffer_init_flags(buffer, payload->buf.data, payload->buf.used,
-            SOL_BUFFER_FLAGS_MEMORY_NOT_OWNED);
+            SOL_BUFFER_FLAGS_MEMORY_NOT_OWNED | SOL_BUFFER_FLAGS_NO_NUL_BYTE);
+        buffer->used = payload->buf.used;
         return 0;
     }
 
@@ -751,7 +719,8 @@ prepare_buffer(struct outgoing *outgoing, struct sol_buffer *buffer)
     buf_data = malloc(new_size);
     SOL_NULL_CHECK(buf_data, -ENOMEM);
 
-    sol_buffer_init_flags(buffer, buf_data, new_size, SOL_BUFFER_FLAGS_DEFAULT);
+    sol_buffer_init_flags(buffer, buf_data, new_size,
+        SOL_BUFFER_FLAGS_FIXED_CAPACITY | SOL_BUFFER_FLAGS_NO_NUL_BYTE);
 
     new_offset = sizeof(struct coap_header) + new_tkl;
     old_offset = sizeof(struct coap_header) + old_tkl;
@@ -828,11 +797,12 @@ on_can_write(void *data, struct sol_socket *s)
      * accelerate cancellation by sending the following notifications
      * to that client in confirmable messages".
      *
-     * By taking this shortcut we reduce memory usage A LOT and are
-     * able to run on very small devices with no memory issues.
+     * If 'timeout' is NULL, it means that the packet doesn't need to
+     * be retransmitted. By taking this shortcut we reduce memory
+     * usage A LOT and are able to run on very small devices with no
+     * memory issues.
      */
-    if (type == SOL_COAP_TYPE_ACK || type == SOL_COAP_TYPE_RESET
-        || type == SOL_COAP_TYPE_NONCON) {
+    if (!outgoing->timeout) {
         sol_ptr_vector_del(&server->outgoing, idx);
         outgoing_free(outgoing);
     }
@@ -888,7 +858,6 @@ sol_coap_send_packet_with_reply(struct sol_coap_server *server, struct sol_coap_
     bool observing = false;
     uint8_t tkl, *token;
     int err = 0, count;
-    uint8_t type;
 
     SOL_NULL_CHECK(server, -EINVAL);
     SOL_NULL_CHECK(pkt, -EINVAL);
@@ -921,17 +890,14 @@ sol_coap_send_packet_with_reply(struct sol_coap_server *server, struct sol_coap_
         return -ENOMEM;
     }
 
-    (void)sol_coap_header_get_type(pkt, &type);
-
     sol_coap_header_get_id(pkt, &reply->id);
     reply->cb = reply_cb;
     reply->data = data;
     reply->observing = observing;
     reply->tkl = tkl;
     reply->server = server;
-    if (type != SOL_COAP_TYPE_CON)
-        reply->timeout = sol_timeout_add
-                (NONCON_PKT_TIMEOUT_MS, pending_timeout_cb, reply);
+    reply->timeout = sol_timeout_add(NONCON_PKT_TIMEOUT_MS,
+        pending_timeout_cb, reply);
 
     if (token)
         memcpy(reply->token, token, tkl);
@@ -1542,8 +1508,17 @@ respond_packet(struct sol_coap_server *server, struct sol_coap_packet *req,
                         SOL_WRN("Could not unobserve packet.");
                 }
                 pending_reply_free(reply);
-            } else if (!reply->observing)
+            } else if (!reply->observing) {
                 remove_outgoing = false;
+            } else {
+                /*
+                  This means that the user wishes to continue observing that resource,
+                  so we don't need to keep the reply timeout around.
+                */
+                sol_timeout_del(reply->timeout);
+                reply->timeout = NULL;
+            }
+
             found_reply = true;
         }
 
