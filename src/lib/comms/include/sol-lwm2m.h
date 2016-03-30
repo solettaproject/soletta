@@ -283,6 +283,18 @@ enum sol_lwm2m_resource_type {
 
 /**
  * @brief Struct that represents TLV data.
+ *
+ * The binary format TLV (Type-Length-Value) is used to represent an array of values or a singular value, using a compact binary representation. \n It is needed by "Read" and "Write" operations on Object Instance(s) or on a Resource which supports multiple instances (Resource Instances).
+ *
+ * The format is an array of the following byte sequence, where each array entry represents an Object Instance, Resource or Resource Instance:
+ *
+ * Field | Format and Length | Description | Implemented as
+ * ----- | ----------------- | ----------- | --------------
+ * Type | 8-bits masked field | Bits 7-6: Indicates the type of identifier. \n Bits 5-0: All have special meanings as well. | enum sol_lwm2m_tlv.type
+ * Identifier | 8-bit or 16-bit unsigned integer \n as indicated by Bit 5 from Type | Object Instance, Resource or Resource Instance ID | uint16_t sol_lwm2m_tlv.id
+ * Length | 0-24bits unsigned integer \n as indicated by Bits 4-3 from Type | Length of the following field in bytes | size_t sol_buffer.capacity
+ * Value | Sequence of bytes of size=Length | Value of the tag. \n The actual format depends on the Resource's data type @see sol_lwm2m_resource_data_type | void * sol_lwm2m_tlv.content->data
+ *
  * @see sol_lwm2m_parse_tlv()
  */
 struct sol_lwm2m_tlv {
