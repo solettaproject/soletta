@@ -570,6 +570,7 @@ http_server_handler(void *data, struct MHD_Connection *connection, const char *u
         sol_buffer_init(&req->buffer);
         req->connection = connection;
         *ptr = req;
+        req->method = http_server_get_method(method);
         return MHD_YES;
     }
 
@@ -577,7 +578,6 @@ http_server_handler(void *data, struct MHD_Connection *connection, const char *u
     MHD_get_connection_values(connection, MHD_GET_ARGUMENT_KIND, headers_iterator, req);
     MHD_get_connection_values(connection, MHD_COOKIE_KIND, headers_iterator, req);
 
-    req->method = http_server_get_method(method);
     switch (req->method) {
     case SOL_HTTP_METHOD_POST:
         req->len += *upload_data_size;
@@ -607,7 +607,7 @@ http_server_handler(void *data, struct MHD_Connection *connection, const char *u
             copy = sol_buffer_steal(&req->buffer, &len);
             req->param.value.data.value = SOL_STR_SLICE_STR(copy, len);
             if (!sol_http_param_add(&req->params, req->param)) {
-                SOL_WRN("Could not add %.*s key",
+                SOL_WRN("Could not add %.*s value",
                     SOL_STR_SLICE_PRINT(req->param.value.data.value));
                 return MHD_NO;
             }

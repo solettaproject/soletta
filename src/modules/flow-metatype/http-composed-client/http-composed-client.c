@@ -84,7 +84,8 @@ http_composed_client_close(struct sol_flow_node *node, void *data)
     uint16_t i;
 
     for (i = 0; i < cdata->inputs_len; i++)
-        sol_flow_packet_del(cdata->inputs[i]);
+        if (cdata->inputs[i])
+            sol_flow_packet_del(cdata->inputs[i]);
 
     SOL_PTR_VECTOR_FOREACH_IDX (&cdata->pending_conns, connection, i)
         sol_http_client_connection_cancel(connection);
@@ -292,11 +293,8 @@ http_composed_client_request_finished(void *data,
         return;
     }
 
-    if (!response->content.used) {
-        sol_flow_send_error_packet(node, EINVAL,
-            "Empty response from %s", cdata->url);
+    if (!response->content.used)
         return;
-    }
 
     if (streq(response->content_type, "application/json")) {
         struct sol_json_scanner scanner;
@@ -309,7 +307,8 @@ http_composed_client_request_finished(void *data,
 
             SOL_NULL_CHECK_GOTO(in, err);
 
-            sol_flow_packet_del(cdata->inputs[i]);
+            if (cdata->inputs[i])
+                sol_flow_packet_del(cdata->inputs[i]);
             cdata->inputs[i] = http_composed_client_create_packet(in->base.packet_type, &token);
             SOL_NULL_CHECK_GOTO(cdata->inputs[i], err);
             i++;
@@ -490,7 +489,8 @@ http_composed_client_in_process(struct sol_flow_node *node, void *data, uint16_t
     SOL_INT_CHECK(r, < 0, r);
 
     for (i = 0; i < len; i++) {
-        sol_flow_packet_del(cdata->inputs[i]);
+        if (cdata->inputs[i])
+            sol_flow_packet_del(cdata->inputs[i]);
         cdata->inputs[i] = sol_flow_packet_dup(children[i]);
         SOL_NULL_CHECK(cdata->inputs[i], -ENOMEM);
     }
