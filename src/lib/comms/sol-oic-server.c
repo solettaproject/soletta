@@ -36,6 +36,7 @@
 #include "sol-oic-cbor.h"
 #include "sol-oic-common.h"
 #include "sol-oic-server.h"
+#include "sol-oic-security.h"
 
 SOL_LOG_INTERNAL_DECLARE(_sol_oic_server_log_domain, "oic-server");
 
@@ -45,6 +46,7 @@ struct sol_oic_server {
     struct sol_ptr_vector resources;
     struct sol_oic_platform_information *plat_info;
     struct sol_oic_server_information *server_info;
+    struct sol_oic_security *security;
     int refcnt;
 };
 
@@ -181,47 +183,6 @@ static const struct sol_oic_resource_type oic_p_resource_type = {
     }
 };
 
-static unsigned int
-as_nibble(const char c)
-{
-    if (c >= '0' && c <= '9')
-        return c - '0';
-    if (c >= 'a' && c <= 'f')
-        return c - 'a' + 10;
-    if (c >= 'A' && c <= 'F')
-        return c - 'A' + 10;
-
-    SOL_WRN("Invalid hex character: %d", c);
-    return 0;
-}
-
-static const uint8_t *
-get_machine_id(void)
-{
-    static uint8_t machine_id[16] = { 0 };
-    static bool machine_id_set = false;
-    const char *machine_id_buf;
-
-    if (SOL_UNLIKELY(!machine_id_set)) {
-        machine_id_buf = sol_platform_get_machine_id();
-
-        if (!machine_id_buf) {
-            SOL_WRN("Could not get machine ID");
-            memset(machine_id, 0xFF, sizeof(machine_id));
-        } else {
-            const char *p;
-            size_t i;
-
-            for (p = machine_id_buf, i = 0; i < 16; i++, p += 2)
-                machine_id[i] = as_nibble(*p) << 4 | as_nibble(*(p + 1));
-        }
-
-        machine_id_set = true;
-    }
-
-    return machine_id;
-}
-
 static CborError
 res_payload_do(CborEncoder *encoder,
     uint8_t *buf,
@@ -241,7 +202,8 @@ res_payload_do(CborEncoder *encoder,
     err = cbor_encoder_create_array(encoder, &array, 1);
     err |= cbor_encoder_create_map(&array, &device_map, 2);
     err |= cbor_encode_text_stringz(&device_map, SOL_OIC_KEY_DEVICE_ID);
-    err |= cbor_encode_byte_string(&device_map, get_machine_id(), 16);
+    err |= cbor_encode_byte_string(&device_map,
+        sol_platform_get_machine_id_as_bytes(), 16);
     err |= cbor_encode_text_stringz(&device_map, SOL_OIC_KEY_RESOURCE_LINKS);
     err |= cbor_encoder_create_array(&device_map, &array_res,
         CborIndefiniteLength);
@@ -429,7 +391,8 @@ init_static_server_info(void)
     };
     struct sol_oic_server_information *info;
 
-    server_info.device_id = SOL_STR_SLICE_STR((const char *)get_machine_id(), 16);
+    server_info.device_id =
+        SOL_STR_SLICE_STR((const char *)sol_platform_get_machine_id_as_bytes(), 16);
 
     info = sol_util_memdup(&server_info, sizeof(*info));
     SOL_NULL_CHECK(info, NULL);
@@ -487,6 +450,13 @@ sol_oic_server_ref(void)
 
     oic_server.refcnt++;
 
+    oic_server.security = sol_oic_server_security_add(oic_server.server,
+        oic_server.dtls_server);
+    if (!oic_server.security) {
+        SOL_WRN("OIC server security subsystem could not be initialized");
+        goto error_shutdown;
+    }
+
     res = sol_oic_server_add_resource_internal(&oic_d_resource_type, NULL,
         SOL_OIC_FLAG_DISCOVERABLE | SOL_OIC_FLAG_ACTIVE);
     SOL_NULL_CHECK_GOTO(res, error_shutdown);
@@ -515,6 +485,9 @@ sol_oic_server_shutdown_internal(void)
     struct sol_oic_server_resource *res;
     uint16_t idx;
 
+    if (oic_server.security)
+        sol_oic_server_security_del(oic_server.security);
+
     SOL_PTR_VECTOR_FOREACH_REVERSE_IDX (&oic_server.resources, res, idx)
         sol_oic_server_del_resource_internal(res);
 
@@ -528,6 +501,8 @@ sol_oic_server_shutdown_internal(void)
 
     free(oic_server.server_info);
     free(oic_server.plat_info);
+
+    sol_util_secure_clear_memory(&oic_server, sizeof(oic_server));
 }
 
 void
