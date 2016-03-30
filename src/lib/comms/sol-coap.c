@@ -93,11 +93,13 @@ struct resource_observer {
 };
 
 struct pending_reply {
+    struct sol_coap_server *server;
+    struct sol_timeout *timeout;
     bool (*cb)(struct sol_coap_server *server, struct sol_coap_packet *req,
         const struct sol_network_link_addr *cliaddr, void *data);
     const void *data;
-    bool observing;
     char *path;
+    bool observing;
     uint16_t id;
     uint8_t tkl;
     uint8_t token[0];
@@ -625,28 +627,58 @@ pending_reply_free(struct pending_reply *reply)
 
     if (reply->observing)
         free(reply->path);
+
+    if (reply->timeout)
+        sol_timeout_del(reply->timeout);
+
     free(reply);
 }
 
 static bool
-call_reply_timeout_cb(struct sol_coap_server *server, struct sol_coap_packet *pkt)
+user_wants_to_retry_by_id(struct sol_coap_server *server, uint16_t id)
 {
-    uint16_t i, id;
+    uint16_t i;
     struct pending_reply *reply;
 
-    sol_coap_header_get_id(pkt, &id);
-
     SOL_PTR_VECTOR_FOREACH_REVERSE_IDX (&server->pending, reply, i) {
-        if (reply->observing || reply->id != id)
+        if (reply->id != id)
             continue;
 
         if (reply->cb(server, NULL, NULL, (void *)reply->data))
-            return false;
+            return true;
         sol_ptr_vector_del(&server->pending, i);
         pending_reply_free(reply);
     }
 
-    return true;
+    return false;
+}
+
+static bool
+user_wants_to_retry(struct sol_coap_server *server, struct sol_coap_packet *pkt)
+{
+    uint16_t id;
+
+    sol_coap_header_get_id(pkt, &id);
+
+    return user_wants_to_retry_by_id(server, id);
+}
+
+/* This is mostly for !CON packets, which do not go to the outgoing
+ * list but also keep a context of their own, for response handling */
+static bool
+pending_timeout_cb(void *data)
+{
+    struct pending_reply *pending_reply = data;
+    struct sol_coap_server *server = pending_reply->server;
+
+    /* The pending context will be kept, as the user wishes */
+    if (user_wants_to_retry_by_id(server, pending_reply->id))
+        return true;
+
+    /* If such ID was found, the struct is now properly deleted as
+     * well */
+    pending_reply->timeout = NULL;
+    return false;
 }
 
 static bool
@@ -663,11 +695,10 @@ timeout_expired(struct sol_coap_server *server, struct outgoing *outgoing)
     if (type == SOL_COAP_TYPE_CON) {
         max_retransmit = MAX_RETRANSMIT;
         timeout = ACK_TIMEOUT_MS << outgoing->counter++;
-    } else {
-        max_retransmit = 1;
-        timeout = NONCON_PKT_TIMEOUT_MS;
-        outgoing->counter++;
-    }
+    } else
+        /* no re-transmissions for !CON packets, we just keep a
+         * pending_reply for a while */
+        return expired;
 
     if (outgoing->counter > max_retransmit) {
         SOL_PTR_VECTOR_FOREACH_REVERSE_IDX (&server->outgoing, o, i) {
@@ -676,7 +707,7 @@ timeout_expired(struct sol_coap_server *server, struct outgoing *outgoing)
                 SOL_DBG("packet id %d dropped, after %d transmissions",
                     id, outgoing->counter);
 
-                if (!call_reply_timeout_cb(server, outgoing->pkt)) {
+                if (user_wants_to_retry(server, outgoing->pkt)) {
                     expired = true;
                     break;
                 }
@@ -772,9 +803,10 @@ on_can_write(void *data, struct sol_socket *s)
     if (err == -EAGAIN)
         return true;
 
-    SOL_DBG("CoAP packet sent (queue_len=%d) -- payload of %zu bytes, "
-        "buffer holding it with %zu bytes",
+    SOL_DBG("CoAP packet sent (outgoing_len=%d, pending_len=%d)"
+        " -- payload of %zu bytes, buffer holding it with %zu bytes",
         sol_ptr_vector_get_len(&server->outgoing),
+        sol_ptr_vector_get_len(&server->pending),
         outgoing->pkt->buf.used, outgoing->pkt->buf.capacity);
     sol_coap_packet_debug(outgoing->pkt);
     if (err < 0) {
@@ -851,11 +883,12 @@ sol_coap_send_packet_with_reply(struct sol_coap_server *server, struct sol_coap_
     struct sol_coap_packet *req, const struct sol_network_link_addr *cliaddr,
     void *data), const void *data)
 {
-    struct sol_str_slice option = {};
     struct pending_reply *reply = NULL;
+    struct sol_str_slice option = {};
+    bool observing = false;
     uint8_t tkl, *token;
     int err = 0, count;
-    bool observing = false;
+    uint8_t type;
 
     SOL_NULL_CHECK(server, -EINVAL);
     SOL_NULL_CHECK(pkt, -EINVAL);
@@ -888,11 +921,18 @@ sol_coap_send_packet_with_reply(struct sol_coap_server *server, struct sol_coap_
         return -ENOMEM;
     }
 
+    (void)sol_coap_header_get_type(pkt, &type);
+
     sol_coap_header_get_id(pkt, &reply->id);
     reply->cb = reply_cb;
     reply->data = data;
     reply->observing = observing;
     reply->tkl = tkl;
+    reply->server = server;
+    if (type != SOL_COAP_TYPE_CON)
+        reply->timeout = sol_timeout_add
+                (NONCON_PKT_TIMEOUT_MS, pending_timeout_cb, reply);
+
     if (token)
         memcpy(reply->token, token, tkl);
     if (observing) {
