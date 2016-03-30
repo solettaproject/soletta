@@ -197,15 +197,17 @@ bins-out += bindings-nodejs
 NODE_GYP ?= $(NODE_GYP_PATH)/node-gyp
 
 bindings-nodejs: $(SOL_LIB_OUTPUT)
-	# Install dependencies without building the package
 	$(Q) $(NODEJS_NPM) install --ignore-scripts
 
-	# Build the package without clobbering build/
 	$(Q) \
-		SOLETTA_CFLAGS="$(addprefix -I,$(abspath $(HEADERDIRS)))" \
-		SOLETTA_LIBS="$(FIND_LIBRARY_LDFLAGS)" \
-               SOLETTA_CFLAGS="$${SOLETTA_CFLAGS}" SOLETTA_LIBS="$${SOLETTA_LIBS}" $(NODE_GYP) configure && \
-               SOLETTA_CFLAGS="$${SOLETTA_CFLAGS}" SOLETTA_LIBS="$${SOLETTA_LIBS}" $(NODE_GYP) build
+		SOL_CONFIG_OIC=$(OIC) \
+		SOL_CONFIG_NETWORK=$(NETWORK) \
+			$(NODEJS) bindings/nodejs/configure-bindings.js
+
+	$(Q) ( \
+		export SOLETTA_CFLAGS="$(addprefix -I,$(abspath $(HEADERDIRS)))"; \
+		export SOLETTA_LIBS="$(FIND_LIBRARY_LDFLAGS)"; \
+			$(NODE_GYP) configure && $(NODE_GYP) build )
 
 PHONY += bindings-nodejs
 
