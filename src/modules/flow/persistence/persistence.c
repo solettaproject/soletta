@@ -213,7 +213,7 @@ persist_do(struct persist_data *mdata, struct sol_flow_node *node, void *value,
     else
         size = strlen(value) + 1; //To include the null terminating char
 
-    if (mdata->value_ptr && value) {
+    if (mdata->value_ptr) {
         if (mdata->packet_data_size)
             r = memcmp(mdata->value_ptr, value, mdata->packet_data_size);
         else
@@ -676,10 +676,8 @@ persist_string_open(struct sol_flow_node *node,
     SOL_FLOW_NODE_OPTIONS_SUB_API_CHECK(options,
         SOL_FLOW_NODE_TYPE_PERSISTENCE_STRING_OPTIONS_API_VERSION, -EINVAL);
 
-    if (opts->default_value) {
-        mdata->default_value = strdup((char *)opts->default_value);
-        SOL_NULL_CHECK(mdata->default_value, -ENOMEM);
-    }
+    mdata->default_value = strdup(opts->default_value);
+    SOL_NULL_CHECK(mdata->default_value, -ENOMEM);
 
     r = persist_open(node, data, opts->storage, opts->name);
     if (r < 0)
