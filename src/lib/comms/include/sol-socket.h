@@ -18,6 +18,7 @@
 
 #pragma once
 
+#include <sol-common-buildopts.h>
 #include <sol-network.h>
 
 #ifdef __cplusplus
@@ -40,7 +41,7 @@ struct sol_socket;
  */
 enum sol_socket_default_type {
     SOL_SOCKET_UDP,
-#ifdef DTLS
+#ifdef SOL_DTLS_ENABLED
     SOL_SOCKET_DTLS,
 #endif
 };

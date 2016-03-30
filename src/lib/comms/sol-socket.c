@@ -24,7 +24,7 @@
 #include "sol-network.h"
 #include "sol-socket-impl.h"
 
-#ifdef DTLS
+#ifdef SOL_DTLS_ENABLED
 #include "sol-socket-dtls.h"
 #endif
 
@@ -36,7 +36,7 @@ sol_socket_new(int domain, enum sol_socket_default_type type, int protocol)
     const struct sol_socket_type *impl = NULL;
     struct sol_socket *socket;
 
-#ifdef DTLS
+#ifdef SOL_DTLS_ENABLED
     bool dtls = false;
 
     if (type == SOL_SOCKET_DTLS) {
@@ -56,7 +56,7 @@ sol_socket_new(int domain, enum sol_socket_default_type type, int protocol)
         SOL_SET_API_VERSION(socket->api_version = SOL_SOCKET_TYPE_API_VERSION; )
     }
 
-#ifdef DTLS
+#ifdef SOL_DTLS_ENABLED
     if (dtls) {
         struct sol_socket *dtls_wrapped = sol_socket_dtls_wrap_socket(socket);
 

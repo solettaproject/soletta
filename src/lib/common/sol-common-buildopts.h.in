@@ -34,6 +34,10 @@ st.on_value("NO_API_VERSION_NEEDED", "y", "#define SOL_NO_API_VERSION 1", "")
 st.on_value("MODULES", "y", "#define SOL_DYNAMIC_MODULES 1", "")
 }}
 
+{{
+st.on_value("DTLS", "y", "#define SOL_DTLS_ENABLED 1", "")
+}}
+
 #ifdef SOL_PLATFORM_LINUX
 #define SOL_MAINLOOP_FD_ENABLED 1
 #define SOL_MAINLOOP_FORK_WATCH_ENABLED 1
