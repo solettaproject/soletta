@@ -37,7 +37,7 @@ def load_json_schema(directory, path, schemas={}):
         return schemas[path]
 
     data = json.load(open(os.path.join(directory, path), "r", encoding='UTF-8'))
-    if not data['$schema'].startswith("http://json-schema.org/schema"):
+    if not data['$schema'].startswith("http://json-schema.org/"):
         raise ValueError("not a JSON schema")
 
     definitions = data.get("definitions", {})
@@ -354,14 +354,15 @@ def generate_object_from_repr_vec_fn_common_c(name, props):
 
     update_state = []
     for field_name, field_props in props.items():
-        if not 'enum' in field_props and field_props.get('type') == 'string':
-            update_state.append("""\
+        if not 'enum' in field_props:
+            if field_props.get('type') == 'string':
+                update_state.append("""\
     if (check_updated_string(state->%(name)s, fields.%(name)s)) {
         free(state->%(name)s);\
 """ % {"name": field_name})
 
-        else:
-            update_state.append("""\
+            else:
+                update_state.append("""\
     if (%(c_check_updated)s(state->%(name)s, fields.%(name)s)) {\
 """ % {"name": field_name,
        "c_check_updated": JSON_TO_FLOW_CHECK_UPDATED[field_props['type']]})
@@ -1641,11 +1642,11 @@ send_string_packet(struct sol_flow_node *src, uint16_t src_port, const char *val
 if __name__ == '__main__':
     import argparse
     parser = argparse.ArgumentParser()
-    parser.add_argument("--schema-dir",
-                        help="Directory where JSON schemas are located. "
+    parser.add_argument("schema_dirs",
+                        help="Directories where JSON schemas are located. "
                         "Names must start with 'oic.r.' or 'core.' and use "
                         "extension '.json'",
-                        required=True)
+                        nargs="+")
     parser.add_argument("--node-type-json",
                         help="Path to store the master JSON with node type information",
                         required=True)
@@ -1663,6 +1664,10 @@ if __name__ == '__main__':
     args = parser.parse_args()
 
     def seems_schema(path):
+        # TODO properly handle update, batch and error files
+        if path.endswith('-Update.json') or path.endswith('-Error.json') or \
+            path.endswith('-Batch.json'):
+            return False
         return path.endswith('.json') and (path.startswith('oic.r.') or path.startswith('core.'))
 
     json_name = os.path.basename(args.node_type_json)
@@ -1671,22 +1676,24 @@ if __name__ == '__main__':
 
     generated = []
     print('Generating code for schemas: ', end='')
-    for path in (f for f in os.listdir(args.schema_dir) if seems_schema(f)):
-        print(path, end=', ')
+    for schema_dir in args.schema_dirs:
+        for path in (f for f in os.listdir(schema_dir) if seems_schema(f)):
+            print(path, end=', ')
 
-        try:
-            for code in generate_for_schema(args.schema_dir, path, json_name):
-                generated.append(code)
-        except KeyError as e:
-            if e.args[0] == 'array':
-                print("(arrays unsupported)", end=' ')
-            else:
-                raise e
-        except Exception as e:
-            print('Ignoring %s due to exception in generator. '
-                  'Traceback follows:' % path, file=sys.stderr)
-            traceback.print_exc(e, file=sys.stderr)
-            continue
+            try:
+                for code in generate_for_schema(schema_dir, path, \
+                        json_name):
+                    generated.append(code)
+            except KeyError as e:
+                if e.args[0] == 'array':
+                    print("(arrays unsupported)", end=' ')
+                else:
+                    raise e
+            except Exception as e:
+                print('Ignoring %s due to exception in generator. '
+                      'Traceback follows:' % path, file=sys.stderr)
+                traceback.print_exc(file=sys.stderr)
+                continue
 
     print('\nWriting master JSON: %s' % args.node_type_json)
     open(args.node_type_json, 'w+', encoding='UTF-8').write(
