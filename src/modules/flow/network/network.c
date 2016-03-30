@@ -74,12 +74,10 @@ _match_link(const struct network_data *mdata, const struct sol_network_link *lin
     const char *p = name;
     regmatch_t m;
 
-    if (!mdata->regex_initialized)
-        return false;
-
     if (!name)
         return false;
-    if (!regexec(&mdata->regex, p, 1, &m, 0)) {
+
+    if (mdata->regex_initialized && !regexec(&mdata->regex, p, 1, &m, 0)) {
         free(name);
         return true;
     }
