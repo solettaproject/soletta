@@ -112,9 +112,12 @@ check-stub: $(SOL_LIB_OUTPUT) $(NODE_TYPE_STUB_GEN_SCRIPT) $(NODE_TYPE_SCHEMA) $
 
 PHONY += check-stub
 
-samples: $(SOL_LIB_OUTPUT) $(samples-out) $(PRE_GEN)
+samples-check:
+	$(TEST_SAMPLES_DEPS_SCRIPT) $(top_srcdir)src/samples $(SAMPLES_DEPS_SCRIPT_BLACK_LIST)
 
-PHONY += samples
+samples: samples-check $(SOL_LIB_OUTPUT) $(samples-out) $(PRE_GEN)
+
+PHONY += samples samples-check
 
 PRE_INSTALL := $(PRE_GEN) $(SOL_LIB_OUTPUT) $(bins-out) $(modules-out) $(all-mod-descs)
 PRE_INSTALL += $(NODE_TYPE_SCHEMA_DEST) $(BOARD_DETECT_DEST) $(GDB_AUTOLOAD_PY_DEST)
