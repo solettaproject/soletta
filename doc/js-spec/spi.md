@@ -16,7 +16,7 @@ interface SPI {
   Promise<SPIBus> open(SPIBusInit init);
 };
 
-typedef sequence<octet> SPIData;
+typedef (sequence<octet> or ArrayBuffer) SPIData;
 
 enum SPIMode {
   "mode0",  // polarity normal, phase 0, i.e. sampled on leading clock

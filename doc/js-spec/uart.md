@@ -30,7 +30,7 @@ dictionary UARTInit {
   boolean flowControl = false;
 };
 
-typedef (USVString or sequence<octet>) UARTData;
+typedef (USVString or sequence<octet> or ArrayBuffer) UARTData;
 
 [NoInterfaceObject]
 interface UARTConnection: EventTarget {
@@ -41,7 +41,7 @@ interface UARTConnection: EventTarget {
 };
 
 interface UARTEvent: Event {
-  readonly attribute UARTData data;
+  readonly attribute octet data;
 };
 
 ```
