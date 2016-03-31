@@ -93,11 +93,13 @@ struct resource_observer {
 };
 
 struct pending_reply {
+    struct sol_coap_server *server;
+    struct sol_timeout *timeout;
     bool (*cb)(struct sol_coap_server *server, struct sol_coap_packet *req,
         const struct sol_network_link_addr *cliaddr, void *data);
     const void *data;
-    bool observing;
     char *path;
+    bool observing;
     uint16_t id;
     uint8_t tkl;
     uint8_t token[0];
@@ -106,6 +108,8 @@ struct pending_reply {
 struct outgoing {
     struct sol_coap_server *server;
     struct sol_coap_packet *pkt;
+    /* When present this header will overwrite the header from 'pkt'. */
+    struct sol_coap_packet *header;
     struct sol_timeout *timeout;
     struct sol_network_link_addr cliaddr;
     int counter; /* How many times this packet was retransmited. */
@@ -566,6 +570,10 @@ outgoing_free(struct outgoing *outgoing)
         sol_timeout_del(outgoing->timeout);
 
     sol_coap_packet_unref(outgoing->pkt);
+
+    if (outgoing->header)
+        sol_coap_packet_unref(outgoing->header);
+
     free(outgoing);
 }
 
@@ -619,28 +627,32 @@ pending_reply_free(struct pending_reply *reply)
 
     if (reply->observing)
         free(reply->path);
+
+    if (reply->timeout)
+        sol_timeout_del(reply->timeout);
+
     free(reply);
 }
 
+/* This is mostly for !CON packets, which do not go to the outgoing
+ * list but also keep a context of their own, for response handling */
 static bool
-call_reply_timeout_cb(struct sol_coap_server *server, struct sol_coap_packet *pkt)
+pending_timeout_cb(void *data)
 {
-    uint16_t i, id;
-    struct pending_reply *reply;
+    struct pending_reply *reply = data;
+    struct sol_coap_server *server = reply->server;
 
-    sol_coap_header_get_id(pkt, &id);
+    if (reply->cb(server, NULL, NULL, (void *)reply->data))
+        return true;
 
-    SOL_PTR_VECTOR_FOREACH_REVERSE_IDX (&server->pending, reply, i) {
-        if (reply->observing || reply->id != id)
-            continue;
+    sol_ptr_vector_remove(&server->pending, reply);
 
-        if (reply->cb(server, NULL, NULL, (void *)reply->data))
-            return false;
-        sol_ptr_vector_del(&server->pending, i);
-        pending_reply_free(reply);
-    }
+    /* Timeout will be free'd when 'false' is returned */
+    reply->timeout = NULL;
 
-    return true;
+    pending_reply_free(reply);
+
+    return false;
 }
 
 static bool
@@ -650,30 +662,22 @@ timeout_expired(struct sol_coap_server *server, struct outgoing *outgoing)
     int timeout;
     uint16_t i, id;
     uint8_t type;
-    int max_retransmit;
     bool expired = false;
 
     sol_coap_header_get_type(outgoing->pkt, &type);
-    if (type == SOL_COAP_TYPE_CON) {
-        max_retransmit = MAX_RETRANSMIT;
-        timeout = ACK_TIMEOUT_MS << outgoing->counter++;
-    } else {
-        max_retransmit = 1;
-        timeout = NONCON_PKT_TIMEOUT_MS;
-        outgoing->counter++;
-    }
+    /* no re-transmissions for !CON packets, we just keep a
+     * pending_reply for a while */
+    if (type != SOL_COAP_TYPE_CON)
+	    return false;
 
-    if (outgoing->counter > max_retransmit) {
+    timeout = ACK_TIMEOUT_MS << outgoing->counter++;
+
+    if (outgoing->counter > MAX_RETRANSMIT) {
         SOL_PTR_VECTOR_FOREACH_REVERSE_IDX (&server->outgoing, o, i) {
             if (o == outgoing) {
                 sol_coap_header_get_id(outgoing->pkt, &id);
                 SOL_DBG("packet id %d dropped, after %d transmissions",
                     id, outgoing->counter);
-
-                if (!call_reply_timeout_cb(server, outgoing->pkt)) {
-                    expired = true;
-                    break;
-                }
 
                 sol_ptr_vector_del(&server->outgoing, i);
                 outgoing_free(o);
@@ -690,13 +694,59 @@ timeout_expired(struct sol_coap_server *server, struct outgoing *outgoing)
     return expired;
 }
 
+static int
+prepare_buffer(struct outgoing *outgoing, struct sol_buffer *buffer)
+{
+    struct sol_coap_packet *header = outgoing->header;
+    struct sol_coap_packet *payload = outgoing->pkt;
+    uint16_t new_size, new_offset, old_offset;
+    uint8_t new_tkl, old_tkl;
+    uint8_t *buf_data;
+    int r;
+
+    if (!header) {
+        sol_buffer_init_flags(buffer, payload->buf.data, payload->buf.used,
+            SOL_BUFFER_FLAGS_MEMORY_NOT_OWNED | SOL_BUFFER_FLAGS_NO_NUL_BYTE);
+        buffer->used = payload->buf.used;
+        return 0;
+    }
+
+    (void)sol_coap_header_get_token(payload, &old_tkl);
+    (void)sol_coap_header_get_token(header, &new_tkl);
+
+    new_size = payload->buf.used + (new_tkl - old_tkl);
+
+    buf_data = malloc(new_size);
+    SOL_NULL_CHECK(buf_data, -ENOMEM);
+
+    sol_buffer_init_flags(buffer, buf_data, new_size,
+        SOL_BUFFER_FLAGS_FIXED_CAPACITY | SOL_BUFFER_FLAGS_NO_NUL_BYTE);
+
+    new_offset = sizeof(struct coap_header) + new_tkl;
+    old_offset = sizeof(struct coap_header) + old_tkl;
+
+    r = sol_buffer_append_bytes(buffer, header->buf.data, new_offset);
+    SOL_INT_CHECK_GOTO(r, < 0, error);
+
+    r = sol_buffer_append_bytes(buffer, sol_buffer_at(&payload->buf, old_offset),
+        payload->buf.used - old_offset);
+    SOL_INT_CHECK_GOTO(r, < 0, error);
+
+    return 0;
+
+error:
+    sol_buffer_fini(buffer);
+    return -ENOMEM;
+}
+
 static bool
 on_can_write(void *data, struct sol_socket *s)
 {
     struct sol_coap_server *server = data;
     struct outgoing *outgoing;
-    int err;
-    int idx;
+    struct sol_buffer buf;
+    int err, idx;
+    uint8_t type;
 
     if (sol_ptr_vector_get_len(&server->outgoing) == 0)
         return false;
@@ -708,14 +758,24 @@ on_can_write(void *data, struct sol_socket *s)
     if (!outgoing)
         return false;
 
-    err = sol_socket_sendmsg(s, outgoing->pkt->buf.data,
-        outgoing->pkt->buf.used, &outgoing->cliaddr);
+    err = sol_coap_header_get_type(outgoing->pkt, &type);
+    SOL_INT_CHECK(err, < 0, err);
+
+    err = prepare_buffer(outgoing, &buf);
+    if (err)
+        return true;
+
+    err = sol_socket_sendmsg(s, buf.data, buf.used, &outgoing->cliaddr);
     /* Eventually we are going to re-send it. */
+    sol_buffer_fini(&buf);
+
     if (err == -EAGAIN)
         return true;
 
-    SOL_DBG("CoAP packet sent (payload of %zu bytes, "
-        "buffer holding it with %zu bytes)",
+    SOL_DBG("CoAP packet sent (outgoing_len=%d, pending_len=%d)"
+        " -- payload of %zu bytes, buffer holding it with %zu bytes",
+        sol_ptr_vector_get_len(&server->outgoing),
+        sol_ptr_vector_get_len(&server->pending),
         outgoing->pkt->buf.used, outgoing->pkt->buf.capacity);
     sol_coap_packet_debug(outgoing->pkt);
     if (err < 0) {
@@ -729,6 +789,24 @@ on_can_write(void *data, struct sol_socket *s)
         return false;
     }
 
+    /* According to RFC 7641, section 4.5, "since RESET messages are
+     * transmitted unreliably, the client must be prepared in case the
+     * these are not received by the server. Thus, a server can always
+     * pretend that a RESET message rejecting a non-confirmable
+     * notification was lost. If a server does this, it could
+     * accelerate cancellation by sending the following notifications
+     * to that client in confirmable messages".
+     *
+     * If 'timeout' is NULL, it means that the packet doesn't need to
+     * be retransmitted. By taking this shortcut we reduce memory
+     * usage A LOT and are able to run on very small devices with no
+     * memory issues.
+     */
+    if (!outgoing->timeout) {
+        sol_ptr_vector_del(&server->outgoing, idx);
+        outgoing_free(outgoing);
+    }
+
     if (sol_ptr_vector_get_len(&server->outgoing) == 0)
         return false;
 
@@ -737,6 +815,7 @@ on_can_write(void *data, struct sol_socket *s)
 
 static int
 enqueue_packet(struct sol_coap_server *server, struct sol_coap_packet *pkt,
+    struct sol_coap_packet *header,
     const struct sol_network_link_addr *cliaddr)
 {
     struct outgoing *outgoing;
@@ -759,6 +838,8 @@ enqueue_packet(struct sol_coap_server *server, struct sol_coap_packet *pkt,
     memcpy(&outgoing->cliaddr, cliaddr, sizeof(*cliaddr));
 
     outgoing->pkt = sol_coap_packet_ref(pkt);
+    if (header)
+        outgoing->header = sol_coap_packet_ref(header);
 
     sol_socket_set_on_write(server->socket, on_can_write, server);
 
@@ -772,11 +853,11 @@ sol_coap_send_packet_with_reply(struct sol_coap_server *server, struct sol_coap_
     struct sol_coap_packet *req, const struct sol_network_link_addr *cliaddr,
     void *data), const void *data)
 {
-    struct sol_str_slice option = {};
     struct pending_reply *reply = NULL;
+    struct sol_str_slice option = {};
+    bool observing = false;
     uint8_t tkl, *token;
     int err = 0, count;
-    bool observing = false;
 
     SOL_NULL_CHECK(server, -EINVAL);
     SOL_NULL_CHECK(pkt, -EINVAL);
@@ -814,6 +895,10 @@ sol_coap_send_packet_with_reply(struct sol_coap_server *server, struct sol_coap_
     reply->data = data;
     reply->observing = observing;
     reply->tkl = tkl;
+    reply->server = server;
+    reply->timeout = sol_timeout_add(NONCON_PKT_TIMEOUT_MS,
+        pending_timeout_cb, reply);
+
     if (token)
         memcpy(reply->token, token, tkl);
     if (observing) {
@@ -822,7 +907,7 @@ sol_coap_send_packet_with_reply(struct sol_coap_server *server, struct sol_coap_
     }
 
 done:
-    err = enqueue_packet(server, pkt, cliaddr);
+    err = enqueue_packet(server, pkt, NULL, cliaddr);
     if (err < 0) {
         SOL_BUFFER_DECLARE_STATIC(addr, SOL_INET_ADDR_STRLEN);
 
@@ -870,8 +955,7 @@ sol_coap_packet_send_notification(struct sol_coap_server *server,
 {
     struct resource_observer *o;
     struct resource_context *c;
-    struct sol_coap_packet *p;
-    uint8_t tkl;
+    struct sol_coap_packet *header;
     uint16_t i;
     int r = 0;
 
@@ -884,43 +968,32 @@ sol_coap_packet_send_notification(struct sol_coap_server *server,
     c = find_context(server, resource);
     SOL_NULL_CHECK(c, -ENOENT);
 
-    sol_coap_header_get_token(pkt, &tkl);
-
     SOL_PTR_VECTOR_FOREACH_IDX (&c->observers, o, i) {
         uint8_t type, code;
 
-        p = sol_coap_packet_new(NULL);
-        SOL_NULL_CHECK(p, -ENOMEM);
+        header = sol_coap_packet_new(NULL);
+        SOL_NULL_CHECK(header, -ENOMEM);
 
         sol_coap_header_get_code(pkt, &code);
-        r = sol_coap_header_set_code(p, code);
+        r = sol_coap_header_set_code(header, code);
         SOL_INT_CHECK_GOTO(r, < 0, err);
         sol_coap_header_get_type(pkt, &type);
-        r = sol_coap_header_set_type(p, type);
+        r = sol_coap_header_set_type(header, type);
         SOL_INT_CHECK_GOTO(r, < 0, err);
-        r = sol_coap_header_set_token(p, o->token, o->tkl);
-        SOL_INT_CHECK_GOTO(r, < 0, err);
-
-        /*
-         * Copying the options + payload from the notification packet to
-         * every packet that will be sent.
-         */
-        r = sol_buffer_append_bytes(&p->buf,
-            (uint8_t *)pkt->buf.data + sizeof(struct coap_header) + tkl,
-            pkt->buf.used - sizeof(struct coap_header) - tkl);
+        r = sol_coap_header_set_token(header, o->token, o->tkl);
         SOL_INT_CHECK_GOTO(r, < 0, err);
 
-        r = enqueue_packet(server, p, &o->cliaddr);
+        r = enqueue_packet(server, pkt, header, &o->cliaddr);
         if (r < 0) {
             SOL_BUFFER_DECLARE_STATIC(addr, SOL_INET_ADDR_STRLEN);
 
             sol_network_link_addr_to_str(&o->cliaddr, &addr);
-            SOL_WRN("Failed to enqueue packet %p to %.*s", p,
+            SOL_WRN("Failed to enqueue packet %p to %.*s", header,
                 SOL_STR_SLICE_PRINT(sol_buffer_get_slice(&addr)));
             goto done;
         }
 
-        sol_coap_packet_unref(p);
+        sol_coap_packet_unref(header);
     }
 
 done:
@@ -928,7 +1001,7 @@ done:
     return r;
 
 err:
-    sol_coap_packet_unref(p);
+    sol_coap_packet_unref(header);
     sol_coap_packet_unref(pkt);
     return r;
 }
@@ -1435,8 +1508,17 @@ respond_packet(struct sol_coap_server *server, struct sol_coap_packet *req,
                         SOL_WRN("Could not unobserve packet.");
                 }
                 pending_reply_free(reply);
-            } else if (!reply->observing)
+            } else if (!reply->observing) {
                 remove_outgoing = false;
+            } else {
+                /*
+                  This means that the user wishes to continue observing that resource,
+                  so we don't need to keep the reply timeout around.
+                */
+                sol_timeout_del(reply->timeout);
+                reply->timeout = NULL;
+            }
+
             found_reply = true;
         }
 
@@ -1512,7 +1594,7 @@ on_can_read(void *data, struct sol_socket *s)
     len = sol_socket_recvmsg(s, NULL, 0, NULL);
     SOL_INT_CHECK_GOTO(len, < 0, err_recv);
 
-    SOL_DBG("allocating %zd bytes for pkt", len);
+    SOL_DBG("allocating %zd bytes for pkt %p", len, pkt);
     err = sol_buffer_ensure(&pkt->buf, len);
     if (err < 0) {
         SOL_WRN("Could not allocate space (%zd bytes) to receive from socket"
