@@ -223,7 +223,7 @@ the_end:
 }
 
 struct sol_socket *
-sol_socket_riot_new(int domain, enum sol_socket_type type, int protocol)
+sol_socket_default_new(int domain, enum sol_socket_type type, int protocol)
 {
     struct sol_socket_riot *socket;
 
@@ -381,10 +381,11 @@ sol_socket_riot_getsockopt(struct sol_socket *socket, enum sol_socket_level leve
     return 0;
 }
 
-const struct sol_socket_impl *
-sol_socket_riot_get_impl(void)
+const struct sol_socket_type *
+sol_socket_get_impl(void)
 {
-    static struct sol_socket_impl impl = {
+    static struct sol_socket_type impl = {
+        SOL_SET_API_VERSION(.api_version = SOL_SOCKET_TYPE_API_VERSION, )
         .bind = sol_socket_riot_bind,
         .join_group = sol_socket_riot_join_group,
         .sendmsg = sol_socket_riot_sendmsg,
@@ -392,7 +393,6 @@ sol_socket_riot_get_impl(void)
         .set_on_write = sol_socket_riot_set_on_write,
         .set_on_read = sol_socket_riot_set_on_read,
         .del = sol_socket_riot_del,
-        .new = sol_socket_riot_new,
         .setsockopt = sol_socket_riot_setsockopt,
         .getsockopt = sol_socket_riot_getsockopt
     };

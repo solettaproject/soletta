@@ -22,6 +22,7 @@
 #include <stdlib.h>
 #include <string.h>
 
+#include "sol-common-buildopts.h"
 #define SOL_LOG_DOMAIN &_sol_coap_log_domain
 #include "sol-log-internal.h"
 #include "sol-macros.h"
@@ -1745,7 +1746,7 @@ network_event(void *data, const struct sol_network_link *link, enum sol_network_
 }
 
 static struct sol_coap_server *
-sol_coap_server_new_full(enum sol_socket_type type, const struct sol_network_link_addr *servaddr)
+sol_coap_server_new_full(enum sol_socket_default_type type, const struct sol_network_link_addr *servaddr)
 {
     const struct sol_vector *links;
     struct sol_network_link *link;
@@ -1841,7 +1842,7 @@ sol_coap_server_new(const struct sol_network_link_addr *addr)
 SOL_API struct sol_coap_server *
 sol_coap_secure_server_new(const struct sol_network_link_addr *addr)
 {
-#ifdef DTLS
+#ifdef SOL_DTLS_ENABLED
     return sol_coap_server_new_full(SOL_SOCKET_DTLS, addr);
 #else
     errno = ENOSYS;
