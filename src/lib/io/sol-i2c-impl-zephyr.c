@@ -26,8 +26,6 @@
 #include "sol-log-internal.h"
 SOL_LOG_INTERNAL_DECLARE_STATIC(_log_domain, "i2c");
 
-#include "sol-io-common-zephyr.h"
-
 #include "sol-i2c.h"
 #include "sol-mainloop.h"
 #include "sol-util.h"
@@ -138,9 +136,9 @@ sol_i2c_open_raw(uint8_t bus, enum sol_i2c_speed speed)
     }
 
     ret = i2c_configure(dev, config.raw);
-    if (ret != DEV_OK) {
+    if (ret < 0) {
         SOL_WRN("Failed to configure I2C device %s: %s", devs[bus]->name,
-            sol_util_strerrora(-zephyr_err_to_errno(ret)));
+            sol_util_strerrora(-ret));
         return NULL;
     }
 
@@ -211,8 +209,8 @@ i2c_read_timeout_cb(void *data)
 
     ret = i2c_read(i2c->dev, i2c->async.data, i2c->async.count,
         i2c->slave_address);
-    if (ret != DEV_OK)
-        i2c->async.status = zephyr_err_to_errno(ret);
+    if (ret < 0)
+        i2c->async.status = ret;
     else
         i2c->async.status = i2c->async.count;
 
@@ -261,8 +259,8 @@ i2c_write_timeout_cb(void *data)
 
     ret = i2c_write(i2c->dev, i2c->async.data, i2c->async.count,
         i2c->slave_address);
-    if (ret != DEV_OK)
-        i2c->async.status = zephyr_err_to_errno(ret);
+    if (ret < 0)
+        i2c->async.status = ret;
     else
         i2c->async.status = i2c->async.count;
 
@@ -329,8 +327,8 @@ i2c_read_reg_timeout_cb(void *data)
     msg[1].len = i2c->async.count;
 
     ret = i2c_transfer(i2c->dev, msg, 2, i2c->slave_address);
-    if (ret != DEV_OK)
-        i2c->async.status = zephyr_err_to_errno(ret);
+    if (ret < 0)
+        i2c->async.status = ret;
     else
         i2c->async.status = i2c->async.count;
 
@@ -388,7 +386,7 @@ i2c_read_reg_multiple_timeout_cb(void *data)
     msg.len = sizeof(i2c->async.reg);
 
     ret = i2c_transfer(i2c->dev, &msg, 1, i2c->slave_address);
-    if (ret != DEV_OK)
+    if (ret < 0)
         goto end;
 
     for (i = 0; i < i2c->async.times; i++) {
@@ -399,14 +397,14 @@ i2c_read_reg_multiple_timeout_cb(void *data)
         SOL_WRN("Flags: %d %d", msg.flags, (msg.flags & I2C_MSG_STOP) == I2C_MSG_STOP);
 
         ret = i2c_transfer(i2c->dev, &msg, 1, i2c->slave_address);
-        if (ret != DEV_OK)
+        if (ret < 0)
             break;
     }
 
-    if (ret == DEV_OK)
+    if (ret == 0)
         i2c->async.status = i2c->async.count * i2c->async.times;
     else
-        i2c->async.status = zephyr_err_to_errno(ret);
+        i2c->async.status = ret;
 
 end:
     i2c->async.timeout = NULL;
@@ -468,8 +466,8 @@ i2c_write_reg_timeout_cb(void *data)
     msg[1].len = i2c->async.count;
 
     ret = i2c_transfer(i2c->dev, msg, 2, i2c->slave_address);
-    if (ret != DEV_OK)
-        i2c->async.status = zephyr_err_to_errno(ret);
+    if (ret < 0)
+        i2c->async.status = ret;
     else
         i2c->async.status = i2c->async.count;
 

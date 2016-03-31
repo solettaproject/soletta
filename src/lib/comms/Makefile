@@ -29,7 +29,18 @@ obj-networking-$(PLATFORM_RIOTOS) += \
 
 obj-networking-$(PLATFORM_LINUX) += \
     sol-network-impl-linux.o \
+    sol-network-util-impl-linux.o \
     sol-socket-impl-linux.o
+
+obj-networking-$(PLATFORM_ZEPHYR) += \
+    sol-network-impl-zephyr.o \
+    sol-network-util-impl-zephyr.o \
+    sol-socket-impl-zephyr.o
+
+obj-networking-$(PLATFORM_ZEPHYR)-extra-cflags += \
+    -I$(ZEPHYR_BASE)/net/ip/contiki \
+    -I$(ZEPHYR_BASE)/net/ip/contiki/os \
+    -I$(ZEPHYR_BASE)/net/ip
 
 obj-networking-$(COAP) += \
     coap.o \

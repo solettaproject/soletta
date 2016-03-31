@@ -16,28 +16,31 @@
  * limitations under the License.
  */
 
-/* Zephyr includes */
-#include "nanokernel.h"
+#include <sol-network-util.h>
+#include <net/net_ip.h>
 
-#include "sol-util.h"
-
-struct timespec
-sol_util_timespec_get_current(void)
+enum sol_network_family
+sol_network_af_to_sol(int af)
 {
-    struct timespec ret;
-    int64_t ticks;
-
-    ticks = sys_tick_get();
-    ret.tv_sec = ticks / sys_clock_ticks_per_sec;
-    ticks -= ret.tv_sec * sys_clock_ticks_per_sec;
-    ret.tv_nsec = (ticks * NSEC_PER_SEC) / sys_clock_ticks_per_sec;
-
-    return ret;
+    switch (af) {
+    case AF_INET:
+        return SOL_NETWORK_FAMILY_INET;
+    case AF_INET6:
+        return SOL_NETWORK_FAMILY_INET6;
+    default:
+        return SOL_NETWORK_FAMILY_UNSPEC;
+    }
 }
 
 int
-sol_util_timespec_get_realtime(struct timespec *t)
+sol_network_sol_to_af(enum sol_network_family snf)
 {
-    errno = ENOSYS;
-    return -1;
+    switch (snf) {
+    case SOL_NETWORK_FAMILY_INET:
+        return AF_INET;
+    case SOL_NETWORK_FAMILY_INET6:
+        return AF_INET6;
+    default:
+        return AF_UNSPEC;
+    }
 }

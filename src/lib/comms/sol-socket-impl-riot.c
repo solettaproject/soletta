@@ -369,7 +369,7 @@ static int
 sol_socket_riot_setsockopt(struct sol_socket *socket, enum sol_socket_level level,
     enum sol_socket_option optname, const void *optval, size_t optlen)
 {
-    SOL_WRN("Not implemented");
+    SOL_DBG("Not implemented");
     return 0;
 }
 
@@ -377,12 +377,12 @@ static int
 sol_socket_riot_getsockopt(struct sol_socket *socket, enum sol_socket_level level,
     enum sol_socket_option optname, void *optval, size_t *optlen)
 {
-    SOL_WRN("Not implemented");
+    SOL_DBG("Not implemented");
     return 0;
 }
 
 const struct sol_socket_impl *
-sol_socket_riot_get_impl(void)
+sol_socket_get_impl(void)
 {
     static struct sol_socket_impl impl = {
         .bind = sol_socket_riot_bind,

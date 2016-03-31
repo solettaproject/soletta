@@ -20,30 +20,5 @@
 
 #include <sol-network.h>
 
-#include <netinet/in.h>
-
-static inline enum sol_network_family
-sol_network_af_to_sol(int af)
-{
-    switch (af) {
-    case AF_INET:
-        return SOL_NETWORK_FAMILY_INET;
-    case AF_INET6:
-        return SOL_NETWORK_FAMILY_INET6;
-    default:
-        return SOL_NETWORK_FAMILY_UNSPEC;
-    }
-}
-
-static inline int
-sol_network_sol_to_af(enum sol_network_family snf)
-{
-    switch (snf) {
-    case SOL_NETWORK_FAMILY_INET:
-        return AF_INET;
-    case SOL_NETWORK_FAMILY_INET6:
-        return AF_INET6;
-    default:
-        return AF_UNSPEC;
-    }
-}
+enum sol_network_family sol_network_af_to_sol(int af);
+int sol_network_sol_to_af(enum sol_network_family snf);
