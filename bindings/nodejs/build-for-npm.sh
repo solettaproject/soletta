@@ -27,8 +27,10 @@ unset PYTHON_PATH || exit 1
 # Configure with defaults
 make alldefconfig || exit 1
 
+COMMAND_LINE='USE_NODEJS="y" RPATH="y" make'
+
 if test "x${npm_config_debug}x" = "xtruex"; then
-	sed -i .config -r -e 's/(# )?CONFIG_CFLAGS.*$/CONFIG_CFLAGS="-g -O0"/'
+	COMMAND_LINE='COMMON_CFLAGS="-g -O0" '"${COMMAND_LINE}"
 fi
 
-USE_NODEJS="y" RPATH="y" make || exit 1
+eval "${COMMAND_LINE}" || exit 1

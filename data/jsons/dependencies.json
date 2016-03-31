@@ -118,7 +118,7 @@
         "-O2 -D_FORTIFY_SOURCE=2"
       ],
       "comment": "Add some more security checks",
-      "append_to": "RELEASE_COMMON_CFLAGS"
+      "append_to": "FORTIFY_CFLAGS"
     },
     {
       "dependency": "check_cflag_pie",
