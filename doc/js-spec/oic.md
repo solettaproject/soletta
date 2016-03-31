@@ -199,8 +199,12 @@ interface OicDiscovery: EventTarget {
   // multicast device discovery
   Promise<void> findDevices();  // fire a 'devicefound' event for each found
 
+  // multicast platform discovery
+  Promise<void> findPlatforms();  // fire a 'platformfound' event for each found
+
   attribute EventHandler<OicResourceEvent> onresourcefound;
   attribute EventHandler<OicDeviceEvent> ondevicefound;
+  attribute EventHandler<OicPlatformEvent> onplatformfound;
   attribute EventHandler<OicErrorEvent> ondiscoveryerror;
 }
 
@@ -218,6 +222,10 @@ interface OicResourceEvent : Event {
 
 interface OicDeviceEvent : Event {
   readonly attribute OicDevice device;
+};
+
+interface OicPlatformEvent : Event {
+  readonly attribute OicPlatform platform;
 };
 ```
 When the ```findResources()``` method is invoked, run the following steps:
