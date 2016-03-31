@@ -49,7 +49,7 @@ SOL_LOG_INTERNAL_DECLARE(_sol_coap_log_domain, "coap");
  */
 #define ACK_TIMEOUT_MS 2345
 #define MAX_RETRANSMIT 4
-#define NONCON_PKT_TIMEOUT_MS (ACK_TIMEOUT_MS << MAX_RETRANSMIT)
+#define MAX_PKT_TIMEOUT_MS (ACK_TIMEOUT_MS << MAX_RETRANSMIT)
 
 #ifndef SOL_NO_API_VERSION
 #define COAP_RESOURCE_CHECK_API(...) \
@@ -93,11 +93,13 @@ struct resource_observer {
 };
 
 struct pending_reply {
+    struct sol_coap_server *server;
+    struct sol_timeout *timeout;
     bool (*cb)(struct sol_coap_server *server, struct sol_coap_packet *req,
         const struct sol_network_link_addr *cliaddr, void *data);
     const void *data;
-    bool observing;
     char *path;
+    bool observing;
     uint16_t id;
     uint8_t tkl;
     uint8_t token[0];
@@ -625,28 +627,32 @@ pending_reply_free(struct pending_reply *reply)
 
     if (reply->observing)
         free(reply->path);
+
+    if (reply->timeout)
+        sol_timeout_del(reply->timeout);
+
     free(reply);
 }
 
+/* This is mostly for !CON packets, which do not go to the outgoing
+ * list but also keep a context of their own, for response handling */
 static bool
-call_reply_timeout_cb(struct sol_coap_server *server, struct sol_coap_packet *pkt)
+pending_timeout_cb(void *data)
 {
-    uint16_t i, id;
-    struct pending_reply *reply;
+    struct pending_reply *reply = data;
+    struct sol_coap_server *server = reply->server;
 
-    sol_coap_header_get_id(pkt, &id);
+    if (reply->cb(server, NULL, NULL, (void *)reply->data))
+        return true;
 
-    SOL_PTR_VECTOR_FOREACH_REVERSE_IDX (&server->pending, reply, i) {
-        if (reply->observing || reply->id != id)
-            continue;
+    sol_ptr_vector_remove(&server->pending, reply);
 
-        if (reply->cb(server, NULL, NULL, (void *)reply->data))
-            return false;
-        sol_ptr_vector_del(&server->pending, i);
-        pending_reply_free(reply);
-    }
+    /* Timeout will be free'd when 'false' is returned */
+    reply->timeout = NULL;
 
-    return true;
+    pending_reply_free(reply);
+
+    return false;
 }
 
 static bool
@@ -656,30 +662,22 @@ timeout_expired(struct sol_coap_server *server, struct outgoing *outgoing)
     int timeout;
     uint16_t i, id;
     uint8_t type;
-    int max_retransmit;
     bool expired = false;
 
     sol_coap_header_get_type(outgoing->pkt, &type);
-    if (type == SOL_COAP_TYPE_CON) {
-        max_retransmit = MAX_RETRANSMIT;
-        timeout = ACK_TIMEOUT_MS << outgoing->counter++;
-    } else {
-        max_retransmit = 1;
-        timeout = NONCON_PKT_TIMEOUT_MS;
-        outgoing->counter++;
-    }
+    /* no re-transmissions for !CON packets, we just keep a
+     * pending_reply for a while */
+    if (type != SOL_COAP_TYPE_CON)
+        return false;
 
-    if (outgoing->counter > max_retransmit) {
+    timeout = ACK_TIMEOUT_MS << outgoing->counter++;
+
+    if (outgoing->counter > MAX_RETRANSMIT) {
         SOL_PTR_VECTOR_FOREACH_REVERSE_IDX (&server->outgoing, o, i) {
             if (o == outgoing) {
                 sol_coap_header_get_id(outgoing->pkt, &id);
                 SOL_DBG("packet id %d dropped, after %d transmissions",
                     id, outgoing->counter);
-
-                if (!call_reply_timeout_cb(server, outgoing->pkt)) {
-                    expired = true;
-                    break;
-                }
 
                 sol_ptr_vector_del(&server->outgoing, i);
                 outgoing_free(o);
@@ -747,8 +745,7 @@ on_can_write(void *data, struct sol_socket *s)
     struct sol_coap_server *server = data;
     struct outgoing *outgoing;
     struct sol_buffer buf;
-    int err;
-    int idx;
+    int err, idx;
 
     if (sol_ptr_vector_get_len(&server->outgoing) == 0)
         return false;
@@ -771,8 +768,10 @@ on_can_write(void *data, struct sol_socket *s)
     if (err == -EAGAIN)
         return true;
 
-    SOL_DBG("CoAP packet sent (payload of %zu bytes, "
-        "buffer holding it with %zu bytes)",
+    SOL_DBG("CoAP packet sent (outgoing_len=%d, pending_len=%d)"
+        " -- payload of %zu bytes, buffer holding it with %zu bytes",
+        sol_ptr_vector_get_len(&server->outgoing),
+        sol_ptr_vector_get_len(&server->pending),
         outgoing->pkt->buf.used, outgoing->pkt->buf.capacity);
     sol_coap_packet_debug(outgoing->pkt);
     if (err < 0) {
@@ -784,6 +783,24 @@ on_can_write(void *data, struct sol_socket *s)
         SOL_WRN("Could not send packet %d to %.*s (%d): %s", id,
             SOL_STR_SLICE_PRINT(sol_buffer_get_slice(&addr)), -err, sol_util_strerrora(-err));
         return false;
+    }
+
+    /* According to RFC 7641, section 4.5, "since RESET messages are
+     * transmitted unreliably, the client must be prepared in case the
+     * these are not received by the server. Thus, a server can always
+     * pretend that a RESET message rejecting a non-confirmable
+     * notification was lost. If a server does this, it could
+     * accelerate cancellation by sending the following notifications
+     * to that client in confirmable messages".
+     *
+     * If 'timeout' is NULL, it means that the packet doesn't need to
+     * be retransmitted. By taking this shortcut we reduce memory
+     * usage A LOT and are able to run on very small devices with no
+     * memory issues.
+     */
+    if (!outgoing->timeout) {
+        sol_ptr_vector_del(&server->outgoing, idx);
+        outgoing_free(outgoing);
     }
 
     if (sol_ptr_vector_get_len(&server->outgoing) == 0)
@@ -832,11 +849,11 @@ sol_coap_send_packet_with_reply(struct sol_coap_server *server, struct sol_coap_
     struct sol_coap_packet *req, const struct sol_network_link_addr *cliaddr,
     void *data), const void *data)
 {
-    struct sol_str_slice option = {};
     struct pending_reply *reply = NULL;
+    struct sol_str_slice option = {};
+    bool observing = false;
     uint8_t tkl, *token;
     int err = 0, count;
-    bool observing = false;
 
     SOL_NULL_CHECK(server, -EINVAL);
     SOL_NULL_CHECK(pkt, -EINVAL);
@@ -874,6 +891,10 @@ sol_coap_send_packet_with_reply(struct sol_coap_server *server, struct sol_coap_
     reply->data = data;
     reply->observing = observing;
     reply->tkl = tkl;
+    reply->server = server;
+    reply->timeout = sol_timeout_add(MAX_PKT_TIMEOUT_MS,
+        pending_timeout_cb, reply);
+
     if (token)
         memcpy(reply->token, token, tkl);
     if (observing) {
@@ -1483,8 +1504,19 @@ respond_packet(struct sol_coap_server *server, struct sol_coap_packet *req,
                         SOL_WRN("Could not unobserve packet.");
                 }
                 pending_reply_free(reply);
-            } else if (!reply->observing)
+            } else if (!reply->observing) {
                 remove_outgoing = false;
+            } else {
+                /*
+                   This means that the user wishes to continue observing that resource,
+                   so we don't need to keep the reply timeout around.
+                 */
+                if (reply->timeout) {
+                    sol_timeout_del(reply->timeout);
+                    reply->timeout = NULL;
+                }
+            }
+
             found_reply = true;
         }
 
@@ -1560,7 +1592,7 @@ on_can_read(void *data, struct sol_socket *s)
     len = sol_socket_recvmsg(s, NULL, 0, NULL);
     SOL_INT_CHECK_GOTO(len, < 0, err_recv);
 
-    SOL_DBG("allocating %zd bytes for pkt", len);
+    SOL_DBG("allocating %zd bytes for pkt %p", len, pkt);
     err = sol_buffer_ensure(&pkt->buf, len);
     if (err < 0) {
         SOL_WRN("Could not allocate space (%zd bytes) to receive from socket"

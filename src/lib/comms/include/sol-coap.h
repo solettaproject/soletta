@@ -703,20 +703,24 @@ int sol_coap_send_packet(struct sol_coap_server *server, struct sol_coap_packet 
 /**
  * @brief Sends a packet to the given address.
  *
- * Sends the packet @a pkt to the destination address especified by @a cliaddr,
- * which may be a multicast address for discovery purposes.
+ * Sends the packet @a pkt to the destination address especified by @a
+ * cliaddr, which may be a multicast address for discovery purposes,
+ * and issues a given callback when a response arrives.
  *
- * When a response is received, the function @a reply_cb will be called.
- * As long as this function returns @c true, @a server will continue waiting
- * for more responses. When the function returns @c false, the internal response
- * handler will be freed and any new replies that arrive for this request
- * will be ignored. For unobserving packets server will also be notified using
- * an unobserve packet.
- * After internal timeout is reached reply_cb will be called with @c NULL
- * req and cliaddr. The same behavior is expected for reply_cb return, if
- * reply_cb returns @c true, @a server will continue waiting responses until
- * next timeout. If reply_cb returns @c false, @a server will terminate
- * response waiting.
+ * If @a reply_cb is @c NULL, this function will behave exactly like
+ * sol_coap_send_packet(). If a valid function is passed, when a
+ * response is received, the function @a reply_cb will be called. As
+ * long as this function returns @c true, @a server will continue
+ * waiting for more responses. When it returns @c false, the internal
+ * response handler will be freed and any new reply that may arrive
+ * for this request will be ignored. For unobserving packets, @a
+ * server will also be notified using an unobserve packet.
+ *
+ * After an internal timeout is reached, @a reply_cb will be called
+ * with @c NULL @c req and @c cliaddr. The same behavior is expected
+ * for its return: if @c true, @a server will issue a new timeout and
+ * continue waiting responses until it ends, otherwise @a server will
+ * terminate response waiting.
  *
  * @note This function will take the reference of the given @a pkt.
  *
@@ -726,7 +730,7 @@ int sol_coap_send_packet(struct sol_coap_server *server, struct sol_coap_packet 
  * @param reply_cb The function to call when a response is received.
  * @param data The user data pointer to pass to the @a reply_cb function.
  *
- * @return 0 on success, -errno otherwise.
+ * @return 0 on success, a negative error code otherwise.
  */
 int sol_coap_send_packet_with_reply(struct sol_coap_server *server, struct sol_coap_packet *pkt,
     const struct sol_network_link_addr *cliaddr,
