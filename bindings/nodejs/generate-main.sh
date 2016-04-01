@@ -39,6 +39,7 @@ sol-network.h
 sol-oic-client.h
 sol-oic-common.h
 sol-coap.h
+sol-gpio.h
 '
 
 for file in $FILES; do
