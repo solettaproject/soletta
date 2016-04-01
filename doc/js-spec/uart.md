@@ -16,9 +16,9 @@ interface UART {
   Promise<UARTConnection> open(UARTInit init);
 };
 
-enum UARTBaud { "9600", "19200", "38400", "57600", "115200" };
-enum UARTDataBits { "5", "6", "7", "8" };
-enum UARTStopBits { "1", "2" };
+enum UARTBaud { "baud-9600", "baud-19200", "baud-38400", "baud-57600", "baud-115200" };
+enum UARTDataBits { "databits-5", "databits-6", "databits-7", "databits-8" };
+enum UARTStopBits { "stopbits-1", "stopbits-2" };
 enum UARTParity { "none", "even", "odd" };
 
 dictionary UARTInit {
