@@ -26,14 +26,17 @@ var sources = [
 	"../src/data.cc",
 	"../src/functions/sol-platform-monitors.cc",
 	"../src/functions/simple.cc",
+	"../src/functions/gpio.cc",
 	"../src/hijack.cc",
 	"../src/sol-uv-integration.c",
-	"../src/structures/js-handle.cc"
+	"../src/structures/js-handle.cc",
+	"../src/structures/sol-js-gpio.cc"
 ];
 
 // List containing the names of the header files in which to search for constants and enums
 var headers = [
-	"sol-platform.h"
+	"sol-platform.h",
+	"sol-gpio.h"
 ];
 
 var oneVariable, match;
