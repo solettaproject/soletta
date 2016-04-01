@@ -21,13 +21,13 @@
 #include <unistd.h>
 #include <stdlib.h>
 
+#include "soletta.h"
 #include "sol-arena.h"
 #include "sol-conffile.h"
 #include "sol-file-reader.h"
 #include "sol-flow-buildopts.h"
 #include "sol-json.h"
 #include "sol-log.h"
-#include "sol-mainloop.h"
 #include "sol-util-internal.h"
 #include "sol-vector.h"
 
@@ -105,12 +105,13 @@ parse_args(int argc, char *argv[])
             break;
         case 'h':
             usage(argv[0]);
-            exit(EXIT_SUCCESS);
-            break;
+            sol_quit_with_code(EXIT_SUCCESS);
+            return false;
         case 'o':
             if (args.options_count == MAX_OPTS) {
                 fputs("Error: Too many options.\n", stderr);
-                exit(EXIT_FAILURE);
+                sol_quit_with_code(EXIT_FAILURE);
+                return false;
             }
             args.options[args.options_count++] = optarg;
             break;
@@ -125,17 +126,21 @@ parse_args(int argc, char *argv[])
         case 'I':
             err = sol_ptr_vector_append(&args.fbp_search_paths, optarg);
             if (err < 0) {
-                fputs("Out of memory\n", stderr);
-                exit(EXIT_FAILURE);
+                fputs("Error: Out of memory\n", stderr);
+                sol_quit_with_code(EXIT_FAILURE);
+                return false;
             }
             break;
         default:
+            sol_quit_with_code(EXIT_FAILURE);
             return false;
         }
     }
 
-    if (optind == argc)
+    if (optind == argc) {
+        sol_quit_with_code(EXIT_FAILURE);
         return false;
+    }
 
     args.name = argv[optind];
     if (args.execute_type) {
@@ -166,12 +171,15 @@ load_memory_maps(const struct sol_ptr_vector *maps)
 #endif
 }
 
-static bool
-startup(void *data)
+static void
+startup(void)
 {
     bool finished = true;
     int result = EXIT_FAILURE;
     struct sol_ptr_vector *memory_maps;
+
+    if (!parse_args(sol_argc(), sol_argv()))
+        return;
 
     str_arena = sol_arena_new();
     if (!str_arena) {
@@ -221,8 +229,6 @@ startup(void *data)
 end:
     if (finished)
         sol_quit_with_code(result);
-
-    return false;
 }
 
 static void
@@ -237,27 +243,4 @@ shutdown(void)
     sol_ptr_vector_clear(&args.fbp_search_paths);
 }
 
-int
-main(int argc, char *argv[])
-{
-    int r;
-
-    if (sol_init() < 0) {
-        fputs("Error: Cannot initialize soletta.\n", stderr);
-        return EXIT_FAILURE;
-    }
-
-    if (!parse_args(argc, argv)) {
-        usage(argv[0]);
-        return EXIT_FAILURE;
-    }
-
-    sol_idle_add(startup, NULL);
-
-    r = sol_run();
-
-    shutdown();
-    sol_shutdown();
-
-    return r;
-}
+SOL_MAIN_DEFAULT(startup, shutdown);
