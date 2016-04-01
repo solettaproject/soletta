@@ -1,0 +1,188 @@
+/*
+ * This file is part of the Soletta Project
+ *
+ * Copyright (C) 2015 Intel Corporation. All rights reserved.
+ *
+ * Licensed under the Apache License, Version 2.0 (the "License");
+ * you may not use this file except in compliance with the License.
+ * You may obtain a copy of the License at
+ *
+ *     http://www.apache.org/licenses/LICENSE-2.0
+ *
+ * Unless required by applicable law or agreed to in writing, software
+ * distributed under the License is distributed on an "AS IS" BASIS,
+ * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+ * See the License for the specific language governing permissions and
+ * limitations under the License.
+ */
+
+td.fbp-node-ports-in, td.fbp-node-ports-out {
+    min-width: 300pt;
+}
+
+div.fbp-node-port-names-in, div.fbp-node-port-names-out {
+    font-family: monospace;
+    color: #333;
+}
+
+div.fbp-node-port-description-in, div.fbp-node-port-description-out {
+    font-family: sans-serif;
+    font-size: smaller;
+    color: #999;
+}
+
+div.fbp-node-port-data_type-in, div.fbp-node-port-data_type-in, span.fbp-packet {
+    font-family: monospace;
+}
+
+span.fbp-packet-type-rgb-preview {
+    margin: 2pt 2pt 2pt 2pt;
+    padding: 2pt 2pt 2pt 2pt;
+    display: inline-block;
+    width: 10pt;
+    height: 10pt;
+    border: 1px solid black;
+}
+
+div.fbp-node-port-required-true {
+    font-weight: bold;
+}
+
+span.fbp-packet-type-int {
+    color: #0000aa;
+}
+
+span.fbp-packet-type-float {
+    color: #aa00aa;
+}
+
+span.fbp-packet-type-string {
+    color: #aa7700;
+}
+
+span.fbp-packet-type-error {
+    color: #ff0000;
+}
+
+span.fbp-packet-type-boolean {
+    color: #0077aa;
+}
+
+table#fbp-container-inspector {
+    width: 100%;
+}
+
+td.fbp-node-ports-in, td.fbp-node-ports-out {
+    padding-top: 30pt;
+    vertical-align: top;
+}
+
+td.fbp-node-info h3 {
+    height: 30pt;
+    font-size: 1em;
+}
+
+table.fbp-log {
+    width: 100%;
+}
+
+table.fbp-log thead, table.fbp-log tbody {
+    display: block;
+}
+
+table.fbp-log tbody {
+    height: 100pt;
+    overflow-y: auto;
+    overflow-x: auto;
+}
+
+table.fbp-log tr td {
+    font-family: monospace;
+    font-size: smaller;
+}
+
+td.fbp-log-timestamp {
+    text-align: right;
+}
+
+td.fbp-node-info {
+    vertical-align: top;
+    min-width: 300pt;
+    border: 1px solid #ccc;
+    background-color: #d9d9d9;
+}
+
+td.fbp-node-info dl {
+    font-size: x-small;
+}
+
+td.fbp-node-info dl dt {
+    color: #666;
+    float: left;
+    clear: left;
+}
+
+td.fbp-node-info dl dt:after {
+    content: ": ";
+}
+
+td.fbp-node-info dl dd {
+    color: #333;
+    padding: 0 0 0.5em 0;
+    -webkit-margin-start: 10pt;
+}
+
+span.fbp-node-option-type-rgb-preview {
+    margin: 1pt 1pt 1pt 1pt;
+    padding: 1pt 1pt 1pt 1pt;
+    display: inline-block;
+    width: 10pt;
+    height: 8pt;
+    border: 1px solid black;
+}
+
+div.fbp-node-port-info-in, div.fbp-node-port-info-out, div.fbp-node-options-info {
+}
+
+div.fbp-node-port-container-in, div.fbp-node-port-container-out {
+    margin: 1pt 1pt 1pt;
+    padding: 2pt 2pt 2pt;
+}
+
+div.fbp-node-port-name-in {
+    margin: 1pt 1pt 1pt;
+    padding: 2pt 2pt 2pt;
+    float: right;
+    clear: right;
+    background-color: #d9d9d9;
+    border: 1px solid #ccc;
+}
+
+div.fbp-node-port-value-in {
+    float: right;
+}
+
+div.fbp-node-port-name-out {
+    margin: 1pt 1pt 1pt;
+    padding: 2pt 2pt 2pt;
+    float: left;
+    clear: left;
+    background-color: #d9d9d9;
+    border: 1px solid #ccc;
+}
+
+div.fbp-node-port-value-out {
+    float: left;
+}
+
+div.fbp-node-port-data_type-in-float div div div.fbp-node-port-name-in, div.fbp-node-port-data_type-out-float div div div.fbp-node-port-name-out {
+    background-color: #ff66ff;
+}
+
+div.fbp-node-port-data_type-in-int div div div.fbp-node-port-name-in, div.fbp-node-port-data_type-out-int div div div.fbp-node-port-name-out {
+    background-color: #6666ff;
+}
+
+div.fbp-node-port-data_type-in-boolean div div div.fbp-node-port-name-in, div.fbp-node-port-data_type-out-boolean div div div.fbp-node-port-name-out {
+    background-color: #66aaff;
+}
