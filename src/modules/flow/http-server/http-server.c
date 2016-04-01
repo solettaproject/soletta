@@ -988,7 +988,17 @@ rgb_post_cb(struct http_data *mdata, struct sol_flow_node *node,
 static int
 rgb_process_cb(struct http_data *mdata, const struct sol_flow_packet *packet)
 {
-    return sol_flow_packet_get_rgb(packet, &mdata->value.rgb);
+    struct sol_rgb rgb;
+    int r;
+
+    r = sol_flow_packet_get_rgb(packet, &rgb);
+    SOL_INT_CHECK(r, < 0, r);
+
+    if (!memcmp(&mdata->value.rgb, &rgb, sizeof(struct sol_rgb)))
+        return 0;
+
+    memcpy(&mdata->value.rgb, &rgb, sizeof(struct sol_rgb));
+    return 1;
 }
 
 static int
@@ -1116,8 +1126,18 @@ static int
 direction_vector_process_cb(struct http_data *mdata,
     const struct sol_flow_packet *packet)
 {
-    return sol_flow_packet_get_direction_vector(packet,
-        &mdata->value.dir_vector);
+    struct sol_direction_vector dir;
+    int r;
+
+    r = sol_flow_packet_get_direction_vector(packet, &dir);
+    SOL_INT_CHECK(r, < 0, r);
+
+    if (!memcmp(&mdata->value.dir_vector, &dir,
+        sizeof(struct sol_direction_vector)))
+        return 0;
+
+    memcpy(&mdata->value.dir_vector, &dir, sizeof(struct sol_direction_vector));
+    return 1;
 }
 
 static int
@@ -1171,15 +1191,31 @@ blob_open(struct sol_flow_node *node, void *data,
     return 0;
 }
 
-static int
-replace_json_blob(struct http_data *mdata, struct sol_blob *blob)
+static bool
+blob_is_equal(struct sol_blob *b1, struct sol_blob *b2)
 {
-    if (mdata->value.blob)
-        sol_blob_unref(mdata->value.blob);
+    return b1->size == b2->size && !memcmp(b1->mem, b2->mem, b2->size);
+}
 
-    mdata->value.blob = sol_blob_ref(blob);
-    SOL_NULL_CHECK(mdata->value.blob, -ENOMEM);
-    return 0;
+static int
+replace_blob(struct http_data *mdata, struct sol_blob *blob)
+{
+    int updated = 0;
+
+    if (!mdata->value.blob)
+        updated = 1;
+    else {
+        if (!blob_is_equal(blob, mdata->value.blob)) {
+            updated = 1;
+            sol_blob_unref(mdata->value.blob);
+        }
+    }
+
+    if (updated) {
+        mdata->value.blob = sol_blob_ref(blob);
+        SOL_NULL_CHECK(mdata->value.blob, -ENOMEM);
+    }
+    return updated;
 }
 
 static int
@@ -1200,7 +1236,7 @@ blob_process_cb(struct http_data *mdata,
         r = sol_flow_packet_get_blob(packet, &blob);
 
     SOL_INT_CHECK(r, < 0, r);
-    return replace_json_blob(mdata, blob);
+    return replace_blob(mdata, blob);
 }
 
 static void
@@ -1247,7 +1283,7 @@ blob_handle_response_cb(struct sol_flow_node *node,
             return -ENOENT;
         }
 
-        r = replace_json_blob(mdata, blob);
+        r = replace_blob(mdata, blob);
         sol_blob_unref(blob);
         SOL_INT_CHECK(r, < 0, r);
         *updated = true;
