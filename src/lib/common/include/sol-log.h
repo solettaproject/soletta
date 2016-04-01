@@ -71,43 +71,43 @@ template <> inline const char *sol_int_format<unsigned char>(unsigned char) { re
  */
 #define _SOL_INT_CHECK_FMT(var) \
     __builtin_choose_expr( \
-    __builtin_types_compatible_p(typeof(var), int), \
+    __builtin_types_compatible_p(__typeof__(var), int), \
     "" # var " (%d) %s", \
     __builtin_choose_expr( \
-    __builtin_types_compatible_p(typeof(var), long), \
+    __builtin_types_compatible_p(__typeof__(var), long), \
     "" # var " (%ld) %s", \
     __builtin_choose_expr( \
-    __builtin_types_compatible_p(typeof(var), size_t), \
+    __builtin_types_compatible_p(__typeof__(var), size_t), \
     "" # var " (%zu) %s", \
     __builtin_choose_expr( \
-    __builtin_types_compatible_p(typeof(var), unsigned), \
+    __builtin_types_compatible_p(__typeof__(var), unsigned), \
     "" # var " (%u) %s", \
     __builtin_choose_expr( \
-    __builtin_types_compatible_p(typeof(var), uint64_t), \
+    __builtin_types_compatible_p(__typeof__(var), uint64_t), \
     "" # var " (%" PRIu64 ") %s", \
     __builtin_choose_expr( \
-    __builtin_types_compatible_p(typeof(var), uint32_t), \
+    __builtin_types_compatible_p(__typeof__(var), uint32_t), \
     "" # var " (%" PRIu32 ") %s", \
     __builtin_choose_expr( \
-    __builtin_types_compatible_p(typeof(var), uint16_t), \
+    __builtin_types_compatible_p(__typeof__(var), uint16_t), \
     "" # var " (%" PRIu16 ") %s", \
     __builtin_choose_expr( \
-    __builtin_types_compatible_p(typeof(var), uint8_t), \
+    __builtin_types_compatible_p(__typeof__(var), uint8_t), \
     "" # var " (%" PRIu8 ") %s", \
     __builtin_choose_expr( \
-    __builtin_types_compatible_p(typeof(var), int64_t), \
+    __builtin_types_compatible_p(__typeof__(var), int64_t), \
     "" # var " (%" PRId64 ") %s", \
     __builtin_choose_expr( \
-    __builtin_types_compatible_p(typeof(var), int32_t), \
+    __builtin_types_compatible_p(__typeof__(var), int32_t), \
     "" # var " (%" PRId32 ") %s", \
     __builtin_choose_expr( \
-    __builtin_types_compatible_p(typeof(var), int16_t), \
+    __builtin_types_compatible_p(__typeof__(var), int16_t), \
     "" # var " (%" PRId16 ") %s", \
     __builtin_choose_expr( \
-    __builtin_types_compatible_p(typeof(var), int8_t), \
+    __builtin_types_compatible_p(__typeof__(var), int8_t), \
     "" # var " (%" PRId8 ") %s", \
     __builtin_choose_expr( \
-    __builtin_types_compatible_p(typeof(var), ssize_t), \
+    __builtin_types_compatible_p(__typeof__(var), ssize_t), \
     "" # var " (%zd) %s", \
     (void)0)))))))))))))
 

@@ -638,7 +638,7 @@ sol_util_secure_clear_memory(void *buf, size_t len)
 
     /* Clobber memory pointed to by `buf` to prevent the optimizer from
      * eliding the memset() call.  */
-    asm volatile ("" : : "g" (buf) : "memory");
+    __asm__ __volatile__ ("" : : "g" (buf) : "memory");
 }
 
 /**
