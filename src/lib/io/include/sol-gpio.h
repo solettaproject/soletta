@@ -227,6 +227,32 @@ struct sol_gpio_config {
 };
 
 /**
+ * @brief Converts a string GPIO edge to sol_gpio_edge
+ *
+ * This function converts a string GPIO edge to enumeration sol_gpio_edge
+ *
+ * @see sol_gpio_edge_to_str().
+ *
+ * @param edge Valid values are "none", "rising", "falling", "any".
+ *
+ * @return enumeration sol_gpio_edge
+ */
+enum sol_gpio_edge sol_gpio_edge_from_str(const char *edge) SOL_ATTR_WARN_UNUSED_RESULT;
+
+/**
+ * @brief Converts sol_gpio_edge to a string name.
+ *
+ * This function converts sol_gpio_edge enumeration to a string GPIO edge name
+ *
+ * @see sol_gpio_edge_from_str().
+ *
+ * @param edge sol_gpio_edge
+ *
+ * @return String representation of the sol_gpio_edge
+ */
+const char * sol_gpio_edge_to_str(enum sol_gpio_edge edge) SOL_ATTR_WARN_UNUSED_RESULT;
+
+/**
  * @brief Opens a given pin by its board label as general purpose input or output.
  *
  * This function only works when the board was successfully detected
