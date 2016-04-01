@@ -39,6 +39,10 @@
 
 #define MAX_OPTS 64
 
+#if defined(SOL_FLOW_INSPECTOR_ENABLED) && defined(HTTP_SERVER)
+#define WEB_INSPECTOR 1
+#endif
+
 static struct {
     const char *name;
 
@@ -46,6 +50,12 @@ static struct {
 
     const char *options[MAX_OPTS + 1];
     int options_count;
+#ifdef WEB_INSPECTOR
+    uint16_t web_inspector_port;
+#endif
+#ifdef SOL_FLOW_INSPECTOR_ENABLED
+    bool inspector;
+#endif
 
     bool check_only;
     bool provide_sim_nodes;
@@ -59,6 +69,10 @@ static struct sol_arena *str_arena;
 #ifdef SOL_FLOW_INSPECTOR_ENABLED
 /* defined in inspector.c */
 extern void inspector_init(void);
+#endif
+
+#ifdef WEB_INSPECTOR
+#include "web-inspector.h"
 #endif
 
 static void
@@ -78,9 +92,18 @@ usage(const char *program)
 #ifdef SOL_FLOW_INSPECTOR_ENABLED
         "    -D            Debug the flow by printing connections and packets to stdout.\n"
 #endif
+#ifdef WEB_INSPECTOR
+        "    -W [PORT]     Web-based HTTP Inspector using server-sent-events (SSE).\n"
+        "                  It will serve a landing page at all interfaces at the given port,\n"
+        "                  or use %d as default, with the actual events at '/events'.\n"
+        "                  The flow will NOT run until a client connects to '/events' and it\n"
+        "                  forcefully quit the flow if the client disconnects.\n"
+        "                  A single client is supported at '/events'.\n"
+        "                  This option conflicts with -D.\n"
+#endif
         "    -I            Define search path for FBP files\n"
         "\n",
-        program);
+        program, HTTP_SERVER_PORT);
 }
 
 static bool
@@ -90,6 +113,9 @@ parse_args(int argc, char *argv[])
     const char known_opts[] = "cho:stI:"
 #ifdef SOL_FLOW_INSPECTOR_ENABLED
         "D"
+#endif
+#ifdef WEB_INSPECTOR
+        "W::"
 #endif
     ;
 
@@ -120,7 +146,31 @@ parse_args(int argc, char *argv[])
             break;
 #ifdef SOL_FLOW_INSPECTOR_ENABLED
         case 'D':
-            inspector_init();
+            args.inspector = true;
+            break;
+#endif
+#ifdef WEB_INSPECTOR
+        case 'W':
+            if (optarg) {
+                unsigned long v;
+                char *endptr;
+
+                errno = 0;
+                v = strtoul(optarg, &endptr, 10);
+                if (endptr == optarg || errno != 0) {
+                    printf("Invalid -W port value, must be 16-bit unsigned integer in base-10\n");
+                    exit(1);
+                }
+                if (v > UINT16_MAX) {
+                    printf("Invalid -W port value, %lu is too big, maximum is %u\n",
+                        v, UINT16_MAX);
+                    exit(1);
+                }
+                args.web_inspector_port = v;
+            }
+
+            if (!args.web_inspector_port)
+                args.web_inspector_port = HTTP_SERVER_PORT;
             break;
 #endif
         case 'I':
@@ -141,6 +191,14 @@ parse_args(int argc, char *argv[])
         sol_quit_with_code(EXIT_FAILURE);
         return false;
     }
+
+#ifdef WEB_INSPECTOR
+    if (args.inspector && args.web_inspector_port) {
+        fputs("Error: Cannot use both -D and -W options.\n", stderr);
+        sol_quit_with_code(EXIT_FAILURE);
+        return false;
+    }
+#endif
 
     args.name = argv[optind];
     if (args.execute_type) {
@@ -219,6 +277,18 @@ startup(void)
     if (memory_maps)
         load_memory_maps(memory_maps);
 
+#ifdef SOL_FLOW_INSPECTOR_ENABLED
+    if (args.inspector)
+        inspector_init();
+#endif
+
+#ifdef WEB_INSPECTOR
+    if (args.web_inspector_port) {
+        if (web_inspector_run(args.web_inspector_port, the_runner) < 0)
+            goto end;
+    } else
+#endif
+
     if (runner_run(the_runner) < 0) {
         fputs("Error: Failed to run flow\n", stderr);
         goto end;
@@ -234,6 +304,11 @@ end:
 static void
 shutdown(void)
 {
+#ifdef WEB_INSPECTOR
+    if (args.web_inspector_port)
+        web_inspector_shutdown();
+#endif
+
     if (the_runner)
         runner_del(the_runner);
 

@@ -132,6 +132,23 @@ parse-bin = \
 	$(eval $(1)-deps     := $(subst .mod,,$(bin-$(1)-y-deps))) \
 	$(eval bins-out      += $(bin-$(1)-out)) \
 
+define install-resource
+$(2): $(1)
+	$(Q)echo "    "INST"   "$(1)
+	$(Q)$(MKDIR) -p $(dir $(2))
+	$(Q)$(CP) $(1) $(2)
+endef
+
+parse-data = \
+	$(if $(data-$(1)-dir), \
+		$(eval data-$(1)-dir := $(addprefix $(build_datadir),$(data-$(1)-dir))), \
+		$(eval data-$(1)-dir := $(build_datadir)) \
+	) \
+	$(foreach file,$(data-$(1)-files), \
+		$(eval $(call install-resource,$(2)/$(file),$(data-$(1)-dir)/$(file))) \
+		$(eval all-data += $(data-$(1)-dir)/$(file)) \
+	) \
+
 parse-test = \
 	$(eval test-$(1)-srcs := $(addprefix $(2),$($(3)-$(1)-y))) \
 	$(eval test-$(1)-out  := $(addprefix $(subst $(top_srcdir)src/,$(build_stagedir),$(2)),$(1))) \
@@ -176,7 +193,7 @@ parse-warnings = \
 		$(eval $(1)bs-warnings-msg += $(2)) \
 	) \
 
-clean-control = $(eval headers-y:=) $(eval obj-y:=) $(eval obj-m:=) $(eval bin-y:=) \
+clean-control = $(eval headers-y:=) $(eval obj-y:=) $(eval obj-m:=) $(eval data-y:=) $(eval data-m:=) $(eval bin-y:=) \
 		$(eval test-y:=) $(eval test-internal-y:=) $(eval sample-y:=) $(eval headers-m:=) \
 		$(eval warning-msg:=) $(eval warning-msg-y:=) $(eval warning-msg-m:=) \
 		$(eval requires-private-y:=) $(eval mod-type:=)
@@ -220,6 +237,10 @@ inc-subdirs = \
 			$(call parse-sample,$(sample),$(subdir)) \
 		) \
 		$(eval requires-private += $(requires-private-y)) \
+		$(eval curr-data := $(data-y) $(data-m)) \
+		$(foreach data,$(curr-data), \
+			$(call parse-data,$(data),$(subdir)) \
+		) \
 		$(clean-control) \
 	) \
 	$(eval requires-private := $(sort $(requires-private))) \
@@ -248,7 +269,7 @@ $(eval $(call inc-subdirs))
 $(eval $(call extra-bins))
 $(eval $(call parse-tests-fbp-bin))
 
-PRE_GEN += $(all-gen-hdrs) $(all-dest-hdr) $(all-dest-bin)
+PRE_GEN += $(all-gen-hdrs) $(all-dest-hdr) $(all-dest-bin) $(all-data)
 
 define make-warning
 $(1):
@@ -417,13 +438,6 @@ $($(1)-src): $(1) $(SOL_FBP_GENERATOR_BIN)
 	$(Q)$(SOL_FBP_GENERATOR_BIN) -j $(build_descdir) $(1) $($(1)-src) $(if $(filter-out "",$($(1)-conffile)), -c $($(1)-conffile))
 endef
 $(foreach gen,$(all-fbp-gens),$(eval $(call make-fbp-gen,$(gen))))
-
-define install-resource
-$(2): $(1)
-	$(Q)echo "    "INST"   "$(1)
-	$(Q)$(MKDIR) -p $(dir $(2))
-	$(Q)$(CP) $(1) $(2)
-endef
 
 $(eval $(call install-resource,$(NODE_TYPE_SCHEMA),$(NODE_TYPE_SCHEMA_DEST)))
 $(eval $(call install-resource,$(BOARD_DETECT),$(BOARD_DETECT_DEST)))
