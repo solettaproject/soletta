@@ -21,13 +21,13 @@
 #include <unistd.h>
 #include <stdlib.h>
 
+#include "soletta.h"
 #include "sol-arena.h"
 #include "sol-conffile.h"
 #include "sol-file-reader.h"
 #include "sol-flow-buildopts.h"
 #include "sol-json.h"
 #include "sol-log.h"
-#include "sol-mainloop.h"
 #include "sol-util-internal.h"
 #include "sol-vector.h"
 
@@ -39,6 +39,10 @@
 
 #define MAX_OPTS 64
 
+#if defined(SOL_FLOW_INSPECTOR_ENABLED) && defined(HTTP_SERVER)
+#define WEB_INSPECTOR 1
+#endif
+
 static struct {
     const char *name;
 
@@ -46,6 +50,12 @@ static struct {
 
     const char *options[MAX_OPTS + 1];
     int options_count;
+#ifdef WEB_INSPECTOR
+    uint16_t web_inspector_port;
+#endif
+#ifdef SOL_FLOW_INSPECTOR_ENABLED
+    bool inspector;
+#endif
 
     bool check_only;
     bool provide_sim_nodes;
@@ -59,6 +69,10 @@ static struct sol_arena *str_arena;
 #ifdef SOL_FLOW_INSPECTOR_ENABLED
 /* defined in inspector.c */
 extern void inspector_init(void);
+#endif
+
+#ifdef WEB_INSPECTOR
+#include "web-inspector.h"
 #endif
 
 static void
@@ -78,9 +92,18 @@ usage(const char *program)
 #ifdef SOL_FLOW_INSPECTOR_ENABLED
         "    -D            Debug the flow by printing connections and packets to stdout.\n"
 #endif
+#ifdef WEB_INSPECTOR
+        "    -W [PORT]     Web-based HTTP Inspector using server-sent-events (SSE).\n"
+        "                  It will serve a landing page at all interfaces at the given port,\n"
+        "                  or use %d as default, with the actual events at '/events'.\n"
+        "                  The flow will NOT run until a client connects to '/events' and it\n"
+        "                  forcefully quit the flow if the client disconnects.\n"
+        "                  A single client is supported at '/events'.\n"
+        "                  This option conflicts with -D.\n"
+#endif
         "    -I            Define search path for FBP files\n"
         "\n",
-        program);
+        program, HTTP_SERVER_PORT);
 }
 
 static bool
@@ -90,6 +113,9 @@ parse_args(int argc, char *argv[])
     const char known_opts[] = "cho:stI:"
 #ifdef SOL_FLOW_INSPECTOR_ENABLED
         "D"
+#endif
+#ifdef WEB_INSPECTOR
+        "W::"
 #endif
     ;
 
@@ -105,12 +131,13 @@ parse_args(int argc, char *argv[])
             break;
         case 'h':
             usage(argv[0]);
-            exit(EXIT_SUCCESS);
-            break;
+            sol_quit_with_code(EXIT_SUCCESS);
+            return false;
         case 'o':
             if (args.options_count == MAX_OPTS) {
-                printf("Too many options.\n");
-                exit(EXIT_FAILURE);
+                fputs("Error: Too many options.\n", stderr);
+                sol_quit_with_code(EXIT_FAILURE);
+                return false;
             }
             args.options[args.options_count++] = optarg;
             break;
@@ -119,23 +146,59 @@ parse_args(int argc, char *argv[])
             break;
 #ifdef SOL_FLOW_INSPECTOR_ENABLED
         case 'D':
-            inspector_init();
+            args.inspector = true;
+            break;
+#endif
+#ifdef WEB_INSPECTOR
+        case 'W':
+            if (optarg) {
+                unsigned long v;
+                char *endptr;
+
+                errno = 0;
+                v = strtoul(optarg, &endptr, 10);
+                if (endptr == optarg || errno != 0) {
+                    printf("Invalid -W port value, must be 16-bit unsigned integer in base-10\n");
+                    exit(1);
+                }
+                if (v > UINT16_MAX) {
+                    printf("Invalid -W port value, %lu is too big, maximum is %u\n",
+                           v, UINT16_MAX);
+                    exit(1);
+                }
+                args.web_inspector_port = v;
+            }
+
+            if (!args.web_inspector_port)
+                args.web_inspector_port = HTTP_SERVER_PORT;
             break;
 #endif
         case 'I':
             err = sol_ptr_vector_append(&args.fbp_search_paths, optarg);
             if (err < 0) {
-                printf("Out of memory\n");
-                exit(1);
+                fputs("Error: Out of memory\n", stderr);
+                sol_quit_with_code(EXIT_FAILURE);
+                return false;
             }
             break;
         default:
+            sol_quit_with_code(EXIT_FAILURE);
             return false;
         }
     }
 
-    if (optind == argc)
+    if (optind == argc) {
+        sol_quit_with_code(EXIT_FAILURE);
         return false;
+    }
+
+#ifdef WEB_INSPECTOR
+    if (args.inspector && args.web_inspector_port) {
+        fputs("Error: Cannot use both -D and -W options.\n", stderr);
+        sol_quit_with_code(EXIT_FAILURE);
+        return false;
+    }
+#endif
 
     args.name = argv[optind];
     if (args.execute_type) {
@@ -161,21 +224,24 @@ load_memory_maps(const struct sol_ptr_vector *maps)
 
     return true;
 #else
-    SOL_WRN("Memory map defined on config file, but Soletta was built without support to it");
+    fputs("Warning: Memory map defined on config file, but Soletta was built without support to it\n", stderr);
     return true;
 #endif
 }
 
-static bool
-startup(void *data)
+static void
+startup(void)
 {
     bool finished = true;
     int result = EXIT_FAILURE;
     struct sol_ptr_vector *memory_maps;
 
+    if (!parse_args(sol_argc(), sol_argv()))
+        return;
+
     str_arena = sol_arena_new();
     if (!str_arena) {
-        fprintf(stderr, "Cannot create str arena\n");
+        fputs("Error: Cannot create str arena\n", stderr);
         goto end;
     }
 
@@ -199,20 +265,32 @@ startup(void *data)
         int err;
         err = runner_attach_simulation(the_runner);
         if (err < 0) {
-            fprintf(stderr, "Cannot attach simulation nodes\n");
+            fputs("Error: Cannot attach simulation nodes\n", stderr);
             goto end;
         }
     }
 
     if (sol_conffile_resolve_memmap(&memory_maps)) {
-        SOL_ERR("Couldn't resolve memory mappings on config file");
+        fputs("Error: Couldn't resolve memory mappings on config file\n", stderr);
         goto end;
     }
     if (memory_maps)
         load_memory_maps(memory_maps);
 
+#ifdef SOL_FLOW_INSPECTOR_ENABLED
+    if (args.inspector)
+        inspector_init();
+#endif
+
+#ifdef WEB_INSPECTOR
+    if (args.web_inspector_port) {
+        if (web_inspector_run(args.web_inspector_port, the_runner) < 0)
+            goto end;
+    } else
+#endif
+
     if (runner_run(the_runner) < 0) {
-        fprintf(stderr, "Failed to run\n");
+        fputs("Error: Failed to run flow\n", stderr);
         goto end;
     }
 
@@ -221,13 +299,16 @@ startup(void *data)
 end:
     if (finished)
         sol_quit_with_code(result);
-
-    return false;
 }
 
 static void
 shutdown(void)
 {
+#ifdef WEB_INSPECTOR
+    if (args.web_inspector_port)
+        web_inspector_shutdown();
+#endif
+
     if (the_runner)
         runner_del(the_runner);
 
@@ -237,27 +318,4 @@ shutdown(void)
     sol_ptr_vector_clear(&args.fbp_search_paths);
 }
 
-int
-main(int argc, char *argv[])
-{
-    int r;
-
-    if (sol_init() < 0) {
-        fprintf(stderr, "Cannot initialize soletta.\n");
-        return EXIT_FAILURE;
-    }
-
-    if (!parse_args(argc, argv)) {
-        usage(argv[0]);
-        return EXIT_FAILURE;
-    }
-
-    sol_idle_add(startup, NULL);
-
-    r = sol_run();
-
-    shutdown();
-    sol_shutdown();
-
-    return r;
-}
+SOL_MAIN_DEFAULT(startup, shutdown);
