@@ -51,6 +51,8 @@
 						"bindings/nodejs/src/structures/js-handle.cc",
 						"bindings/nodejs/src/structures/oic-map.cc",
 						"bindings/nodejs/src/structures/device-id.cc",
+						"bindings/nodejs/src/structures/sol-js-gpio.cc",
+						"bindings/nodejs/src/functions/gpio.cc",
 						"bindings/nodejs/src/functions/oic-client-common.cc",
 						"bindings/nodejs/src/functions/oic-client-discovery.cc",
 						"bindings/nodejs/src/functions/sol-network.cc",
