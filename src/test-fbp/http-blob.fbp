@@ -15,7 +15,7 @@
 # limitations under the License.
 
 get-validator(test/string-validator:sequence="Hi!")
-post-validator(test/string-validator:sequence="Bye!")
+post-validator(test/string-validator:sequence="Hi!|Bye!")
 
 _(constant/string:value="Hi!") OUT -> IN _(converter/string-to-blob) OUT -> IN server(http-server/blob:path="/test", port=8080)
 
