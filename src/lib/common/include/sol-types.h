@@ -116,6 +116,16 @@ struct sol_direction_vector {
 };
 
 /**
+ * @brief Checks the ranges of @c var0 and @c var1 for equality.
+ *
+ * @param var0 The first direction vector
+ * @param var1 The second direction vector
+ *
+ * @return @c true if both are equal, @c false otherwise.
+ */
+bool sol_direction_vector_equal(const struct sol_direction_vector *var0, const struct sol_direction_vector *var1);
+
+/**
  * @brief Data type to describe a location.
  */
 struct sol_location {
@@ -135,6 +145,16 @@ struct sol_rgb {
     uint32_t green_max; /**< @brief Green component maximum value */
     uint32_t blue_max; /**< @brief Blue component maximum value */
 };
+
+/**
+ * @brief Checks the ranges of @c var0 and @c var1 for equality.
+ *
+ * @param var0 The first RGB
+ * @param var1 The second RGB
+ *
+ * @return @c true if both are equal, @c false otherwise.
+ */
+bool sol_rgb_equal(const struct sol_rgb *var0, const struct sol_rgb *var1);
 
 /**
  * @brief Set a maximum value for all components of a RGB color
