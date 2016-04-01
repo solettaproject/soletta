@@ -109,7 +109,7 @@ parse_args(int argc, char *argv[])
             break;
         case 'o':
             if (args.options_count == MAX_OPTS) {
-                printf("Too many options.\n");
+                fputs("Error: Too many options.\n", stderr);
                 exit(EXIT_FAILURE);
             }
             args.options[args.options_count++] = optarg;
@@ -125,8 +125,8 @@ parse_args(int argc, char *argv[])
         case 'I':
             err = sol_ptr_vector_append(&args.fbp_search_paths, optarg);
             if (err < 0) {
-                printf("Out of memory\n");
-                exit(1);
+                fputs("Out of memory\n", stderr);
+                exit(EXIT_FAILURE);
             }
             break;
         default:
@@ -161,7 +161,7 @@ load_memory_maps(const struct sol_ptr_vector *maps)
 
     return true;
 #else
-    SOL_WRN("Memory map defined on config file, but Soletta was built without support to it");
+    fputs("Warning: Memory map defined on config file, but Soletta was built without support to it\n", stderr);
     return true;
 #endif
 }
@@ -175,7 +175,7 @@ startup(void *data)
 
     str_arena = sol_arena_new();
     if (!str_arena) {
-        fprintf(stderr, "Cannot create str arena\n");
+        fputs("Error: Cannot create str arena\n", stderr);
         goto end;
     }
 
@@ -199,20 +199,20 @@ startup(void *data)
         int err;
         err = runner_attach_simulation(the_runner);
         if (err < 0) {
-            fprintf(stderr, "Cannot attach simulation nodes\n");
+            fputs("Error: Cannot attach simulation nodes\n", stderr);
             goto end;
         }
     }
 
     if (sol_conffile_resolve_memmap(&memory_maps)) {
-        SOL_ERR("Couldn't resolve memory mappings on config file");
+        fputs("Error: Couldn't resolve memory mappings on config file\n", stderr);
         goto end;
     }
     if (memory_maps)
         load_memory_maps(memory_maps);
 
     if (runner_run(the_runner) < 0) {
-        fprintf(stderr, "Failed to run\n");
+        fputs("Error: Failed to run flow\n", stderr);
         goto end;
     }
 
@@ -243,7 +243,7 @@ main(int argc, char *argv[])
     int r;
 
     if (sol_init() < 0) {
-        fprintf(stderr, "Cannot initialize soletta.\n");
+        fputs("Error: Cannot initialize soletta.\n", stderr);
         return EXIT_FAILURE;
     }
 
