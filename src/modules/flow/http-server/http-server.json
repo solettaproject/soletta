@@ -580,6 +580,7 @@
         ],
         "data_type": "struct http_server_node_type",
         "extra_methods": {
+          "response_cb": "json_response_cb",
           "process_cb": "blob_process_cb",
           "send_packet_cb": "json_send_packet_cb",
           "handle_response_cb": "blob_handle_response_cb"
