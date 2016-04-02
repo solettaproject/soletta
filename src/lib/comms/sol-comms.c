@@ -19,7 +19,19 @@
 #ifdef HTTP_CLIENT
 extern int sol_http_client_init(void);
 extern void sol_http_client_shutdown(void);
+#else
+static int sol_http_client_init(void) { return 0; }
+static void sol_http_client_shutdown(void) {}
 #endif
+
+#ifdef HTTP_SERVER
+extern int sol_http_server_init(void);
+extern void sol_http_server_shutdown(void);
+#else
+static int sol_http_server_init(void) { return 0; }
+static void sol_http_server_shutdown(void) {}
+#endif
+
 extern int sol_network_init(void);
 extern void sol_network_shutdown(void);
 #ifdef OIC
@@ -38,19 +50,21 @@ sol_comms_init(void)
     if (ret != 0)
         return -1;
 
-#ifdef HTTP_CLIENT
     ret = sol_http_client_init();
     if (ret != 0)
-        goto http_error;
+        goto http_client_error;
 
-#endif
+    ret = sol_http_server_init();
+    if (ret != 0)
+        goto http_server_error;
 
     return 0;
 
-#ifdef HTTP_CLIENT
-http_error:
+http_server_error:
+    sol_http_client_init();
+http_client_error:
     sol_network_shutdown();
-#endif
+
     return -1;
 }
 
@@ -60,8 +74,7 @@ sol_comms_shutdown(void)
 #ifdef OIC
     sol_oic_server_shutdown();
 #endif
-#ifdef HTTP_CLIENT
     sol_http_client_shutdown();
-#endif
+    sol_http_server_shutdown();
     sol_network_shutdown();
 }
