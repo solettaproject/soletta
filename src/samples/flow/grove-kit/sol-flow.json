@@ -25,6 +25,16 @@
     "range": "0|400"
    },
    "type": "gtk/slider"
+  },
+  {
+   "name": "LED_PWM",
+   "options": {
+    "duty_cycle": 0,
+    "enabled": true,
+    "period": 2040816,
+    "pin": "6"
+   },
+   "type": "gtk/pwm-viewer"
   }
  ]
 }
