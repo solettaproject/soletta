@@ -195,7 +195,7 @@ request_cb(void *data, struct sol_http_request *request)
     /* SSE needs that URL matches to work */
     sol_buffer_init(&response.content);
     r = sol_buffer_append_printf(&response.content, HTML_FILE,
-        SOL_STR_SLICE_PRINT(sol_buffer_get_slice(&buf)), port);
+        SOL_STR_SLICE_PRINT(sol_buffer_get_slice(&buf)), addr.port);
     SOL_INT_CHECK(r, < 0, r);
 
     r = sol_http_server_send_response(request, &response);

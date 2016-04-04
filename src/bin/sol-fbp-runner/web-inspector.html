@@ -1,0 +1,57 @@
+<!DOCTYPE html>
+<html>
+  <head>
+    <meta charset="utf-8" />
+    <link rel="stylesheet" href="web-inspector.css" />
+    <script type="text/javascript" src="web-inspector.js"></script>
+  </head>
+  <body>
+    <div id="fbp-controls" class="fbp-controls">
+      <button id="fbp-finish" onclick="fbpInspector.finish()">Finish</button>
+      <button id="fbp-start" onclick="fbpInspector.start()">Start</button>
+    </div>
+    <div id="fbp-container-inspector">
+      <table>
+        <thead>
+          <th>Input Ports</th>
+          <th>Node</th>
+          <th>Output Ports</th>
+        </thead>
+        <tbody id="fbp-inspector-nodes">
+        </tbody>
+      </table>
+    </div>
+    <div id="fbp-container-log-sent">
+      <div class="fbp-controls">
+        <button id="fbp-log-sent-clear" onclick="fbpInspector.logSentClear()">Clear</button>
+      </div>
+      <h2>Flow Packets Sent</h2>
+      <table class="fbp-log">
+        <thead>
+          <th>Timestamp</th>
+          <th>Node</th>
+          <th>Port</th>
+          <th>Packet</th>
+        </thead>
+        <tbody id="fbp-log-sent">
+        </tbody>
+      </table>
+    </div>
+    <div id="fbp-container-log-delivered">
+      <div class="fbp-controls">
+        <button id="fbp-log-delivered-clear" onclick="fbpInspector.logDeliveredClear()">Clear</button>
+      </div>
+      <h2>Flow Packets Delivered</h2>
+      <table class="fbp-log">
+        <thead>
+          <th>Timestamp</th>
+          <th>Node</th>
+          <th>Port</th>
+          <th>Packet</th>
+        </thead>
+        <tbody id="fbp-log-delivered" >
+        </tbody>
+      </table>
+    </div>
+  </body>
+</html>

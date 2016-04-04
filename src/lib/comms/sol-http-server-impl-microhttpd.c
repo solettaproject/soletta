@@ -27,6 +27,7 @@
 #include <sys/stat.h>
 #include <sys/types.h>
 #include <unistd.h>
+#include <ctype.h>
 
 #include "sol-buffer.h"
 #include "sol-http-server.h"
@@ -38,6 +39,7 @@
 #include "sol-util-internal.h"
 #include "sol-vector.h"
 #include "sol-arena.h"
+#include "sol-file-reader.h"
 
 #ifdef HAVE_LIBMAGIC
 #include <magic.h>
@@ -99,9 +101,6 @@ struct sol_http_server {
     struct sol_vector fds;
     struct sol_vector defaults;
     struct sol_ptr_vector requests;
-#ifdef HAVE_LIBMAGIC
-    magic_t magic;
-#endif
     size_t buf_size;
 };
 
@@ -110,33 +109,179 @@ struct http_connection {
     int fd;
 };
 
+#ifdef HAVE_LIBMAGIC
+static magic_t magic;
+#endif
+
+static struct {
+    struct sol_arena *arena;
+    struct sol_vector table;
+} ext_map = {
+    .arena = NULL,
+    .table = SOL_VECTOR_INIT(struct sol_str_table_ptr),
+};
+
+int sol_http_server_init(void);
+void sol_http_server_shutdown(void);
+
+int
+sol_http_server_init(void)
+{
+    return 0;
+}
+
+void
+sol_http_server_shutdown(void)
+{
+    sol_vector_clear(&ext_map.table);
+
+    if (ext_map.arena) {
+        sol_arena_del(ext_map.arena);
+        ext_map.arena = NULL;
+    }
+
+#ifdef HAVE_LIBMAGIC
+    if (magic) {
+        magic_close(magic);
+        magic = NULL;
+    }
+#endif
+}
+
+static void
+load_ext_map(void)
+{
+    struct sol_file_reader *reader;
+    struct sol_str_slice data;
+    struct sol_str_table_ptr *sentinel;
+    const char *itr, *itr_end, *last;
+    char *mime = NULL;
+
+    reader = sol_file_reader_open("/etc/mime.types");
+    if (!reader) {
+        SOL_DBG("no /etc/mime.types to map extensions to mime-types.");
+        return;
+    }
+
+    data = sol_file_reader_get_all(reader);
+    if (data.len == 0)
+        goto end;
+
+    ext_map.arena = sol_arena_new();
+    SOL_NULL_CHECK_GOTO(ext_map.arena, end);
+
+    itr = data.data;
+    itr_end = data.data + data.len;
+    last = itr;
+
+    for (; itr < itr_end; itr++) {
+        struct sol_str_table_ptr *entry;
+        size_t i, len;
+        char *s;
+
+        if (!isspace(*itr))
+            continue;
+
+        if (last == itr) {
+            last++;
+            continue;
+        } else if (last > itr)
+            continue;
+
+        len = itr - last;
+        s = sol_arena_strndup(ext_map.arena, last, len);
+        SOL_NULL_CHECK_GOTO(s, end);
+        last = itr + 1;
+
+        /* mime.types format is weird, it's not one-map per line, the
+         * only meaning is that mime-types have a slash. They may be
+         * followed by extensions or not
+         */
+        if (strchr(s, '/')) {
+            mime = s;
+            continue;
+        }
+
+        for (i = 0; i < len; i++)
+            s[i] = tolower(s[i]);
+
+        entry = sol_vector_append(&ext_map.table);
+        SOL_NULL_CHECK_GOTO(entry, end);
+
+        entry->key = s;
+        entry->len = len;
+        entry->val = mime;
+    }
+
+    sentinel = sol_vector_append(&ext_map.table);
+    if (sentinel)
+        memset(sentinel, 0, ext_map.table.elem_size);
+
+end:
+    sol_file_reader_close(reader);
+}
+
 static const char *
-get_file_mime_type(struct sol_http_server *server, int fd)
+get_file_mime_type(struct sol_http_server *server, const char *path)
 {
     const char *mime = "application/octet-stream";
 
 #ifdef HAVE_LIBMAGIC
-    const char *fd_mime;
-
-    if (!server->magic) {
-        server->magic = magic_open(MAGIC_MIME | MAGIC_SYMLINK);
-        SOL_NULL_CHECK_GOTO(server->magic, exit);
-        if (magic_load(server->magic, NULL) < 0) {
-            magic_close(server->magic);
-            server->magic = NULL;
+    if (!magic) {
+        magic = magic_open(MAGIC_MIME | MAGIC_SYMLINK);
+        SOL_NULL_CHECK_GOTO(magic, exit);
+        if (magic_load(magic, NULL) < 0) {
+            magic_close(magic);
+            magic = NULL;
             SOL_WRN("Could not load the magic database!");
             goto exit;
         }
     }
 
-    fd_mime = magic_descriptor(server->magic, fd);
+    mime = magic_file(magic, path);
 
-    if (!fd_mime)
-        SOL_WRN("Could not determine the mime type. Using :%s", mime);
-    else
-        mime = fd_mime;
+    if (!mime)
+        mime = "application/octet-stream";
+
 exit:
 #endif
+
+    if (strstartswith(mime, "application/octet-stream") ||
+        strstartswith(mime, "text/plain")) {
+        const char *ext = strrchr(path, '.');
+
+        if (ext) {
+            size_t i, len = strlen(ext) - 1;
+            char *lowext = alloca(len + 1);
+            static const struct sol_str_table_ptr fallback_ext_map[] = {
+                SOL_STR_TABLE_PTR_ITEM("js", "text/javascript"),
+                SOL_STR_TABLE_PTR_ITEM("css", "text/css"),
+                SOL_STR_TABLE_PTR_ITEM("png", "image/png"),
+                SOL_STR_TABLE_PTR_ITEM("jpg", "image/jpeg"),
+                SOL_STR_TABLE_PTR_ITEM("jpeg", "image/jpeg"),
+                { }
+            };
+
+            ext++;
+            for (i = 0; i < len; i++)
+                lowext[i] = tolower(ext[i]);
+            lowext[i] = '\0';
+
+            if (!ext_map.table.data)
+                load_ext_map();
+
+            if (ext_map.table.data) {
+                const char *map;
+
+                map = sol_str_table_ptr_lookup_fallback(ext_map.table.data, SOL_STR_SLICE_STR(lowext, len), NULL);
+                if (map)
+                    return map;
+            }
+
+            return sol_str_table_ptr_lookup_fallback(fallback_ext_map, SOL_STR_SLICE_STR(lowext, len), mime);
+        }
+    }
+
     return mime;
 }
 
@@ -453,10 +598,10 @@ param_err:
 }
 
 static int
-get_static_file(const struct static_dir *dir, const char *url)
+get_static_file(const struct static_dir *dir, const char *url, struct sol_buffer *path)
 {
+    char *real_path;
     int ret;
-    char path[PATH_MAX], *real_path;
 
     /* url given by microhttpd starts from /. e. g.
      * https://www.solettaproject.com => url == /
@@ -476,12 +621,13 @@ get_static_file(const struct static_dir *dir, const char *url)
     while (*url == '/')
         url++;
 
-    ret = snprintf(path, sizeof(path), "%s/%s", dir->root,
+    path->used = 0;
+    ret = sol_buffer_append_printf(path, "%s/%s", dir->root,
         *url ? url : "index.html");
-    if (ret < 0 || ret >= (int)sizeof(path))
-        return -ENOMEM;
+    if (ret < 0)
+        return ret;
 
-    real_path = realpath(path, NULL);
+    real_path = realpath(path->data, NULL);
     if (!real_path)
         return -errno;
 
@@ -489,12 +635,15 @@ get_static_file(const struct static_dir *dir, const char *url)
         free(real_path);
         return -EINVAL;
     }
+
+    path->used = 0;
+    ret = sol_buffer_append_slice(path, sol_str_slice_from_str(real_path));
     free(real_path);
 
     /*  According with microhttpd fd will be closed when response is
      *  destroyed and fd should be in 'blocking' mode
      */
-    return open(path, O_RDONLY | O_CLOEXEC);
+    return open(path->data, O_RDONLY | O_CLOEXEC);
 }
 
 static struct MHD_Response *
@@ -572,15 +721,17 @@ http_server_static_response(struct sol_http_server *server, struct sol_http_requ
     uint16_t i;
     struct static_dir *dir;
     struct MHD_Response *response = NULL;
+    SOL_BUFFER_DECLARE_STATIC(path, PATH_MAX);
 
     SOL_VECTOR_FOREACH_IDX (&server->dirs, dir, i) {
         struct stat st;
         const char *mime;
 
-        fd = get_static_file(dir, req->url);
+        fd = get_static_file(dir, req->url, &path);
         if (fd < 0) {
             if (errno == EACCES) {
                 *status = SOL_HTTP_STATUS_FORBIDDEN;
+                sol_buffer_fini(&path);
                 return NULL;
             }
             continue;
@@ -593,7 +744,7 @@ http_server_static_response(struct sol_http_server *server, struct sol_http_requ
             goto err;
         }
 
-        mime = get_file_mime_type(server, fd);
+        mime = get_file_mime_type(server, path.data);
 
         if (req->method == SOL_HTTP_METHOD_HEAD) {
             response = MHD_create_response_from_buffer(0, NULL, MHD_RESPMEM_MUST_COPY);
@@ -605,11 +756,17 @@ http_server_static_response(struct sol_http_server *server, struct sol_http_requ
             SOL_NULL_CHECK_GOTO(response, err);
         }
 
+
         *status = SOL_HTTP_STATUS_OK;
         r = MHD_add_response_header(response,
             MHD_HTTP_HEADER_CONTENT_TYPE, mime);
         if (r < 0)
             SOL_WRN("Could not set the response content type to: %s. Error: %d", mime, r);
+        else {
+            SOL_DBG("Serving %s, path: %s, Content-type: %s, Content-Length: %zd",
+                req->url, (char *)path.data, mime, (size_t)st.st_size);
+        }
+        sol_buffer_fini(&path);
         return response;
     }
 
@@ -943,11 +1100,6 @@ sol_http_server_del(struct sol_http_server *server)
     sol_vector_clear(&server->defaults);
 
     MHD_stop_daemon(server->daemon);
-
-#ifdef HAVE_LIBMAGIC
-    if (server->magic)
-        magic_close(server->magic);
-#endif
 
     free(server);
 }
