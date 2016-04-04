@@ -17,7 +17,7 @@
 constant-server(constant/string:value="hello")
 response-count(int/accumulator:setup_value=0|2)
 constant-client(converter/empty-to-string:output_value="world")
-json-str(constant/string:value="{\"/test\":\"hello\"}")
+json-str(constant/string:value="{\"value\":\"hello\"}")
 
 json-blob(converter/json-object-to-blob)
 blob-str(converter/blob-to-string)

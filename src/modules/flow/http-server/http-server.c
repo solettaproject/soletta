@@ -249,19 +249,8 @@ common_handle_response_cb(struct sol_flow_node *node,
         }
     }
 
-    if (send_json) {
-        r = sol_buffer_append_printf(&response->content,
-            "{\"%s\":", mdata->path);
-        SOL_INT_CHECK_GOTO(r, < 0, err_exit);
-    }
-
     r = type->response_cb(mdata, &response->content, send_json);
     SOL_INT_CHECK_GOTO(r, < 0, err_exit);
-
-    if (send_json) {
-        r = sol_buffer_append_char(&response->content, '}');
-        SOL_INT_CHECK_GOTO(r, < 0, err_exit);
-    }
 
     err_r = sol_http_param_add(&response->param, SOL_HTTP_REQUEST_PARAM_HEADER(
         HTTP_HEADER_CONTENT_TYPE, (send_json) ? HTTP_HEADER_CONTENT_TYPE_JSON :
@@ -671,12 +660,14 @@ boolean_post_cb(struct http_data *mdata, struct sol_flow_node *node,
 static int
 boolean_response_cb(struct http_data *mdata, struct sol_buffer *content, bool json)
 {
-    int r;
+    const char *str;
 
-    r = sol_buffer_append_printf(content, "%s", mdata->value.b == true ? "true" : "false");
-    SOL_INT_CHECK(r, < 0, r);
+    str = mdata->value.b ? "true" : "false";
 
-    return 0;
+    if (json)
+        return sol_buffer_append_printf(content, "{\"value\":%s}", str);
+    else
+        return sol_buffer_append_printf(content, "%s", str);
 }
 
 static void
@@ -708,10 +699,15 @@ boolean_process_cb(struct http_data *mdata, const struct sol_flow_packet *packet
 static int
 string_response_cb(struct http_data *mdata, struct sol_buffer *content, bool json)
 {
-    int r = 0;
+    int r;
 
     if (json) {
+        r = sol_buffer_append_slice(content,
+            sol_str_slice_from_str("{\"value\":"));
+        SOL_INT_CHECK(r, < 0, r);
         r = sol_json_serialize_string(content, mdata->value.s);
+        SOL_INT_CHECK(r, < 0, r);
+        r = sol_buffer_append_slice(content, sol_str_slice_from_str("}"));
     } else {
         r = sol_buffer_append_slice(content, sol_str_slice_from_str(mdata->value.s));
     }

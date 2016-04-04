@@ -18,7 +18,7 @@ constant-server(constant/float:value=1.5,value_spec=min:0|max:100|step:2.1415)
 response-count(int/accumulator:setup_value=0|2)
 constant-client(converter/empty-to-float:output_value=5.4)
 string(constant/string:value="1.5")
-json-str(constant/string:value="{\"/test\":{\"value\":1.5,\"min\":0,\"max\":100,\"step\":2.1415}}")
+json-str(constant/string:value="{\"value\":1.5,\"min\":0,\"max\":100,\"step\":2.1415}")
 
 json-blob(converter/json-object-to-blob)
 blob-str(converter/blob-to-string)
