@@ -1590,11 +1590,11 @@ generate(struct sol_vector *fbp_data_vector)
         "#include <math.h>\n"
         "#include <stdint.h>\n"
         "#include <float.h>\n"
-        "#include \"sol-flow.h\"\n"
-        "#include \"sol-flow-static.h\"\n");
+        "#include <sol-flow.h>\n"
+        "#include <sol-flow-static.h>\n");
 
     if (!args.export_symbol) {
-        out("#include \"soletta.h\"\n");
+        out("#include <soletta.h>\n");
     }
 
     if (sol_conffile_resolve_memmap_path(&memory_maps, args.conf_file) < 0) {
@@ -1611,12 +1611,12 @@ generate(struct sol_vector *fbp_data_vector)
 
     /* Header name is currently inferred from the module name. */
     SOL_VECTOR_FOREACH_IDX (&ctx->headers, header, i) {
-        out("#include \"%.*s\"\n", SOL_STR_SLICE_PRINT(*header));
+        out("#include <%.*s>\n", SOL_STR_SLICE_PRINT(*header));
     }
 
 #ifdef USE_MEMMAP
     if (memory_maps && sol_ptr_vector_get_len(memory_maps)) {
-        out("#include \"sol-memmap-storage.h\"\n");
+        out("#include <sol-memmap-storage.h>\n");
         generate_memory_map_struct(memory_maps, &memmap_elems);
     }
 #endif
