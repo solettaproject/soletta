@@ -32,6 +32,8 @@ _(http-server/int:port=8080, path="/int_post_get", value=200, allowed_methods="P
 
 _(constant/empty) OUT -> GET int_client(http-client/int:url="http://localhost:8080/int_post_get")
 
-int_client OUT -> IN _(test/int-validator:sequence="200") OUT -> RESULT _(test/result)
+int_client OUT -> IN[0] switcher(switcher/int) OUT[0] -> IN _(test/int-validator:sequence="200") OUT -> RESULT _(test/result)
 
-int_client OUT -> IN _(converter/empty-to-int:output_value=256) OUT -> POST int_client
+switcher OUT[0] -> IN _(converter/empty-to-int:output_value=256) OUT -> POST int_client
+
+switcher OUT[0] -> IN _(converter/empty-to-int:output_value=2) OUT -> OUT_PORT switcher

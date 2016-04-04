@@ -18,7 +18,7 @@ constant-server(constant/int:value=1,value_spec=min:0|max:100|step:1)
 response-count(int/accumulator:setup_value=0|2)
 constant-client(converter/empty-to-int:output_value=5)
 string(constant/string:value="1")
-json-str(constant/string:value="{\"/test\":{\"value\":1,\"min\":0,\"max\":100,\"step\":1}}")
+json-str(constant/string:value="{\"value\":1,\"min\":0,\"max\":100,\"step\":1}")
 
 json-blob(converter/json-object-to-blob)
 blob-str(converter/blob-to-string)
