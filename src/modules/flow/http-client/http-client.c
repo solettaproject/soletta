@@ -73,8 +73,7 @@ struct create_url_data {
 
 struct http_client_node_type {
     struct sol_flow_node_type base;
-    int (*process_token)(struct sol_flow_node *node, struct sol_json_token *key,
-        struct sol_json_token *value);
+    int (*process_json)(struct sol_flow_node *node, const struct sol_str_slice slice);
     int (*process_data)(struct sol_flow_node *node,
         struct sol_http_response *response);
     void (*close_node)(struct sol_flow_node *node, void *data);
@@ -189,22 +188,6 @@ machine_id_header_add(struct sol_http_params *params)
 }
 
 static void
-get_key(struct http_data *mdata)
-{
-    char *ptr = NULL;
-
-    if (strstartswith(mdata->url, "http://"))
-        ptr = strstr(mdata->url + strlen("http://"), "/");
-    else if (strstartswith(mdata->url, "https://"))
-        ptr = strstr(mdata->url + strlen("https://"), "/");
-
-    if (ptr)
-        mdata->key = sol_str_slice_from_str(ptr);
-    else
-        mdata->key = (struct sol_str_slice){.len = 0, .data = NULL };
-}
-
-static void
 common_close(struct sol_flow_node *node, void *data)
 {
     struct sol_http_client_connection *connection;
@@ -243,7 +226,6 @@ common_open(struct sol_flow_node *node, void *data, const struct sol_flow_node_o
     if (opts->url && opts->url[0] != '\0') {
         r = set_basic_url_info(mdata, opts->url);
         SOL_INT_CHECK(r, < 0, r);
-        get_key(mdata);
     }
 
     if (opts->accept) {
@@ -262,13 +244,10 @@ static int
 common_url_process(struct sol_flow_node *node, void *data, uint16_t port, uint16_t conn_id,
     const struct sol_flow_packet *packet)
 {
-    struct http_data *mdata = data;
     int r;
 
     r = set_basic_url_info_from_packet(data, packet);
     SOL_INT_CHECK(r, < 0, r);
-
-    get_key(mdata);
 
     return 0;
 }
@@ -376,19 +355,10 @@ common_request_finished(void *data,
     }
 
     if (streq(response->content_type, "application/json") &&
-        type->process_token) {
-        struct sol_json_scanner scanner;
-        struct sol_json_token token, key, value;
-        enum sol_json_loop_reason reason;
-
-        sol_json_scanner_init(&scanner, response->content.data, response->content.used);
-        SOL_JSON_SCANNER_OBJECT_LOOP (&scanner, &token, &key, &value, reason) {
-            if (!sol_json_token_str_eq(&token, mdata->key.data, mdata->key.len))
-                continue;
-            ret = type->process_token(node, &key, &value);
-            if (ret < 0)
-                goto err;
-        }
+        type->process_json) {
+        ret = type->process_json(node, sol_buffer_get_slice(&response->content));
+        if (ret < 0)
+            goto err;
     } else {
         ret = type->process_data(node, response);
         if (ret < 0)
@@ -551,17 +521,30 @@ err:
 }
 
 static int
-boolean_process_token(struct sol_flow_node *node,
-    struct sol_json_token *key, struct sol_json_token *value)
+boolean_process_json(struct sol_flow_node *node, const struct sol_str_slice slice)
 {
-    bool result;
+    bool result, found;
+    enum sol_json_loop_reason reason;
+    struct sol_json_scanner sub_scanner;
+    struct sol_json_token sub_key, sub_value, token;
 
-    if (sol_json_token_get_type(value) == SOL_JSON_TYPE_TRUE)
-        result = true;
-    else if (sol_json_token_get_type(value) == SOL_JSON_TYPE_FALSE)
-        result = false;
-    else
-        return -EINVAL;
+    sol_json_scanner_init_from_slice(&sub_scanner, slice);
+    found = false;
+
+    SOL_JSON_SCANNER_OBJECT_LOOP (&sub_scanner, &token, &sub_key, &sub_value, reason) {
+        if (SOL_JSON_TOKEN_STR_LITERAL_EQ(&sub_key, "value")) {
+            if (sol_json_token_get_type(&sub_value) == SOL_JSON_TYPE_TRUE)
+                result = true;
+            else if (sol_json_token_get_type(&sub_value) == SOL_JSON_TYPE_FALSE)
+                result = false;
+            else
+                return -EINVAL;
+            found = true;
+            break;
+        }
+    }
+
+    SOL_EXP_CHECK(!found, -ENOENT);
 
     return sol_flow_send_boolean_packet(node,
         SOL_FLOW_NODE_TYPE_HTTP_CLIENT_BOOLEAN__OUT__OUT, result);
@@ -603,19 +586,36 @@ boolean_post_process(struct sol_flow_node *node, void *data, uint16_t port, uint
 /*
  * --------------------------------- string node -----------------------------
  */
-static int
-string_process_token(struct sol_flow_node *node,
-    struct sol_json_token *key, struct sol_json_token *value)
-{
-    char *result = NULL;
 
-    result = strndup(value->start + 1, value->end - value->start - 2);
-    if (result) {
-        return sol_flow_send_string_take_packet(node,
-            SOL_FLOW_NODE_TYPE_HTTP_CLIENT_STRING__OUT__OUT, result);
+static int
+string_process_json(struct sol_flow_node *node, const struct sol_str_slice slice)
+{
+    bool found = false;
+    char *result = NULL;
+    enum sol_json_loop_reason reason;
+    struct sol_json_scanner sub_scanner;
+    struct sol_json_token sub_key, sub_value, token;
+
+    sol_json_scanner_init_from_slice(&sub_scanner, slice);
+    found = false;
+
+    SOL_JSON_SCANNER_OBJECT_LOOP (&sub_scanner, &token, &sub_key, &sub_value, reason) {
+        if (SOL_JSON_TOKEN_STR_LITERAL_EQ(&sub_key, "value")) {
+            if (sol_json_token_get_type(&sub_value) == SOL_JSON_TYPE_STRING)
+                result = sol_json_token_get_unescaped_string_copy(&sub_value);
+            else
+                result = strndup(sub_value.start,
+                    sol_json_token_get_size(&sub_value));
+            SOL_NULL_CHECK(result, -ENOMEM);
+            found = true;
+            break;
+        }
     }
 
-    return -ENOMEM;
+    SOL_EXP_CHECK(!found, -ENOENT);
+
+    return sol_flow_send_string_take_packet(node,
+        SOL_FLOW_NODE_TYPE_HTTP_CLIENT_STRING__OUT__OUT, result);
 }
 
 static int
@@ -653,15 +653,14 @@ string_post_process(struct sol_flow_node *node, void *data, uint16_t port, uint1
  * --------------------------------- irange node -----------------------------
  */
 static int
-int_process_token(struct sol_flow_node *node,
-    struct sol_json_token *key, struct sol_json_token *value)
+int_process_json(struct sol_flow_node *node, const struct sol_str_slice slice)
 {
     struct sol_irange irange = SOL_IRANGE_INIT();
     enum sol_json_loop_reason reason;
     struct sol_json_scanner sub_scanner;
     struct sol_json_token sub_key, sub_value, token;
 
-    sol_json_scanner_init(&sub_scanner, value->start, value->end - value->start);
+    sol_json_scanner_init_from_slice(&sub_scanner, slice);
     SOL_JSON_SCANNER_OBJECT_LOOP (&sub_scanner, &token, &sub_key, &sub_value, reason) {
         if (SOL_JSON_TOKEN_STR_LITERAL_EQ(&sub_key, "value")) {
             if (sol_json_token_get_int32(&sub_value, &irange.val) < 0)
@@ -732,15 +731,14 @@ int_post_process(struct sol_flow_node *node, void *data, uint16_t port, uint16_t
  * --------------------------------- drange node -----------------------------
  */
 static int
-float_process_token(struct sol_flow_node *node,
-    struct sol_json_token *key, struct sol_json_token *value)
+float_process_json(struct sol_flow_node *node, const struct sol_str_slice slice)
 {
     struct sol_drange drange = SOL_DRANGE_INIT();
     enum sol_json_loop_reason reason;
     struct sol_json_scanner sub_scanner;
     struct sol_json_token token, sub_key, sub_value;
 
-    sol_json_scanner_init(&sub_scanner, value->start, value->end - value->start);
+    sol_json_scanner_init_from_slice(&sub_scanner, slice);
     SOL_JSON_SCANNER_OBJECT_LOOP (&sub_scanner, &token, &sub_key, &sub_value, reason) {
         int r;
         if (SOL_JSON_TOKEN_STR_LITERAL_EQ(&sub_key, "value")) {
@@ -815,17 +813,14 @@ float_post_process(struct sol_flow_node *node, void *data, uint16_t port, uint16
  */
 
 static int
-rgb_process_token(struct sol_flow_node *node, struct sol_json_token *key,
-    struct sol_json_token *value)
+rgb_process_json(struct sol_flow_node *node, const struct sol_str_slice slice)
 {
     struct sol_rgb rgb = { 0 };
     enum sol_json_loop_reason reason;
     struct sol_json_scanner sub_scanner;
     struct sol_json_token sub_key, sub_value, token;
 
-    sol_json_scanner_init(&sub_scanner, value->start,
-        value->end - value->start);
-
+    sol_json_scanner_init_from_slice(&sub_scanner, slice);
     rgb.red_max = rgb.green_max = rgb.blue_max = 255;
 
     SOL_JSON_SCANNER_OBJECT_LOOP (&sub_scanner, &token, &sub_key,
@@ -966,16 +961,14 @@ rgb_post_process(struct sol_flow_node *node, void *data, uint16_t port,
  * --------------------------------- direction vector node  -----------------------------
  */
 static int
-direction_vector_process_token(struct sol_flow_node *node,
-    struct sol_json_token *key, struct sol_json_token *value)
+direction_vector_process_json(struct sol_flow_node *node, const struct sol_str_slice slice)
 {
     struct sol_direction_vector dir_vector = { 0 };
     enum sol_json_loop_reason reason;
     struct sol_json_scanner sub_scanner;
     struct sol_json_token sub_key, sub_value, token;
 
-    sol_json_scanner_init(&sub_scanner, value->start,
-        value->end - value->start);
+    sol_json_scanner_init_from_slice(&sub_scanner, slice);
 
     dir_vector.max = DBL_MAX;
     dir_vector.min = -DBL_MAX;
@@ -1201,18 +1194,18 @@ get_json_process(struct sol_flow_node *node, struct sol_http_response *response)
 {
     struct sol_blob *blob;
     struct sol_json_scanner object_scanner, array_scanner;
-    struct sol_str_slice trimmed_str;
+    struct sol_str_slice slice;
     int r;
 
     SOL_DBG("Json process - response from: %s", response->url);
 
-    trimmed_str = sol_str_slice_trim(sol_buffer_get_slice(&response->content));
-    sol_json_scanner_init(&object_scanner, trimmed_str.data, trimmed_str.len);
-    sol_json_scanner_init(&array_scanner, trimmed_str.data, trimmed_str.len);
+    slice = sol_buffer_get_slice(&response->content);
+    sol_json_scanner_init_from_slice(&object_scanner, slice);
+    sol_json_scanner_init_from_slice(&array_scanner, slice);
 
     (void)sol_buffer_steal(&response->content, NULL);
-    blob = sol_blob_new(SOL_BLOB_TYPE_DEFAULT, NULL, trimmed_str.data,
-        trimmed_str.len);
+    blob = sol_blob_new(SOL_BLOB_TYPE_DEFAULT, NULL, slice.data,
+        slice.len);
 
     if (!blob) {
         sol_flow_send_error_packet(node, ENOMEM,
