@@ -71,6 +71,15 @@ for ( oneVariable in process.env ) {
 				"sol-network.h"
 			] );
 			break;
+		case "USE_GPIO":
+			sources = sources.concat( [
+				"../src/functions/gpio.cc",
+				"../src/structures/sol-js-gpio.cc"
+			] );
+			headers = headers.concat( [
+				"sol-gpio.h"
+			] );
+			break;
 		default:
 			break;
 	}
