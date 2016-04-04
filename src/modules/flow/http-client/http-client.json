@@ -47,7 +47,7 @@
           },
           {
             "data_type": "string",
-            "default": "application/json",
+            "default": "text/stream, application/json, text/plain",
             "description": "The desired content type of the response",
             "name": "accept"
           }
@@ -130,7 +130,7 @@
           },
           {
             "data_type": "string",
-            "default": "text/plain",
+            "default": "text/stream, application/json, text/plain",
             "description": "The desired content type of the response",
             "name": "accept"
           }
@@ -212,7 +212,7 @@
           },
           {
             "data_type": "string",
-            "default": "application/json",
+            "default": "text/stream, application/json, text/plain",
             "description": "The desired content type of the response",
             "name": "accept"
           }
@@ -294,7 +294,7 @@
           },
           {
             "data_type": "string",
-            "default": "application/json",
+            "default": "text/stream, application/json, text/plain",
             "description": "The desired content type of the response",
             "name": "accept"
           }
@@ -377,7 +377,7 @@
           },
           {
             "data_type": "string",
-            "default": "application/json",
+            "default": "text/stream, application/json, text/plain",
             "description": "The desired content type of the response",
             "name": "accept"
           }
@@ -460,7 +460,7 @@
           },
           {
             "data_type": "string",
-            "default": "application/json",
+            "default": "text/stream, application/json, text/plain",
             "description": "The desired content type of the response",
             "name": "accept"
           }
@@ -628,7 +628,7 @@
           },
           {
             "data_type": "string",
-            "default": "application/json",
+            "default": "text/stream, application/json, text/plain",
             "description": "The desired content type of the response",
             "name": "accept"
           }
