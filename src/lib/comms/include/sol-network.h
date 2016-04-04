@@ -200,8 +200,29 @@ const struct sol_network_link_addr *sol_network_link_addr_from_str(struct sol_ne
  *
  * @return @c true if they are equal, otherwise @c false.
  */
-bool sol_network_link_addr_eq(const struct sol_network_link_addr *a,
-    const struct sol_network_link_addr *b);
+static inline bool
+sol_network_link_addr_eq(const struct sol_network_link_addr *a,
+    const struct sol_network_link_addr *b)
+{
+    const uint8_t *addr_a, *addr_b;
+    size_t bytes;
+
+    if (a->family != b->family)
+        return false;
+
+    if (a->family == SOL_NETWORK_FAMILY_INET) {
+        addr_a = a->addr.in;
+        addr_b = b->addr.in;
+        bytes = sizeof(a->addr.in);
+    } else if (a->family == SOL_NETWORK_FAMILY_INET6) {
+        addr_a = a->addr.in6;
+        addr_b = b->addr.in6;
+        bytes = sizeof(a->addr.in6);
+    } else
+        return false;
+
+    return !memcmp(addr_a, addr_b, bytes);
+}
 
 /**
  * @brief Subscribes on to receive network link events.

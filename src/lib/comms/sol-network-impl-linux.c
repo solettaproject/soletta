@@ -586,31 +586,6 @@ sol_network_link_down(uint16_t link_index)
     return sol_network_link_set_status(link_index, IFF_UP, ~IFF_UP);
 }
 
-SOL_API bool
-sol_network_link_addr_eq(const struct sol_network_link_addr *a, const struct sol_network_link_addr *b)
-{
-    const uint8_t *addr_a, *addr_b;
-    size_t bytes;
-
-    if (a->family != b->family)
-        return false;
-
-    if (a->family == SOL_NETWORK_FAMILY_INET) {
-        addr_a = a->addr.in;
-        addr_b = b->addr.in;
-        bytes = sizeof(a->addr.in);
-    } else if (a->family == SOL_NETWORK_FAMILY_INET6) {
-        addr_a = a->addr.in6;
-        addr_b = b->addr.in6;
-        bytes = sizeof(a->addr.in6);
-    } else {
-        SOL_WRN("Unknown family type: %d", a->family);
-        return false;
-    }
-
-    return !memcmp(addr_a, addr_b, bytes);
-}
-
 static bool
 hostname_worker(void *data)
 {
