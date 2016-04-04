@@ -25,7 +25,7 @@ function die() {
 
 DIFF_LIST=$(mktemp /tmp/sol-tmp.XXXX)
 
-PATTERNS=".*\.*\([ch]\|py\|h\.in\|py\.in\|fbp\|sh\|json\|COPYING\|calc\-lib\-size\|js\|generate\-svg\-from\-all\-fbps\)$"
+PATTERNS=".*\.*\([ch]\|py\|h\.in\|py\.in\|fbp\|sh\|json\|COPYING\|calc\-lib\-size\|js\|css\|generate\-svg\-from\-all\-fbps\)$"
 IGNORE="src\/thirdparty\/\|tools\/kconfig\/\|data\/oic\/\|data\/jsons\/\|.*\.ac|.*Makefile.*\|.*-gen.h\.in"
 
 trap "rm -f $DIFF_LIST" EXIT
