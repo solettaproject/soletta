@@ -98,7 +98,7 @@ parse-common-module = \
 		$(eval $(4)-srcs       := $($(dest-obj)-src)) \
 		$(eval $(4)-objs       += $(dest-obj)) \
 		$(eval $(dest-obj)-module := $(if $($(dest-obj)-module),$($(dest-obj)-module),$(4))) \
-		$(eval all-objs        += $(dest-obj)) \
+		$(eval all-objs        += $(filter-out $(all-objs),$(dest-obj))) \
 	)\
 	$(eval $(4)-deps    := $(subst .mod,,$(obj-$(1)-$(3)-deps)))
 
