@@ -80,9 +80,6 @@ _manager_set_system_state(void *data, const char *path, sd_bus_message *m)
     };
     int r;
 
-    r = sd_bus_message_enter_container(m, SD_BUS_TYPE_VARIANT, "s");
-    SOL_INT_CHECK(r, < 0, false);
-
     r = sd_bus_message_read_basic(m, SD_BUS_TYPE_STRING, &str);
     SOL_INT_CHECK(r, < 0, false);
 
@@ -90,9 +87,6 @@ _manager_set_system_state(void *data, const char *path, sd_bus_message *m)
         SOL_PLATFORM_SERVICE_STATE_UNKNOWN);
     changed = state != ctx->properties.system_state;
     ctx->properties.system_state = state;
-
-    r = sd_bus_message_exit_container(m);
-    SOL_INT_CHECK(r, < 0, false);
 
     return changed;
 }
@@ -231,9 +225,6 @@ _service_set_state(void *data, const char *path, sd_bus_message *m)
     };
     int r;
 
-    r = sd_bus_message_enter_container(m, SD_BUS_TYPE_VARIANT, "s");
-    SOL_INT_CHECK(r, < 0, false);
-
     r = sd_bus_message_read_basic(m, SD_BUS_TYPE_STRING, &str);
     SOL_INT_CHECK(r, < 0, false);
 
@@ -241,9 +232,6 @@ _service_set_state(void *data, const char *path, sd_bus_message *m)
         SOL_PLATFORM_SERVICE_STATE_UNKNOWN);
     changed = state != x->properties.state;
     x->properties.state = state;
-
-    r = sd_bus_message_exit_container(m);
-    SOL_INT_CHECK(r, < 0, false);
 
     return changed;
 }
@@ -557,9 +545,15 @@ static bool
 skip_prop(void *data, const char *path, sd_bus_message *m)
 {
     int r;
+    const char *contents;
+    char type;
 
-    r = sd_bus_message_skip(m, "v");
+    r = sd_bus_message_peek_type(m, &type, &contents);
     SOL_INT_CHECK(r, < 0, true);
+
+    r = sd_bus_message_skip(m, contents);
+    SOL_INT_CHECK(r, < 0, true);
+
     return true;
 }
 

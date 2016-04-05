@@ -416,7 +416,8 @@ _message_map_all_properties(sd_bus_message *m,
 
     do {
         const struct sol_bus_properties *iter;
-        const char *member;
+        const char *member, *contents;
+        char type;
 
         r = sd_bus_message_enter_container(m, SD_BUS_TYPE_DICT_ENTRY, "sv");
         if (r <= 0) {
@@ -432,12 +433,21 @@ _message_map_all_properties(sd_bus_message *m,
                 break;
         }
 
+        r = sd_bus_message_peek_type(m, &type, &contents);
+        SOL_INT_CHECK_GOTO(r, < 0, end);
+
         if (iter->member) {
             bool changed;
+
+            r = sd_bus_message_enter_container(m, SD_BUS_TYPE_VARIANT, contents);
+            SOL_INT_CHECK_GOTO(r, < 0, end);
 
             changed = iter->set((void *)t->data, t->path, m);
             if (changed)
                 mask |= 1 << (iter - t->properties);
+
+            r = sd_bus_message_exit_container(m);
+            SOL_INT_CHECK_GOTO(r, < 0, end);
         } else {
             r = sd_bus_message_skip(m, "v");
             SOL_INT_CHECK_GOTO(r, < 0, end);
