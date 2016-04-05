@@ -16,6 +16,33 @@ config DTLS
 
 	    If unsure, say N.
 
+config BLUETOOTH
+       bool
+
+choice
+	prompt "Bluetooth"
+	depends on FEATURE_BLUETOOTH && NETWORK
+	default BLUETOOTH_BLUEZ if LINUX && HAVE_SYSTEMD
+	help
+	    Bluetooth is a standardized technology for exchanging data over
+	    short distances and building personal area networks.
+
+config BLUETOOTH_BLUEZ
+	bool "BlueZ"
+	depends on FEATURE_BLUETOOTH && LINUX && HAVE_SYSTEMD
+	select BLUETOOTH
+	help
+            This implementation will use BlueZ via its D-Bus API.
+
+config BLUETOOTH_NONE
+       bool "None"
+       depends on FEATURE_BLUETOOTH
+       select BLUETOOTH
+       help
+           No implementation is to be used, all functions will return error.
+
+endchoice
+
 config COAP
 	bool "CoAP"
 	default y
