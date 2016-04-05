@@ -1,0 +1,4 @@
+config BLUETOOTH_SAMPLES
+	bool "Bluetooth samples"
+	depends on BLUETOOTH
+	default y
