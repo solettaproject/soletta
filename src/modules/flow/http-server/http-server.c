@@ -60,6 +60,7 @@ struct http_data {
     struct server_data *sdata;
     char *path;
     char *basename;
+    struct sol_ptr_vector sse_clients;
     uint8_t allowed_methods;
 };
 
@@ -248,19 +249,8 @@ common_handle_response_cb(struct sol_flow_node *node,
         }
     }
 
-    if (send_json) {
-        r = sol_buffer_append_printf(&response->content,
-            "{\"%s\":", mdata->path);
-        SOL_INT_CHECK_GOTO(r, < 0, err_exit);
-    }
-
     r = type->response_cb(mdata, &response->content, send_json);
     SOL_INT_CHECK_GOTO(r, < 0, err_exit);
-
-    if (send_json) {
-        r = sol_buffer_append_char(&response->content, '}');
-        SOL_INT_CHECK_GOTO(r, < 0, err_exit);
-    }
 
     err_r = sol_http_param_add(&response->param, SOL_HTTP_REQUEST_PARAM_HEADER(
         HTTP_HEADER_CONTENT_TYPE, (send_json) ? HTTP_HEADER_CONTENT_TYPE_JSON :
@@ -275,6 +265,70 @@ common_handle_response_cb(struct sol_flow_node *node,
     return 0;
 
 err_exit:
+    return r;
+}
+
+static bool
+is_sse_request(enum sol_http_method method, const struct sol_http_params *params)
+{
+    uint16_t i;
+    struct sol_http_param_value *param;
+
+    if (method != SOL_HTTP_METHOD_GET)
+        return false;
+
+    SOL_HTTP_PARAMS_FOREACH_IDX (params, param, i) {
+        if (param->type != SOL_HTTP_PARAM_HEADER)
+            continue;
+
+        if (sol_str_slice_str_eq(param->value.key_value.key, "Accept") &&
+            sol_str_slice_str_contains(param->value.key_value.value, "text/stream"))
+            return true;
+    }
+
+    return false;
+}
+
+static void
+sse_conn_closed(void *data, const struct sol_http_progressive_response *sse)
+{
+    struct http_data *mdata = data;
+
+    sol_ptr_vector_remove(&mdata->sse_clients, sse);
+}
+
+static int
+send_sse_data(const struct http_server_node_type *type, struct http_data *mdata)
+{
+    struct sol_buffer buf = SOL_BUFFER_INIT_EMPTY;
+    struct sol_http_progressive_response *client;
+    struct sol_str_slice buf_slice;
+    uint16_t i;
+    int r;
+
+    if (!sol_ptr_vector_get_len(&mdata->sse_clients))
+        return 0;
+
+    r = sol_buffer_append_slice(&buf, sol_str_slice_from_str("data: "));
+    SOL_INT_CHECK(r, < 0, r);
+
+    r = type->response_cb(mdata, &buf, true);
+    SOL_INT_CHECK(r, < 0, r);
+
+    r = sol_buffer_append_slice(&buf, sol_str_slice_from_str("\n\n"));
+    SOL_INT_CHECK(r, < 0, r);
+
+    buf_slice = sol_buffer_get_slice(&buf);
+    SOL_DBG("Sending SSE data: %.*s", SOL_STR_SLICE_PRINT(buf_slice));
+
+    SOL_PTR_VECTOR_FOREACH_IDX (&mdata->sse_clients, client, i) {
+        r = sol_http_progressive_response_feed(client, buf_slice);
+        SOL_INT_CHECK_GOTO(r, < 0, exit);
+    }
+
+    r = 0;
+exit:
+    sol_buffer_fini(&buf);
     return r;
 }
 
@@ -311,22 +365,53 @@ common_response_cb(void *data, struct sol_http_request *request)
         return 0;
     }
 
-    r = type->handle_response_cb(node, request, &response, &updated);
-    SOL_INT_CHECK_GOTO(r, < 0, end);
+    if (is_sse_request(method, sol_http_request_get_params(request)) &&
+        type->response_cb) {
+        struct sol_http_progressive_response *sse;
 
-    if (updated) {
-        r = sol_http_server_set_last_modified(mdata->sdata->server,
-            mdata->path, time(NULL));
+        r = sol_http_response_set_sse_headers(&response);
+        SOL_INT_CHECK_GOTO(r, < 0, end);
+        response.response_code = SOL_HTTP_STATUS_OK;
+        sse = sol_http_server_send_progressive_response(request, &response,
+            sse_conn_closed, mdata);
+        sol_http_params_clear(&response.param);
+        if (!sse) {
+            sol_flow_send_error_packet_str(node, ENOMEM,
+                "Could not send the SSE response");
+            goto exit;
+        }
+
+        r = sol_ptr_vector_append(&mdata->sse_clients, sse);
+        if (r < 0) {
+            sol_http_progressive_response_del(sse, false);
+            sol_flow_send_error_packet_str(node, -r,
+                "Could append the SSE response to the client's array");
+            goto exit;
+        }
+        r = send_sse_data(type, mdata);
+        if (r < 0) {
+            sol_flow_send_error_packet_str(node, -r,
+                "Could not send the SSE data response");
+            goto exit;
+        }
+    } else {
+
+        r = type->handle_response_cb(node, request, &response, &updated);
         SOL_INT_CHECK_GOTO(r, < 0, end);
 
-        if (sol_http_request_get_method(request) == SOL_HTTP_METHOD_POST)
-            type->send_packet_cb(mdata, node);
-    }
+        if (updated) {
+            r = sol_http_server_set_last_modified(mdata->sdata->server,
+                mdata->path, time(NULL));
+            SOL_INT_CHECK_GOTO(r, < 0, end);
+            if (sol_http_request_get_method(request) == SOL_HTTP_METHOD_POST)
+                type->send_packet_cb(mdata, node);
+        }
 
-    response.response_code = SOL_HTTP_STATUS_OK;
-    r = sol_http_server_send_response(request, &response);
-    response.response_code = SOL_HTTP_STATUS_INTERNAL_SERVER_ERROR;
-    SOL_INT_CHECK_GOTO(r, < 0, end);
+        response.response_code = SOL_HTTP_STATUS_OK;
+        r = sol_http_server_send_response(request, &response);
+        response.response_code = SOL_HTTP_STATUS_INTERNAL_SERVER_ERROR;
+        SOL_INT_CHECK_GOTO(r, < 0, end);
+    }
 
 end:
     if (r < 0) {
@@ -349,6 +434,7 @@ end:
     sol_buffer_fini(&response.content);
     sol_http_params_clear(&response.param);
 
+exit:
     return 0;
 }
 
@@ -393,7 +479,13 @@ static void
 common_close(struct sol_flow_node *node, void *data)
 {
     struct http_data *mdata = data;
+    uint16_t i;
+    struct sol_http_progressive_response *sse_client;
 
+    SOL_PTR_VECTOR_FOREACH_IDX (&mdata->sse_clients, sse_client, i)
+        sol_http_progressive_response_del(sse_client, true);
+
+    sol_ptr_vector_clear(&mdata->sse_clients);
     stop_server(mdata);
 }
 
@@ -447,6 +539,8 @@ common_open(struct sol_flow_node *node, struct http_data *mdata,
 
     r = start_server(mdata, node, path, port);
     SOL_INT_CHECK(r, < 0, r);
+
+    sol_ptr_vector_init(&mdata->sse_clients);
 
     return 0;
 }
@@ -537,6 +631,9 @@ common_process(struct sol_flow_node *node, void *data, uint16_t port, uint16_t c
     if (type->send_packet_cb)
         type->send_packet_cb(mdata, node);
 
+    r = send_sse_data(type, mdata);
+    SOL_INT_CHECK(r, < 0, r);
+
     return 0;
 }
 
@@ -563,12 +660,14 @@ boolean_post_cb(struct http_data *mdata, struct sol_flow_node *node,
 static int
 boolean_response_cb(struct http_data *mdata, struct sol_buffer *content, bool json)
 {
-    int r;
+    const char *str;
 
-    r = sol_buffer_append_printf(content, "%s", mdata->value.b == true ? "true" : "false");
-    SOL_INT_CHECK(r, < 0, r);
+    str = mdata->value.b ? "true" : "false";
 
-    return 0;
+    if (json)
+        return sol_buffer_append_printf(content, "{\"value\":%s}", str);
+    else
+        return sol_buffer_append_printf(content, "%s", str);
 }
 
 static void
@@ -600,10 +699,15 @@ boolean_process_cb(struct http_data *mdata, const struct sol_flow_packet *packet
 static int
 string_response_cb(struct http_data *mdata, struct sol_buffer *content, bool json)
 {
-    int r = 0;
+    int r;
 
     if (json) {
+        r = sol_buffer_append_slice(content,
+            sol_str_slice_from_str("{\"value\":"));
+        SOL_INT_CHECK(r, < 0, r);
         r = sol_json_serialize_string(content, mdata->value.s);
+        SOL_INT_CHECK(r, < 0, r);
+        r = sol_buffer_append_slice(content, sol_str_slice_from_str("}"));
     } else {
         r = sol_buffer_append_slice(content, sol_str_slice_from_str(mdata->value.s));
     }
@@ -880,7 +984,17 @@ rgb_post_cb(struct http_data *mdata, struct sol_flow_node *node,
 static int
 rgb_process_cb(struct http_data *mdata, const struct sol_flow_packet *packet)
 {
-    return sol_flow_packet_get_rgb(packet, &mdata->value.rgb);
+    struct sol_rgb rgb;
+    int r;
+
+    r = sol_flow_packet_get_rgb(packet, &rgb);
+    SOL_INT_CHECK(r, < 0, r);
+
+    if (!memcmp(&mdata->value.rgb, &rgb, sizeof(struct sol_rgb)))
+        return 0;
+
+    memcpy(&mdata->value.rgb, &rgb, sizeof(struct sol_rgb));
+    return 1;
 }
 
 static int
@@ -1008,8 +1122,18 @@ static int
 direction_vector_process_cb(struct http_data *mdata,
     const struct sol_flow_packet *packet)
 {
-    return sol_flow_packet_get_direction_vector(packet,
-        &mdata->value.dir_vector);
+    struct sol_direction_vector dir;
+    int r;
+
+    r = sol_flow_packet_get_direction_vector(packet, &dir);
+    SOL_INT_CHECK(r, < 0, r);
+
+    if (!memcmp(&mdata->value.dir_vector, &dir,
+        sizeof(struct sol_direction_vector)))
+        return 0;
+
+    memcpy(&mdata->value.dir_vector, &dir, sizeof(struct sol_direction_vector));
+    return 1;
 }
 
 static int
@@ -1063,15 +1187,31 @@ blob_open(struct sol_flow_node *node, void *data,
     return 0;
 }
 
-static int
-replace_json_blob(struct http_data *mdata, struct sol_blob *blob)
+static bool
+blob_is_equal(struct sol_blob *b1, struct sol_blob *b2)
 {
-    if (mdata->value.blob)
-        sol_blob_unref(mdata->value.blob);
+    return b1->size == b2->size && !memcmp(b1->mem, b2->mem, b2->size);
+}
 
-    mdata->value.blob = sol_blob_ref(blob);
-    SOL_NULL_CHECK(mdata->value.blob, -ENOMEM);
-    return 0;
+static int
+replace_blob(struct http_data *mdata, struct sol_blob *blob)
+{
+    int updated = 0;
+
+    if (!mdata->value.blob)
+        updated = 1;
+    else {
+        if (!blob_is_equal(blob, mdata->value.blob)) {
+            updated = 1;
+            sol_blob_unref(mdata->value.blob);
+        }
+    }
+
+    if (updated) {
+        mdata->value.blob = sol_blob_ref(blob);
+        SOL_NULL_CHECK(mdata->value.blob, -ENOMEM);
+    }
+    return updated;
 }
 
 static int
@@ -1092,7 +1232,7 @@ blob_process_cb(struct http_data *mdata,
         r = sol_flow_packet_get_blob(packet, &blob);
 
     SOL_INT_CHECK(r, < 0, r);
-    return replace_json_blob(mdata, blob);
+    return replace_blob(mdata, blob);
 }
 
 static void
@@ -1139,7 +1279,7 @@ blob_handle_response_cb(struct sol_flow_node *node,
             return -ENOENT;
         }
 
-        r = replace_json_blob(mdata, blob);
+        r = replace_blob(mdata, blob);
         sol_blob_unref(blob);
         SOL_INT_CHECK(r, < 0, r);
         *updated = true;
@@ -1161,6 +1301,19 @@ blob_handle_response_cb(struct sol_flow_node *node,
     }
 
     return 0;
+}
+
+/*
+   Only implemented to be used by send_sse_data()
+ */
+static int
+json_response_cb(struct http_data *mdata, struct sol_buffer *buf, bool json)
+{
+    if (!mdata->value.blob)
+        return 0;
+
+    return sol_buffer_append_bytes(buf,
+        (uint8_t *)mdata->value.blob->mem, mdata->value.blob->size);
 }
 
 static void
