@@ -17,12 +17,15 @@
  */
 
 #include <stdlib.h>
+#include <string.h>
 
 #define SOL_LOG_DOMAIN &_log_domain
 #include "sol-log-internal.h"
 SOL_LOG_INTERNAL_DECLARE_STATIC(_log_domain, "gpio");
 
 #include "sol-gpio.h"
+#include "sol-str-table.h"
+#include "sol-util.h"
 
 #ifdef USE_PIN_MUX
 #include "sol-pin-mux.h"
@@ -73,4 +76,37 @@ sol_gpio_open(uint32_t pin, const struct sol_gpio_config *config)
 #endif
 
     return gpio;
+}
+
+SOL_API enum sol_gpio_edge
+sol_gpio_edge_from_str(const char *edge)
+{
+    static const struct sol_str_table table[] = {
+        SOL_STR_TABLE_ITEM("none", SOL_GPIO_EDGE_NONE),
+        SOL_STR_TABLE_ITEM("rising", SOL_GPIO_EDGE_RISING),
+        SOL_STR_TABLE_ITEM("falling", SOL_GPIO_EDGE_FALLING),
+        SOL_STR_TABLE_ITEM("any", SOL_GPIO_EDGE_BOTH),
+        { }
+    };
+
+    SOL_NULL_CHECK(edge, SOL_GPIO_EDGE_NONE);
+
+    return sol_str_table_lookup_fallback(table,
+        sol_str_slice_from_str(edge), SOL_GPIO_EDGE_NONE);
+}
+
+SOL_API const char *
+sol_gpio_edge_to_str(enum sol_gpio_edge edge)
+{
+    static const char *edge_names[] = {
+        [SOL_GPIO_EDGE_NONE] = "none",
+        [SOL_GPIO_EDGE_RISING] = "rising",
+        [SOL_GPIO_EDGE_FALLING] = "falling",
+        [SOL_GPIO_EDGE_BOTH] = "any"
+    };
+
+    if (edge < SOL_UTIL_ARRAY_SIZE(edge_names))
+        return edge_names[edge];
+
+    return NULL;
 }
