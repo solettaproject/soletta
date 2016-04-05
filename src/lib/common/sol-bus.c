@@ -695,22 +695,25 @@ static void
 filter_interfaces(struct sol_bus_client *client, sd_bus_message *m, sd_bus_error *ret_error)
 {
     const char *path;
+    int r;
 
-    if (sd_bus_message_read(m, "o", &path) < 0)
-        return;
+    r = sd_bus_message_read(m, "o", &path);
+    SOL_INT_CHECK(r, < 0);
 
-    if (sd_bus_message_enter_container(m, SD_BUS_TYPE_ARRAY, "{sa{sv}}") < 0)
-        return;
+    r = sd_bus_message_enter_container(m, SD_BUS_TYPE_ARRAY, "{sa{sv}}");
+    SOL_INT_CHECK(r, < 0);
 
     do {
         const struct sol_bus_interfaces *s;
         const char *iface;
 
-        if (sd_bus_message_enter_container(m, SD_BUS_TYPE_DICT_ENTRY, "sa{sv}") < 0)
+        r = sd_bus_message_enter_container(m, SD_BUS_TYPE_DICT_ENTRY, "sa{sv}");
+        if (r == -ENXIO)
             break;
+        SOL_INT_CHECK(r, < 0);
 
-        if (sd_bus_message_read_basic(m, SD_BUS_TYPE_STRING, &iface) < 0)
-            return;
+        r = sd_bus_message_read_basic(m, SD_BUS_TYPE_STRING, &iface);
+        SOL_INT_CHECK(r, < 0);
 
         s = find_interface(client, iface);
         if (s && s->appeared)
@@ -718,9 +721,8 @@ filter_interfaces(struct sol_bus_client *client, sd_bus_message *m, sd_bus_error
 
         filter_device_properties(m, iface, path, client, ret_error);
 
-        if (sd_bus_message_exit_container(m) < 0)
-            return;
-
+        r = sd_bus_message_exit_container(m);
+        SOL_INT_CHECK(r, < 0);
     } while (1);
 }
 
