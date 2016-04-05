@@ -20,6 +20,93 @@
 #include "sol-util-internal.h"
 #include "sol-http.h"
 #include "sol-vector.h"
+#include "sol-util.h"
+
+DEFINE_TEST(test_http_content_type_priority);
+
+static void
+test_http_content_type_priority(void)
+{
+    size_t i;
+    int r;
+
+    static const struct {
+        int r;
+        size_t priorities_len;
+        struct sol_str_slice accept;
+        struct {
+            struct sol_str_slice content_type;
+            double qvalue;
+            size_t tokens_size;
+            const char *tokens[2];
+        } result[6];
+    } test[] = {
+        { 0, 1, SOL_STR_SLICE_LITERAL("text/html;  q  =  2"),
+          {
+              { SOL_STR_SLICE_LITERAL("text/html"), 1.0, 0, { 0 } }
+          } },
+        { 0, 2, SOL_STR_SLICE_LITERAL("audio/*;q=0.2,      audio/basic   "),
+          {
+              { SOL_STR_SLICE_LITERAL("audio/basic"), 1.0, 0, { 0 } },
+              { SOL_STR_SLICE_LITERAL("audio/*"), 0.2, 0, { 0 } }
+          } },
+        { 0, 4, SOL_STR_SLICE_LITERAL("text/plain; q=0.5, text/html,text/x-dvi; q=0.8, text/x-c"),
+          {
+              { SOL_STR_SLICE_LITERAL("text/html"), 1.0, 0, { 0 } },
+              { SOL_STR_SLICE_LITERAL("text/x-c"), 1.0, 0, { 0 } },
+              { SOL_STR_SLICE_LITERAL("text/x-dvi"), 0.8, 0, { 0 } },
+              { SOL_STR_SLICE_LITERAL("text/plain"), 0.5, 0, { 0 } },
+          } },
+        { 0, 4, SOL_STR_SLICE_LITERAL("text/*, text/html, text/html;level=1, */*"),
+          {
+              { SOL_STR_SLICE_LITERAL("text/html"), 1.0, 1, { "level=1" } },
+              { SOL_STR_SLICE_LITERAL("text/html"), 1.0, 0, { 0 } },
+              { SOL_STR_SLICE_LITERAL("text/*"), 1.0, 0, { 0 } },
+              { SOL_STR_SLICE_LITERAL("*/*"), 1.0, 0, { 0 } },
+          } },
+        { 0, 5, SOL_STR_SLICE_LITERAL("text/*;q=0.3, text/html;q=0.7, text/html;level=1,text/html;level=2;level=3;q=0.4, */*;q=0.5"),
+          {
+              { SOL_STR_SLICE_LITERAL("text/html"), 1.0, 1, { "level=1" } },
+              { SOL_STR_SLICE_LITERAL("text/html"), 0.7, 0, { 0 } },
+              { SOL_STR_SLICE_LITERAL("text/html"), 0.4, 2, { "level=2", "level=3" } },
+              { SOL_STR_SLICE_LITERAL("text/*"), 0.3, 0, { 0 } },
+              { SOL_STR_SLICE_LITERAL("*/*"), 0.5, 0, { 0 } },
+          } },
+        { 0, 6, SOL_STR_SLICE_LITERAL("text/html; q=1.0, text/*; q=0.8, image/gif; q=0.6, image/jpeg; q=0.6, image/*; q=0.5, */*; q=0.1"),
+          {
+              { SOL_STR_SLICE_LITERAL("text/html"), 1.0, 0, { 0 } },
+              { SOL_STR_SLICE_LITERAL("text/*"), 0.8, 0, { 0 } },
+              { SOL_STR_SLICE_LITERAL("image/gif"), 0.6, 0, { 0 } },
+              { SOL_STR_SLICE_LITERAL("image/jpeg"), 0.6, 0, { 0 } },
+              { SOL_STR_SLICE_LITERAL("image/*"), 0.5, 0, { 0 } },
+              { SOL_STR_SLICE_LITERAL("*/*"), 0.1, 0, { 0 } },
+          } }
+
+    };
+
+    for (i = 0; i < SOL_UTIL_ARRAY_SIZE(test); i++) {
+        size_t j;
+        struct sol_vector array;
+
+        r = sol_http_parse_content_type_priorities(test[i].accept, &array);
+        ASSERT_INT_EQ(r, test[i].r);
+        ASSERT_INT_EQ(test[i].priorities_len, array.len);
+
+        for (j = 0; j < test[i].priorities_len; j++) {
+            size_t k;
+            struct sol_http_content_type_priority *pri = sol_vector_get_nocheck(&array, j);
+            ASSERT(sol_str_slice_eq(pri->content_type, test[i].result[j].content_type));
+            ASSERT(sol_util_double_equal(pri->qvalue, test[i].result[j].qvalue));
+            ASSERT_INT_EQ(test[i].result[j].tokens_size, pri->tokens.len);
+            for (k = 0; k < test[i].result[j].tokens_size; k++) {
+                struct sol_str_slice *token = sol_vector_get_nocheck(&pri->tokens, k);
+                ASSERT(sol_str_slice_str_eq(*token, test[i].result[j].tokens[k]));
+            }
+        }
+
+        sol_http_content_type_priorities_array_clear(&array);
+    }
+}
 
 DEFINE_TEST(test_split_urls);
 

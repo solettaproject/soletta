@@ -20,6 +20,7 @@
 #include <stdio.h>
 #include <string.h>
 #include <inttypes.h>
+#include <stdlib.h>
 
 #include "sol-http.h"
 #include "sol-log.h"
@@ -881,4 +882,207 @@ SOL_API int
 sol_http_split_post_field(const char *query, struct sol_http_params *params)
 {
     return sol_http_split_str_key_value(query, SOL_HTTP_PARAM_POST_FIELD, params);
+}
+
+static int
+sort_priority(const void *v1, const void *v2)
+{
+    const struct sol_http_content_type_priority *pri1, *pri2;
+    bool any_type1, any_type2;
+
+    pri1 = (const struct sol_http_content_type_priority *)v1;
+    pri2 = (const struct sol_http_content_type_priority *)v2;
+
+    any_type1 = sol_str_slice_str_eq(pri1->type, "*");
+    any_type2 = sol_str_slice_str_eq(pri2->type, "*");
+
+    //text/html have precedence over */* for example.
+    if (!any_type1 && any_type2)
+        return -1;
+    if (any_type1 && !any_type2)
+        return 1;
+
+    //Higher qvalue first
+    if (pri1->qvalue > pri2->qvalue)
+        return -1;
+    if (pri1->qvalue < pri2->qvalue)
+        return 1;
+
+    //Specialized first
+    if (pri1->tokens.len > pri2->tokens.len)
+        return -1;
+    if (pri1->tokens.len < pri2->tokens.len)
+        return 1;
+
+    //Specialized first
+    if (sol_str_slice_eq(pri1->type, pri2->type)) {
+        //text/html have precedence over text/* for example.
+        any_type1 = sol_str_slice_str_eq(pri1->sub_type, "*");
+        any_type2 = sol_str_slice_str_eq(pri2->sub_type, "*");
+
+        if (!any_type1 && any_type2)
+            return -1;
+        if (any_type1 && !any_type2)
+            return 1;
+    }
+
+    //Precedence must prevail
+    if (pri1->index > pri2->index)
+        return 1;
+    if (pri1->index < pri2->index)
+        return -1;
+
+    return 0;
+}
+
+static struct sol_str_slice
+is_qvalue_token(const struct sol_str_slice param)
+{
+    const char *itr, *itr_end;
+    struct sol_str_slice qvalue = SOL_STR_SLICE_EMPTY;
+
+    enum { STATE_NEEDS_Q_CHAR, STATE_NEEDS_EQUAL_CHAR } state = STATE_NEEDS_Q_CHAR;
+
+    itr = param.data;
+    itr_end = itr + param.len;
+
+    for (; itr < itr_end; itr++) {
+        if (isspace((int)*itr))
+            continue;
+
+        switch (state) {
+        case STATE_NEEDS_Q_CHAR:
+            if (*itr != 'q')
+                return qvalue;
+            state = STATE_NEEDS_EQUAL_CHAR;
+            break;
+        default:
+            if (*itr != '=')
+                return qvalue;
+            qvalue.data = itr + 1;
+            qvalue.len = param.len - (itr - param.data) - 1;
+            return sol_str_slice_trim(qvalue);
+        }
+    }
+
+    return qvalue;
+}
+
+static int
+set_type_and_sub_type(const struct sol_str_slice content_type,
+    struct sol_str_slice *type, struct sol_str_slice *sub_type)
+{
+    char *sep;
+
+    sep = memchr(content_type.data, '/', content_type.len);
+    SOL_NULL_CHECK(sep, -EINVAL);
+
+    type->data = content_type.data;
+    type->len = sep - content_type.data;
+
+    sub_type->data = sep + 1;
+    sub_type->len = content_type.len - type->len - 1;
+
+    return 0;
+}
+
+SOL_API int
+sol_http_parse_content_type_priorities(const struct sol_str_slice content_type,
+    struct sol_vector *priorities)
+{
+    struct sol_str_slice type;
+    const char *itr_type = NULL;
+    uint16_t i = 0;
+
+    SOL_NULL_CHECK(priorities, -EINVAL);
+
+    SOL_DBG("Parsing content priorities for: %.*s",
+        SOL_STR_SLICE_PRINT(content_type));
+    sol_vector_init(priorities, sizeof(struct sol_http_content_type_priority));
+
+    while (sol_str_slice_str_split_iterate(content_type, &type, &itr_type, ",")) {
+        struct sol_http_content_type_priority *pri = NULL;
+        struct sol_str_slice token;
+        struct sol_str_slice qvalue_slice;
+        const char *itr_token = NULL;
+
+        SOL_DBG("Content type:%.*s %zu", SOL_STR_SLICE_PRINT(type), type.len);
+
+        while (sol_str_slice_str_split_iterate(type, &token, &itr_token, ";")) {
+            token = sol_str_slice_trim(token);
+
+            SOL_DBG("Clean token: %.*s", SOL_STR_SLICE_PRINT(token));
+            if (!pri) {
+                int r;
+                pri = sol_vector_append(priorities);
+                SOL_NULL_CHECK_GOTO(pri, err_append);
+                pri->content_type = token;
+                pri->index = i++;
+                pri->qvalue = 1.0;
+                sol_vector_init(&pri->tokens, sizeof(struct sol_str_slice));
+                r = set_type_and_sub_type(pri->content_type,
+                    &pri->type, &pri->sub_type);
+                SOL_INT_CHECK_GOTO(r, < 0, err_set_type);
+                continue;
+            }
+
+            qvalue_slice = is_qvalue_token(token);
+
+            if (!qvalue_slice.len) {
+                struct sol_str_slice *p;
+
+                p = sol_vector_append(&pri->tokens);
+                SOL_NULL_CHECK_GOTO(p, err_append);
+                *p = token;
+                SOL_DBG("Adding token: %.*s for %.*s",
+                    SOL_STR_SLICE_PRINT(*p),
+                    SOL_STR_SLICE_PRINT(pri->content_type));
+            } else {
+                double qvalue;
+                char *endptr = NULL;
+
+                qvalue = sol_util_strtodn(qvalue_slice.data, &endptr,
+                    qvalue_slice.len, false);
+                if (errno < 0 || endptr == qvalue_slice.data) {
+                    SOL_WRN("Could not convert the value from the content type: %.*s",
+                        SOL_STR_SLICE_PRINT(type));
+                    goto err_convert;
+                }
+
+                if (qvalue > 1.0) {
+                    SOL_INF("The qvalue '%g' for %.*s is bigger than 1.0. Using 1.0",
+                        pri->qvalue, SOL_STR_SLICE_PRINT(pri->content_type));
+                } else
+                    pri->qvalue = qvalue;
+                SOL_DBG("Type:%.*s with qvalue: %g",
+                    SOL_STR_SLICE_PRINT(pri->content_type), pri->qvalue);
+            }
+        }
+    }
+
+    qsort(priorities->data, priorities->len, priorities->elem_size,
+        sort_priority);
+
+    return 0;
+
+err_set_type:
+err_convert:
+    sol_http_content_type_priorities_array_clear(priorities);
+    return -EINVAL;
+err_append:
+    sol_http_content_type_priorities_array_clear(priorities);
+    return -ENOMEM;
+}
+
+SOL_API void
+sol_http_content_type_priorities_array_clear(struct sol_vector *priorities)
+{
+    uint16_t i;
+    struct sol_http_content_type_priority *pri;
+
+    SOL_NULL_CHECK(priorities);
+
+    SOL_VECTOR_FOREACH_IDX (priorities, pri, i)
+        sol_vector_clear(&pri->tokens);
+    sol_vector_clear(priorities);
 }
