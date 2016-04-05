@@ -138,7 +138,11 @@ static struct sol_socket *
 sol_socket_linux_new(int domain, enum sol_socket_type type, int protocol)
 {
     struct sol_socket_linux *s;
-    int fd, socktype = SOCK_CLOEXEC | SOCK_NONBLOCK;
+    int fd, socktype = 0;
+
+#ifdef SOCK_CLOEXEC
+    socktype |= SOCK_CLOEXEC | SOCK_NONBLOCK;
+#endif
 
     switch (type) {
     case SOL_SOCKET_UDP:
@@ -152,6 +156,21 @@ sol_socket_linux_new(int domain, enum sol_socket_type type, int protocol)
 
     fd = socket(sol_network_sol_to_af(domain), socktype, protocol);
     SOL_INT_CHECK(fd, < 0, NULL);
+
+#ifndef SOCK_CLOEXEC
+    {
+        /* We need to set the socket to FD_CLOEXEC and non-blocking mode */
+        int n = fcntl(fd, F_GETFD);
+        if (n >= 0)
+            n = fcntl(fd, F_SETFD, n | FD_CLOEXEC);
+        if (n >= 0)
+            n = sol_util_fd_set_flag(fd, O_NONBLOCK);
+        if (n < 0) {
+            SOL_WRN("Failed to set the socket to FD_CLOEXEC or O_NONBLOCK, %s", sol_util_strerrora(errno));
+            goto calloc_error;
+        }
+    }
+#endif
 
     s = calloc(1, sizeof(*s));
     SOL_NULL_CHECK_GOTO(s, calloc_error);
