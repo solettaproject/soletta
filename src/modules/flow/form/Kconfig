@@ -11,3 +11,14 @@ config FLOW_NODE_TYPE_FORM
 		used by other node types doing visual output, such as
 		LCD display (grove/lcd-string), in conjuntion with others
 		providing input.
+
+config PYTHON_FORMATTING
+	bool "Build Python-like string formatting (string-formatted) nodes"
+	depends on FLOW_NODE_TYPE_CONVERTER
+	default y
+	help
+		Consider changing this if this functionality won't be used
+		and the final Soletta binary is meant for constrained
+		systems. Note that the string-formatted node is made useless
+		if this is not set (any interaction with these nodes will
+		lead to error packets).

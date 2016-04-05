@@ -822,9 +822,18 @@ drange_to_string_convert(struct sol_flow_node *node, void *data, uint16_t port, 
     r = sol_flow_packet_get_drange(packet, &in_value);
     SOL_INT_CHECK(r, < 0, r);
 
+#ifdef PYTHON_FORMATTING
     r = do_float_markup(node, mdata->format, in_value, &out);
     SOL_INT_CHECK_GOTO(r, < 0, end);
+#else
 
+#pragma GCC diagnostic push
+#pragma GCC diagnostic ignored "-Wformat-nonliteral"
+    r = sol_buffer_append_printf(&out, mdata->format, in_value.val);
+    SOL_INT_CHECK_GOTO(r, < 0, end);
+#pragma GCC diagnostic pop
+
+#endif
     r = sol_flow_send_string_slice_packet(node,
         SOL_FLOW_NODE_TYPE_CONVERTER_FLOAT_TO_STRING__OUT__OUT,
         sol_buffer_get_slice(&out));
@@ -879,8 +888,18 @@ irange_to_string_convert(struct sol_flow_node *node,
     r = sol_flow_packet_get_irange(packet, &in_value);
     SOL_INT_CHECK(r, < 0, r);
 
+#ifdef PYTHON_FORMATTING
     r = do_integer_markup(node, mdata->format, in_value, &out);
     SOL_INT_CHECK_GOTO(r, < 0, end);
+#else
+
+#pragma GCC diagnostic push
+#pragma GCC diagnostic ignored "-Wformat-nonliteral"
+    r = sol_buffer_append_printf(&out, mdata->format, in_value.val);
+    SOL_INT_CHECK_GOTO(r, < 0, end);
+#pragma GCC diagnostic pop
+
+#endif
 
     r = sol_flow_send_string_slice_packet(node,
         SOL_FLOW_NODE_TYPE_CONVERTER_INT_TO_STRING__OUT__OUT,
