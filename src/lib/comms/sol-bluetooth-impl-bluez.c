@@ -51,6 +51,12 @@ struct sol_bt_session {
     const void *user_data;
 };
 
+enum adapter_state {
+    ADAPTER_STATE_UNKNOWN,
+    ADAPTER_STATE_OFF,
+    ADAPTER_STATE_ON,
+};
+
 static struct context {
     sd_bus *system_bus;
     struct sol_bus_client *bluez;
@@ -59,7 +65,8 @@ static struct context {
     struct sol_ptr_vector sessions;
     struct sol_ptr_vector scans;
     struct sol_ptr_vector conns;
-    bool adapter_powered;
+    enum adapter_state original_state;
+    enum adapter_state current_state;
 } context;
 
 enum {
