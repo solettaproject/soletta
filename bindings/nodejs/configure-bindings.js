@@ -96,6 +96,15 @@ for ( oneVariable in process.env ) {
 				"sol-uart.h"
 			] );
 			break;
+		case "USE_PWM":
+			sources = sources.concat( [
+				"../src/functions/pwm.cc",
+				"../src/structures/sol-js-pwm.cc"
+			] );
+			headers = headers.concat( [
+				"sol-pwm.h"
+			] );
+			break;
 		default:
 			break;
 	}

@@ -204,6 +204,7 @@ bindings-nodejs: $(SOL_LIB_OUTPUT)
 		SOL_CONFIG_USE_GPIO=$(USE_GPIO) \
 		SOL_CONFIG_USE_AIO=$(USE_AIO) \
 		SOL_CONFIG_USE_UART=$(USE_UART) \
+		SOL_CONFIG_USE_PWM=$(USE_PWM) \
 		SOL_CONFIG_NETWORK=$(NETWORK) \
 			$(NODEJS) bindings/nodejs/configure-bindings.js
 
