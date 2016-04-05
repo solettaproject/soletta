@@ -577,6 +577,9 @@ sol_bus_map_cached_properties(struct sol_bus_client *client,
     r = sol_ptr_vector_append(&client->property_tables, t);
     SOL_INT_CHECK_GOTO(r, < 0, fail);
 
+    if (client->managed_objects)
+        return 0;
+
     r = sd_bus_message_new_method_call(client->bus, &m, client->service, path,
         "org.freedesktop.DBus.Properties",
         "GetAll");
@@ -730,6 +733,8 @@ managed_objects_cb(sd_bus_message *m, void *userdata, sd_bus_error *ret_error)
     struct sol_bus_client *client = userdata;
     int err;
 
+    client->managed_objects = sd_bus_slot_unref(client->managed_objects);
+
     if (sol_bus_log_callback(m, userdata, ret_error)) {
         err = -EINVAL;
         goto end;
@@ -758,7 +763,6 @@ managed_objects_cb(sd_bus_message *m, void *userdata, sd_bus_error *ret_error)
     err = 0;
 
 end:
-    client->managed_objects = sd_bus_slot_unref(client->managed_objects);
     return err;
 }
 
