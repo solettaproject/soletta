@@ -45,8 +45,17 @@ def load_json_schema(directory, path, schemas={}):
     if not definitions:
         raise ValueError("empty definition block")
 
+    # if title is missing get it from file name
     if not 'title' in data:
-        raise ValueError("JSON schema without title")
+        title = path
+        if title.startswith('oic.r.'):
+            title = title[len('oic.r.'):]
+        elif title.startswith('core.'):
+            title = title[len('core.'):]
+        if title.endswith('.json'):
+            title = title[:-len('.json')]
+    else:
+        title = data['title']
 
     required = set(data.get('required', []))
 
@@ -63,7 +72,7 @@ def load_json_schema(directory, path, schemas={}):
                 if props['read_only']:
                     props['description'] = props['description'][len('ReadOnly,'):].strip()
 
-        descr['title'] = data['title']
+        descr['title'] = title
 
     schemas[path] = definitions
     return definitions
