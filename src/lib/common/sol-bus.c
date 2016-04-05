@@ -638,7 +638,7 @@ name_owner_changed(sd_bus_message *m, void *userdata, sd_bus_error *ret_error)
     if (sd_bus_message_read(m, "sss", &name, &old, &new) < 0)
         return 0;
 
-    if (new && client->connect) {
+    if (new && *new && client->connect) {
         /* Assuming that when a name is replaced, calling 'connected()' is
          * the right thing to do.
          */
