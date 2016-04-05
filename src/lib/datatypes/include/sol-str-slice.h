@@ -162,9 +162,9 @@ sol_str_slice_caseeq(const struct sol_str_slice a, const struct sol_str_slice b)
  * @param haystack Slice that will be searched
  * @param needle Slice to search for in @c haystack
  *
- * @return @c true if @c needle is contained in @c haystack
+ * @return A pointer to the beginning of substring or @c NULL if not
  */
-bool sol_str_slice_contains(const struct sol_str_slice haystack, const struct sol_str_slice needle);
+char *sol_str_slice_contains(const struct sol_str_slice haystack, const struct sol_str_slice needle);
 
 /**
  * @brief Checks if @c haystack contains @c needle.
@@ -172,9 +172,13 @@ bool sol_str_slice_contains(const struct sol_str_slice haystack, const struct so
  * @param haystack Slice that will be searched
  * @param needle String to search for in @c haystack
  *
- * @return @c true if @c needle is contained in @c haystack
+ * @return A pointer to the beginning of substring or @c NULL if not
  */
-bool sol_str_slice_str_contains(const struct sol_str_slice haystack, const char *needle);
+static inline char *
+sol_str_slice_str_contains(const struct sol_str_slice haystack, const char *needle)
+{
+    return sol_str_slice_contains(haystack, SOL_STR_SLICE_STR(needle, strlen(needle)));
+}
 
 /**
  * @brief Copies the content of slice @c src into string @c dst.
