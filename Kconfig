@@ -187,6 +187,7 @@ source "src/samples/http/Kconfig"
 source "src/samples/mqtt/Kconfig"
 source "src/samples/mavlink/Kconfig"
 source "src/samples/network/Kconfig"
+source "src/samples/bluetooth/Kconfig"
 
 config FLOW_SAMPLES
 	bool "Flow samples"
