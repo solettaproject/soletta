@@ -442,6 +442,7 @@ common_get_process(struct sol_flow_node *node, void *data, uint16_t port,
             SOL_WRN("Could not append the param - %.*s:%.*s",
                 SOL_STR_SLICE_PRINT(param->value.key_value.key),
                 SOL_STR_SLICE_PRINT(param->value.key_value.value));
+            r = -EINVAL;
             goto err;
         }
     }
