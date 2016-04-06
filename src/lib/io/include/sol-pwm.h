@@ -22,6 +22,7 @@
 #include <stdint.h>
 
 #include <sol-common-buildopts.h>
+#include <sol-macros.h>
 
 #ifdef __cplusplus
 extern "C" {
@@ -79,6 +80,58 @@ struct sol_pwm_config {
     enum sol_pwm_polarity polarity;
     bool enabled;
 };
+
+/**
+ * @brief Converts a string PWM alignment to sol_pwm_alignment
+ *
+ * This function converts a string PWM alignment to enumeration sol_pwm_alignment.
+ *
+ * @see sol_pwm_alignment_to_str().
+ *
+ * @param pwm_alignment Valid values are "left", "center", "right".
+ *
+ * @return enumeration sol_pwm_alignment
+ */
+enum sol_pwm_alignment sol_pwm_alignment_from_str(const char *pwm_alignment) SOL_ATTR_WARN_UNUSED_RESULT;
+
+/**
+ * @brief Converts sol_pwm_alignment to a string name.
+ *
+ * This function converts sol_pwm_alignment enumeration to a string PWM alignment.
+ *
+ * @see sol_pwm_alignment_from_str().
+ *
+ * @param pwm_alignment sol_pwm_alignment
+ *
+ * @return String representation of the sol_pwm_alignment
+ */
+const char *sol_pwm_alignment_to_str(enum sol_pwm_alignment pwm_alignment) SOL_ATTR_WARN_UNUSED_RESULT;
+
+/**
+ * @brief Converts a string PWM polarity to sol_pwm_polarity
+ *
+ * This function converts a string PWM polarity to enumeration sol_pwm_polarity.
+ *
+ * @see sol_pwm_polarity_to_str().
+ *
+ * @param pwm_polarity Valid values are "normal", "inversed".
+ *
+ * @return enumeration sol_pwm_polarity
+ */
+enum sol_pwm_polarity sol_pwm_polarity_from_str(const char *pwm_polarity) SOL_ATTR_WARN_UNUSED_RESULT;
+
+/**
+ * @brief Converts sol_pwm_polarity to a string name.
+ *
+ * This function converts sol_pwm_polarity enumeration to a string PWM polarity.
+ *
+ * @see sol_pwm_polarity_from_str().
+ *
+ * @param pwm_polarity sol_pwm_polarity
+ *
+ * @return String representation of the sol_pwm_polarity
+ */
+const char *sol_pwm_polarity_to_str(enum sol_pwm_polarity pwm_polarity) SOL_ATTR_WARN_UNUSED_RESULT;
 
 /**
  * @brief Opens a given pin by its board label as pwm.
