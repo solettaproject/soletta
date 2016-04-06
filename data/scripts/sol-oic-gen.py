@@ -20,6 +20,7 @@ import os
 import json
 import sys
 import traceback
+import re
 from collections import OrderedDict
 
 def merge_schema(directory, definitions, to_merge):
@@ -44,8 +45,17 @@ def load_json_schema(directory, path, schemas={}):
     if not definitions:
         raise ValueError("empty definition block")
 
+    # if title is missing get it from file name
     if not 'title' in data:
-        raise ValueError("JSON schema without title")
+        title = path
+        if title.startswith('oic.r.'):
+            title = title[len('oic.r.'):]
+        elif title.startswith('core.'):
+            title = title[len('core.'):]
+        if title.endswith('.json'):
+            title = title[:-len('.json')]
+    else:
+        title = data['title']
 
     required = set(data.get('required', []))
 
@@ -62,7 +72,7 @@ def load_json_schema(directory, path, schemas={}):
                 if props['read_only']:
                     props['description'] = props['description'][len('ReadOnly,'):].strip()
 
-        descr['title'] = data['title']
+        descr['title'] = title
 
     schemas[path] = definitions
     return definitions
@@ -488,7 +498,7 @@ def object_inform_flow_fn_common_c(state_struct_name, name, props, client):
         send_flow_pkts.append('''%(flow_send_fn)s(resource->node, SOL_FLOW_NODE_TYPE_%(STRUCT_NAME)s__OUT__%(FIELD_NAME)s, %(val)s);''' % {
             'flow_send_fn': fn,
             'STRUCT_NAME': name.upper(),
-            'FIELD_NAME': field_name.upper(),
+            'FIELD_NAME': get_port_name(field_name),
             'val': val
         })
 
@@ -551,7 +561,7 @@ def object_open_fn_client_c(state_struct_name, resource_type, name, props):
 }
 ''' % {
         'struct_name': name,
-        'STRUCT_NAME': name.upper(),
+        'STRUCT_NAME': get_port_name(name),
         'resource_type': resource_type,
         'field_init': '\n'.join(field_init),
         'to_repr_vec_fn': to_repr_vec_fn
@@ -826,6 +836,10 @@ struct %(struct_name)s {
         'from_repr_vec_fn': object_from_repr_vec_fn_common_c(name, props),
     }
 
+# handle port_name, portName and PortName
+def get_port_name(name):
+    return re.sub('(?!^)([A-Z]+)', r'_\1', name).upper()
+
 def generate_object_json(resource_type, struct_name, node_name, title, props, server):
     if server:
         in_ports = []
@@ -860,7 +874,7 @@ def generate_object_json(resource_type, struct_name, node_name, title, props, se
             'methods': {
                 'process': '%s_set_%s' % (struct_name, prop_name)
             },
-            'name': '%s' % prop_name.upper()
+            'name': '%s' % get_port_name(prop_name)
         })
 
     if server:
@@ -880,7 +894,7 @@ def generate_object_json(resource_type, struct_name, node_name, title, props, se
         out_ports.append({
             'data_type': JSON_TO_SOL_JSON[prop_descr.get('type', 'string')],
             'description': prop_descr.get('description', '???'),
-            'name': '%s' % prop_name.upper()
+            'name': '%s' % get_port_name(prop_name)
         })
 
     output = {
