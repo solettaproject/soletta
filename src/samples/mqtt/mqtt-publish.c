@@ -82,23 +82,21 @@ on_disconnect(void *data, struct sol_mqtt *mqtt)
     sol_timeout_add(1000, try_reconnect, mqtt);
 }
 
-const struct sol_mqtt_config config = {
-    SOL_SET_API_VERSION(.api_version = SOL_MQTT_CONFIG_API_VERSION, )
-    .clean_session = true,
-    .keepalive = 60,
-    .handlers = {
-        SOL_SET_API_VERSION(.api_version = SOL_MQTT_HANDLERS_API_VERSION, )
-        .connect = on_connect,
-        .disconnect = on_disconnect,
-    },
-};
-
 int
 main(int argc, char *argv[])
 {
     struct sol_mqtt *mqtt;
     struct sol_buffer payload;
-    int port;
+    struct sol_mqtt_config config = {
+        SOL_SET_API_VERSION(.api_version = SOL_MQTT_CONFIG_API_VERSION, )
+        .clean_session = true,
+        .keepalive = 60,
+        .handlers = {
+            SOL_SET_API_VERSION(.api_version = SOL_MQTT_HANDLERS_API_VERSION, )
+            .connect = on_connect,
+            .disconnect = on_disconnect,
+        },
+    };
 
     sol_init();
 
@@ -107,7 +105,8 @@ main(int argc, char *argv[])
         return 0;
     }
 
-    port = atoi(argv[2]);
+    config.port = atoi(argv[2]);
+    config.host = argv[1];
     topic = argv[3];
 
     payload = SOL_BUFFER_INIT_CONST(argv[4], strlen(argv[4]));
@@ -120,7 +119,7 @@ main(int argc, char *argv[])
         .retain = false,
     };
 
-    mqtt = sol_mqtt_connect(argv[1], port, &config, NULL);
+    mqtt = sol_mqtt_connect(&config);
     if (!mqtt) {
         SOL_WRN("Unable to create MQTT session");
         return -1;
