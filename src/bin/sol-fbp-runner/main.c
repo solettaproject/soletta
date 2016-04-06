@@ -43,6 +43,10 @@
 #define WEB_INSPECTOR 1
 #endif
 
+#ifndef HTTP_SERVER_PORT
+#define HTTP_SERVER_PORT 80
+#endif
+
 static struct {
     const char *name;
 

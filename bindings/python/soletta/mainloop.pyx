@@ -1,11 +1,11 @@
 import asyncio
-
+from asyncio cimport Task
 
 cdef extern from "sol-mainloop.h":
 	struct sol_mainloop_implementation:
 		void run()
-		bint idle_add()
-		void idle_del()
+		void * idle_add(bint (*)(void*), void*)
+		bint idle_del(void*)
 		pass
 
 	bint sol_mainloop_set_implementation(const sol_mainloop_implementation *)
@@ -29,11 +29,21 @@ cdef void *wrap_sol_timeout_add(args):
 cdef void wrap_sol_timeout_del(args):
 	pass
 
-cdef bint wrap_idle_add(args):
-	return False
+cdef void *wrap_idle_add(bint (*cb)(void*), const void *data ):
 
-cdef void wrap_idle_del(args):
-	pass
+	@asyncio.coroutine
+	def task(cb, data):
+		while True:
+			cb(data)
+			"""FIXME: this is probably not what we want"""
+			yield from asyncio.sleep(0.1)
+
+	cdef Task* t = asyncio.get_event_loop().create_task(<object><void*> &cb, <object>data)
+	return <void*> t
+
+cdef bint wrap_idle_del(void *handle):
+	(<object?>handle).cancel()
+	return True
 
 cdef void quit():
 	pass
@@ -50,8 +60,10 @@ cdef void * wrap_source_get_data(args):
 cdef sol_mainloop_implementation _py_asyncio_impl
 
 _py_asyncio_impl.run = wrap_sol_run
-"""_py_asyncio_impl.idle_add = wrap_idle_add
+_py_asyncio_impl.idle_add = wrap_idle_add
 _py_asyncio_impl.idle_del = wrap_idle_del
+
+"""
 _py_asyncio_impl.init = wrap_sol_init
 _py_asyncio_impl.quit = wrap_sol_quit
 _py_asyncio_impl.run = wrap_sol_run
