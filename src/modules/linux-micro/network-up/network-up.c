@@ -52,6 +52,9 @@ network_up_start(const struct sol_platform_linux_micro_module *mod, const char *
     const struct sol_vector *links;
 
     links = sol_network_get_available_links();
+    if (!links)
+        return 0;
+
     SOL_VECTOR_FOREACH_IDX (links, itr, idx) {
         SOL_NETWORK_LINK_CHECK_VERSION(itr, -EINVAL);
         sol_network_link_up(itr->index);
