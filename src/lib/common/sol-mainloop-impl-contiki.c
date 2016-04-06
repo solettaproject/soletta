@@ -25,6 +25,8 @@
 #include "sol-mainloop-impl.h"
 #include "sol-vector.h"
 
+extern process_event_t sol_udp_socket_event;
+
 static process_event_t event;
 static process_data_t event_data;
 static struct etimer et;
@@ -222,9 +224,6 @@ event_dispatch(void)
 {
     int i;
     struct sol_event_handler_contiki *event_handler;
-
-    if (event != sensors_event)
-        return;
 
     event_handling_processing = true;
     SOL_PTR_VECTOR_FOREACH_IDX (&event_handler_vector, event_handler, i) {
