@@ -72,7 +72,7 @@ aio_read_dispatch(struct sol_aio *aio)
 }
 
 /* On Zephyr, the precision (sample width) is set at build time, for
- * the ADC controller -- CONFIG_ADC_DW_WIDTH kernel option */
+ * the ADC controller -- CONFIG_ADC_DW_SAMPLE_WIDTH kernel option */
 
 SOL_API struct sol_aio *
 sol_aio_open_raw(const int device, const int pin, const unsigned int precision)
@@ -96,7 +96,7 @@ sol_aio_open_raw(const int device, const int pin, const unsigned int precision)
     aio = calloc(1, sizeof(struct sol_aio));
     SOL_NULL_CHECK(aio, NULL);
 
-    aio->sample.sampling_delay = 1;
+    aio->sample.sampling_delay = 12;
     aio->sample.channel_id = pin;
     aio->sample.buffer = (uint8_t *)&aio->async.value;
     aio->sample.buffer_length = sizeof(aio->async.value);
@@ -138,8 +138,11 @@ static bool
 aio_read_timeout_cb(void *data)
 {
     struct sol_aio *aio = data;
+    int r;
 
-    aio->async.value = adc_read(aio->dev, &aio->table);
+    r = adc_read(aio->dev, &aio->table);
+    if (r != 0)
+        aio->async.value = -EIO;
 
     aio->async.timeout = NULL;
     aio_read_dispatch(aio);
