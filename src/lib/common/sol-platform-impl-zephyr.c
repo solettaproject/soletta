@@ -19,6 +19,7 @@
 #include <errno.h>
 #include <stdlib.h>
 #include <string.h>
+#include <version.h>
 
 #include "sol-platform.h"
 #include "sol-platform-impl.h"
@@ -100,8 +101,13 @@ sol_platform_impl_get_serial_number(char **number)
 int
 sol_platform_impl_get_os_version(char **version)
 {
-    SOL_WRN("Not implemented");
-    return -ENOTSUP;
+    SOL_NULL_CHECK(version, -EINVAL);
+
+    *version = strdup(KERNEL_VERSION_STRING);
+    if (!*version)
+        return -ENOMEM;
+
+    return 0;
 }
 
 int
@@ -157,7 +163,7 @@ sol_platform_impl_apply_locale(enum sol_platform_locale_category type, const cha
 int
 sol_platform_impl_load_locales(char **locale_cache)
 {
-    SOL_WRN("Not implemented");
+    SOL_WRN("Locales for Zephyr not implemented");
     return 0;
 }
 
