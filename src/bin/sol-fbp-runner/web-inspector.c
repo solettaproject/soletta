@@ -241,6 +241,8 @@ web_inspector_add_port_in_without_descriptions(struct sol_buffer *buf, const str
             return -ENOENT;
 
         r = web_inspector_add_port_without_description(buf, i, port->packet_type);
+        if (r < 0)
+            return r;
     }
 
     r = sol_buffer_append_char(buf, ']');
@@ -1050,9 +1052,6 @@ web_inspector_add_packet_simple(struct sol_buffer *buf, const struct sol_flow_pa
         struct sol_direction_vector v;
 
         r = sol_flow_packet_get_direction_vector(packet, &v);
-        if (r < 0)
-            return r;
-
         if (r < 0)
             return r;
 
