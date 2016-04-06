@@ -80,6 +80,14 @@ for ( oneVariable in process.env ) {
 				"sol-gpio.h"
 			] );
 			break;
+		case "USE_AIO":
+			sources = sources.concat( [
+				"../src/functions/aio.cc",
+			] );
+			headers = headers.concat( [
+				"sol-aio.h"
+			] );
+			break;
 		default:
 			break;
 	}
