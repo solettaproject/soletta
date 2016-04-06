@@ -23,6 +23,42 @@
 
 #include "test.h"
 
+DEFINE_TEST(test_str_slice_split_iterate);
+
+static void
+test_str_slice_split_iterate(void)
+{
+    size_t i;
+
+    static const struct {
+        struct sol_str_slice to_split;
+        const char *delim;
+        size_t iterations;
+        const char *tokens[10];
+    } table[] = {
+        { SOL_STR_SLICE_LITERAL("something"), ";", 1, { "something", NULL } },
+        { SOL_STR_SLICE_LITERAL("something;i like it"), ";", 2, { "something", "i like it", NULL } },
+        { SOL_STR_SLICE_LITERAL("something;i like it;"), ";", 3, { "something", "i like it", "", NULL } },
+        { SOL_STR_SLICE_LITERAL("something;i like it;&&;1233;2;31"), ";", 6, { "something", "i like it", "&&", "1233", "2", "31", NULL } },
+        { SOL_STR_SLICE_LITERAL("something;i like it;&&;1233;2;31"), "&&", 2, { "something;i like it;", ";1233;2;31", NULL } },
+        { SOL_STR_SLICE_LITERAL("HelloThisIsMyDelimiterByeThisIsMyDelimiterWhatAHugeDelimiter"), "ThisIsMyDelimiter",
+          3, { "Hello", "Bye", "WhatAHugeDelimiter", NULL } }
+    };
+
+    for (i = 0; i < SOL_UTIL_ARRAY_SIZE(table); i++) {
+        struct sol_str_slice token = SOL_STR_SLICE_EMPTY;
+        const char *itr = NULL;
+        size_t iterations = 0;
+
+        while (sol_str_slice_str_split_iterate(table[i].to_split, &token, &itr, table[i].delim)) {
+            ASSERT(table[i].tokens[iterations]);
+            ASSERT(sol_str_slice_str_eq(token, table[i].tokens[iterations++]));
+        }
+
+        ASSERT_INT_EQ(iterations, table[i].iterations);
+    }
+}
+
 DEFINE_TEST(test_str_slice_to_int);
 
 static void

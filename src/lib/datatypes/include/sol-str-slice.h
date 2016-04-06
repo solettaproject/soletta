@@ -352,8 +352,50 @@ sol_str_slice_trim(struct sol_str_slice slice)
  * @param maxsplit The maximum number of splits to make
  *
  * @return On success, vector of string slices of the words, @c NULL otherwise.
+ * @see sol_str_slice_split_iterate()
+ * @see sol_str_slice_str_split_iterate()
  */
 struct sol_vector sol_str_slice_split(const struct sol_str_slice slice, const char *delim, size_t maxsplit);
+
+/**
+ * @brief Do an one step split iteration over a slice.
+ *
+ * Usage example:
+ * @code{.c}
+ * struct sol_str_slice slice = SOL_STR_SLICE_LITERAL("one;two;three");
+ * struct sol_str_slice token;
+ * const char *itr = NULL;
+ * while (sol_str_slice_split_iterate(slice, &token, &itr, ";")) {
+ *    printf("%.*s\t", SOL_STR_SLICE_PRINT(token));
+ *    //It will print: one two three
+ * }
+ * @endcode
+ *
+ * @param slice The slice the be splitted
+ * @param token A splitted token
+ * @param itr An iterator - It should be @c NULL on the first call.
+ * @param delim The delimiter slice
+ * @return @c true if iteration should continue or @c false if iteration should be stopped.
+ * @see sol_str_slice_split()
+ * @see sol_str_slice_str_split_iterate()
+ */
+bool sol_str_slice_split_iterate(const struct sol_str_slice slice, struct sol_str_slice *token, const char **itr, const struct sol_str_slice delim);
+
+/**
+ * @brief Wrapper over sol_str_slice_split_iterate()
+ *
+ * @param slice The slice the be splitted
+ * @param token A splitted token
+ * @param itr An iterator - It should be @c NULL on the first call.
+ * @param delim The delimiter string
+ * @see sol_str_slice_split_iterate()
+ * @see sol_str_slice_split()
+ */
+static inline bool
+sol_str_slice_str_split_iterate(const struct sol_str_slice slice, struct sol_str_slice *token, const char **itr, const char *delim)
+{
+    return sol_str_slice_split_iterate(slice, token, itr, sol_str_slice_from_str(delim));
+}
 
 /**
  * @}

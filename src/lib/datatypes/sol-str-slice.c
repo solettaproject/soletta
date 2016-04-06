@@ -109,3 +109,37 @@ err:
     sol_vector_clear(&v);
     return v;
 }
+
+SOL_API bool
+sol_str_slice_split_iterate(const struct sol_str_slice slice,
+    struct sol_str_slice *token, const char **itr, const struct sol_str_slice delim)
+{
+    struct sol_str_slice to_search;
+    char *sep;
+
+    SOL_NULL_CHECK(itr, false);
+
+    if (!*itr)
+        to_search = slice;
+    else {
+        to_search.data = *itr;
+        to_search.len = slice.len - (*itr - slice.data);
+
+        if (!to_search.len)
+            return false;
+
+        to_search.data += delim.len;
+        to_search.len -= delim.len;
+    }
+
+    sep = sol_str_slice_contains(to_search, delim);
+
+    if (!sep)
+        *token = to_search;
+    else {
+        token->data = to_search.data;
+        token->len = sep - token->data;
+    }
+    *itr = token->data + token->len;
+    return true;
+}
