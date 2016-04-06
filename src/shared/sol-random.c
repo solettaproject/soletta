@@ -21,6 +21,10 @@
 #include <sol-util-internal.h>
 #include <time.h>
 
+#ifdef SOL_PLATFORM_ZEPHYR
+#include <drivers/rand32.h>
+#endif
+
 #ifdef SOL_PLATFORM_LINUX
 #include <fcntl.h>
 #include <sys/stat.h>
@@ -91,7 +95,11 @@ get_platform_seed(uint64_t seed)
 
     /* Fall back to using a bad source of entropy if platform-specific,
      * higher quality random sources, are unavailable. */
+#ifdef SOL_PLATFORM_ZEPHYR
+    return ((uint64_t)sys_rand32_get() << 32) | sys_rand32_get();
+#else
     return (uint64_t)time(NULL);
+#endif
 }
 
 struct sol_random_mt19937 {
