@@ -42,6 +42,10 @@ obj-networking-$(PLATFORM_ZEPHYR)-extra-cflags += \
     -I$(ZEPHYR_BASE)/net/ip/contiki/os \
     -I$(ZEPHYR_BASE)/net/ip
 
+obj-networking-$(PLATFORM_CONTIKI) += \
+    sol-network-impl-contiki.o \
+    sol-socket-impl-contiki.o
+
 obj-networking-$(COAP) += \
     coap.o \
     sol-coap.o
