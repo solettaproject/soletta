@@ -790,6 +790,7 @@ sol_mainloop_impl_fd_set_flags(void *handle, uint32_t flags)
     sol_mainloop_impl_lock();
 
     fd_handle->flags = flags;
+    fd_changed = true;
 
     sol_mainloop_common_main_thread_check_notify();
     sol_mainloop_impl_unlock();
