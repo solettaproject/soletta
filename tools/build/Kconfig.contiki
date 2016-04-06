@@ -2,3 +2,5 @@ config CONTIKI
     def_bool y
     select FEATURE_HW_GPIO
     select FEATURE_FLOW
+    select FEATURE_NETWORK
+    select FEATURE_COAP
