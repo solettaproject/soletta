@@ -197,7 +197,7 @@ struct sol_mqtt_handlers {
      *
      * Callback called when a connect request has been processed
      */
-    void (*connect) (void *data, struct sol_mqtt *mqtt);
+    void (*connect)(void *data, struct sol_mqtt *mqtt);
 
     /**
      * @brief On disconnect callback
@@ -288,6 +288,11 @@ struct sol_mqtt_config {
     bool clean_session;
 
     /**
+     * The host port to connect
+     */
+    uint16_t port;
+
+    /**
      * Time interval between PING messages that should be sent by the
      * broker to the client in miliseconds.
      */
@@ -330,6 +335,16 @@ struct sol_mqtt_config {
     const struct sol_cert *private_key;
 
     /**
+     * User data provided to the callbacks
+     */
+    const void *data;
+
+    /**
+     * The host address of the MQTT broker
+     */
+    const char *host;
+
+    /**
      * Handlers to be used with this connection
      */
     const struct sol_mqtt_handlers handlers;
@@ -338,14 +353,11 @@ struct sol_mqtt_config {
 /**
  * @brief Connect to a MQTT broker
  *
- * @param host The host address of the MQTT broker
- * @param port The host port to connect to
  * @param config Configuration and callbacks
- * @param data User data provided to the callbacks
  *
  * @return New mqtt object on sucess, NULL otherwise
  */
-struct sol_mqtt *sol_mqtt_connect(const char *host, uint16_t port, const struct sol_mqtt_config *config, const void *data);
+struct sol_mqtt *sol_mqtt_connect(const struct sol_mqtt_config *config);
 
 /**
  * @brief Reestablish the connection to the MQTT broker

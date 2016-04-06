@@ -77,7 +77,7 @@ struct sol_mqtt {
     struct sol_timeout *unsubscribe_timeout;
     struct sol_timeout *message_timeout;
 
-    void *data;
+    const void *data;
 
     struct sol_mqtt_handlers handlers;
 
@@ -196,7 +196,7 @@ remove:
         SOL_NULL_CHECK(mqtt, false); \
         mqtt->_cb ## _timeout = NULL; \
         if (mqtt->handlers._cb) \
-            mqtt->handlers._cb(mqtt->data, mqtt); \
+            mqtt->handlers._cb((void *)mqtt->data, mqtt); \
         return false; \
     }
 
@@ -267,7 +267,7 @@ sol_mqtt_on_message_wrapper(void *data)
     SOL_NULL_CHECK_GOTO(message, end);
 
     if (mqtt->handlers.message)
-        mqtt->handlers.message(mqtt->data, mqtt, message);
+        mqtt->handlers.message((void *)mqtt->data, mqtt, message);
 
 end:
     free(wrapper_data);
@@ -344,12 +344,11 @@ sol_mqtt_on_unsubscribe(struct mosquitto *mosq, void *data, int id)
 }
 
 SOL_API struct sol_mqtt *
-sol_mqtt_connect(const char *host, uint16_t port, const struct sol_mqtt_config *config, const void *data)
+sol_mqtt_connect(const struct sol_mqtt_config *config)
 {
     struct sol_mqtt *mqtt;
     int r;
 
-    SOL_NULL_CHECK(host, NULL);
     SOL_NULL_CHECK(config, NULL);
     MQTT_CHECK_API(config, NULL);
     MQTT_CHECK_HANDLER_API(&config->handlers, NULL);
@@ -368,10 +367,7 @@ sol_mqtt_connect(const char *host, uint16_t port, const struct sol_mqtt_config *
     SOL_NULL_CHECK_GOTO(mqtt->mosq, error);
 
     mqtt->handlers = config->handlers;
-
-    /* It comes as const, but goes back to user on the callbacks as
-     * not const, for convenience */
-    mqtt->data = (void *)data;
+    mqtt->data = config->data;
 
     mosquitto_connect_callback_set(mqtt->mosq, sol_mqtt_on_connect);
     mosquitto_disconnect_callback_set(mqtt->mosq, sol_mqtt_on_disconnect);
@@ -412,9 +408,10 @@ sol_mqtt_connect(const char *host, uint16_t port, const struct sol_mqtt_config *
 
     mqtt->connection_status = SOL_MQTT_DISCONNECTED;
 
-    r = mosquitto_connect_async(mqtt->mosq, host, port, mqtt->keepalive / 1000);
+    r = mosquitto_connect_async(mqtt->mosq, config->host, config->port,
+        mqtt->keepalive / 1000);
     if (r != MOSQ_ERR_SUCCESS)
-        SOL_WRN("Unable to connect to %s:%" PRIu16, host, port);
+        SOL_WRN("Unable to connect to %s:%" PRIu16, config->host, config->port);
 
     mqtt->socket_fd = mosquitto_socket(mqtt->mosq);
     if (mqtt->socket_fd == -1) {
