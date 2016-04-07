@@ -135,7 +135,7 @@ end:
     SOL_DBG("worker thread %p stopped", thread);
     /* From this point forward, we can't allow a context switch. IRQ will be
      * re-enabled by the scheduler once this function returns */
-    disableIRQ();
+    irq_disable();
     __atomic_store_n(&thread->finished, true, __ATOMIC_SEQ_CST);
     if (thread->waiting_join != KERNEL_PID_UNDEF)
         sched_set_status((thread_t *)sched_threads[thread->waiting_join], STATUS_PENDING);
