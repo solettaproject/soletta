@@ -86,6 +86,7 @@ for ( oneVariable in process.env ) {
 			] );
 			headers = headers.concat( [
 				"sol-aio.h"
+			] );
 			break;
 		case "USE_UART":
 			sources = sources.concat( [
