@@ -667,6 +667,46 @@
           "methods": {
             "process": "json_array_post_process"
           }
+        },
+        {
+          "data_type": "boolean",
+          "description": "POST a json boolean",
+          "name": "POST_BOOLEAN",
+          "methods": {
+            "process": "boolean_post_process"
+          }
+        },
+        {
+          "data_type": "string",
+          "description": "POST a json string",
+          "name": "POST_STRING",
+          "methods": {
+            "process": "json_string_post_process"
+          }
+        },
+        {
+          "data_type": "int",
+          "description": "POST a json int",
+          "name": "POST_INT",
+          "methods": {
+            "process": "json_int_post_process"
+          }
+        },
+        {
+          "data_type": "float",
+          "description": "POST a json float",
+          "name": "POST_FLOAT",
+          "methods": {
+            "process": "json_float_post_process"
+          }
+        },
+        {
+          "data_type": "any",
+          "description": "POST a json NULL",
+          "name": "POST_NULL",
+          "methods": {
+            "process": "json_null_post_process"
+          }
         }
       ],
       "out_ports": [
@@ -679,6 +719,31 @@
           "data_type": "json-array",
           "description": "The response as json-array",
           "name": "ARRAY"
+        },
+        {
+          "data_type": "boolean",
+          "description": "The response as json boolean",
+          "name": "BOOLEAN"
+        },
+        {
+          "data_type": "string",
+          "description": "The response as json string",
+          "name": "STRING"
+        },
+        {
+          "data_type": "int",
+          "description": "The response as json int",
+          "name": "INT"
+        },
+        {
+          "data_type": "float",
+          "description": "The response as json float",
+          "name": "FLOAT"
+        },
+        {
+          "data_type": "empty",
+          "description": "The response as json NULL",
+          "name": "NULL"
         }
       ]
     },

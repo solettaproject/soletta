@@ -27,7 +27,7 @@ blob-to-str(converter/blob-to-string)
 server(http-server/int:path=/test,port=8080)
 
 get-blob(http-client/blob:url="http://localhost:8080/test")
-get-string(http-client/string:url="http://localhost:8080/test")
+get-string(http-client/string:url="http://localhost:8080/test", accept="text/plain")
 get-json(http-client/json:url="http://localhost:8080/test")
 post(http-client/int:url="http://localhost:8080/test")
 
