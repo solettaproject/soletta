@@ -103,7 +103,11 @@ usage(const char *program)
 #endif
         "    -I            Define search path for FBP files\n"
         "\n",
+#ifdef WEB_INSPECTOR
         program, HTTP_SERVER_PORT);
+#else
+        program);
+#endif
 }
 
 static bool
