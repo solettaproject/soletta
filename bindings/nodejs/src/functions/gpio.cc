@@ -142,3 +142,72 @@ NAN_METHOD(bind_sol_gpio_read) {
     gpio = gpio_data->gpio;
     info.GetReturnValue().Set(Nan::New(sol_gpio_read(gpio)));
 }
+
+NAN_METHOD(bind_sol_gpio_direction_from_str) {
+    VALIDATE_ARGUMENT_COUNT(info, 1);
+    VALIDATE_ARGUMENT_TYPE(info, 0, IsString);
+
+    sol_gpio_direction direction = sol_gpio_direction_from_str(
+        (const char *)*String::Utf8Value(info[0]));
+    info.GetReturnValue().Set(Nan::New(direction));
+}
+
+NAN_METHOD(bind_sol_gpio_direction_to_str) {
+    VALIDATE_ARGUMENT_COUNT(info, 1);
+    VALIDATE_ARGUMENT_TYPE(info, 0, IsInt32);
+
+    const char *idString = sol_gpio_direction_to_str(
+        (sol_gpio_direction)info[0]->Int32Value());
+
+    if (idString) {
+        info.GetReturnValue().Set(Nan::New(idString).ToLocalChecked());
+    } else {
+        info.GetReturnValue().Set(Nan::Null());
+    }
+}
+
+NAN_METHOD(bind_sol_gpio_edge_from_str) {
+    VALIDATE_ARGUMENT_COUNT(info, 1);
+    VALIDATE_ARGUMENT_TYPE(info, 0, IsString);
+
+    sol_gpio_edge edge = sol_gpio_edge_from_str(
+        (const char *)*String::Utf8Value(info[0]));
+    info.GetReturnValue().Set(Nan::New(edge));
+}
+
+NAN_METHOD(bind_sol_gpio_edge_to_str) {
+    VALIDATE_ARGUMENT_COUNT(info, 1);
+    VALIDATE_ARGUMENT_TYPE(info, 0, IsInt32);
+
+    const char *idString = sol_gpio_edge_to_str(
+        (sol_gpio_edge)info[0]->Int32Value());
+
+    if (idString) {
+        info.GetReturnValue().Set(Nan::New(idString).ToLocalChecked());
+    } else {
+        info.GetReturnValue().Set(Nan::Null());
+    }
+}
+
+NAN_METHOD(bind_sol_gpio_drive_from_str) {
+    VALIDATE_ARGUMENT_COUNT(info, 1);
+    VALIDATE_ARGUMENT_TYPE(info, 0, IsString);
+
+    sol_gpio_drive drive = sol_gpio_drive_from_str(
+        (const char *)*String::Utf8Value(info[0]));
+    info.GetReturnValue().Set(Nan::New(drive));
+}
+
+NAN_METHOD(bind_sol_gpio_drive_to_str) {
+    VALIDATE_ARGUMENT_COUNT(info, 1);
+    VALIDATE_ARGUMENT_TYPE(info, 0, IsInt32);
+
+    const char *idString = sol_gpio_drive_to_str(
+        (sol_gpio_drive)info[0]->Int32Value());
+
+    if (idString) {
+        info.GetReturnValue().Set(Nan::New(idString).ToLocalChecked());
+    } else {
+        info.GetReturnValue().Set(Nan::Null());
+    }
+}

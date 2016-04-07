@@ -26,17 +26,17 @@ bool c_sol_gpio_config(v8::Local<v8::Object> jsGPIOConfig,
     sol_gpio_data *gpio_data, sol_gpio_config *config) {
     SOL_SET_API_VERSION(config->api_version = SOL_GPIO_CONFIG_API_VERSION; )
 
-    VALIDATE_AND_ASSIGN((*config), dir, sol_gpio_direction, IsUint32,
-                        "(GPIO direction)", false, jsGPIOConfig,
-                        Uint32Value);
+    VALIDATE_AND_ASSIGN((*config), dir, sol_gpio_direction, IsInt32,
+        "(GPIO direction)", false, jsGPIOConfig,
+        Int32Value);
 
-    VALIDATE_AND_ASSIGN((*config), drive_mode, sol_gpio_drive, IsUint32,
-                        "(GPIO pull-up/pull-down resistor)", false, jsGPIOConfig,
-                        Uint32Value);
+    VALIDATE_AND_ASSIGN((*config), drive_mode, sol_gpio_drive, IsInt32,
+        "(GPIO pull-up/pull-down resistor)", false, jsGPIOConfig,
+        Int32Value);
 
     VALIDATE_AND_ASSIGN((*config), active_low, bool, IsBoolean,
-                        "(GPIO active_low state)", false, jsGPIOConfig,
-                        BooleanValue);
+        "(GPIO active_low state)", false, jsGPIOConfig,
+        BooleanValue);
 
     if (config->dir == SOL_GPIO_DIR_IN) {
         Local<Value> poll_timeout =
@@ -49,10 +49,9 @@ bool c_sol_gpio_config(v8::Local<v8::Object> jsGPIOConfig,
         Local<Value> trigger_mode =
             Nan::Get(jsGPIOConfig, Nan::New("trigger_mode").ToLocalChecked())
                 .ToLocalChecked();
-        VALIDATE_VALUE_TYPE(trigger_mode, IsString, "GPIO in trigger_mode",
+        VALIDATE_VALUE_TYPE(trigger_mode, IsInt32, "GPIO in trigger_mode",
             false);
-        config->in.trigger_mode = (sol_gpio_edge)sol_gpio_edge_from_str(
-            (const char *)*(String::Utf8Value(trigger_mode)));
+        config->in.trigger_mode = (sol_gpio_edge) trigger_mode->Int32Value();
 
         Local<Value> read_cb = Nan::Get(jsGPIOConfig,
             Nan::New("callback").ToLocalChecked()).ToLocalChecked();

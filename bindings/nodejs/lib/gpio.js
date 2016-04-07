@@ -27,25 +27,17 @@ exports.open = function( init ) {
         var config = null;
         var gpiopin;
         var callback_data = [];
-        var edge = "any";
+        var direction = init.direction ? init.direction : "out";
+        var edge = init.edge ? init.edge : "any";
+        var pull = init.pull ? init.pull : "none";
 
-        if ( init.pullup )
-            drive_mode = soletta.sol_gpio_drive.SOL_GPIO_DRIVE_PULL_UP;
-        else if ( init.pullup === false )
-            drive_mode = soletta.sol_gpio_drive.SOL_GPIO_DRIVE_PULL_DOWN;
-        else
-            drive_mode = soletta.sol_gpio_drive.SOL_GPIO_DRIVE_NONE;
-
-        if ( init.edge )
-            edge = init.edge;
-
-        if ( init.direction == "in" ) {
+        if ( direction == "in" ) {
             config = {
-                dir: soletta.sol_gpio_direction.SOL_GPIO_DIR_IN,
+                dir: soletta.sol_gpio_direction_from_str( direction ),
                 active_low: init.activeLow,
                 poll_timeout: init.poll,
-                drive_mode: drive_mode,
-                trigger_mode: edge,
+                drive_mode: soletta.sol_gpio_drive_from_str( pull ),
+                trigger_mode: soletta.sol_gpio_edge_from_str( edge ),
                 callback: function( value ) {
                     callback_data[0].dispatchEvent( "change", {
                         type: "change",
@@ -56,9 +48,9 @@ exports.open = function( init ) {
 
         } else {
             config = {
-                dir: soletta.sol_gpio_direction.SOL_GPIO_DIR_OUT,
+                dir: soletta.sol_gpio_direction_from_str( direction ),
                 active_low: init.activeLow,
-                drive_mode: drive_mode,
+                drive_mode: soletta.sol_gpio_drive_from_str( pull ),
             }
         }
 
