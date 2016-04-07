@@ -142,11 +142,11 @@ sol_spi_open(unsigned int bus, const struct sol_spi_config *cfg)
      * = 2. */
 
     /* min 2 */
-    if (freq > 1600000) {
+    if (freq > 16000000) {
         SOL_WRN("SPI controller frequency has to be at most 16Mhz"
             " (%" PRIu32 "Hz was passed), using the maximum value.",
             freq);
-        freq = 1600000;
+        freq = 16000000;
     }
 
     /* max 32k */
