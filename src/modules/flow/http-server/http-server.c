@@ -76,7 +76,7 @@ struct http_server_node_type {
     void (*send_packet_cb)(struct http_data *mdata, struct sol_flow_node *node);
     int (*handle_response_cb)(struct sol_flow_node *node,
         struct sol_http_request *request, struct sol_http_response *response,
-        bool *updated);
+        bool *updated, struct sol_http_content_type_priority *prefered_content_type);
 };
 
 static struct sol_ptr_vector servers = SOL_PTR_VECTOR_INIT;
@@ -211,7 +211,7 @@ server_unref(struct server_data *sdata)
 static int
 common_handle_response_cb(struct sol_flow_node *node,
     struct sol_http_request *request, struct sol_http_response *response,
-    bool *updated)
+    bool *updated, struct sol_http_content_type_priority *prefered_content_type)
 {
     int r;
     uint16_t idx;
@@ -237,17 +237,15 @@ common_handle_response_cb(struct sol_flow_node *node,
 
             *updated = true;
             break;
-        case SOL_HTTP_PARAM_HEADER:
-            if (sol_str_slice_str_caseeq(value->value.key_value.key,
-                HTTP_HEADER_ACCEPT)) {
-                if (sol_str_slice_str_contains(value->value.key_value.value,
-                    HTTP_HEADER_CONTENT_TYPE_JSON))
-                    send_json = true;
-            }
-            break;
         default:
             break;
         }
+    }
+
+    if (prefered_content_type &&
+        sol_str_slice_str_eq(prefered_content_type->content_type,
+        HTTP_HEADER_CONTENT_TYPE_JSON)) {
+        send_json = true;
     }
 
     r = type->response_cb(mdata, &response->content, send_json);
@@ -270,39 +268,16 @@ err_exit:
 }
 
 static bool
-is_sse_request(enum sol_http_method method, const struct sol_http_params *params)
+is_sse_request(enum sol_http_method method,
+    struct sol_http_content_type_priority *prefered_content_type)
 {
-    uint16_t i;
-    struct sol_http_param_value *param;
-
     if (method != SOL_HTTP_METHOD_GET)
         return false;
 
-    SOL_HTTP_PARAMS_FOREACH_IDX (params, param, i) {
-        if (param->type != SOL_HTTP_PARAM_HEADER)
-            continue;
+    if (!prefered_content_type)
+        return false;
 
-        if (sol_str_slice_str_eq(param->value.key_value.key, "Accept")) {
-            int r;
-            bool is_stream;
-            struct sol_vector priorities;
-            struct sol_http_content_type_priority *pri;
-
-            r = sol_http_parse_content_type_priorities(param->value.key_value.value, &priorities);
-            SOL_INT_CHECK(r, < 0, false);
-            if (!priorities.len) {
-                sol_http_content_type_priorities_array_clear(&priorities);
-                return false;
-            }
-
-            pri = sol_vector_get_nocheck(&priorities, 0);
-            is_stream = sol_str_slice_str_caseeq(pri->content_type, "text/stream");
-            sol_http_content_type_priorities_array_clear(&priorities);
-            return is_stream;
-        }
-    }
-
-    return false;
+    return sol_str_slice_str_eq(prefered_content_type->content_type, "text/stream");
 }
 
 static void
@@ -363,6 +338,11 @@ common_response_cb(void *data, struct sol_http_request *request)
     struct http_data *mdata = sol_flow_node_get_private_data(node);
     const struct http_server_node_type *type;
     bool updated = false;
+    uint16_t i;
+    struct sol_http_param_value *param;
+    const struct sol_http_params *params;
+    struct sol_vector priorities = { 0 };
+    struct sol_http_content_type_priority *prefered_content_type = NULL;
     struct sol_http_response response = {
         SOL_SET_API_VERSION(.api_version = SOL_HTTP_RESPONSE_API_VERSION, )
         .content = SOL_BUFFER_INIT_EMPTY,
@@ -387,7 +367,21 @@ common_response_cb(void *data, struct sol_http_request *request)
         return 0;
     }
 
-    if (is_sse_request(method, sol_http_request_get_params(request)) && type->response_cb) {
+    params = sol_http_request_get_params(request);
+    SOL_HTTP_PARAMS_FOREACH_IDX (params, param, i) {
+        if (param->type != SOL_HTTP_PARAM_HEADER)
+            continue;
+
+        if (sol_str_slice_str_eq(param->value.key_value.key, "Accept")) {
+            r = sol_http_parse_content_type_priorities(param->value.key_value.value, &priorities);
+            SOL_INT_CHECK_GOTO(r, < 0, end);
+            if (priorities.len > 0)
+                prefered_content_type = sol_vector_get_nocheck(&priorities, 0);
+            break;
+        }
+    }
+
+    if (is_sse_request(method, prefered_content_type) && type->response_cb) {
         struct sol_http_progressive_response *sse;
 
         r = sol_http_response_set_sse_headers(&response);
@@ -417,7 +411,8 @@ common_response_cb(void *data, struct sol_http_request *request)
         }
     } else {
 
-        r = type->handle_response_cb(node, request, &response, &updated);
+        r = type->handle_response_cb(node, request, &response, &updated,
+            prefered_content_type);
         SOL_INT_CHECK_GOTO(r, < 0, end);
 
         if (updated) {
@@ -456,6 +451,7 @@ end:
     sol_http_params_clear(&response.param);
 
 exit:
+    sol_http_content_type_priorities_array_clear(&priorities);
     return 0;
 }
 
@@ -1268,7 +1264,7 @@ blob_send_packet_cb(struct http_data *mdata,
 static int
 blob_handle_response_cb(struct sol_flow_node *node,
     struct sol_http_request *request, struct sol_http_response *response,
-    bool *updated)
+    bool *updated, struct sol_http_content_type_priority *prefered_content_type)
 {
     int r;
     struct http_data *mdata = sol_flow_node_get_private_data(node);
