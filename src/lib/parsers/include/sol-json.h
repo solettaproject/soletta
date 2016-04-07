@@ -238,6 +238,19 @@ sol_json_scanner_init_from_slice(struct sol_json_scanner *scanner, const struct 
 }
 
 /**
+ * @brief Initialized a JSON token from a struct @ref sol_str_slice
+ *
+ * @param token JSON token
+ * @param slice The slice to initialized the JSON scanner
+ */
+static inline void
+sol_json_token_init_from_slice(struct sol_json_token *token, const struct sol_str_slice slice)
+{
+    token->start = slice.data;
+    token->end = slice.data + slice.len;
+}
+
+/**
  * @brief Initializes a JSON scanner based on the information of a second scanner.
  *
  * Useful to offload some segments of the JSON document to different parser routines.

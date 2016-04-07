@@ -571,7 +571,7 @@
       "category": "output/network",
       "description": "HTTP Server for JSON objects/arrays.",
       "methods": {
-        "close": "blob_close",
+        "close": "json_close",
         "open": "blob_open"
       },
       "node_type": {
@@ -581,9 +581,10 @@
         "data_type": "struct http_server_node_type",
         "extra_methods": {
           "response_cb": "json_response_cb",
-          "process_cb": "blob_process_cb",
+          "process_cb": "json_process_cb",
           "send_packet_cb": "json_send_packet_cb",
-          "handle_response_cb": "blob_handle_response_cb"
+          "post_cb": "json_post_cb",
+          "handle_response_cb": "common_handle_response_cb"
         }
       },
       "name": "http-server/json",
@@ -626,6 +627,46 @@
             "process": "common_process"
           },
           "name": "ARRAY"
+        },
+        {
+	  "data_type": "boolean",
+	  "description": "The value that will be given on a GET",
+          "methods": {
+            "process": "common_process"
+          },
+          "name": "BOOLEAN"
+        },
+        {
+	  "data_type": "string",
+	  "description": "The value that will be given on a GET",
+          "methods": {
+            "process": "common_process"
+          },
+          "name": "STRING"
+        },
+        {
+	  "data_type": "int",
+	  "description": "The value that will be given on a GET",
+          "methods": {
+            "process": "common_process"
+          },
+          "name": "INT"
+        },
+        {
+	  "data_type": "float",
+	  "description": "The value that will be given on a GET",
+          "methods": {
+            "process": "common_process"
+          },
+          "name": "FLOAT"
+        },
+        {
+	  "data_type": "any",
+	  "description": "The value that will be given on a GET",
+          "methods": {
+            "process": "common_process"
+          },
+          "name": "NULL"
         }
       ],
       "out_ports": [
@@ -634,13 +675,38 @@
           "description": "The value received on a POST",
           "name": "OBJECT"
         },
-	{
+        {
           "data_type": "json-array",
           "description": "The value received on a POST",
           "name": "ARRAY"
+        },
+        {
+          "data_type": "string",
+          "description": "The value received on a POST",
+          "name": "STRING"
+        },
+        {
+          "data_type": "boolean",
+          "description": "The value received on a POST",
+          "name": "BOOLEAN"
+        },
+        {
+          "data_type": "int",
+          "description": "The value received on a POST",
+          "name": "INT"
+        },
+        {
+          "data_type": "float",
+          "description": "The value received on a POST",
+          "name": "FLOAT"
+        },
+        {
+          "data_type": "empty",
+          "description": "The value received on a POST",
+          "name": "NULL"
         }
       ],
-      "private_data_type": "http_data",
+      "private_data_type": "http_json_data",
       "url": "http://solettaproject.org/doc/latest/node_types/http-server/json.html"
     }
   ]
