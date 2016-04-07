@@ -96,12 +96,12 @@ interrupt_scheduler_handler_free(void *handler)
     struct interrupt_data_base *base = handler;
     unsigned int state;
 
-    state = disableIRQ();
+    state = irq_disable();
     if (base->pending || base->in_cb)
         base->deleted = true;
     else
         free(base);
-    restoreIRQ(state);
+    irq_restore(state);
 }
 
 #ifdef USE_GPIO
@@ -113,7 +113,7 @@ gpio_cb(void *data)
 }
 
 int
-sol_interrupt_scheduler_gpio_init_int(gpio_t dev, gpio_pp_t pullup, gpio_flank_t flank, gpio_cb_t cb, const void *arg, void **handler)
+sol_interrupt_scheduler_gpio_init_int(gpio_t dev, gpio_mode_t mode, gpio_flank_t flank, gpio_cb_t cb, const void *arg, void **handler)
 {
     struct gpio_interrupt_data *int_data;
     int ret;
@@ -124,7 +124,7 @@ sol_interrupt_scheduler_gpio_init_int(gpio_t dev, gpio_pp_t pullup, gpio_flank_t
     int_data->cb = cb;
     int_data->data = arg;
 
-    ret = gpio_init_int(dev, pullup, flank, gpio_cb, int_data);
+    ret = gpio_init_int(dev, mode, flank, gpio_cb, int_data);
     SOL_INT_CHECK_GOTO(ret, < 0, error);
 
     *handler = int_data;
@@ -140,10 +140,10 @@ sol_interrupt_scheduler_gpio_stop(gpio_t dev, void *handler)
 {
     unsigned int state;
 
-    state = disableIRQ();
+    state = irq_disable();
     gpio_irq_disable(dev);
     interrupt_scheduler_handler_free(handler);
-    restoreIRQ(state);
+    irq_restore(state);
 }
 #endif
 
@@ -219,9 +219,9 @@ sol_interrupt_scheduler_process(msg_t *msg)
     case GPIO: {
         struct gpio_interrupt_data *int_data = (void *)msg->content.ptr;
 
-        state = disableIRQ();
+        state = irq_disable();
         int_data->base.pending = false;
-        restoreIRQ(state);
+        irq_restore(state);
 
         if (int_data->base.deleted)
             interrupt_scheduler_handler_free(int_data);
@@ -235,12 +235,12 @@ sol_interrupt_scheduler_process(msg_t *msg)
         struct uart_interrupt_data *int_data = (void *)msg->content.ptr;
         uint16_t start, end, len;
 
-        state = disableIRQ();
+        state = irq_disable();
         start = int_data->buf_next_read;
         end = int_data->buf_next_write;
         len = int_data->buf_len;
         int_data->base.pending = false;
-        restoreIRQ(state);
+        irq_restore(state);
 
         int_data->base.in_cb = true;
         while (!int_data->base.deleted) {
