@@ -26,7 +26,9 @@
 #include "sol-socket-dtls.h"
 #include "sol-socket.h"
 #include "sol-str-slice.h"
+#ifdef DTLS
 #include "sol-util-file.h"
+#endif
 #include "sol-util-internal.h"
 #include "sol-vector.h"
 

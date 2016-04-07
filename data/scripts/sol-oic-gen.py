@@ -1084,7 +1084,7 @@ initialize_multicast_addresses_once(void)
     multicast_ipv4 = (struct sol_network_link_addr) { .family = SOL_NETWORK_FAMILY_INET, .port = DEFAULT_UDP_PORT };
     if (!sol_network_link_addr_from_str(&multicast_ipv4, MULTICAST_ADDRESS_IPv4)) {
         SOL_WRN("Could not parse multicast IP address");
-        return false;
+        multicast_ipv4.family = SOL_NETWORK_FAMILY_UNSPEC;
     }
     multicast_ipv6_local = (struct sol_network_link_addr) { .family = SOL_NETWORK_FAMILY_INET6, .port = DEFAULT_UDP_PORT };
     if (!sol_network_link_addr_from_str(&multicast_ipv6_local, MULTICAST_ADDRESS_IPv6_LOCAL)) {
@@ -1206,8 +1206,9 @@ send_discovery_packets(struct client_resource *resource)
 
     sol_flow_send_boolean_packet(resource->node, resource->funcs->found_port, false);
 
-    sol_oic_client_find_resource(resource->client, &multicast_ipv4, resource->rt,
-        found_resource, resource);
+    if (multicast_ipv4.family != SOL_NETWORK_FAMILY_UNSPEC)
+        sol_oic_client_find_resource(resource->client, &multicast_ipv4, resource->rt,
+            found_resource, resource);
     sol_oic_client_find_resource(resource->client, &multicast_ipv6_local, resource->rt,
         found_resource, resource);
     sol_oic_client_find_resource(resource->client, &multicast_ipv6_site, resource->rt,
@@ -1319,8 +1320,9 @@ static void
 send_scan_packets(struct client_resource *resource)
 {
     clear_scanned_ids(&resource->scanned_ids);
-    sol_oic_client_find_resource(resource->client, &multicast_ipv4,
-         resource->rt, scan_callback, resource);
+    if (multicast_ipv4.family != SOL_NETWORK_FAMILY_UNSPEC)
+        sol_oic_client_find_resource(resource->client, &multicast_ipv4,
+             resource->rt, scan_callback, resource);
     sol_oic_client_find_resource(resource->client, &multicast_ipv6_local,
          resource->rt, scan_callback, resource);
     sol_oic_client_find_resource(resource->client, &multicast_ipv6_site,
