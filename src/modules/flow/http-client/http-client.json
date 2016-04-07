@@ -21,7 +21,7 @@
         ],
         "data_type": "struct http_client_node_type",
         "extra_methods": {
-          "process_token": "boolean_process_token",
+          "process_json": "boolean_process_json",
           "process_data": "boolean_process_data"
         }
       },
@@ -47,7 +47,7 @@
           },
           {
             "data_type": "string",
-            "default": "application/json",
+            "default": "text/stream, application/json, text/plain",
             "description": "The desired content type of the response",
             "name": "accept"
           }
@@ -104,7 +104,7 @@
         ],
         "data_type": "struct http_client_node_type",
         "extra_methods": {
-          "process_token": "string_process_token",
+          "process_json": "string_process_json",
           "process_data": "string_process_data"
         }
       },
@@ -130,7 +130,7 @@
           },
           {
             "data_type": "string",
-            "default": "text/plain",
+            "default": "text/stream, application/json, text/plain",
             "description": "The desired content type of the response",
             "name": "accept"
           }
@@ -187,7 +187,7 @@
         ],
         "data_type": "struct http_client_node_type",
         "extra_methods": {
-          "process_token": "rgb_process_token",
+          "process_json": "rgb_process_json",
           "process_data": "rgb_process_data"
         }
       },
@@ -212,7 +212,7 @@
           },
           {
             "data_type": "string",
-            "default": "application/json",
+            "default": "text/stream, application/json, text/plain",
             "description": "The desired content type of the response",
             "name": "accept"
           }
@@ -269,7 +269,7 @@
         ],
         "data_type": "struct http_client_node_type",
         "extra_methods": {
-          "process_token": "direction_vector_process_token",
+          "process_json": "direction_vector_process_json",
           "process_data": "direction_vector_process_data"
         }
       },
@@ -294,7 +294,7 @@
           },
           {
             "data_type": "string",
-            "default": "application/json",
+            "default": "text/stream, application/json, text/plain",
             "description": "The desired content type of the response",
             "name": "accept"
           }
@@ -351,7 +351,7 @@
         ],
         "data_type": "struct http_client_node_type",
         "extra_methods": {
-          "process_token": "int_process_token",
+          "process_json": "int_process_json",
           "process_data": "int_process_data"
         }
       },
@@ -377,7 +377,7 @@
           },
           {
             "data_type": "string",
-            "default": "application/json",
+            "default": "text/stream, application/json, text/plain",
             "description": "The desired content type of the response",
             "name": "accept"
           }
@@ -434,7 +434,7 @@
         ],
         "data_type": "struct http_client_node_type",
         "extra_methods": {
-          "process_token": "float_process_token",
+          "process_json": "float_process_json",
           "process_data": "float_process_data"
         }
       },
@@ -460,7 +460,7 @@
           },
           {
             "data_type": "string",
-            "default": "application/json",
+            "default": "text/stream, application/json, text/plain",
             "description": "The desired content type of the response",
             "name": "accept"
           }
@@ -628,7 +628,7 @@
           },
           {
             "data_type": "string",
-            "default": "application/json",
+            "default": "text/stream, application/json, text/plain",
             "description": "The desired content type of the response",
             "name": "accept"
           }

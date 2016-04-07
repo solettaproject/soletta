@@ -14,13 +14,12 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
-get-validator(test/string-validator:sequence="Hi!")
-post-validator(test/string-validator:sequence="Hi!|Bye!")
+seq(test/int-validator:sequence="10 11 12 13 14 15 16 17 18 19 20")
 
-_(constant/string:value="Hi!") OUT -> IN _(converter/string-to-blob) OUT -> IN server(http-server/blob:path="/test", port=8080)
+timer(timer:interval=10) OUT -> INC accumulator(int/accumulator:initial_value=10) OUT -> IN _(http-server/int:port=8080)
 
-server OUT -> IN _(converter/blob-to-string) OUT -> IN post-validator OUT -> RESULT test-post(test/result)
+_(constant/int:value=20) OUT -> IN[0] stop(int/equal) OUT -> IN _(boolean/not) OUT -> ENABLED timer
 
-_(constant/empty) OUT -> GET client(http-client/blob:url="http://localhost:8080/test") OUT -> IN _(converter/blob-to-string) OUT -> IN get-validator OUT -> RESULT test-get(test/result)
+accumulator OUT -> IN[1] stop
 
-client OUT -> IN _(converter/empty-to-string:output_value="Bye!") OUT -> IN _(converter/string-to-blob) OUT -> POST client
+_(constant/empty) OUT -> GET _(http-client/int:url="http://localhost:8080/int") OUT -> IN seq OUT -> RESULT _(test/result)
