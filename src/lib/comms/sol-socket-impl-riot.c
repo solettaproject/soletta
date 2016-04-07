@@ -73,32 +73,24 @@ ipv6_udp_recvmsg(struct sol_socket_riot *s, void *buf, size_t len, struct sol_ne
     return copysize;
 }
 
-static inline void
-riotize_port(uint16_t port, uint8_t buf[2])
-{
-    buf[0] = (uint8_t)port;
-    buf[1] = (uint8_t)(port >> 8);
-}
-
 static gnrc_pktsnip_t *
 ipv6_udp_sendmsg(struct sol_socket_riot *s, const void *buf, size_t len, const struct sol_network_link_addr *cliaddr)
 {
     gnrc_pktsnip_t *payload, *udp, *ipv6;
     ipv6_addr_t addr;
-    uint8_t dstport[2], srcport[2];
+    uint16_t srcport;
 
-    riotize_port(cliaddr->port, dstport);
-    riotize_port((uint16_t)s->entry.demux_ctx, srcport);
+    srcport = (uint16_t)s->entry.demux_ctx;
 
     memcpy(addr.u8, cliaddr->addr.in6, sizeof(addr.u8));
 
     payload = gnrc_pktbuf_add(NULL, (void *)buf, len, GNRC_NETTYPE_UNDEF);
     SOL_NULL_CHECK(payload, NULL);
 
-    udp = gnrc_udp_hdr_build(payload, srcport, sizeof(srcport), dstport, sizeof(dstport));
+    udp = gnrc_udp_hdr_build(payload, srcport, cliaddr->port);
     SOL_NULL_CHECK_GOTO(udp, udp_error);
 
-    ipv6 = gnrc_ipv6_hdr_build(udp, NULL, 0, (uint8_t *)&addr, sizeof(addr));
+    ipv6 = gnrc_ipv6_hdr_build(udp, NULL, &addr);
     SOL_NULL_CHECK_GOTO(ipv6, ipv6_error);
 
     return ipv6;
