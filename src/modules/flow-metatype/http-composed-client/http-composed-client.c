@@ -536,22 +536,21 @@ static const struct sol_flow_node_type_description sol_flow_node_type_http_clien
     .license = "Apache-2.0",
     .version = "1",
     .options = &((const struct sol_flow_node_options_description){
-            .data_size = sizeof(struct http_composed_client_options),
-            SOL_SET_API_VERSION(.sub_api = SOL_FLOW_NODE_TYPE_HTTP_COMPOSED_CLIENT_OPTIONS_API_VERSION, )
-            .required = true,
-            .members = (const struct sol_flow_node_options_member_description[]){
-                {
-                    .name = "url",
-                    .description = "The URL used on requests",
-                    .data_type = "string",
-                    .required = false,
-                    .offset = offsetof(struct http_composed_client_options, url),
-                    .size = sizeof(const char *),
-                },
-                {},
-
+        .data_size = sizeof(struct http_composed_client_options),
+        SOL_SET_API_VERSION(.sub_api = SOL_FLOW_NODE_TYPE_HTTP_COMPOSED_CLIENT_OPTIONS_API_VERSION, )
+        .required = true,
+        .members = (const struct sol_flow_node_options_member_description[]){
+            {
+                .name = "url",
+                .description = "The URL used on requests",
+                .data_type = "string",
+                .required = false,
+                .offset = offsetof(struct http_composed_client_options, url),
+                .size = sizeof(const char *),
             },
-        }),
+            {},
+        },
+    }),
 };
 
 static int
