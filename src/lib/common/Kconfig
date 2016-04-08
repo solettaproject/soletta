@@ -367,6 +367,24 @@ choice
           information will be hidden and sol-fbp-runner users may also
           have a bad experience.
 
+          On Linux, one is able to control some logging parameters by
+          means of environment variables (on others, one can change
+          those by API calls, at least):
+          - SOL_LOG_SHOW_COLORS: boolean telling whether to log with
+            (ANSI terminal) colors (false by default)
+          - SOL_LOG_SHOW_FILE: boolean telling whether to prefix log
+            entries with the originating file name (true by default)
+          - SOL_LOG_SHOW_FUNCTION": boolean telling whether to prefix
+            log entries with the originating function name (true by
+            default)
+          - SOL_LOG_SHOW_LINE: boolean telling whether to prefix log
+            entries with the originating file line (true by default)
+
+          On every system, even if logging is enabled, it's possible
+          to suppress some of those logging strings that go the final
+          binary (file/function names), to save space. Refer to the
+          LOG_FUNCTIONS and LOG_FILES configuration options.
+
 
 config MAXIMUM_LOG_LEVEL_CRITICAL
 	bool "critical"
@@ -386,6 +404,26 @@ config MAXIMUM_LOG_LEVEL_DEBUG
 config MAXIMUM_LOG_LEVEL_UNLIMITED
 	bool "unlimited"
 endchoice
+
+config LOG_FILES
+	depends on LOG
+	bool "Add file name entries to the logging calls"
+	default y
+	help
+          Add file name entries to the logging calls throughout
+          Soletta. Those file name strings will end up in your final
+          binary/image, if log is enabled. For constrained systems,
+          you might want to suppress that. If unsure, say Y.
+
+config LOG_FUNCTIONS
+	depends on LOG
+	bool "Add function name entries to the logging calls"
+	default y
+	help
+          Add function name entries to the logging calls throughout
+          Soletta. Those function name strings will end up in your final
+          binary/image, if log is enabled. For constrained systems,
+          you might want to suppress that. If unsure, say Y.
 
 menu "Hardware Options"
 source "src/lib/io/Kconfig"
