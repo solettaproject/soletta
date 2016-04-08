@@ -661,22 +661,6 @@ http_composed_client_type_fini(struct http_composed_client_type *type)
     sol_vector_clear(&type->ports_out);
 }
 
-static const struct sol_flow_packet_type *
-get_packet_type(const struct sol_str_slice type)
-{
-    if (sol_str_slice_str_eq(type, "int"))
-        return SOL_FLOW_PACKET_TYPE_IRANGE;
-    if (sol_str_slice_str_eq(type, "float"))
-        return SOL_FLOW_PACKET_TYPE_DRANGE;
-    if (sol_str_slice_str_eq(type, "string"))
-        return SOL_FLOW_PACKET_TYPE_STRING;
-    if (sol_str_slice_str_eq(type, "boolean"))
-        return SOL_FLOW_PACKET_TYPE_BOOLEAN;
-    if (sol_str_slice_str_eq(type, "byte"))
-        return SOL_FLOW_PACKET_TYPE_BYTE;
-    return NULL;
-}
-
 static int
 get_name_and_type_from_token(const struct sol_str_slice *token, char **name,
     struct sol_str_slice *type)
@@ -804,7 +788,7 @@ setup_ports(struct sol_vector *in_ports, struct sol_vector *ports_out,
             goto err_exit;
         }
 
-        packet_type = get_packet_type(type_slice);
+        packet_type = sol_flow_packet_type_from_string(type_slice);
         if (!packet_type) {
             r = -EINVAL;
             SOL_ERR("It's not possible to use %.*s as a port type.",

@@ -740,6 +740,22 @@ int sol_flow_packet_get_http_response(const struct sol_flow_packet *packet, int 
 const char *sol_flow_packet_get_packet_type_as_string(const struct sol_str_slice type);
 
 /**
+ * @brief Returns the packet type from string.
+ *
+ * This function will return the sol_flow_packet_type based on its
+ * string name. If the @a type starts with "composed:", then it will
+ * search for composed packets with that signature and if none exists,
+ * then it will try to create one.
+ *
+ * @param type The Soletta type name (int, blob, error, string,
+ *        composed:int,boolean...)
+ *
+ * @return The Soletta packet type reference or @c NULL if the type
+ * was not found.
+ */
+const struct sol_flow_packet_type *sol_flow_packet_type_from_string(const struct sol_str_slice type);
+
+/**
  * @}
  */
 

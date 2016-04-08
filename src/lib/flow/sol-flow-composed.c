@@ -124,40 +124,6 @@ composed_node_type_dispose(struct sol_flow_node_type *type)
     free(self);
 }
 
-static const struct sol_flow_packet_type *
-get_packet_type(const struct sol_str_slice type)
-{
-    if (sol_str_slice_str_eq(type, "int"))
-        return SOL_FLOW_PACKET_TYPE_IRANGE;
-    if (sol_str_slice_str_eq(type, "float"))
-        return SOL_FLOW_PACKET_TYPE_DRANGE;
-    if (sol_str_slice_str_eq(type, "string"))
-        return SOL_FLOW_PACKET_TYPE_STRING;
-    if (sol_str_slice_str_eq(type, "boolean"))
-        return SOL_FLOW_PACKET_TYPE_BOOLEAN;
-    if (sol_str_slice_str_eq(type, "byte"))
-        return SOL_FLOW_PACKET_TYPE_BYTE;
-    if (sol_str_slice_str_eq(type, "blob"))
-        return SOL_FLOW_PACKET_TYPE_BLOB;
-    if (sol_str_slice_str_eq(type, "rgb"))
-        return SOL_FLOW_PACKET_TYPE_RGB;
-    if (sol_str_slice_str_eq(type, "location"))
-        return SOL_FLOW_PACKET_TYPE_LOCATION;
-    if (sol_str_slice_str_eq(type, "timestamp"))
-        return SOL_FLOW_PACKET_TYPE_TIMESTAMP;
-    if (sol_str_slice_str_eq(type, "direction-vector"))
-        return SOL_FLOW_PACKET_TYPE_DIRECTION_VECTOR;
-    if (sol_str_slice_str_eq(type, "error"))
-        return SOL_FLOW_PACKET_TYPE_ERROR;
-    if (sol_str_slice_str_eq(type, "json-object"))
-        return SOL_FLOW_PACKET_TYPE_JSON_OBJECT;
-    if (sol_str_slice_str_eq(type, "json-array"))
-        return SOL_FLOW_PACKET_TYPE_JSON_ARRAY;
-    if (sol_str_slice_str_eq(type, "http-response"))
-        return SOL_FLOW_PACKET_TYPE_HTTP_RESPONSE;
-    return NULL;
-}
-
 static int
 simple_port_process(struct sol_flow_node *node, void *data, uint16_t port,
     uint16_t conn_id, const struct sol_flow_packet *packet)
@@ -291,7 +257,7 @@ setup_simple_ports(struct sol_vector *in_ports, const struct sol_str_slice conte
             goto err_exit;
         }
 
-        packet_type = get_packet_type(type_slice);
+        packet_type = sol_flow_packet_type_from_string(type_slice);
 
         if (!packet_type) {
             r = -EINVAL;
@@ -991,7 +957,7 @@ get_ports_description(const struct sol_str_slice contents,
         sizeof(struct sol_flow_packate_type *));
 
     SOL_VECTOR_FOREACH_IDX (simple_ports, port, i)
-        types[i] = get_packet_type(sol_str_slice_from_str(port->type));
+        types[i] = sol_flow_packet_type_from_string(sol_str_slice_from_str(port->type));
 
     types[i] = NULL;
     composed_type = sol_flow_packet_type_composed_new(types);
