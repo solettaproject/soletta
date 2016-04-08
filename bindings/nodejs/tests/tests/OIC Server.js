@@ -17,7 +17,7 @@
  */
 
 var soletta = require( require( "path" )
-	.join( require( "../closestSoletta" )( __dirname ), "lowlevel" ) );
+	.join( require( "bindings" ).getRoot( __filename ), "lowlevel" ) );
 var testUtils = require( "../assert-to-console" );
 var theResource;
 var anError = {};

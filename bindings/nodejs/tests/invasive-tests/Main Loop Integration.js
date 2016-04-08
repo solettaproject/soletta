@@ -19,7 +19,7 @@
 var async = require( "async" );
 var utils = require( "../assert-to-console" );
 var soletta = require( require( "path" )
-	.join( require( "../closestSoletta" )( __dirname ), "lowlevel" ) );
+	.join( require( "bindings" ).getRoot( __filename ), "lowlevel" ) );
 var exec = require( "child_process" ).exec;
 var initialHostname = require( "os" ).hostname();
 var initialTimezone, destinationTimezone;
