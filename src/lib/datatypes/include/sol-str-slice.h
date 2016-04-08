@@ -206,7 +206,7 @@ sol_str_slice_copy(char *dst, const struct sol_str_slice src)
 static inline bool
 sol_str_slice_starts_with(const struct sol_str_slice slice, const struct sol_str_slice prefix)
 {
-    return slice.len >= prefix.len && strncmp(slice.data, prefix.data, prefix.len);
+    return slice.len >= prefix.len && strncmp(slice.data, prefix.data, prefix.len) == 0;
 }
 
 /**
