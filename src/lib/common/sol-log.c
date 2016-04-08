@@ -59,6 +59,7 @@ static bool _inited = false;
             fprintf(stderr, "CRITICAL:%s:%d:%s() " \
                 "SOL_LOG used before initialization. "fmt "\n", \
                 SOL_LOG_FILE ? : "", \
+                __LINE__, \
                 SOL_LOG_FUNCTION ? : "", \
                 ## __VA_ARGS__); \
             abort(); \
