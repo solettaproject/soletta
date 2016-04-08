@@ -27,6 +27,8 @@ st.on_value("PLATFORM_ZEPHYR", "y", "#define SOL_PLATFORM_ZEPHYR 1", "")
 
 {{
 st.on_value("LOG", "y", "#define SOL_LOG_ENABLED 1", "")
+st.on_value("LOG_FILES", "y", "#define SOL_LOG_FILES 1", "")
+st.on_value("LOG_FUNCTIONS", "y", "#define SOL_LOG_FUNCTIONS 1", "")
 st.on_value("NO_API_VERSION_NEEDED", "y", "#define SOL_NO_API_VERSION 1", "")
 }}
 

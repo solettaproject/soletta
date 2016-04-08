@@ -58,11 +58,12 @@ static bool _inited = false;
         if (SOL_UNLIKELY(!_inited)) { \
             fprintf(stderr, "CRITICAL:%s:%d:%s() " \
                 "SOL_LOG used before initialization. "fmt "\n", \
-                __FILE__, __LINE__, __PRETTY_FUNCTION__, ## __VA_ARGS__); \
+                SOL_LOG_FILE ? : "", \
+                SOL_LOG_FUNCTION ? : "", \
+                ## __VA_ARGS__); \
             abort(); \
         } \
     } while (0)
-
 
 SOL_API struct sol_log_domain *sol_log_global_domain = &_global_domain;
 
