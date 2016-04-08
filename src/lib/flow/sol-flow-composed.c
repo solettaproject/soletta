@@ -832,8 +832,8 @@ composed_metatype_generate_type_code(struct sol_buffer *out,
     bool is_splitter)
 {
     const char *data_size, *composed_port_name, *close_func,
-    *composed_port_type, *simple_port_type, *simple_port_process,
-    *composed_port_process;
+        *composed_port_type, *simple_port_type, *simple_port_process,
+        *composed_port_process;
     char *packet_signature;
     uint16_t ports_in, ports_out, i;
     struct sol_vector ports;
