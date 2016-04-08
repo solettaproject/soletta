@@ -458,6 +458,18 @@ sol_log_domain_init_level(struct sol_log_domain *domain)
 #define SOL_LOG_LEVEL_POSSIBLE(level) (0)
 #endif
 
+#ifdef SOL_LOG_FILES
+#define SOL_LOG_FILE __FILE__
+#else
+#define SOL_LOG_FILE NULL
+#endif
+
+#ifdef SOL_LOG_FUNCTIONS
+#define SOL_LOG_FUNCTION __PRETTY_FUNCTION__
+#else
+#define SOL_LOG_FUNCTION NULL
+#endif
+
 /**
  * @def SOL_LOG(level, fmt, ...)
  *
@@ -472,7 +484,7 @@ sol_log_domain_init_level(struct sol_log_domain *domain)
     do { \
         if (SOL_LOG_LEVEL_POSSIBLE(level)) { \
             sol_log_print(SOL_LOG_DOMAIN, level, \
-                __FILE__, __PRETTY_FUNCTION__, __LINE__, \
+                SOL_LOG_FILE, SOL_LOG_FUNCTION,  __LINE__, \
                 fmt, ## __VA_ARGS__); \
         } \
     } while (0)
