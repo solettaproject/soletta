@@ -1450,94 +1450,6 @@ free_description(struct flow_js_type *type)
 }
 #endif
 
-static const struct sol_flow_packet_type *
-get_simple_packet_type(const struct sol_str_slice type)
-{
-    /* We're using 'if statements' instead of 'sol_str_table_ptr' because we couldn't create the table
-     * as 'const static' since the packet types are declared in another file (found only in linkage time),
-     * and creating the table all the time would give us a bigger overhead than 'if statements' */
-
-    if (sol_str_slice_str_caseeq(type, "boolean"))
-        return SOL_FLOW_PACKET_TYPE_BOOLEAN;
-    if (sol_str_slice_str_caseeq(type, "byte"))
-        return SOL_FLOW_PACKET_TYPE_BYTE;
-    if (sol_str_slice_str_caseeq(type, "drange") || sol_str_slice_str_caseeq(type, "float"))
-        return SOL_FLOW_PACKET_TYPE_DRANGE;
-    if (sol_str_slice_str_caseeq(type, "error"))
-        return SOL_FLOW_PACKET_TYPE_ERROR;
-    if (sol_str_slice_str_caseeq(type, "irange") || sol_str_slice_str_caseeq(type, "int"))
-        return SOL_FLOW_PACKET_TYPE_IRANGE;
-    if (sol_str_slice_str_caseeq(type, "rgb"))
-        return SOL_FLOW_PACKET_TYPE_RGB;
-    if (sol_str_slice_str_caseeq(type, "string"))
-        return SOL_FLOW_PACKET_TYPE_STRING;
-    if (sol_str_slice_str_caseeq(type, "blob"))
-        return SOL_FLOW_PACKET_TYPE_BLOB;
-    if (sol_str_slice_str_caseeq(type, "location"))
-        return SOL_FLOW_PACKET_TYPE_LOCATION;
-    if (sol_str_slice_str_caseeq(type, "timestamp"))
-        return SOL_FLOW_PACKET_TYPE_TIMESTAMP;
-    if (sol_str_slice_str_caseeq(type, "direction-vector"))
-        return SOL_FLOW_PACKET_TYPE_DIRECTION_VECTOR;
-    if (sol_str_slice_str_caseeq(type, "json-object"))
-        return SOL_FLOW_PACKET_TYPE_JSON_OBJECT;
-    if (sol_str_slice_str_caseeq(type, "json-array"))
-        return SOL_FLOW_PACKET_TYPE_JSON_ARRAY;
-    if (sol_str_slice_str_caseeq(type, "http-response"))
-        return SOL_FLOW_PACKET_TYPE_HTTP_RESPONSE;
-
-    return NULL;
-}
-
-static const struct sol_flow_packet_type *
-setup_composed_packet_type(const struct sol_str_slice types)
-{
-    struct sol_vector tokens;
-    struct sol_str_slice *token;
-    const struct sol_flow_packet_type **packet_types;
-    const struct sol_flow_packet_type *packet_type, *composed_type;
-    uint16_t i;
-
-    composed_type = NULL;
-    tokens = sol_str_slice_split(types, ",", 0);
-
-    if (tokens.len < 2) {
-        SOL_WRN("Composed types must have at least two components."
-            "Provided: %.*s", SOL_STR_SLICE_PRINT(types));
-        sol_vector_clear(&tokens);
-        return NULL;
-    }
-
-    packet_types = calloc(tokens.len + 1,
-        sizeof(struct sol_flow_packet_type *));
-    SOL_NULL_CHECK_GOTO(packet_types, exit);
-
-    SOL_VECTOR_FOREACH_IDX (&tokens, token, i) {
-        packet_type = get_simple_packet_type(*token);
-        SOL_NULL_CHECK_GOTO(packet_type, exit);
-        packet_types[i] = packet_type;
-    }
-
-    composed_type = sol_flow_packet_type_composed_new(packet_types);
-exit:
-    free(packet_types);
-    sol_vector_clear(&tokens);
-    return composed_type;
-}
-
-static const struct sol_flow_packet_type *
-get_packet_type(const char *type)
-{
-    if (strstartswith(type, "composed:")) {
-        struct sol_str_slice types;
-        types.data = type + 9;
-        types.len = strlen(type) - 9;
-        return setup_composed_packet_type(types);
-    }
-
-    return get_simple_packet_type(sol_str_slice_from_str(type));
-}
-
 static int
 add_port_for_meta_type_description(const char *name, const char *type_name,
     bool is_input, void *data)
@@ -1547,7 +1459,7 @@ add_port_for_meta_type_description(const char *name, const char *type_name,
     struct flow_js_port_out *port_out_type;
     const struct sol_flow_packet_type *packet_type;
 
-    packet_type = get_packet_type(type_name);
+    packet_type = sol_flow_packet_type_from_string(sol_str_slice_from_str(type_name));
     SOL_NULL_CHECK(packet_type, -EINVAL);
 
     if (is_input) {
@@ -1599,7 +1511,7 @@ add_port_for_generated_code(const char *name, const char *type_name,
     if (is_input) {
         vector = ctx->in;
         port_type_name = "in";
-        packet_type = get_packet_type(type_name);
+        packet_type = sol_flow_packet_type_from_string(sol_str_slice_from_str(type_name));
         SOL_NULL_CHECK(packet_type, -EINVAL);
 
         if (sol_flow_packet_is_composed_type(packet_type))
@@ -1990,7 +1902,7 @@ setup_packet_type(struct sol_buffer *out, struct sol_vector *ports,
 
 
     SOL_VECTOR_FOREACH_IDX (ports, port, i) {
-        packet_type = get_packet_type(port->type);
+        packet_type = sol_flow_packet_type_from_string(sol_str_slice_from_str(port->type));
         SOL_NULL_CHECK(packet_type, -EINVAL);
         r = sol_buffer_append_printf(out, "    if (!js_metatype_%.*s_%s_port.base.packet_type) {\n",
             SOL_STR_SLICE_PRINT(prefix), port->name);
