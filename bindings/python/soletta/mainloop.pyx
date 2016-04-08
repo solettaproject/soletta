@@ -15,18 +15,24 @@ cdef extern from "sol-mainloop.h":
 
 	bint sol_mainloop_set_implementation(const sol_mainloop_implementation *)
 
+class MainloopAsyncio:
+
+	def __init__(self, loop = asyncio.get_event_loop()):
+		self.loop = loop
+
+_loop = None
 
 cdef void wrap_sol_init():
-	pass
+	_loop = MainloopAsyncio()
 
 cdef void wrap_sol_shutdown():
 	pass
 
 cdef void wrap_sol_quit():
-	asyncio.get_event_loop().stop()
+	_loop.stop()
 
 cdef void wrap_sol_run():
-	asyncio.get_event_loop().run_forever()
+	_loop.run_forever()
 
 cdef void *wrap_sol_timeout_add(uint32_t timeout_ms, bint (*cb)(void *), const void *data):
 	
@@ -35,7 +41,7 @@ cdef void *wrap_sol_timeout_add(uint32_t timeout_ms, bint (*cb)(void *), const v
 		while cb(data):
 			yield from asyncio.sleep(timeout_ms / 1000)
 
-	t = asyncio.get_event_loop().create_task(task())
+	t = _loop.create_task(task())
 	return <void*> t
 
 cdef bint wrap_sol_timeout_del(void *handle):
@@ -51,7 +57,7 @@ cdef void *wrap_idle_add(bint (*cb)(void*), const void *data ):
 			"""FIXME: this is probably not what we want"""
 			yield from asyncio.sleep(0.1)
 
-	t = asyncio.get_event_loop().create_task(task())
+	t = _loop.create_task(task())
 	return <void*>t
 	
 
@@ -60,7 +66,7 @@ cdef bint wrap_idle_del(void *handle):
 	return True
 
 cdef void quit():
-	asyncio.get_event_loop().stop()
+	_loop.stop()
 
 cdef void wrap_source_add(args):
 	pass
