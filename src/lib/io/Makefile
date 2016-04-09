@@ -60,11 +60,13 @@ obj-io-i2c-$(PLATFORM_LINUX) += \
 obj-io-i2c-$(PLATFORM_ZEPHYR) += \
     sol-i2c-impl-zephyr.o
 
-obj-io-spi-$(PLATFORM_RIOTOS) := \
+obj-io-spi-$(USE_SPI) := \
+    sol-spi-common.o
+obj-io-spi-$(PLATFORM_RIOTOS) += \
     sol-spi-impl-riot.o
-obj-io-spi-$(PLATFORM_LINUX) := \
+obj-io-spi-$(PLATFORM_LINUX) += \
     sol-spi-impl-linux.o
-obj-io-spi-$(PLATFORM_ZEPHYR) := \
+obj-io-spi-$(PLATFORM_ZEPHYR) += \
     sol-spi-impl-zephyr.o
 
 obj-io-uart-$(USE_UART) := \

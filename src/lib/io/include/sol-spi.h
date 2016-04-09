@@ -22,6 +22,7 @@
 #include <stdbool.h>
 
 #include <sol-common-buildopts.h>
+#include <sol-macros.h>
 
 #ifdef __cplusplus
 extern "C" {
@@ -80,6 +81,32 @@ struct sol_spi_config {
     uint32_t frequency; /** Clock frequency in Hz */
     uint8_t bits_per_word;
 };
+
+/**
+ * @brief Converts a string SPI mode name to sol_spi_mode
+ *
+ * This function converts a string SPI mode name to enumeration sol_spi_mode.
+ *
+ * @see sol_spi_mode_to_str().
+ *
+ * @param spi_mode Valid values are mode0", "mode1", "mode2", "mode3".
+ *
+ * @return enumeration sol_spi_mode
+ */
+enum sol_spi_mode sol_spi_mode_from_str(const char *spi_mode) SOL_ATTR_WARN_UNUSED_RESULT;
+
+/**
+ * @brief Converts sol_spi_mode to a string name.
+ *
+ * This function converts sol_spi_mode enumeration to a string SPI mode name.
+ *
+ * @see sol_spi_mode_from_str().
+ *
+ * @param spi_mode sol_spi_mode
+ *
+ * @return String representation of the sol_spi_mode
+ */
+const char *sol_spi_mode_to_str(enum sol_spi_mode spi_mode) SOL_ATTR_WARN_UNUSED_RESULT;
 
 /**
  * @brief Perform a SPI asynchronous transfer.
