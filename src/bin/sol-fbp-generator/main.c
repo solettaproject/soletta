@@ -2224,19 +2224,17 @@ convert_metatype_options(struct sol_vector *metatype_options, struct sol_vector 
 
         o->name = opt->name;
         o->data_type = opt->data_type;
-
-        sol_vector_del(metatype_options, i);
     }
 
     sol_vector_clear(metatype_options);
     return 0;
 
 err:
-    SOL_VECTOR_FOREACH_IDX (options, o, i) {
+    SOL_VECTOR_FOREACH_IDX (metatype_options, o, i) {
         free(o->name);
         free(o->data_type);
     }
-    sol_vector_clear(metatype_options);
+    sol_vector_clear(options);
     return -ENOMEM;
 }
 
