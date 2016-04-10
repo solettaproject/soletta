@@ -996,7 +996,7 @@ setup_ports_description(const struct sol_str_slice *contents,
         }
 
         r = sol_buffer_append_slice(&composed_type, type_slice);
-        SOL_INT_CHECK_GOTO(r, < 0, err_tokens); \
+        SOL_INT_CHECK_GOTO(r, < 0, err_tokens);
 
         if (buf_out) {
             r = sol_buffer_append_printf(buf_out,
