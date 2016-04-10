@@ -78,6 +78,35 @@ sol_gpio_open(uint32_t pin, const struct sol_gpio_config *config)
     return gpio;
 }
 
+SOL_API enum sol_gpio_direction
+sol_gpio_direction_from_str(const char *direction)
+{
+    static const struct sol_str_table table[] = {
+        SOL_STR_TABLE_ITEM("out", SOL_GPIO_DIR_OUT),
+        SOL_STR_TABLE_ITEM("in", SOL_GPIO_DIR_IN),
+        { }
+    };
+
+    SOL_NULL_CHECK(direction, SOL_GPIO_DIR_OUT);
+
+    return sol_str_table_lookup_fallback(table,
+        sol_str_slice_from_str(direction), SOL_GPIO_DIR_OUT);
+}
+
+SOL_API const char *
+sol_gpio_direction_to_str(enum sol_gpio_direction direction)
+{
+    static const char *direction_names[] = {
+        [SOL_GPIO_DIR_OUT] = "out",
+        [SOL_GPIO_DIR_IN] = "in"
+    };
+
+    if (direction < SOL_UTIL_ARRAY_SIZE(direction_names))
+        return direction_names[direction];
+
+    return NULL;
+}
+
 SOL_API enum sol_gpio_edge
 sol_gpio_edge_from_str(const char *edge)
 {
@@ -107,6 +136,37 @@ sol_gpio_edge_to_str(enum sol_gpio_edge edge)
 
     if (edge < SOL_UTIL_ARRAY_SIZE(edge_names))
         return edge_names[edge];
+
+    return NULL;
+}
+
+SOL_API enum sol_gpio_drive
+sol_gpio_drive_from_str(const char *drive)
+{
+    static const struct sol_str_table table[] = {
+        SOL_STR_TABLE_ITEM("none", SOL_GPIO_DRIVE_NONE),
+        SOL_STR_TABLE_ITEM("up", SOL_GPIO_DRIVE_PULL_UP),
+        SOL_STR_TABLE_ITEM("down", SOL_GPIO_DRIVE_PULL_DOWN),
+        { }
+    };
+
+    SOL_NULL_CHECK(drive, SOL_GPIO_DRIVE_NONE);
+
+    return sol_str_table_lookup_fallback(table,
+        sol_str_slice_from_str(drive), SOL_GPIO_DRIVE_NONE);
+}
+
+SOL_API const char *
+sol_gpio_drive_to_str(enum sol_gpio_drive drive)
+{
+    static const char *drive_names[] = {
+        [SOL_GPIO_DRIVE_NONE] = "none",
+        [SOL_GPIO_DRIVE_PULL_UP] = "up",
+        [SOL_GPIO_DRIVE_PULL_DOWN] = "down"
+    };
+
+    if (drive < SOL_UTIL_ARRAY_SIZE(drive_names))
+        return drive_names[drive];
 
     return NULL;
 }
