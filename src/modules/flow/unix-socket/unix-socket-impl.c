@@ -245,7 +245,7 @@ server_write(struct unix_socket *un_socket, const void *data, size_t count)
     struct client_data *c;
     uint16_t i;
 
-    SOL_VECTOR_FOREACH_IDX (&server->clients, c, i) {
+    SOL_VECTOR_FOREACH_REVERSE_IDX (&server->clients, c, i) {
         if (socket_write(c->sock, data, count) < (ssize_t)count) {
             SOL_WRN("Failed to write on (%d): %s", c->sock, sol_util_strerrora(errno));
             sol_fd_del(c->watch);
@@ -264,7 +264,7 @@ server_del(struct unix_socket *un_socket)
     struct client_data *c;
     uint16_t i;
 
-    SOL_VECTOR_FOREACH_IDX (&server->clients, c, i) {
+    SOL_VECTOR_FOREACH_REVERSE_IDX (&server->clients, c, i) {
         sol_fd_del(c->watch);
         close(c->sock);
         sol_vector_del(&server->clients, i);
