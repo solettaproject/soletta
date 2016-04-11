@@ -130,7 +130,7 @@
           },
           {
             "data_type": "string",
-            "default": "text/stream, application/json, text/plain",
+            "default": "text/stream, text/plain",
             "description": "The desired content type of the response",
             "name": "accept"
           }
