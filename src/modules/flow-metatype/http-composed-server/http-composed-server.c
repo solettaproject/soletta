@@ -33,6 +33,8 @@ SOL_LOG_INTERNAL_DECLARE_STATIC(_log_domain, "flow-metatype-http-composed-server
 #include "sol-util.h"
 #include "sol-util-internal.h"
 
+#include "http-composed-server-code.h"
+
 #define DELIM ("|")
 
 #define OUTPUT_PORT_NAME ("OUT")
@@ -88,6 +90,7 @@ static const struct http_composed_server_options
         SOL_SET_API_VERSION(.sub_api = SOL_FLOW_NODE_TYPE_HTTP_COMPOSED_SERVER_OPTIONS_API_VERSION) \
     },
     .port = HTTP_SERVER_PORT,
+    .path = NULL,
 };
 
 #ifdef SOL_FLOW_NODE_TYPE_DESCRIPTION_ENABLED
@@ -956,6 +959,7 @@ metatype_port_description_clear(struct sol_vector *port_descriptions)
 static int
 setup_ports_description(const struct sol_str_slice *contents,
     struct sol_vector *in, struct sol_vector *out,
+    struct sol_buffer *buf_out,
     const struct sol_str_slice *prefix)
 {
     int r;
@@ -1005,6 +1009,17 @@ setup_ports_description(const struct sol_str_slice *contents,
 
         r = sol_buffer_append_slice(&composed_type, type_slice);
         SOL_INT_CHECK_GOTO(r, < 0, err_tokens); \
+        if (buf_out) {
+            r = sol_buffer_append_printf(buf_out,
+                "static struct http_composed_server_port_in http_composed_server_%.*s_%s_port = {\n"
+                "    SOL_SET_API_VERSION(.base.api_version = SOL_FLOW_PORT_TYPE_IN_API_VERSION, )\n"
+                "    .base.connect = NULL,\n"
+                "    .base.disconnect = NULL,\n"
+                "    .base.process = http_composed_server_simple_process,\n"
+                "    .name = \"%s\"\n"
+                "};\n", SOL_STR_SLICE_PRINT(*prefix), port->name, port->name);
+            SOL_INT_CHECK_GOTO(r, < 0, err_tokens);
+        }
     }
 
     sol_vector_clear(&tokens);
@@ -1021,12 +1036,33 @@ setup_ports_description(const struct sol_str_slice *contents,
     SOL_NULL_CHECK_GOTO(port->type, err);
     port->name = strdup(OUTPUT_PORT_NAME);
     SOL_NULL_CHECK_GOTO(port->name, err);
+    if (buf_out) {
+        r = sol_buffer_append_printf(buf_out,
+                "static struct http_composed_server_port_out http_composed_server_%.*s_%s_port = {\n"
+                "    SOL_SET_API_VERSION(.base.api_version = SOL_FLOW_PORT_TYPE_OUT_API_VERSION, )\n"
+                "    .base.connect = NULL,\n"
+                "    .base.disconnect = NULL,\n"
+                "    .name = \"%s\"\n"
+                "};\n", SOL_STR_SLICE_PRINT(*prefix), port->name, port->name);
+            SOL_INT_CHECK_GOTO(r, < 0, err_tokens);
+    }
 
     port = sol_vector_append(in);
     SOL_NULL_CHECK_GOTO(port, err);
     port->name = strdup(INPUT_PORT_NAME);
     SOL_NULL_CHECK_GOTO(port->name, err);
     port->type = sol_buffer_steal(&composed_type, NULL);
+    if (buf_out) {
+        r = sol_buffer_append_printf(buf_out,
+                "static struct http_composed_server_port_in http_composed_server_%.*s_%s_port = {\n"
+                "    SOL_SET_API_VERSION(.base.api_version = SOL_FLOW_PORT_TYPE_IN_API_VERSION, )\n"
+                "    .base.connect = NULL,\n"
+                "    .base.disconnect = NULL,\n"
+                "    .base.process = http_composed_server_in_process,\n"
+                "    .name = \"%s\"\n"
+                "};\n", SOL_STR_SLICE_PRINT(*prefix), port->name, port->name);
+            SOL_INT_CHECK_GOTO(r, < 0, err_tokens);
+    }
 
     sol_buffer_fini(&composed_type);
 
@@ -1050,58 +1086,246 @@ http_composed_server_ports_description(const struct sol_flow_metatype_context *c
     SOL_NULL_CHECK(out, -EINVAL);
     SOL_NULL_CHECK(in, -EINVAL);
 
-    return setup_ports_description(&ctx->contents, in, out,
+    return setup_ports_description(&ctx->contents, in, out, NULL,
         &(struct sol_str_slice){.len = 0, .data = "" });
 }
 
 static int
 http_composed_server_options_description(struct sol_vector *options)
 {
-    struct sol_flow_metatype_option_description *opt_port, *opt_path;
+    uint16_t i;
+    struct sol_flow_metatype_option_description *opt;
 
     sol_vector_init(options,
         sizeof(struct sol_flow_metatype_option_description));
 
-    opt_path = sol_vector_append(options);
-    SOL_NULL_CHECK(opt_path, -ENOMEM);
+#define ADD_OPTION(_name, _type) \
+    do { \
+        opt = sol_vector_append(options); \
+        SOL_NULL_CHECK_GOTO(opt, err); \
+        opt->name = strdup(#_name); \
+        opt->data_type = strdup(#_type); \
+        SOL_EXP_CHECK_GOTO(!(opt->name && opt->data_type), err); \
+    } while (0)
 
-    opt_path->name = strdup("path");
-    SOL_NULL_CHECK_GOTO(opt_path->name, err);
-
-    opt_path->data_type = strdup("string");
-    SOL_NULL_CHECK_GOTO(opt_path->data_type, err_data);
-
-    opt_port = sol_vector_append(options);
-    SOL_NULL_CHECK_GOTO(opt_port, err_port);
-
-    opt_port->name = strdup("port");
-    SOL_NULL_CHECK_GOTO(opt_port->name, err_port_name);
-
-    opt_port->data_type = strdup("int");
-    SOL_NULL_CHECK_GOTO(opt_port->data_type, err_port_data);
+    ADD_OPTION(path, string);
+    ADD_OPTION(port, int);
+#undef ADD_OPTION
 
     return 0;
 
-err_port_data:
-    free(opt_port->name);
-err_port_name:
-    sol_vector_del_last(options);
-err_port:
-    free(opt_path->data_type);
-err_data:
-    free(opt_path->name);
 err:
-    sol_vector_del_last(options);
+    SOL_VECTOR_FOREACH_IDX (options, opt, i) {
+        free(opt->name);
+        free(opt->data_type);
+    }
+    sol_vector_clear(options);
     return -ENOMEM;
+}
+
+static int
+http_composed_server_generate_start(const struct sol_flow_metatype_context *ctx,
+    struct sol_buffer *out)
+{
+    int r;
+
+    r = sol_buffer_append_printf(out,
+        "#define HTTP_SERVER_PORT %d\n", HTTP_SERVER_PORT);
+    SOL_INT_CHECK(r, < 0, r);
+
+    return sol_buffer_append_slice(out,
+        sol_str_slice_from_str(HTTP_COMPOSED_SERVER_CODE_START));
+    return 0;
+}
+
+static int
+http_composed_server_generate_end(const struct sol_flow_metatype_context *ctx,
+    struct sol_buffer *out)
+{
+    return 0;
+}
+
+static int
+setup_get_port_function(struct sol_buffer *out, struct sol_vector *ports,
+    const struct sol_str_slice prefix, const char *port_type)
+{
+    int r;
+    uint16_t i;
+    struct sol_flow_metatype_port_description *port;
+
+    r = sol_buffer_append_printf(out,
+        "static const struct sol_flow_port_type_%s *\n"
+        "http_composed_server_%.*s_get_%s_port(const struct sol_flow_node_type *type, uint16_t port)\n"
+        "{\n", port_type, SOL_STR_SLICE_PRINT(prefix), port_type);
+    SOL_INT_CHECK(r, < 0, r);
+
+    SOL_VECTOR_FOREACH_IDX (ports, port, i) {
+        r = sol_buffer_append_printf(out, "    if (port == %u)\n"
+            "        return &http_composed_server_%.*s_%s_port.base;\n",
+            i, SOL_STR_SLICE_PRINT(prefix), port->name);
+        SOL_INT_CHECK(r, < 0, r);
+    }
+
+    return sol_buffer_append_slice(out, sol_str_slice_from_str("    return NULL;\n}\n"));
+}
+
+static int
+setup_composed_packet(struct sol_buffer *out, const struct sol_str_slice prefix,
+    const struct sol_str_slice types, const char *port_name)
+{
+    int r;
+    struct sol_vector tokens;
+    struct sol_str_slice *token;
+    uint16_t i;
+
+    r = sol_buffer_append_slice(out,
+        sol_str_slice_from_str("        const struct sol_flow_packet_type *types[] = {"));
+    SOL_INT_CHECK(r, < 0, r);
+
+    tokens = sol_str_slice_split(types, ",", 0);
+
+    SOL_VECTOR_FOREACH_IDX (&tokens, token, i) {
+        r = sol_buffer_append_printf(out, "%s,",
+            sol_flow_packet_get_packet_type_as_string(*token));
+        SOL_INT_CHECK_GOTO(r, < 0, exit);
+    }
+
+    r = sol_buffer_append_printf(out, "NULL};\n"
+        "        http_composed_server_%.*s_%s_port.base.packet_type = sol_flow_packet_type_composed_new(types);\n",
+        SOL_STR_SLICE_PRINT(prefix), port_name);
+
+exit:
+    sol_vector_clear(&tokens);
+    return r;
+}
+
+static int
+setup_packet_type(struct sol_buffer *out, struct sol_vector *ports,
+    const struct sol_str_slice prefix)
+{
+    int r;
+    uint16_t i;
+    struct sol_flow_metatype_port_description *port;
+
+    SOL_VECTOR_FOREACH_IDX (ports, port, i) {
+        r = sol_buffer_append_printf(out,
+            "    if (!http_composed_server_%.*s_%s_port.base.packet_type) {\n",
+            SOL_STR_SLICE_PRINT(prefix), port->name);
+        SOL_INT_CHECK(r, < 0, r);
+
+        if (strstartswith(port->type, "composed:")) {
+            struct sol_str_slice types;
+            //Removing the composed: prefix
+            types.data = port->type + 9;
+            types.len = strlen(port->type) - 9;
+            r = setup_composed_packet(out, prefix, types, port->name);
+        } else {
+            r = sol_buffer_append_printf(out,
+                "        http_composed_server_%.*s_%s_port.base.packet_type = %s;\n",
+                SOL_STR_SLICE_PRINT(prefix), port->name,
+                sol_flow_packet_get_packet_type_as_string(
+                sol_str_slice_from_str(port->type)));
+        }
+        SOL_INT_CHECK(r, < 0, r);
+
+        r = sol_buffer_append_slice(out, sol_str_slice_from_str("    }\n"));
+        SOL_INT_CHECK(r, < 0, r);
+    }
+
+    return 0;
+}
+
+static int
+setup_init_function(struct sol_buffer *out, struct sol_vector *in_ports,
+    struct sol_vector *out_ports, const struct sol_str_slice prefix)
+{
+    int r;
+
+    r = sol_buffer_append_printf(out,
+        "static void\nhttp_composed_server_%.*s_init(void)\n{\n",
+        SOL_STR_SLICE_PRINT(prefix));
+    SOL_INT_CHECK(r, < 0, r);
+
+    r = setup_packet_type(out, in_ports, prefix);
+    SOL_INT_CHECK(r, < 0, r);
+    r = setup_packet_type(out, out_ports, prefix);
+    SOL_INT_CHECK(r, < 0, r);
+
+    return sol_buffer_append_slice(out, sol_str_slice_from_str("}\n"));
+}
+
+static int
+http_composed_server_generate_body(const struct sol_flow_metatype_context *ctx,
+    struct sol_buffer *out)
+{
+    struct sol_vector in_ports, out_ports;
+    int r;
+
+    r = setup_ports_description(&ctx->contents, &in_ports, &out_ports, out, &ctx->name);
+    SOL_INT_CHECK_GOTO(r, < 0, exit);
+
+    r = setup_get_port_function(out, &in_ports, ctx->name, "in");
+    SOL_INT_CHECK_GOTO(r, < 0, exit);
+
+    r = setup_get_port_function(out, &out_ports, ctx->name, "out");
+    SOL_INT_CHECK_GOTO(r, < 0, exit);
+
+    r = setup_init_function(out, &in_ports, &out_ports, ctx->name);
+    SOL_INT_CHECK_GOTO(r, < 0, exit);
+
+    r = sol_buffer_append_printf(out, "#define %.*s_OPTIONS_DEFAULTS(...) { \\\n"
+        "    .base = { \\\n"
+        "        SOL_SET_API_VERSION(.api_version = SOL_FLOW_NODE_OPTIONS_API_VERSION, ) \\\n"
+        "        SOL_SET_API_VERSION(.sub_api = %d, ) \\\n"
+        "    }, \\\n"
+        "    .path = NULL, \\\n"
+        "    .port = %d, \\\n"
+        "    __VA_ARGS__ \\\n"
+        "}\n\n"
+        "static const struct http_composed_server_options %.*s_options_defaults = %.*s_OPTIONS_DEFAULTS();\n\n",
+        SOL_STR_SLICE_PRINT(ctx->name),
+        SOL_FLOW_NODE_TYPE_HTTP_COMPOSED_SERVER_OPTIONS_API_VERSION,
+        HTTP_SERVER_PORT,
+        SOL_STR_SLICE_PRINT(ctx->name),
+        SOL_STR_SLICE_PRINT(ctx->name));
+    SOL_INT_CHECK_GOTO(r, < 0, exit);
+
+    r = sol_buffer_append_printf(out,
+        "static const struct sol_flow_node_type %.*s = {\n"
+        "   SOL_SET_API_VERSION(.api_version = SOL_FLOW_NODE_TYPE_API_VERSION, )\n"
+        "   .options_size = sizeof(struct http_composed_server_options),\n"
+        "   .data_size = sizeof(struct http_composed_server_data),\n"
+        "   .ports_out_count = %u,\n"
+        "   .ports_in_count = %u,\n"
+        "   .dispose_type = NULL,\n"
+        "   .open = http_composed_server_open,\n"
+        "   .close = http_composed_server_close,\n"
+        "   .default_options = &%.*s_options_defaults,\n"
+        "   .get_port_out = http_composed_server_%.*s_get_out_port,\n"
+        "   .get_port_in = http_composed_server_%.*s_get_in_port,\n"
+        "   .init_type = http_composed_server_%.*s_init,\n"
+        "};\n",
+        SOL_STR_SLICE_PRINT(ctx->name),
+        out_ports.len,
+        in_ports.len,
+        SOL_STR_SLICE_PRINT(ctx->name),
+        SOL_STR_SLICE_PRINT(ctx->name),
+        SOL_STR_SLICE_PRINT(ctx->name),
+        SOL_STR_SLICE_PRINT(ctx->name));
+
+exit:
+    metatype_port_description_clear(&in_ports);
+    metatype_port_description_clear(&out_ports);
+    return r;
 }
 
 SOL_FLOW_METATYPE(HTTP_COMPOSED_SERVER,
     .name = "http-composed-server",
     .options_symbol = "http_composed_server_options",
     .create_type = http_composed_server_create_type,
-    .generate_type_start = NULL,
-    .generate_type_body = NULL,
-    .generate_type_end = NULL,
+    .generate_type_start = http_composed_server_generate_start,
+    .generate_type_body = http_composed_server_generate_body,
+    .generate_type_end = http_composed_server_generate_end,
     .ports_description = http_composed_server_ports_description,
     .options_description = http_composed_server_options_description,
     );
