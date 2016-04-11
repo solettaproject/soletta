@@ -472,7 +472,7 @@ sol_log_domain_init_level(struct sol_log_domain *domain)
 #ifdef SOL_LOG_FILES
 #define SOL_LOG_FILE __FILE__
 #else
-#define SOL_LOG_FILE NULL
+#define SOL_LOG_FILE ""
 #endif
 
 /**
@@ -489,7 +489,7 @@ sol_log_domain_init_level(struct sol_log_domain *domain)
 #ifdef SOL_LOG_FUNCTIONS
 #define SOL_LOG_FUNCTION __PRETTY_FUNCTION__
 #else
-#define SOL_LOG_FUNCTION NULL
+#define SOL_LOG_FUNCTION ""
 #endif
 
 /**
