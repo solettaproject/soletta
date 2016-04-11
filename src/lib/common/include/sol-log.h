@@ -458,12 +458,34 @@ sol_log_domain_init_level(struct sol_log_domain *domain)
 #define SOL_LOG_LEVEL_POSSIBLE(level) (0)
 #endif
 
+/**
+ * @def SOL_LOG_FILE
+ *
+ * @brief Macro defining what to log for file entries
+ *
+ * Set at build time. By default, it's set to @c __FILE__, i.e. the
+ * file name of the log call entry will be part of the log (and thus
+ * take part in the final Soletta binary/image). One can disable that
+ * behavior, though, when it'll be set to @c NULL (and no file name
+ * will take part in the log entries).
+ */
 #ifdef SOL_LOG_FILES
 #define SOL_LOG_FILE __FILE__
 #else
 #define SOL_LOG_FILE NULL
 #endif
 
+/**
+ * @def SOL_LOG_FUNCTION
+ *
+ * @brief Macro defining what to log for function entries
+ *
+ * Set at build time. By default, it's set to @c __PRETTY_FUNCTION__,
+ * i.e. the function name of the log call entry will be part of the
+ * log (and thus take part in the final Soletta binary/image). One can
+ * disable that behavior, though, when it'll be set to @c NULL (and no
+ * function name will take part in the log entries).
+ */
 #ifdef SOL_LOG_FUNCTIONS
 #define SOL_LOG_FUNCTION __PRETTY_FUNCTION__
 #else
