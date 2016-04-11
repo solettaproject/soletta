@@ -25,8 +25,8 @@ dictionary PWMPinInit {
   unsigned long channel;
   boolean raw = false;
   boolean enabled = true;
-  long period;     // nanoseconds
-  long dutyCycle;  // nanoseconds
+  unsigned long period;     // nanoseconds
+  unsigned long dutyCycle;  // nanoseconds
   PWMPolarity polarity = "normal";
   PWMAlignment alignment = "left";
 };
@@ -35,8 +35,8 @@ dictionary PWMPinInit {
 interface PWMPin {
   // has all the properties of PWMPinInit as read-only attributes
   Promise<void> setEnabled(boolean enable);
-  Promise<void> setDutyCycle(boolean enable);
-  Promise<void> setPeriod(boolean enable);
+  Promise<void> setPeriod(unsigned long period);
+  Promise<void> setDutyCycle(unsigned long dutyCycle);
   void close();
 };
 
