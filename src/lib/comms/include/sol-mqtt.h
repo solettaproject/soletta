@@ -330,6 +330,11 @@ struct sol_mqtt_config {
     const struct sol_cert *private_key;
 
     /**
+     * User data provided to the callbacks
+     */
+    const void *data;
+
+    /**
      * Handlers to be used with this connection
      */
     const struct sol_mqtt_handlers handlers;
@@ -341,11 +346,10 @@ struct sol_mqtt_config {
  * @param host The host address of the MQTT broker
  * @param port The host port to connect to
  * @param config Configuration and callbacks
- * @param data User data provided to the callbacks
  *
  * @return New mqtt object on sucess, NULL otherwise
  */
-struct sol_mqtt *sol_mqtt_connect(const char *host, uint16_t port, const struct sol_mqtt_config *config, const void *data);
+struct sol_mqtt *sol_mqtt_connect(const char *host, uint16_t port, const struct sol_mqtt_config *config);
 
 /**
  * @brief Reestablish the connection to the MQTT broker

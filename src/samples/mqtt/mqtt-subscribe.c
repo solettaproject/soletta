@@ -96,7 +96,7 @@ main(int argc, char *argv[])
     port = atoi(argv[2]);
     topic = argv[3];
 
-    mqtt = sol_mqtt_connect(argv[1], port, &config, NULL);
+    mqtt = sol_mqtt_connect(argv[1], port, &config);
     if (!mqtt) {
         SOL_WRN("Unable to create MQTT session");
         return -1;

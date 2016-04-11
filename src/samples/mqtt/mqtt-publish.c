@@ -120,7 +120,7 @@ main(int argc, char *argv[])
         .retain = false,
     };
 
-    mqtt = sol_mqtt_connect(argv[1], port, &config, NULL);
+    mqtt = sol_mqtt_connect(argv[1], port, &config);
     if (!mqtt) {
         SOL_WRN("Unable to create MQTT session");
         return -1;

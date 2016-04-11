@@ -160,6 +160,7 @@ mqtt_init(struct client_data *mdata)
         .ca_cert = mdata->ca_cert,
         .client_cert = mdata->client_cert,
         .private_key = mdata->private_key,
+        .data = mdata,
         .handlers = {
             SOL_SET_API_VERSION(.api_version = SOL_MQTT_HANDLERS_API_VERSION, )
             .connect = on_connect,
@@ -168,7 +169,7 @@ mqtt_init(struct client_data *mdata)
         },
     };
 
-    mdata->mqtt = sol_mqtt_connect(mdata->host, mdata->port, &config, mdata);
+    mdata->mqtt = sol_mqtt_connect(mdata->host, mdata->port, &config);
 
     if (!mdata->mqtt) {
         sol_flow_send_error_packet(mdata->node, ENOMEM,
