@@ -46,6 +46,12 @@ struct sol_connman_service {
     bool is_call_success;
 };
 
+struct ctx {
+    struct sol_bus_client *connman;
+};
+
+static struct ctx _ctx;
+
 static void
 _free_connman_service(struct sol_connman_service *service)
 {
@@ -154,6 +160,40 @@ void
 sol_connman_shutdown(void)
 {
     return;
+}
+
+static int
+sol_connman_init_lazy(void)
+{
+    sd_bus *bus;
+
+    if (_ctx.connman)
+        return 0;
+
+    bus = sol_bus_get(NULL);
+    if (!bus) {
+        SOL_WRN("Unable to get sd bus\n");
+        return -EINVAL;
+    }
+
+    _ctx.connman = sol_bus_client_new(bus, "org.connman");
+    if (!_ctx.connman) {
+        SOL_WRN("Unable to new a bus client\n");
+        return -EINVAL;
+    }
+
+    return 0;
+}
+
+static void
+sol_connman_shutdown_lazy(void)
+{
+    struct sol_connman_service *service;
+
+    if (_ctx.connman) {
+        sol_bus_client_free(_ctx.connman);
+        _ctx.connman = NULL;
+    }
 }
 
 SOL_API int
