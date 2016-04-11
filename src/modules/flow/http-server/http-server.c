@@ -514,9 +514,8 @@ stop_server(struct http_data *http)
 }
 
 static void
-common_close(struct sol_flow_node *node, void *data)
+close_sse_requests(struct http_data *mdata)
 {
-    struct http_data *mdata = data;
     struct sol_ptr_vector sse_clients = mdata->sse_clients;
     uint16_t i;
     struct sol_http_progressive_response *sse_client;
@@ -524,8 +523,15 @@ common_close(struct sol_flow_node *node, void *data)
     memset(&mdata->sse_clients, 0, sizeof(struct sol_ptr_vector));
     SOL_PTR_VECTOR_FOREACH_IDX (&sse_clients, sse_client, i)
         sol_http_progressive_response_del(sse_client, true);
-
     sol_ptr_vector_clear(&sse_clients);
+}
+
+static void
+common_close(struct sol_flow_node *node, void *data)
+{
+    struct http_data *mdata = data;
+
+    close_sse_requests(mdata);
     stop_server(mdata);
 }
 
@@ -783,6 +789,7 @@ string_close(struct sol_flow_node *node, void *data)
 {
     struct http_data *mdata = data;
 
+    close_sse_requests(mdata);
     free(mdata->value.s);
     stop_server(mdata);
 }
@@ -1190,6 +1197,7 @@ blob_close(struct sol_flow_node *node, void *data)
 {
     struct http_data *mdata = data;
 
+    close_sse_requests(mdata);
     if (mdata->value.blob)
         sol_blob_unref(mdata->value.blob);
     stop_server(mdata);
@@ -1431,6 +1439,7 @@ json_close(struct sol_flow_node *node, void *data)
 {
     struct http_json_data *mdata = data;
 
+    close_sse_requests(&mdata->base);
     clear_json_data(mdata);
     stop_server(&mdata->base);
 }
