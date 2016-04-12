@@ -38,6 +38,21 @@
 					} ]
 				},
 				{
+					"target_name": "copyapis",
+					"type": "none",
+					"actions": [ {
+						"action_name": "copyapis",
+						"message": "Copying JS APIs",
+						"inputs": [ "./bindings/nodejs/lib" ],
+						"outputs": [ "" ],
+						"action": [
+							"sh",
+							"-c",
+							"cp -a ./bindings/nodejs/lib/* ."
+						]
+					} ]
+				},
+				{
 					"target_name": "soletta",
 					"includes": [
 						"bindings/nodejs/generated/nodejs-bindings-sources.gyp"
@@ -50,7 +65,7 @@
 						"OTHER_CFLAGS": [ '<!@(echo "${SOLETTA_CFLAGS}")' ]
 					},
 					"libraries": [ '<!@(echo "${SOLETTA_LIBS}")' ],
-					"dependencies": [ "collectbindings" ]
+					"dependencies": [ "collectbindings", "copyapis" ]
 				}
 			]
 		} ]
