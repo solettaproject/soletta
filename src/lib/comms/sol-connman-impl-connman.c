@@ -683,7 +683,29 @@ sol_connman_init(void)
 void
 sol_connman_shutdown(void)
 {
-    return;
+    struct sol_connman_service *service;
+    uint16_t id;
+
+    if (_ctx.connman) {
+        sol_bus_client_free(_ctx.connman);
+        _ctx.connman = NULL;
+    }
+
+    _ctx.state_slot =
+        sd_bus_slot_unref(_ctx.state_slot);
+    _ctx.manager_slot =
+        sd_bus_slot_unref(_ctx.manager_slot);
+    _ctx.service_slot =
+        sd_bus_slot_unref(_ctx.service_slot);
+
+    SOL_VECTOR_FOREACH_IDX (&_ctx.service_vector, service, id) {
+        _free_connman_service(service);
+    }
+
+    sol_vector_clear(&_ctx.service_vector);
+    sol_vector_clear(&_ctx.monitor_vector);
+
+    _ctx.connman_state = SOL_CONNMAN_STATE_UNKNOWN;
 }
 
 static int
