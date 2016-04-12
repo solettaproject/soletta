@@ -15,8 +15,6 @@
     <script type="text/javascript" src="js/page/Category.js"></script>
     <script type="text/javascript" src="js/page/Entry.js"></script>
     <script type="text/javascript" src="js/page/MenuItem.js"></script>
-    <script type="text/javascript" src="js/page/ExamplesView.js"></script>
-
     <!-- page scripts !-->
     <script type="text/javascript">
         // /*
