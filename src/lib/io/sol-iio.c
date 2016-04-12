@@ -873,6 +873,9 @@ sol_iio_close(struct sol_iio_device *device)
     }
     sol_ptr_vector_clear(&device->channels);
 
+    if ((device->buffer_enabled) && (!set_buffer_enabled(device, false)))
+        SOL_WRN("Could not disable buffer for device%d", device->device_id);
+
     if (device->fd_handler) sol_fd_del(device->fd_handler);
     if (device->fd > -1) close(device->fd);
     if (device->name_fd > -1) close(device->name_fd);
