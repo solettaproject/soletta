@@ -133,3 +133,8 @@ config TEST_NETWORK
        bool "network"
        depends on NETWORK && BLUETOOTH
        default y
+
+config TEST_BLUETOOTH
+       bool "bluetooth"
+       depends on NETWORK && BLUETOOTH
+       default y
