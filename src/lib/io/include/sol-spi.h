@@ -20,7 +20,6 @@
 
 #include <stdint.h>
 #include <stdbool.h>
-#include <sys/types.h>
 
 #include <sol-common-buildopts.h>
 #include <sol-macros.h>
@@ -90,7 +89,7 @@ struct sol_spi_config {
  *
  * @see sol_spi_mode_to_str().
  *
- * @param spi_mode Valid values are mode0", "mode1", "mode2", "mode3".
+ * @param spi_mode Valid values are "mode0", "mode1", "mode2", "mode3".
  *
  * @return enumeration sol_spi_mode
  */
