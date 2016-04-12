@@ -11,6 +11,11 @@ config TEST_COAP
 	depends on COAP
 	default y
 
+config TEST_CONNMAN
+        bool "connman"
+        depends on CONNMAN
+        default y
+
 config TEST_FBP
 	bool "fbp"
 	depends on FLOW_SUPPORT
