@@ -95,8 +95,7 @@ security_object_read(void *instance_data, void *user_data,
             SOL_LWM2M_RESOURCE_DATA_TYPE_BOOLEAN, false);
         break;
     case SECURITY_SERVER_ID:
-        SOL_LWM2M_RESOURCE_INIT(r, res, 10, 1,
-            SOL_LWM2M_RESOURCE_DATA_TYPE_INT, 101);
+        SOL_LWM2M_RESOURCE_INT_INIT(r, res, 10, 101);
         break;
     default:
         r = -EINVAL;
@@ -114,12 +113,10 @@ server_object_read(void *instance_data, void *user_data,
 
     switch (res_id) {
     case SERVER_OBJECT_SERVER_ID:
-        SOL_LWM2M_RESOURCE_INIT(r, res, 0, 1,
-            SOL_LWM2M_RESOURCE_DATA_TYPE_INT, 101);
+        SOL_LWM2M_RESOURCE_INT_INIT(r, res, 0, 101);
         break;
     case SERVER_OBJECT_LIFETIME:
-        SOL_LWM2M_RESOURCE_INIT(r, res, 1, 1,
-            SOL_LWM2M_RESOURCE_DATA_TYPE_INT, LIFETIME);
+        SOL_LWM2M_RESOURCE_INT_INIT(r, res, 1, LIFETIME);
         break;
     case SERVER_OBJECT_BINDING:
         SOL_LWM2M_RESOURCE_INIT(r, res, 7, 1,
@@ -298,8 +295,7 @@ read_dummy_resource(void *instance_data, void *user_data,
             sol_str_slice_from_str(ctx->opaque));
         break;
     case DUMMY_OBJECT_INT_ID:
-        SOL_LWM2M_RESOURCE_INIT(r, res, res_id, 1,
-            SOL_LWM2M_RESOURCE_DATA_TYPE_INT, ctx->i);
+        SOL_LWM2M_RESOURCE_INT_INIT(r, res, res_id, ctx->i);
         break;
     case DUMMY_OBJECT_BOOLEAN_FALSE_ID:
         SOL_LWM2M_RESOURCE_INIT(r, res, res_id, 1,
@@ -427,9 +423,7 @@ read_cb(void *data,
 
     check_tlv_and_save(&tlvs, NULL);
 
-    SOL_LWM2M_RESOURCE_INIT(r, &res, DUMMY_OBJECT_INT_ID, 1,
-        SOL_LWM2M_RESOURCE_DATA_TYPE_INT,
-        (int64_t)INT_REPLACE_VALUE);
+    SOL_LWM2M_RESOURCE_INT_INIT(r, &res, DUMMY_OBJECT_INT_ID, INT_REPLACE_VALUE);
     ASSERT(r == 0);
     r = sol_lwm2m_server_write(server, client, "/999/0/2",
         &res, 1, write_cb, NULL);
@@ -509,8 +503,7 @@ create_obj(struct sol_lwm2m_server *server, struct sol_lwm2m_client_info *cinfo)
         SOL_LWM2M_RESOURCE_DATA_TYPE_OPAQUE,
         sol_str_slice_from_str(OPAQUE_STR));
     ASSERT(r == 0);
-    SOL_LWM2M_RESOURCE_INIT(r, &res[2], DUMMY_OBJECT_INT_ID, 1,
-        SOL_LWM2M_RESOURCE_DATA_TYPE_INT, (int64_t)INT_VALUE);
+    SOL_LWM2M_RESOURCE_INT_INIT(r, &res[2], DUMMY_OBJECT_INT_ID, INT_VALUE);
     ASSERT(r == 0);
     SOL_LWM2M_RESOURCE_INIT(r, &res[3], DUMMY_OBJECT_BOOLEAN_FALSE_ID, 1,
         SOL_LWM2M_RESOURCE_DATA_TYPE_BOOLEAN, false);
