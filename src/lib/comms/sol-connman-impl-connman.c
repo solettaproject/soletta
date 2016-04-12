@@ -880,5 +880,9 @@ sol_connman_del_service_monitor(
 SOL_API int
 sol_connman_get_service_vector(struct sol_vector **vector)
 {
+    SOL_NULL_CHECK(vector, -EINVAL);
+
+    *vector = &_ctx.service_vector;
+
     return 0;
 }
