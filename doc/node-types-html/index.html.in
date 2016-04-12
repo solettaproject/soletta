@@ -61,23 +61,18 @@
 
         /* load the contents of the selected entry */
         function loadExampleContents(_data){
-
             /* loading title and description */
             var info = $('#example-info');
             var title = $('<h1></h1>');
             var description = $('<p></p>');
-
             title.text(_data['name']);
             description.text(_data['description']);
-
             info.append(title);
             info.append(description);
             /* loading all thumbnails */
             for(var i=0; i<_data['exampleList'].length; i++){
-
                 var thumb = $('<img></img>');
                 thumb.addClass('example-thumb');
-
                 /* thumbnail main attributes */
                 thumb.attr('src',_data['exampleList'][i]['thumb']);
                 thumb.attr('id','thumb_' + i);
@@ -164,7 +159,8 @@
             y=copycode();
             console.log(y);
             $(this).fadeOut(100,showCopiedFeedback);
-    } 
+        } 
+        
         function selecttext(element){
             var range = document.createRange();// create new range object
             range.selectNodeContents(element);// set range to encompass desired element text
@@ -172,7 +168,8 @@
             selection.removeAllRanges(); // unselect any user selected text (if any)
             selection.addRange(range); // add range to Selection object to select it
         }
-         function copycode(){
+        
+        function copycode(){
             var copycheck; // var to check whether execCommand successfully executed
             try{
                 copycheck=document.execCommand('copy'); // run command to copy selected text
@@ -181,8 +178,8 @@
             }
             return copycheck;
         }
+        
         function showCopiedFeedback(){
-
             var feedback = $('<img></img>');
             feedback.attr('src','images/button_code_copied.png');
             feedback.attr('id','example-code-copied');
@@ -196,6 +193,7 @@
         function close(){
             el.fadeOut(250,onCloseComplete);
         }
+        
         function onCloseComplete(){
             /* clearing all created objects */
             $(window).off('resize',onWindowResize);
@@ -211,6 +209,7 @@
             $('#example').hide();
             el.trigger('examples:closed');
         }
+        
         ExamplesView.prototype.show = function(_data){
             /* showing the example view */
             $("#example").fadeIn();
@@ -298,6 +297,7 @@
                     cover.stop().show().css('opacity',0).animate({opacity:1},150);
                 }
             }
+            
             function hideCover(event){
                 if(over){
                     over = false;
@@ -341,7 +341,6 @@
             }
         });
     </script>
-
 </head>
 <body>
 
