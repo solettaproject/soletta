@@ -49,8 +49,14 @@ struct sol_connman_service {
     bool is_call_success;
 };
 
+struct dbus_monitor_callback {
+    void (*cb)(void *data, const struct sol_connman_service *service);
+    const void *data;
+};
+
 struct ctx {
     struct sol_vector service_vector;
+    struct sol_vector monitor_vector;
     struct sol_bus_client *connman;
     sd_bus_slot *properties_changed;
     sd_bus_slot *manager_slot;
@@ -60,6 +66,18 @@ struct ctx {
 };
 
 static struct ctx _ctx;
+
+static void
+call_monitor_callback(struct sol_connman_service *service)
+{
+    struct dbus_monitor_callback *monitor;
+    uint16_t i;
+
+    SOL_VECTOR_FOREACH_IDX (&_ctx.monitor_vector, monitor, i) {
+        if (monitor->cb)
+            monitor->cb((void *)monitor->data, service);
+    }
+}
 
 static void
 _free_connman_service(struct sol_connman_service *service)
@@ -217,6 +235,7 @@ remove_services(const char *path)
     SOL_VECTOR_FOREACH_IDX (&_ctx.service_vector, service, i) {
         if (strcmp(service->path, path) == 0) {
             service->state = SOL_CONNMAN_SERVICE_STATE_REMOVE;
+            call_monitor_callback(service);
             _free_connman_service(service);
             sol_vector_del(&_ctx.service_vector, i);
             break;
@@ -367,6 +386,8 @@ end:
         SOL_INT_CHECK(r, < 0, r);
     } else
         return r;
+
+    call_monitor_callback(service);
 
     return 0;
 }
@@ -617,6 +638,7 @@ sol_connman_init_lazy(void)
     }
 
     sol_vector_init(&_ctx.service_vector, sizeof(struct sol_connman_service));
+    sol_vector_init(&_ctx.monitor_vector, sizeof(struct dbus_monitor_callback));
 
     return 0;
 }
@@ -625,6 +647,7 @@ static void
 sol_connman_shutdown_lazy(void)
 {
     struct sol_connman_service *service;
+    uint16_t id;
 
     if (_ctx.connman) {
         sol_bus_client_free(_ctx.connman);
@@ -643,6 +666,7 @@ sol_connman_shutdown_lazy(void)
     }
 
     sol_vector_clear(&_ctx.service_vector);
+    sol_vector_clear(&_ctx.monitor_vector);
 
     _ctx.connman_state = SOL_CONNMAN_STATE_UNKNOWN;
 }
@@ -694,10 +718,29 @@ dbus_connection_add_monitor(
     const void *data)
 {
     int r;
+    uint16_t i;
+    struct dbus_monitor_callback *monitor;
+    bool is_exist = false;
     char matchstr[256];
     sd_bus *bus = sol_bus_client_get_bus(_ctx.connman);
 
     SOL_NULL_CHECK(bus, -EINVAL);
+
+    SOL_VECTOR_FOREACH_IDX (&_ctx.monitor_vector, monitor, i) {
+        if (monitor->cb == cb) {
+            monitor->data = data;
+            is_exist = true;
+            break;
+        }
+    }
+
+    if (is_exist == false) {
+        monitor = sol_vector_append(&_ctx.monitor_vector);
+        SOL_NULL_CHECK(monitor, -EINVAL);
+
+        monitor->cb = cb;
+        monitor->data = data;
+    }
 
     if (_ctx.properties_changed)
         return 0;
