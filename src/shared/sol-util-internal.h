@@ -124,3 +124,10 @@ align_power2_short_uint(unsigned short u)
         } \
         pow2__aligned; \
     })
+
+/* abort() may not always be completely available on small systems */
+#ifdef SOL_PLATFORM_LINUX
+#define sol_abort() abort()
+#else
+#define sol_abort() exit(EXIT_FAILURE)
+#endif
