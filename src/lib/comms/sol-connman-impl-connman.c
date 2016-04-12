@@ -48,6 +48,7 @@ struct sol_connman_service {
 
 struct ctx {
     struct sol_bus_client *connman;
+    sd_bus_slot *state_slot;
 };
 
 static struct ctx _ctx;
@@ -126,9 +127,30 @@ sol_connman_get_state(void)
     return SOL_CONNMAN_STATE_UNKNOWN;
 }
 
+static int
+_set_state_property_changed(sd_bus_message *reply, void *userdata,
+    sd_bus_error *ret_error)
+{
+    struct ctx *pending = userdata;
+
+    pending->state_slot = sd_bus_slot_unref(pending->state_slot);
+
+    return sol_bus_log_callback(reply, userdata, ret_error);
+}
+
 SOL_API int
 sol_connman_set_offline(bool enabled)
 {
+    int r;
+    sd_bus *bus = sol_bus_client_get_bus(_ctx.connman);
+
+    SOL_NULL_CHECK(bus, -EINVAL);
+
+    r = sd_bus_call_method_async(bus, &_ctx.state_slot, "net.connman", "/",
+        "net.connman.Manager", "SetProperty", _set_state_property_changed,
+        &_ctx, "sv", "OfflineMode", "b", enabled);
+    SOL_INT_CHECK(r, < 0, r);
+
     return 0;
 }
 
@@ -194,6 +216,9 @@ sol_connman_shutdown_lazy(void)
         sol_bus_client_free(_ctx.connman);
         _ctx.connman = NULL;
     }
+
+    _ctx.state_slot =
+        sd_bus_slot_unref(_ctx.state_slot);
 }
 
 SOL_API int
