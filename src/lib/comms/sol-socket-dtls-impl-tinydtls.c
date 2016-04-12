@@ -47,12 +47,11 @@ struct sol_socket_dtls {
     struct sol_socket *wrapped;
     struct sol_timeout *retransmit_timeout;
     dtls_context_t *context;
-
     struct {
         bool (*cb)(void *data, struct sol_socket *s);
-        const void *data;
         struct sol_vector queue;
     } read, write;
+    const void *data;
 
     const struct sol_socket_dtls_credential_cb *credentials;
 };
@@ -175,24 +174,6 @@ sol_socket_dtls_del(struct sol_socket *socket)
 
     sol_util_secure_clear_memory(s, sizeof(*s));
     free(s);
-}
-
-static int
-sol_socket_dtls_setsockopt(struct sol_socket *socket, enum sol_socket_level level,
-    enum sol_socket_option optname, const void *optval, size_t optlen)
-{
-    struct sol_socket_dtls *s = (struct sol_socket_dtls *)socket;
-
-    return sol_socket_setsockopt(s->wrapped, level, optname, optval, optlen);
-}
-
-static int
-sol_socket_dtls_getsockopt(struct sol_socket *socket, enum sol_socket_level level,
-    enum sol_socket_option optname, void *optval, size_t *optlen)
-{
-    struct sol_socket_dtls *s = (struct sol_socket_dtls *)socket;
-
-    return sol_socket_getsockopt(s->wrapped, level, optname, optval, optlen);
 }
 
 static int
@@ -371,7 +352,7 @@ call_user_read_cb(struct dtls_context_t *ctx, session_t *session, uint8_t *buf, 
         return -EINVAL;
     }
 
-    if (socket->read.cb(socket->read.data, socket))
+    if (socket->read.cb((void *)socket->data, socket))
         return len;
 
     return -EINVAL;
@@ -439,10 +420,7 @@ write_encrypted(struct dtls_context_t *ctx, session_t *session, uint8_t *buf, si
         return -EINVAL;
     }
 
-    r = sol_socket_sendmsg(socket->wrapped, buf, len, &addr);
-    SOL_INT_CHECK(r, < 0, r);
-
-    return len;
+    return sol_socket_sendmsg(socket->wrapped, buf, len, &addr);
 }
 
 static bool
@@ -455,7 +433,7 @@ call_user_write_cb(void *data, struct sol_socket *wrapped)
         return false;
     }
 
-    if (socket->write.cb(socket->write.data, socket)) {
+    if (socket->write.cb(socket->data, socket)) {
         SOL_DBG("User func@%p returned success, encrypting payload",
             socket->write.cb);
 
@@ -610,29 +588,24 @@ handle_dtls_event(struct dtls_context_t *ctx, session_t *session,
 }
 
 static int
-sol_socket_dtls_set_on_read(struct sol_socket *socket, bool (*cb)(void *data, struct sol_socket *s), void *data)
+sol_socket_dtls_set_read_monitor(struct sol_socket *socket, bool on)
 {
     struct sol_socket_dtls *s = (struct sol_socket_dtls *)socket;
 
-    s->read.cb = cb;
-    s->read.data = data;
 
-    SOL_DBG("setting onread of socket %p to %p<%p>", socket, cb, data);
+    SOL_DBG("setting onread of socket %p to <%d>", socket, on);
 
-    return sol_socket_set_on_read(s->wrapped, read_encrypted, socket);
+    return sol_socket_set_read_monitor(s->wrapped, on);
 }
 
 static int
-sol_socket_dtls_set_on_write(struct sol_socket *socket, bool (*cb)(void *data, struct sol_socket *s), void *data)
+sol_socket_dtls_set_write_monitor(struct sol_socket *socket, bool on)
 {
     struct sol_socket_dtls *s = (struct sol_socket_dtls *)socket;
 
-    s->write.cb = cb;
-    s->write.data = data;
+    SOL_DBG("setting onwrite of socket %p to <%d>", socket, on);
 
-    SOL_DBG("setting onwrite of socket %p to %p<%p>", socket, cb, data);
-
-    return sol_socket_set_on_write(s->wrapped, call_user_write_cb, socket);
+    return sol_socket_set_write_monitor(s->wrapped, on);
 }
 
 static int
@@ -699,19 +672,16 @@ get_psk_info(struct dtls_context_t *ctx, const session_t *session,
 }
 
 struct sol_socket *
-sol_socket_dtls_wrap_socket(struct sol_socket *to_wrap)
+sol_socket_default_dtls_new(const struct sol_socket_options *options)
 {
-    static const struct sol_socket_impl impl = {
+    static const struct sol_socket_type type = {
         .bind = sol_socket_dtls_bind,
         .join_group = sol_socket_dtls_join_group,
         .sendmsg = sol_socket_dtls_sendmsg,
         .recvmsg = sol_socket_dtls_recvmsg,
-        .set_on_write = sol_socket_dtls_set_on_write,
-        .set_on_read = sol_socket_dtls_set_on_read,
-        .del = sol_socket_dtls_del,
-        .new = NULL,
-        .setsockopt = sol_socket_dtls_setsockopt,
-        .getsockopt = sol_socket_dtls_getsockopt
+        .set_write_monitor = sol_socket_dtls_set_write_monitor,
+        .set_read_monitor = sol_socket_dtls_set_read_monitor,
+        .del = sol_socket_dtls_del
     };
     static const dtls_handler_t dtls_handler = {
         .write = write_encrypted,
@@ -719,34 +689,44 @@ sol_socket_dtls_wrap_socket(struct sol_socket *to_wrap)
         .event = handle_dtls_event,
         .get_psk_info = get_psk_info
     };
-    struct sol_socket_dtls *socket;
+    struct sol_socket_ip_options opts;
+    struct sol_socket_dtls *s;
 
+    SOL_SOCKET_OPTIONS_SUB_API_CHECK(options, SOL_SOCKET_IP_OPTIONS_API_VERSION, NULL);
+
+    opts = *(struct sol_socket_ip_options *)options;
     init_dtls_if_needed();
+    opts.on_can_read = read_encrypted;
+    opts.on_can_write = call_user_write_cb;
 
-    socket = malloc(sizeof(*socket));
-    SOL_NULL_CHECK(socket, NULL);
+    s = calloc(1, sizeof(*s));
+    SOL_NULL_CHECK(s, NULL);
 
-    socket->context = dtls_new_context(socket);
-    if (!socket->context) {
+    SOL_SET_API_VERSION(s->base.api_version = SOL_SOCKET_API_VERSION; )
+
+    s->wrapped = sol_socket_default_new(options);
+    SOL_NULL_CHECK_GOTO(s, err);
+
+    s->context = dtls_new_context(s);
+    if (!s->context) {
         SOL_WRN("Could not create DTLS context");
-        free(socket);
-        return NULL;
+        sol_socket_del(s->wrapped);
+        goto err;
     }
 
-    dtls_set_handler(socket->context, &dtls_handler);
+    dtls_set_handler(s->context, &dtls_handler);
 
-    socket->read.cb = NULL;
-    socket->write.cb = NULL;
-    socket->credentials = NULL;
-    socket->retransmit_timeout = NULL;
-    socket->wrapped = to_wrap;
-    socket->base.impl = &impl;
-    socket->dtls_magic = dtls_magic;
+    s->base.type = &type;
+    s->dtls_magic = dtls_magic;
 
-    sol_vector_init(&socket->write.queue, sizeof(struct queue_item));
-    sol_vector_init(&socket->read.queue, sizeof(struct queue_item));
+    sol_vector_init(&s->write.queue, sizeof(struct queue_item));
+    sol_vector_init(&s->read.queue, sizeof(struct queue_item));
 
-    return &socket->base;
+    return &s->base;
+
+err:
+    free(s);
+    return NULL;
 }
 
 int
