@@ -16,6 +16,16 @@ config DTLS
 
 	    If unsure, say N.
 
+config CONNMAN
+        bool "connection manager interfaces"
+        default y
+        depends on FEATURE_CONNMAN && NETWORK
+        help
+           This provides the connection manager interfaces API.
+           The user can contorl the connection manager to contorl
+           network and get the info from connection manager to get
+           the network state and info.
+
 config COAP
 	bool "CoAP"
 	default y
