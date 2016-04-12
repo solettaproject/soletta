@@ -20,7 +20,6 @@
 
 #include <errno.h>
 #include <fcntl.h>
-#include <sched.h>
 #include <stdio.h>
 #include <sys/stat.h>
 #include <unistd.h>
@@ -597,8 +596,6 @@ resolve_i2c_path(const char *path, char **resolved_path)
 
     if (ret >= 0 || ret == -EEXIST) {
         const struct sol_str_slice ending = SOL_STR_SLICE_LITERAL("/eeprom");
-        struct timespec start;
-        struct stat st;
 
         ret = sol_buffer_append_slice(&result_path, ending);
         if (ret < 0)
@@ -607,18 +604,11 @@ resolve_i2c_path(const char *path, char **resolved_path)
         *resolved_path = sol_buffer_steal(&result_path, NULL);
 
         ret = 0;
-        start = sol_util_timespec_get_current();
-        while (stat(*resolved_path, &st)) {
-            struct timespec elapsed, now = sol_util_timespec_get_current();
-
-            sol_util_timespec_sub(&now, &start, &elapsed);
-            /* Let's wait up to one second */
-            if (elapsed.tv_sec > 0) {
-                ret = -ENODEV;
-                goto end;
-            }
-
-            sched_yield();
+        /* Let's wait up to one second */
+        if (!sol_util_busy_wait_file(*resolved_path, SOL_NSEC_PER_SEC)) {
+            ret = -ENODEV;
+            free(*resolved_path);
+            goto end;
         }
     }
 
@@ -698,6 +688,7 @@ sol_memmap_remove_map(const struct sol_memmap_map *map)
                 sol_timeout_del(map_internal->timeout);
                 perform_pending_writes(map_internal);
             }
+            free(map_internal->resolved_path);
             return sol_vector_del(&memory_maps, i);
         }
     }
