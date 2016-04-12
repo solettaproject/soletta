@@ -254,6 +254,38 @@ sol_str_slice_from_blob(const struct sol_blob *blob)
 }
 
 /**
+ * @brief Creates a blob from a slice.
+ *
+ * This function creates @ref SOL_BLOB_TYPE_DEFAULT, this means that
+ * the memory used by the slice will be duplicated.
+ *
+ * @param slice Source slice
+ * @return A blob or @c NULL on error
+ */
+static inline struct sol_blob *
+sol_str_slice_to_blob(const struct sol_str_slice slice)
+{
+    void *blob_mem;
+    struct sol_blob *blob;
+
+    blob_mem = malloc(slice.len);
+    if (!blob_mem)
+        return NULL;
+
+    memcpy(blob_mem, slice.data, slice.len);
+
+    blob = sol_blob_new(SOL_BLOB_TYPE_DEFAULT, NULL,
+        blob_mem, slice.len);
+
+    if (!blob) {
+        free(blob_mem);
+        return NULL;
+    }
+
+    return blob;
+}
+
+/**
  * @brief Converts a string slice to an integer.
  *
  * @param s String slice
