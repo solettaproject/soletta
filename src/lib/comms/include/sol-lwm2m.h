@@ -27,6 +27,7 @@
 #include "sol-str-slice.h"
 #include "sol-vector.h"
 #include "sol-buffer.h"
+#include "sol-types.h"
 
 #ifdef __cplusplus
 extern "C" {
@@ -361,6 +362,36 @@ struct sol_lwm2m_resource {
     do { \
         SOL_SET_API_VERSION((resource_)->api_version = SOL_LWM2M_RESOURCE_API_VERSION; ) \
         (ret_value_) = sol_lwm2m_resource_init((resource_), (id_), (resource_len_), (data_type_), __VA_ARGS__); \
+    } while (0)
+
+/**
+ * @brief A helper macro to init int resources.
+ *
+ * This macro will automatically cast the int value to an @c int64_t, thus avoiding
+ * some problems that may happen depending on the platform.
+ * The most common case to use this macro is when one wants to set a resource using
+ * a literal number.
+ * Example:
+ * @code
+ * //Some code...
+ * SOL_LWM2M_RESOUCE_INT_INIT(ret_value, &my_resource, resource_id, 10);
+ * return ret_value;
+ * //More code...
+ * @endcode
+ *
+ * @param ret_value_ The return value of sol_lwm2m_resource_init()
+ * @param resource_ The resource to be initialized.
+ * @param id_ The resource id.
+ * @param value_ The int value
+ * @see SOL_LWM2M_RESOURCE_INIT()
+ * @see sol_lwm2m_resource_init()
+ * @see SOL_TYPE_CHECK()
+ * @note This can be safely used for @ref SOL_LWM2M_RESOURCE_DATA_TYPE_TIME
+ */
+#define SOL_LWM2M_RESOURCE_INT_INIT(ret_value_, resource_, id_, value_) \
+    do { \
+        SOL_SET_API_VERSION((resource_)->api_version = SOL_LWM2M_RESOURCE_API_VERSION; ) \
+        (ret_value_) = sol_lwm2m_resource_init((resource_), (id_), 1, SOL_LWM2M_RESOURCE_DATA_TYPE_INT, SOL_TYPE_CHECK(int64_t, (value_))); \
     } while (0)
 
 /** @brief A LWM2M object implementation.
