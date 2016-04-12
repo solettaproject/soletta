@@ -232,7 +232,7 @@ sol_socket_zephyr_recvmsg(struct sol_socket *s, void *buf, size_t len, struct so
 {
     struct sol_socket_zephyr *socket = (struct sol_socket_zephyr *)s;
     struct net_buf *netbuf;
-    size_t buflen = -EAGAIN;
+    ssize_t buflen = -EAGAIN;
 
     nano_task_sem_take(&socket->lock, TICKS_UNLIMITED);
 
