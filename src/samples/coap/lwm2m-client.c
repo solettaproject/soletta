@@ -270,8 +270,7 @@ read_security_server_obj(void *instance_data, void *user_data,
             SOL_LWM2M_RESOURCE_DATA_TYPE_BOOLEAN, false);
         break;
     case SECURITY_SERVER_SERVER_ID_RES_ID:
-        SOL_LWM2M_RESOURCE_INIT(r, res, 10, 1,
-            SOL_LWM2M_RESOURCE_DATA_TYPE_INT, 101);
+        SOL_LWM2M_RESOURCE_INT_INIT(r, res, 10, 101);
         break;
     default:
         if (res_id >= 2 && res_id <= 11)
@@ -293,12 +292,10 @@ read_server_obj(void *instance_data, void *user_data,
     //It implements only the necassary info to connect to a LWM2M server Without encryption.
     switch (res_id) {
     case SERVER_OBJ_SHORT_RES_ID:
-        SOL_LWM2M_RESOURCE_INIT(r, res, res_id, 1,
-            SOL_LWM2M_RESOURCE_DATA_TYPE_INT, 101);
+        SOL_LWM2M_RESOURCE_INT_INIT(r, res, res_id, 101);
         break;
     case SERVER_OBJ_LIFETIME_RES_ID:
-        SOL_LWM2M_RESOURCE_INIT(r, res, res_id, 1,
-            SOL_LWM2M_RESOURCE_DATA_TYPE_INT, LIFETIME);
+        SOL_LWM2M_RESOURCE_INT_INIT(r, res, res_id, LIFETIME);
         break;
     case SERVER_OBJ_BINDING_RES_ID:
         SOL_LWM2M_RESOURCE_INIT(r, res, res_id, 1,
