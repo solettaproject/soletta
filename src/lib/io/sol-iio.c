@@ -664,7 +664,6 @@ sol_iio_open(int device_id, const struct sol_iio_config *config)
             if (!set_current_trigger(device, config->trigger_name)) {
                 SOL_WRN("Could not set device%d current trigger",
                     device->device_id);
-                goto error;
             }
         }
 
