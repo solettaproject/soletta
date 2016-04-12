@@ -228,10 +228,10 @@ check_manual_triggering(struct sol_iio_device *device)
     while (success == 0 && res) {
         if (strstartswith(ent->d_name, "trigger")) {
             if (check_trigger_name(ent->d_name, device->trigger_name)) {
-                device->manual_triggering = check_file_existence(
-                    SYSFS_TRIGGER_NAME_PATH, ent->d_name);
                 /* triggers dirs are of the form triggerX, so here we save X */
                 device->trigger_id = atoi(ent->d_name + strlen("trigger"));
+                device->manual_triggering = check_file_existence(
+                    SYSFS_TRIGGER_NOW_BY_ID_PATH, device->trigger_id);
                 result = true;
                 break;
             }
@@ -677,7 +677,7 @@ sol_iio_open(int device_id, const struct sol_iio_config *config)
             set_buffer_size(device, config->buffer_size);
 
         if (!device->manual_triggering) {
-            SOL_WRN("No 'trigger_now' file on device%d current trigger. "
+            SOL_INF("No 'trigger_now' file on device%d current trigger. "
                 "It won't be possible to manually trigger a reading on device",
                 device->device_id);
         }
