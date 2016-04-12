@@ -593,15 +593,84 @@ sol_connman_get_offline(void)
     return true;
 }
 
+static int
+_service_connect(sd_bus_message *reply, void *userdata,
+    sd_bus_error *ret_error)
+{
+    struct sol_connman_service *service = userdata;
+
+    SOL_NULL_CHECK(service, -EINVAL);
+
+    service->slot = sd_bus_slot_unref(service->slot);
+
+    if (sol_bus_log_callback(reply, userdata, ret_error) < 0)
+        service->is_call_success = false;
+    else
+        service->is_call_success = true;
+
+    call_monitor_callback(service);
+
+    return 0;
+}
+
 SOL_API int
 sol_connman_service_connect(struct sol_connman_service *service)
 {
+    int r;
+    sd_bus *bus = sol_bus_client_get_bus(_ctx.connman);
+
+    SOL_NULL_CHECK(bus, -EINVAL);
+    SOL_NULL_CHECK(service, -EINVAL);
+    SOL_NULL_CHECK(service->path, -EINVAL);
+
+    service->is_call_success = false;
+
+    r = sd_bus_call_method_async(bus, &service->slot, "net.connman", service->path,
+        "net.connman.Service", "Connect", _service_connect, service, NULL);
+    SOL_INT_CHECK(r, < 0, r);
+
+    return 0;
+}
+
+static int
+_service_disconnect(sd_bus_message *reply, void *userdata,
+    sd_bus_error *ret_error)
+{
+    struct sol_connman_service *service = userdata;
+
+    SOL_NULL_CHECK(service, -EINVAL);
+
+    service->slot = sd_bus_slot_unref(service->slot);
+
+    if (sol_bus_log_callback(reply, userdata, ret_error) < 0)
+        service->is_call_success = false;
+    else
+        service->is_call_success = true;
+
+    call_monitor_callback(service);
+
     return 0;
 }
 
 SOL_API int
 sol_connman_service_disconnect(struct sol_connman_service *service)
 {
+    int r;
+    sd_bus *bus = sol_bus_client_get_bus(_ctx.connman);
+
+    SOL_NULL_CHECK(bus, -EINVAL);
+    SOL_NULL_CHECK(service, -EINVAL);
+    SOL_NULL_CHECK(service->path, -EINVAL);
+
+    if (service->slot)
+        service->slot = sd_bus_slot_unref(service->slot);
+
+    service->is_call_success = false;
+
+    r = sd_bus_call_method_async(bus, &service->slot, "net.connman", service->path,
+        "net.connman.Service", "Disconnect", _service_disconnect, service, NULL);
+    SOL_INT_CHECK(r, < 0, r);
+
     return 0;
 }
 
