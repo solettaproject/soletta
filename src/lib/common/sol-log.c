@@ -62,7 +62,7 @@ static bool _inited = false;
                 __LINE__, \
                 SOL_LOG_FUNCTION, \
                 ## __VA_ARGS__); \
-            abort(); \
+            sol_abort(); \
         } \
     } while (0)
 
@@ -309,7 +309,7 @@ sol_log_vprint(const struct sol_log_domain *domain, uint8_t message_level, const
             "ERROR: sol_log_print() called with format == NULL "
             "from function=%s, file=%s, line=%d\n",
             function, file, line);
-        abort();
+        sol_abort();
         return;
     }
 
@@ -323,7 +323,7 @@ sol_log_vprint(const struct sol_log_domain *domain, uint8_t message_level, const
             "ERROR: sol_log_print() cannot lock "
             "from function=%s, file=%s, line=%d\n",
             function, file, line);
-        abort();
+        sol_abort();
         return;
     }
     _print_function((void *)_print_function_data,
@@ -331,7 +331,7 @@ sol_log_vprint(const struct sol_log_domain *domain, uint8_t message_level, const
     sol_log_impl_unlock();
 
     if (message_level <= _abort_level)
-        abort();
+        sol_abort();
     errno = errno_bkp;
 }
 
