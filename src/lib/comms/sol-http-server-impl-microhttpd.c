@@ -71,16 +71,16 @@ struct sol_http_request {
     time_t if_since_modified;
     time_t last_modified;
     bool is_multipart;
+    bool suspended;
 };
 
 struct sol_http_progressive_response {
-    struct MHD_Connection *connection;
+    struct sol_http_request *request;
     void (*on_del)(void *data, const struct sol_http_progressive_response *progressive);
     const void *cb_data;
     struct sol_buffer buffer;
     bool delete_me;
     bool graceful_del;
-    bool suspended;
 };
 
 struct static_dir {
@@ -467,8 +467,8 @@ progressive_response_cb(void *data, uint64_t pos, char *buf, size_t size)
     }
 
     if (!progressive->buffer.used) {
-        MHD_suspend_connection(progressive->connection);
-        progressive->suspended = true;
+        MHD_suspend_connection(progressive->request->connection);
+        progressive->request->suspended = true;
         return 0;
     }
 
@@ -876,6 +876,7 @@ http_server_handler(void *data, struct MHD_Connection *connection, const char *u
             goto create_response;
         } else {
             MHD_suspend_connection(connection);
+            req->suspended = true;
             req->last_modified = handler->last_modified;
             ret = handler->request_cb((void *)handler->user_data, req);
             SOL_INT_CHECK(ret, < 0, MHD_NO);
@@ -1078,7 +1079,8 @@ sol_http_server_del(struct sol_http_server *server)
     SOL_NULL_CHECK(server);
 
     SOL_PTR_VECTOR_FOREACH_IDX (&server->requests, request, i) {
-        MHD_resume_connection(request->connection);
+        if (request->suspended)
+            MHD_resume_connection(request->connection);
     }
     sol_ptr_vector_clear(&server->requests);
 
@@ -1179,7 +1181,10 @@ sol_http_server_send_response(struct sol_http_request *request, struct sol_http_
 
     SOL_HTTP_RESPONSE_CHECK_API_VERSION(response, -EINVAL);
 
-    MHD_resume_connection(request->connection);
+    if (request->suspended) {
+        MHD_resume_connection(request->connection);
+        request->suspended = false;
+    }
 
     mhd_response = build_mhd_response(response, request->last_modified);
     SOL_NULL_CHECK(mhd_response, -1);
@@ -1210,9 +1215,12 @@ sol_http_server_send_progressive_response(struct sol_http_request *request,
     SOL_NULL_CHECK(progressive, NULL);
 
     sol_buffer_init(&progressive->buffer);
-    progressive->connection = request->connection;
+    progressive->request = request;
 
-    MHD_resume_connection(request->connection);
+    if (request->suspended) {
+        MHD_resume_connection(request->connection);
+        request->suspended = false;
+    }
 
     mhd_response = build_mhd_progressive_response(response, progressive);
     SOL_NULL_CHECK_GOTO(mhd_response, err);
@@ -1244,8 +1252,10 @@ sol_http_progressive_response_del(struct sol_http_progressive_response *progress
     progressive->graceful_del = graceful_del;
     progressive->delete_me = true;
 
-    if (progressive->suspended)
-        MHD_resume_connection(progressive->connection);
+    if (progressive->request->suspended) {
+        MHD_resume_connection(progressive->request->connection);
+        progressive->request->suspended = false;
+    }
 }
 
 SOL_API int
@@ -1260,9 +1270,9 @@ sol_http_progressive_response_feed(struct sol_http_progressive_response *progres
     ret = sol_buffer_append_slice(&progressive->buffer, data);
     SOL_INT_CHECK(ret, < 0, ret);
 
-    if (progressive->suspended) {
-        progressive->suspended = false;
-        MHD_resume_connection(progressive->connection);
+    if (progressive->request->suspended) {
+        progressive->request->suspended = false;
+        MHD_resume_connection(progressive->request->connection);
     }
 
     return 0;
