@@ -147,11 +147,6 @@
     "        return;\n" \
     "    }\n" \
     "    SOL_HTTP_RESPONSE_CHECK_API(response);\n" \
-    "    if (!response->content.used) {\n" \
-    "        sol_flow_send_error_packet(node, EINVAL,\n" \
-    "            \"Empty response from %s\", cdata->url);\n" \
-    "        return;\n" \
-    "    }\n" \
     "    if (response->response_code != SOL_HTTP_STATUS_OK) {\n" \
     "        sol_flow_send_error_packet(node, EINVAL,\n" \
     "            \"%s returned an unhandled response code: %d\",\n" \
