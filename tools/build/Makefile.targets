@@ -200,7 +200,7 @@ bins-out += bindings-nodejs
 NODE_GYP ?= $(NODE_GYP_PATH)/node-gyp
 
 bindings-nodejs: $(SOL_LIB_OUTPUT)
-	$(Q) $(NODEJS_NPM) install --ignore-scripts
+	$(Q) $(NODEJS_NPM) install --ignore-scripts --production
 
 	$(Q) \
 		SOL_CONFIG_OIC=$(OIC) \
@@ -215,6 +215,14 @@ bindings-nodejs: $(SOL_LIB_OUTPUT)
 		export SOLETTA_CFLAGS="$(addprefix -I,$(abspath $(HEADERDIRS)))"; \
 		export SOLETTA_LIBS="$(FIND_LIBRARY_LDFLAGS)"; \
 			$(NODE_GYP) configure && $(NODE_GYP) build )
+
+	$(Q) mkdir -p $(build_nodejs_bindingsdir)
+	$(Q) cp -a *js package.json $(build_nodejs_bindingsdir)
+	$(Q) mkdir -p $(build_nodejs_bindingsdir)/build
+	$(Q) cp $$(find build -type f -name soletta.node | head -n 1) \
+		$(build_nodejs_bindingsdir)/build
+	$(Q) mkdir -p $(build_nodejs_bindingsdir)/node_modules
+	$(Q) cp -a ./node_modules/* $(build_nodejs_bindingsdir)/node_modules
 
 PHONY += bindings-nodejs
 
