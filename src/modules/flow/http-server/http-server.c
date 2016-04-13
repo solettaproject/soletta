@@ -364,6 +364,7 @@ common_response_cb(void *data, struct sol_http_request *request)
     const struct sol_http_params *params;
     struct sol_vector priorities = { 0 };
     struct sol_http_content_type_priority *prefered_content_type = NULL;
+    struct sol_network_link_addr addr = { 0 };
     struct sol_http_response response = {
         SOL_SET_API_VERSION(.api_version = SOL_HTTP_RESPONSE_API_VERSION, )
         .content = SOL_BUFFER_INIT_EMPTY,
@@ -371,11 +372,20 @@ common_response_cb(void *data, struct sol_http_request *request)
         .response_code = SOL_HTTP_STATUS_INTERNAL_SERVER_ERROR
     };
 
+    SOL_BUFFER_DECLARE_STATIC(addr_buf, SOL_INET_ADDR_STRLEN);
+
     type = (const struct http_server_node_type *)
         sol_flow_node_get_type(node);
 
     method = sol_http_request_get_method(request);
     response.url = sol_http_request_get_url(request);
+
+    r = sol_http_requst_get_client_address(request, &addr);
+    SOL_INT_CHECK(r, < 0, r);
+    sol_network_link_addr_to_str(&addr, &addr_buf);
+    SOL_DBG("Received request from: %.*s",
+        SOL_STR_SLICE_PRINT(sol_buffer_get_slice(&addr_buf)));
+    sol_buffer_fini(&addr_buf);
 
     if (!is_method_allowed(mdata->allowed_methods, method)) {
         SOL_INF("HTTP Method not allowed. Method: %d", (int)method);
