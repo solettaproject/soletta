@@ -110,6 +110,7 @@ sol_uart_open(const char *port_name, const struct sol_uart_config *config)
     SOL_NULL_CHECK(port_name, NULL);
 
     r = snprintf(device, sizeof(device), "/dev/%s", port_name);
+    SOL_INT_CHECK(r, < 0, NULL);
     SOL_INT_CHECK(r, >= (int)sizeof(device), NULL);
 
     uart = calloc(1, sizeof(struct sol_uart));
