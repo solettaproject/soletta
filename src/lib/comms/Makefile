@@ -122,7 +122,8 @@ obj-networking-$(LWM2M) += \
 	sol-lwm2m.o
 
 headers-$(NETWORK) += \
-    include/sol-network.h
+    include/sol-network.h \
+    include/sol-socket.h
 
 headers-$(COAP) += \
     include/sol-coap.h
