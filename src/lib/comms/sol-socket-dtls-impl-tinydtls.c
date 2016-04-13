@@ -678,6 +678,7 @@ struct sol_socket *
 sol_socket_default_dtls_new(const struct sol_socket_options *options)
 {
     static const struct sol_socket_type type = {
+        SOL_SET_API_VERSION(.api_version = SOL_SOCKET_TYPE_API_VERSION, )
         .bind = sol_socket_dtls_bind,
         .join_group = sol_socket_dtls_join_group,
         .sendmsg = sol_socket_dtls_sendmsg,
