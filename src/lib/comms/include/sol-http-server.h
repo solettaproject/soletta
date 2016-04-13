@@ -338,12 +338,23 @@ enum sol_http_method sol_http_request_get_method(const struct sol_http_request *
 /**
  * @brief Gets the address of the interface that request comes.
  *
- * @param request The request which the URL is wanted.
+ * @param request The request.
  * @param address Will be filled with the interface address
  *
  * @return @c 0 on success, error code (always negative) otherwise.
+ * @see sol_http_request_get_client_address()
  */
 int sol_http_request_get_interface_address(const struct sol_http_request *request,
+    struct sol_network_link_addr *address);
+
+/**
+ * @brief Gets the client address that made the request.
+ *
+ * @param request The request.
+ * @param address Will be filled with the origin address.
+ * @see sol_http_request_get_interface_address()
+ */
+int sol_http_request_get_client_address(const struct sol_http_request *request,
     struct sol_network_link_addr *address);
 
 /**

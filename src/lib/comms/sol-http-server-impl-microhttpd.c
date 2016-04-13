@@ -1374,9 +1374,9 @@ end:
     return r;
 }
 
-SOL_API int
-sol_http_request_get_interface_address(const struct sol_http_request *request,
-    struct sol_network_link_addr *address)
+static int
+get_address(const struct sol_http_request *request,
+    struct sol_network_link_addr *address, bool self)
 {
     int r = 0;
     const union MHD_ConnectionInfo *info;
@@ -1393,7 +1393,11 @@ sol_http_request_get_interface_address(const struct sol_http_request *request,
     info = MHD_get_connection_info(request->connection, MHD_CONNECTION_INFO_CONNECTION_FD);
     SOL_NULL_CHECK(info, -EINVAL);
 
-    r = getsockname(info->connect_fd, (struct sockaddr *)&addr, &addrlen);
+    if (self)
+        r = getsockname(info->connect_fd, (struct sockaddr *)&addr, &addrlen);
+    else
+        r = getpeername(info->connect_fd, (struct sockaddr *)&addr, &addrlen);
+
     if (r < 0 || addrlen > sizeof(addr)) {
         SOL_WRN("Could not get the address for request: %s", request->url);
         return -EINVAL;
@@ -1416,6 +1420,20 @@ sol_http_request_get_interface_address(const struct sol_http_request *request,
     }
 
     return r;
+}
+
+SOL_API int
+sol_http_request_get_interface_address(const struct sol_http_request *request,
+    struct sol_network_link_addr *address)
+{
+    return get_address(request, address, true);
+}
+
+SOL_API int
+sol_http_request_get_client_address(const struct sol_http_request *request,
+    struct sol_network_link_addr *address)
+{
+    return get_address(request, address, false);
 }
 
 SOL_API int
