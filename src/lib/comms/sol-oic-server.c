@@ -183,12 +183,41 @@ static const struct sol_oic_resource_type oic_p_resource_type = {
     }
 };
 
+static bool
+iface_contains(const char *iface, struct sol_str_slice query)
+{
+
+    const char *p = NULL;
+    struct sol_str_slice token, slice = sol_str_slice_from_str(iface),
+        delim = SOL_STR_SLICE_LITERAL(" ");
+
+    while (sol_str_slice_split_iterate(slice, &token, &p, delim)) {
+        if (sol_str_slice_eq(query, token))
+            return true;
+    }
+
+    return false;
+}
+
+static bool
+oic_query_split(struct sol_str_slice query, struct sol_str_slice *key, struct sol_str_slice *value)
+{
+    const char *sep;
+
+    sep = memchr(query.data, '=', query.len);
+    SOL_NULL_CHECK(sep, false);
+    *key = SOL_STR_SLICE_STR(query.data, sep - query.data);
+    *value = SOL_STR_SLICE_STR(sep + 1, query.len - (sep - query.data + 1));
+
+    return true;
+}
+
 static CborError
 res_payload_do(CborEncoder *encoder,
     uint8_t *buf,
     size_t buflen,
-    const uint8_t *uri_query,
-    uint16_t uri_query_len,
+    const struct sol_str_slice query_rt,
+    const struct sol_str_slice query_if,
     const uint8_t **encoder_start)
 {
     CborEncoder array, device_map, array_res;
@@ -216,20 +245,23 @@ res_payload_do(CborEncoder *encoder,
     SOL_PTR_VECTOR_FOREACH_IDX (&oic_server.resources, iter, idx) {
         CborEncoder map, policy_map;
 
-        if (uri_query && iter->rt) {
-            size_t rt_len = strlen(iter->rt);
-
-            if (rt_len != uri_query_len)
+        if (!(iter->flags & SOL_OIC_FLAG_DISCOVERABLE)) {
+            if (!(iter->flags & SOL_OIC_FLAG_DISCOVERABLE_EXPLICIT))
                 continue;
-            if (memcmp(uri_query, iter->rt, rt_len) != 0)
+
+            if (!query_rt.len && !query_if.len)
                 continue;
         }
 
-        if (!(uri_query &&
-            (iter->flags & SOL_OIC_FLAG_DISCOVERABLE_EXPLICIT)) &&
-            !(iter->flags & SOL_OIC_FLAG_DISCOVERABLE))
-            continue;
         if (!(iter->flags & SOL_OIC_FLAG_ACTIVE))
+            continue;
+
+        if (query_rt.len &&
+            (!iter->rt || !sol_str_slice_str_eq(query_rt, iter->rt)))
+            continue;
+
+        if (query_if.len &&
+            (!iter->iface || !iface_contains(iter->iface, query_if)))
             continue;
 
         err |= cbor_encoder_create_map(&array_res, &map,
@@ -276,28 +308,42 @@ error:
     return err;
 }
 
+#define QUERY_LEN 2
 static int
 _sol_oic_server_res(struct sol_coap_server *server,
     const struct sol_coap_resource *resource, struct sol_coap_packet *req,
     const struct sol_network_link_addr *cliaddr, void *data)
 {
     const uint8_t format_cbor = SOL_COAP_CONTENTTYPE_APPLICATION_CBOR;
-    const uint8_t *uri_query, *encoder_start;
+    const uint8_t *encoder_start;
     struct sol_coap_packet *resp;
-    uint16_t uri_query_len;
+    struct sol_str_slice query[QUERY_LEN];
+    struct sol_str_slice key, value, query_rt = SOL_STR_SLICE_EMPTY,
+        query_if = SOL_STR_SLICE_EMPTY;
     struct sol_buffer *buf;
     CborEncoder encoder;
     size_t offset;
     CborError err;
-    int r;
+    int r, query_count;
+    uint16_t idx;
 
-    uri_query = sol_coap_find_first_option(req, SOL_COAP_OPTION_URI_QUERY, &uri_query_len);
-    if (uri_query && uri_query_len > sizeof("rt=") - 1) {
-        uri_query += sizeof("rt=") - 1;
-        uri_query_len -= 3;
-    } else {
-        uri_query = NULL;
-        uri_query_len = 0;
+    query_count = sol_coap_find_options(req, SOL_COAP_OPTION_URI_QUERY, query,
+        QUERY_LEN);
+    SOL_INT_CHECK(query_count, < 0, query_count);
+
+    for (idx = 0; idx < query_count; idx++) {
+        if (oic_query_split(query[idx], &key, &value)) {
+            if (!query_rt.len && sol_str_slice_str_eq(key, "rt")) {
+                query_rt = value;
+                continue;
+            }
+            if (!query_if.len && sol_str_slice_str_eq(key, "if")) {
+                query_if = value;
+                continue;
+            }
+        }
+        SOL_WRN("Invalid query parameter: %.*s", SOL_STR_SLICE_PRINT(query[idx]));
+        return SOL_COAP_RSPCODE_BAD_REQUEST;
     }
 
     resp = sol_coap_packet_new(req);
@@ -312,8 +358,7 @@ _sol_oic_server_res(struct sol_coap_server *server,
     }
 
     /* phony run, to calc size */
-    err = res_payload_do(&encoder, NULL, 0, uri_query,
-        uri_query_len, &encoder_start);
+    err = res_payload_do(&encoder, NULL, 0, query_rt, query_if, &encoder_start);
 
     if (err != CborErrorOutOfMemory)
         goto err;
@@ -327,7 +372,7 @@ _sol_oic_server_res(struct sol_coap_server *server,
 
     /* now encode for sure */
     err = res_payload_do(&encoder, sol_buffer_at(buf, offset),
-        encoder.bytes_needed, uri_query, uri_query_len, &encoder_start);
+        encoder.bytes_needed, query_rt, query_if, &encoder_start);
 
 err:
     if (err != CborNoError) {
@@ -348,6 +393,7 @@ err:
 
     return sol_coap_send_packet(server, resp, cliaddr);
 }
+#undef QUERY_LEN
 
 static const struct sol_coap_resource oic_res_coap_resource = {
     SOL_SET_API_VERSION(.api_version = SOL_COAP_RESOURCE_API_VERSION, )
