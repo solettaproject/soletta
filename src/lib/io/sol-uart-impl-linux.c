@@ -40,11 +40,11 @@ SOL_LOG_INTERNAL_DECLARE_STATIC(_log_domain, "uart");
 struct sol_uart {
     int fd;
     struct {
-        void *rx_fd_handler;
+        struct sol_fd *rx_fd_handler;
         void (*rx_cb)(void *data, struct sol_uart *uart, uint8_t byte_read);
         const void *rx_user_data;
 
-        void *tx_fd_handler;
+        struct sol_fd *tx_fd_handler;
         void (*tx_cb)(void *data, struct sol_uart *uart, uint8_t *tx, int status);
         const void *tx_user_data;
         const uint8_t *tx_buffer;
