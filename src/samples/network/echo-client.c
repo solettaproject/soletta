@@ -78,13 +78,11 @@ on_can_write(void *data, struct sol_socket *s)
     r = sol_socket_sendmsg(sock, value, strlen(value), &address);
     if (r < 0) {
         fprintf(stderr, "ERROR: Could not send data\n");
-        goto end;
+        sol_quit_with_code(EXIT_FAILURE);
+        return false;
     }
 
-    r = 0;
-
-end:
-    return (r < 0) ? false : true;
+    return false;
 }
 
 static void
