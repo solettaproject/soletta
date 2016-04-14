@@ -24,6 +24,7 @@
 #include <stdlib.h>
 #include <termios.h>
 #include <unistd.h>
+#include <sys/ioctl.h>
 
 #define SOL_LOG_DOMAIN &_log_domain
 #include "sol-log-internal.h"
@@ -40,15 +41,15 @@ SOL_LOG_INTERNAL_DECLARE_STATIC(_log_domain, "uart");
 struct sol_uart {
     int fd;
     struct {
-        void *rx_fd_handler;
-        void (*rx_cb)(void *data, struct sol_uart *uart, uint8_t byte_read);
+        struct sol_fd *rx_fd_handler;
+        void (*rx_cb)(void *data, struct sol_uart *uart);
         const void *rx_user_data;
 
-        void *tx_fd_handler;
+        struct sol_fd *tx_fd_handler;
         void (*tx_cb)(void *data, struct sol_uart *uart, uint8_t *tx, int status);
         const void *tx_user_data;
         const uint8_t *tx_buffer;
-        unsigned int tx_length, tx_index;
+        size_t tx_length, tx_index;
     } async;
 };
 
@@ -57,21 +58,14 @@ uart_rx_callback(void *data, int fd, uint32_t active_flags)
 {
     struct sol_uart *uart = data;
 
-    if (!uart->async.rx_cb)
-        return true;
-
     if (active_flags & FD_ERROR_FLAGS) {
         SOL_ERR("Error flag was set on UART file descriptor %d.", fd);
         return true;
     }
-    if (active_flags & SOL_FD_FLAGS_IN) {
-        uint8_t c; /* Backing storage for next sol_buffer */
-        struct sol_buffer buf = SOL_BUFFER_INIT_FLAGS(&c, sizeof(c),
-            SOL_BUFFER_FLAGS_MEMORY_NOT_OWNED | SOL_BUFFER_FLAGS_NO_NUL_BYTE);
-        int status = sol_util_fill_buffer(uart->fd, &buf, 1);
-        if (status > 0)
-            uart->async.rx_cb((void *)uart->async.rx_user_data, uart, c);
-    }
+
+    if (active_flags & SOL_FD_FLAGS_IN)
+        uart->async.rx_cb((void *)uart->async.rx_user_data, uart);
+
     return true;
 }
 
@@ -110,6 +104,7 @@ sol_uart_open(const char *port_name, const struct sol_uart_config *config)
     SOL_NULL_CHECK(port_name, NULL);
 
     r = snprintf(device, sizeof(device), "/dev/%s", port_name);
+    SOL_INT_CHECK(r, < 0, NULL);
     SOL_INT_CHECK(r, >= (int)sizeof(device), NULL);
 
     uart = calloc(1, sizeof(struct sol_uart));
@@ -151,14 +146,16 @@ sol_uart_open(const char *port_name, const struct sol_uart_config *config)
     }
     tcflush(uart->fd, TCIOFLUSH);
 
-    uart->async.rx_fd_handler = sol_fd_add(uart->fd,
-        FD_ERROR_FLAGS | SOL_FD_FLAGS_IN, uart_rx_callback, uart);
-    if (!uart->async.rx_fd_handler) {
-        SOL_ERR("Unable to add file descriptor to watch UART.");
-        goto fail;
+    if (config->rx_cb) {
+        uart->async.rx_fd_handler = sol_fd_add(uart->fd,
+            FD_ERROR_FLAGS | SOL_FD_FLAGS_IN, uart_rx_callback, uart);
+        if (!uart->async.rx_fd_handler) {
+            SOL_ERR("Unable to add file descriptor to watch UART.");
+            goto fail;
+        }
+        uart->async.rx_cb = config->rx_cb;
+        uart->async.rx_user_data = config->rx_cb_user_data;
     }
-    uart->async.rx_cb = config->rx_cb;
-    uart->async.rx_user_data = config->rx_cb_user_data;
 
     return uart;
 
@@ -223,15 +220,15 @@ error:
     return false;
 }
 
-SOL_API bool
-sol_uart_write(struct sol_uart *uart, const uint8_t *tx, unsigned int length, void (*tx_cb)(void *data, struct sol_uart *uart, uint8_t *tx, int status), const void *data)
+SOL_API int
+sol_uart_write(struct sol_uart *uart, const uint8_t *tx, size_t length, void (*tx_cb)(void *data, struct sol_uart *uart, uint8_t *tx, int status), const void *data)
 {
-    SOL_NULL_CHECK(uart, false);
-    SOL_EXP_CHECK(uart->async.tx_fd_handler != NULL, false);
+    SOL_NULL_CHECK(uart, -EINVAL);
+    SOL_EXP_CHECK(uart->async.tx_fd_handler != NULL, -EBUSY);
 
     uart->async.tx_fd_handler = sol_fd_add(uart->fd,
         FD_ERROR_FLAGS | SOL_FD_FLAGS_OUT, uart_tx_callback, uart);
-    SOL_NULL_CHECK(uart->async.tx_fd_handler, false);
+    SOL_NULL_CHECK(uart->async.tx_fd_handler, -ENOMEM);
 
     uart->async.tx_buffer = tx;
     uart->async.tx_cb = tx_cb;
@@ -239,5 +236,23 @@ sol_uart_write(struct sol_uart *uart, const uint8_t *tx, unsigned int length, vo
     uart->async.tx_index = 0;
     uart->async.tx_length = length;
 
-    return true;
+    return 0;
+}
+
+SOL_API int
+sol_uart_read(struct sol_uart *uart, uint8_t *rx, size_t length)
+{
+    size_t min;
+    struct sol_buffer buf;
+    int r, total;
+
+    SOL_NULL_CHECK(uart, -EINVAL);
+    SOL_NULL_CHECK(rx, -EINVAL);
+
+    r = ioctl(uart->fd, FIONREAD, &total);
+    SOL_INT_CHECK(r, < 0, r);
+    min = sol_min(length, (size_t)total);
+    sol_buffer_init_flags(&buf, rx, min,
+        SOL_BUFFER_FLAGS_MEMORY_NOT_OWNED | SOL_BUFFER_FLAGS_NO_NUL_BYTE);
+    return (int)sol_util_fill_buffer(uart->fd, &buf, min);
 }

@@ -20,29 +20,50 @@
 #include <string.h>
 #include "sol-mainloop.h"
 #include "sol-uart.h"
+#include "sol-util.h"
+#include "sol-str-slice.h"
 
 struct uart_data {
     unsigned int id;
-    char rx_buffer[8];
-    unsigned int rx_index;
+    uint8_t rx_buffer[8];
+    size_t rx_index;
 };
 
 static void
-uart_rx(void *data, struct sol_uart *uart, unsigned char read_char)
+uart_rx(void *data, struct sol_uart *uart)
 {
     struct uart_data *uart_data = data;
     static unsigned char missing_strings = 3;
+    int r;
 
-    uart_data->rx_buffer[uart_data->rx_index] = (char)read_char;
-    if (read_char == 0) {
-        uart_data->rx_index = 0;
-        printf("Data received on UART%d: %s\n",
-            uart_data->id, uart_data->rx_buffer);
+    r = sol_uart_read(uart, uart_data->rx_buffer + uart_data->rx_index,
+        sizeof(uart_data->rx_buffer) - uart_data->rx_index);
+    if (r < 0) {
+        printf("Unable to read from UART%d - Reason: %s\n", uart_data->id,
+            sol_util_strerrora(-r));
+        return;
+    }
+
+    uart_data->rx_index += r;
+
+    while (true) {
+        struct sol_str_slice slice;
+
+        char *sep = memchr(uart_data->rx_buffer, '\0', uart_data->rx_index);
+        if (!sep)
+            break;
+
+        slice.data = (const char *)uart_data->rx_buffer;
+        slice.len = sep - slice.data;
+
+        printf("Data received on UART%d: %.*s\n",
+               uart_data->id, SOL_STR_SLICE_PRINT(slice));
         missing_strings--;
         if (missing_strings == 0)
             sol_quit();
-    } else
-        uart_data->rx_index++;
+        memmove(uart_data->rx_buffer, slice.data, slice.len);
+        uart_data->rx_index = 0;
+    }
 }
 
 static void
