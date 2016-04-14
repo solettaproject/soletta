@@ -52,6 +52,7 @@ sol_socket_ip_new(const struct sol_socket_options *options)
         s = sol_socket_default_dtls_new(options);
 #else
         SOL_WRN("DTLS is not enabled, secure socket is not possible");
+        errno = ENOSYS;
         return NULL;
 #endif
     } else {
