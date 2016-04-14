@@ -24,3 +24,5 @@ config.log*
 /node_modules/
 /bindings/nodejs/generated/main.cc
 /bindings/nodejs/generated/main.h
+/bindings/python/soletta/asyncio/*.*c
+/bindings/python/soletta/tests/*.*c

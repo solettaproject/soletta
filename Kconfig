@@ -250,7 +250,7 @@ config USE_NODEJS
 config USE_PYTHON
 	bool "Python bindings"
 	depends on HAVE_LIBPYTHON3 && HAVE_CYTHON3 && HAVE_PYTHON3
-	default n
+	default y
 	help
 		Enable python bindings
 
