@@ -50,16 +50,16 @@ static bool
 on_can_read(void *data, struct sol_socket *s)
 {
     ssize_t r;
-    char buffer[1024] = { };
+    struct sol_buffer buffer = SOL_BUFFER_INIT_EMPTY;
     struct sol_network_link_addr addr;
 
-    r = sol_socket_recvmsg(s, buffer, 1024, &addr);
+    r = sol_socket_recvmsg(s, &buffer, &addr);
     if (r < 0) {
         fprintf(stderr, "ERROR: Failed in receiving the message\n");
         goto err;
     }
 
-    printf("Received: %s\n", buffer);
+    printf("Received: %.*s\n", (int)buffer.used, (char *)buffer.data);
     sol_quit_with_code(EXIT_SUCCESS);
 
     return true;
@@ -73,9 +73,9 @@ static bool
 on_can_write(void *data, struct sol_socket *s)
 {
     int r = -1;
-    const char *value = data;
+    struct sol_buffer buffer = SOL_BUFFER_INIT_CONST(data, strlen(data));
 
-    r = sol_socket_sendmsg(sock, value, strlen(value), &address);
+    r = sol_socket_sendmsg(sock, &buffer, &address);
     if (r < 0) {
         fprintf(stderr, "ERROR: Could not send data\n");
         sol_quit_with_code(EXIT_FAILURE);

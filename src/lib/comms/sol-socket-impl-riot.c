@@ -44,7 +44,7 @@ struct sol_socket_riot {
 static struct sol_ptr_vector ipv6_udp_bound_sockets = SOL_PTR_VECTOR_INIT;
 
 static ssize_t
-ipv6_udp_recvmsg(struct sol_socket_riot *s, void *buf, size_t len, struct sol_network_link_addr *cliaddr)
+ipv6_udp_recvmsg(struct sol_socket_riot *s, struct sol_buffer *buf, struct sol_network_link_addr *cliaddr)
 {
     gnrc_pktsnip_t *pkt = s->curr_pkt, *udp, *ipv6;
     ipv6_hdr_t *iphdr;
@@ -53,10 +53,10 @@ ipv6_udp_recvmsg(struct sol_socket_riot *s, void *buf, size_t len, struct sol_ne
 
     SOL_NULL_CHECK(pkt, -EAGAIN);
 
-    /* When more types of sockets (not just datagram) are accepted,
-     * remember to err if !buf && type != DGRAM */
-    if (!buf)
-        return pkt->size;
+    if (!(buf->flags & (SOL_BUFFER_FLAGS_FIXED_CAPACITY | SOL_BUFFER_FLAGS_MEMORY_NOT_OWNED))) {
+        int r = sol_buffer_ensure(buf, pkt->size);
+        SOL_INT_CHECK(r, < 0, r);
+    }
 
     LL_SEARCH_SCALAR(pkt, ipv6, type, GNRC_NETTYPE_IPV6);
     iphdr = ipv6->data;
@@ -68,14 +68,15 @@ ipv6_udp_recvmsg(struct sol_socket_riot *s, void *buf, size_t len, struct sol_ne
     memcpy(cliaddr->addr.in6, iphdr->src.u8, sizeof(iphdr->src.u8));
     cliaddr->port = byteorder_ntohs(udphdr->src_port);
 
-    copysize = pkt->size < len ? pkt->size : len;
-    memcpy(buf, pkt->data, copysize);
+    copysize = pkt->size < buf->capacity ? pkt->size : buf->capacity;
+    memcpy(buf->data, pkt->data, copysize);
 
     return copysize;
 }
 
 static gnrc_pktsnip_t *
-ipv6_udp_sendmsg(struct sol_socket_riot *s, const void *buf, size_t len, const struct sol_network_link_addr *cliaddr)
+ipv6_udp_sendmsg(struct sol_socket_riot *s, const struct sol_buffer *buf,
+    const struct sol_network_link_addr *cliaddr)
 {
     gnrc_pktsnip_t *payload, *udp, *ipv6;
     ipv6_addr_t addr;
@@ -85,7 +86,7 @@ ipv6_udp_sendmsg(struct sol_socket_riot *s, const void *buf, size_t len, const s
 
     memcpy(addr.u8, cliaddr->addr.in6, sizeof(addr.u8));
 
-    payload = gnrc_pktbuf_add(NULL, (void *)buf, len, GNRC_NETTYPE_UNDEF);
+    payload = gnrc_pktbuf_add(NULL, (void *)buf->data, buf->used, GNRC_NETTYPE_UNDEF);
     SOL_NULL_CHECK(payload, NULL);
 
     udp = gnrc_udp_hdr_build(payload, srcport, cliaddr->port);
@@ -264,17 +265,19 @@ sol_socket_riot_set_write_monitor(struct sol_socket *s, bool on)
 }
 
 static ssize_t
-sol_socket_riot_recvmsg(struct sol_socket *s, void *buf, size_t len, struct sol_network_link_addr *cliaddr)
+sol_socket_riot_recvmsg(struct sol_socket *s, struct sol_buffer *buf,
+    struct sol_network_link_addr *cliaddr)
 {
     struct sol_socket_riot *socket = (struct sol_socket_riot *)s;
 
     SOL_NULL_CHECK(socket, -EINVAL);
 
-    return ipv6_udp_recvmsg(socket, buf, len, cliaddr);
+    return ipv6_udp_recvmsg(socket, buf, cliaddr);
 }
 
 static ssize_t
-sol_socket_riot_sendmsg(struct sol_socket *s, const void *buf, size_t len, const struct sol_network_link_addr *cliaddr)
+sol_socket_riot_sendmsg(struct sol_socket *s, const struct sol_buffer *buf,
+    const struct sol_network_link_addr *cliaddr)
 {
     struct sol_socket_riot *socket = (struct sol_socket_riot *)s;
     gnrc_netreg_entry_t *sendto;
@@ -282,7 +285,7 @@ sol_socket_riot_sendmsg(struct sol_socket *s, const void *buf, size_t len, const
 
     SOL_NULL_CHECK(socket, -EINVAL);
 
-    pkt = ipv6_udp_sendmsg(socket, buf, len, cliaddr);
+    pkt = ipv6_udp_sendmsg(socket, buf, cliaddr);
     SOL_NULL_CHECK(pkt, -ENOMEM);
 
     sendto = gnrc_netreg_lookup(socket->type, GNRC_NETREG_DEMUX_CTX_ALL);
@@ -292,7 +295,7 @@ sol_socket_riot_sendmsg(struct sol_socket *s, const void *buf, size_t len, const
         sendto = gnrc_netreg_getnext(sendto);
     }
 
-    return len;
+    return buf->used;
 }
 
 static int
