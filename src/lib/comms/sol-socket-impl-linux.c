@@ -70,7 +70,7 @@ on_socket_event(void *data, int fd, unsigned int flags)
             s->watch = NULL;
             return false;
         } else {
-            sol_fd_unset_flags(s->watch, socket_flags);
+            sol_fd_remove_flags(s->watch, socket_flags);
         }
     }
 
@@ -383,10 +383,9 @@ sol_socket_linux_set_read_monitor(struct sol_socket *s, bool on)
     }
 
     if (on)
-        ret = sol_fd_set_flags(sock->watch,
-            sol_fd_get_flags(sock->watch) | SOL_FD_FLAGS_IN);
+        ret = sol_fd_add_flags(sock->watch, SOL_FD_FLAGS_IN);
     else
-        ret = sol_fd_unset_flags(sock->watch, SOL_FD_FLAGS_IN);
+        ret = sol_fd_remove_flags(sock->watch, SOL_FD_FLAGS_IN);
 
     return ret ? 0 : -EBADF;
 }
@@ -406,10 +405,9 @@ sol_socket_linux_set_write_monitor(struct sol_socket *s, bool on)
     }
 
     if (on)
-        ret = sol_fd_set_flags(sock->watch,
-            sol_fd_get_flags(sock->watch) | SOL_FD_FLAGS_OUT);
+        ret = sol_fd_add_flags(sock->watch, SOL_FD_FLAGS_OUT);
     else
-        ret = sol_fd_unset_flags(sock->watch, SOL_FD_FLAGS_OUT);
+        ret = sol_fd_remove_flags(sock->watch, SOL_FD_FLAGS_OUT);
 
     return ret ? 0 : -EBADF;
 }

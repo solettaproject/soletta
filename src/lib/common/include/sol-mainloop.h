@@ -346,7 +346,19 @@ bool sol_fd_set_flags(struct sol_fd *handle, uint32_t flags);
  *
  * @note MT-safe if compiled with threads support.
  */
-bool sol_fd_unset_flags(struct sol_fd *handle, uint32_t flags);
+bool sol_fd_remove_flags(struct sol_fd *handle, uint32_t flags);
+
+/**
+ * @brief Adds the given flags from those being watched.
+ *
+ * @param handle The handle to update
+ * @param flags The flags to add in the set the handle is watching
+ *
+ * @return True on success, false if the handle is invalid
+ *
+ * @note MT-safe if compiled with threads support.
+ */
+bool sol_fd_add_flags(struct sol_fd *handle, uint32_t flags);
 
 /**
  * @brief Gets the flags being watched for the given handle.

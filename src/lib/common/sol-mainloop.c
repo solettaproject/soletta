@@ -331,7 +331,14 @@ sol_fd_get_flags(const struct sol_fd *handle)
 }
 
 SOL_API bool
-sol_fd_unset_flags(struct sol_fd *handle, uint32_t flags)
+sol_fd_add_flags(struct sol_fd *handle, uint32_t flags)
+{
+    SOL_NULL_CHECK(handle, false);
+    return mainloop_impl->fd_set_flags(handle, mainloop_impl->fd_get_flags(handle) | flags);
+}
+
+SOL_API bool
+sol_fd_remove_flags(struct sol_fd *handle, uint32_t flags)
 {
     SOL_NULL_CHECK(handle, false);
     return mainloop_impl->fd_set_flags(handle, mainloop_impl->fd_get_flags(handle) & ~flags);
