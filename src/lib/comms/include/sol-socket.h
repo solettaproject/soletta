@@ -154,26 +154,27 @@ struct sol_socket_type {
      * @brief Function to be called to read data from socket.
      *
      * @li @c s the socket pointer (this)
-     * @li @c buf the data buffer that will be used to receive the data
-     * @li @c len the size of @a buf
+     * @li @c buffer the data buffer that will be used to receive the data.
+     *     If @a buffer does not has the flags SOL_BUFFER_FLAGS_FIXED_CAPACITY or
+     *     SOL_BUFFER_FLAGS_MEMORY_NOT_OWNED this functions will allocate/re-allocate
+     *     the necessary memory. The @a buffer must be initialized.
      * @li @c cliaddr the source address of the message
      * @li returns @c the number of bytes received in success, otherwise a
      *     negative (errno) value is returned.
      */
-    ssize_t (*recvmsg)(struct sol_socket *s, void *buf, size_t len,
+    ssize_t (*recvmsg)(struct sol_socket *s, struct sol_buffer *buffer,
         struct sol_network_link_addr *cliaddr);
 
     /**
      * @brief Function to be called to write data in the socket.
      *
      * @li @c s the socket pointer (this)
-     * @li @c buf the data to be transmitted
-     * @li @c len the size of @a buf
+     * @li @c buffer the data to be transmitted
      * @li @c cliaddr the address which the data will be sent
      * @li returns @c the number of bytes written in success, otherwise a
      *     negative (errno) value is returned.
      */
-    ssize_t (*sendmsg)(struct sol_socket *s, const void *buf, size_t len,
+    ssize_t (*sendmsg)(struct sol_socket *s, const struct sol_buffer *buffer,
         const struct sol_network_link_addr *cliaddr);
 
     /**
@@ -276,8 +277,10 @@ int sol_socket_set_write_monitor(struct sol_socket *s, bool on);
  * message contents.
  *
  * @param s The value got with @c sol_socket_ip_new()
- * @param buf The data buffer that will be used to receive the data.
- * @param len The size of @a buf
+ * @param buffer the data buffer that will be used to receive the data.
+ * If @a buffer does not has the flags SOL_BUFFER_FLAGS_FIXED_CAPACITY or
+ * SOL_BUFFER_FLAGS_MEMORY_NOT_OWNED this functions will allocate/re-allocate.
+ * The @a buffer must be initialized.
  * @param cliaddr The source address of the message.
  *
  * @return The number of bytes read in case of success, error code
@@ -285,21 +288,21 @@ int sol_socket_set_write_monitor(struct sol_socket *s, bool on);
  *
  * @see sol_socket_sendmsg()
  */
-ssize_t sol_socket_recvmsg(struct sol_socket *s, void *buf, size_t len, struct sol_network_link_addr *cliaddr);
+ssize_t sol_socket_recvmsg(struct sol_socket *s, struct sol_buffer *buffer,
+    struct sol_network_link_addr *cliaddr);
 
 /**
  * @brief Transmits a message using the socket.
  *
  * @param s The value got with @c sol_socket_ip_new()
- * @param buf The data to be transmitted.
- * @param len The size of @a buf
+ * @param buffer The data to be transmitted.
  * @param cliaddr The address which the data will be sent.
  *
  * @return @c 0 on success, error code (always negative) otherwise.
  *
  * @see sol_socket_recvmsg()
  */
-ssize_t sol_socket_sendmsg(struct sol_socket *s, const void *buf, size_t len,
+ssize_t sol_socket_sendmsg(struct sol_socket *s, const struct sol_buffer *buffer,
     const struct sol_network_link_addr *cliaddr);
 
 /**

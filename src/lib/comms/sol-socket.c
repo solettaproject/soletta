@@ -93,24 +93,27 @@ sol_socket_set_write_monitor(struct sol_socket *s, bool on)
 }
 
 SOL_API ssize_t
-sol_socket_recvmsg(struct sol_socket *s, void *buf, size_t len, struct sol_network_link_addr *cliaddr)
+sol_socket_recvmsg(struct sol_socket *s, struct sol_buffer *buffer,
+    struct sol_network_link_addr *cliaddr)
 {
     SOL_EXP_CHECK(!(s && s->type), -EINVAL);
     SOL_SOCKET_TYPE_CHECK_API_VERSION(s->type, -EINVAL);
     SOL_NULL_CHECK(s->type->recvmsg, -ENOSYS);
+    SOL_NULL_CHECK(buffer, -EINVAL);
 
-    return s->type->recvmsg(s, buf, len, cliaddr);
+    return s->type->recvmsg(s, buffer, cliaddr);
 }
 
 SOL_API ssize_t
-sol_socket_sendmsg(struct sol_socket *s, const void *buf, size_t len,
+sol_socket_sendmsg(struct sol_socket *s, const struct sol_buffer *buffer,
     const struct sol_network_link_addr *cliaddr)
 {
     SOL_EXP_CHECK(!(s && s->type), -EINVAL);
     SOL_SOCKET_TYPE_CHECK_API_VERSION(s->type, -EINVAL);
     SOL_NULL_CHECK(s->type->sendmsg, -ENOSYS);
+    SOL_NULL_CHECK(buffer, -EINVAL);
 
-    return s->type->sendmsg(s, buf, len, cliaddr);
+    return s->type->sendmsg(s, buffer, cliaddr);
 }
 
 SOL_API int
