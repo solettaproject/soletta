@@ -593,4 +593,74 @@ test_escape_quotes(void)
     }
 }
 
+DEFINE_TEST(test_uuid_functions);
+
+static void
+test_uuid_functions(void)
+{
+    SOL_BUFFER_DECLARE_STATIC(buf, 37);
+    struct sol_str_slice
+        uuid_uh = SOL_STR_SLICE_LITERAL("9FD636DD-FF84-4075-8AE7-D55F2F7BA190"),
+        uuid_lh = SOL_STR_SLICE_LITERAL("9fd636dd-ff84-4075-8ae7-d55f2f7ba190"),
+        uuid_u = SOL_STR_SLICE_LITERAL("9FD636DDFF8440758AE7D55F2F7BA190"),
+        uuid_l = SOL_STR_SLICE_LITERAL("9fd636ddff8440758ae7d55f2f7ba190"),
+        uuid_invalid = SOL_STR_SLICE_LITERAL("9fd6-6dd1ff841407518ae71d5-f2f7ba190"),
+        uuid_invalid2 = SOL_STR_SLICE_LITERAL("9fd636ddff8440758ae7d55-2f7ba190"),
+        uuid_invalid3 = SOL_STR_SLICE_LITERAL("9fd636ddff8440758ae7d552f7ba190");
+    const uint8_t uuid_bytes[16] = { 0x9F, 0xD6, 0x36, 0xDD, 0xFF, 0x84, 0x40,
+                                     0x75, 0x8A, 0xE7, 0xD5, 0x5F, 0x2F, 0x7B,
+                                     0xA1, 0x90 };
+
+    //UUID string to bytes
+    ASSERT_INT_EQ(sol_util_uuid_bytes_from_string(uuid_uh, &buf), 0);
+    ASSERT_INT_EQ(buf.used, sizeof(uuid_bytes));
+    ASSERT_INT_EQ(memcmp(buf.data, uuid_bytes, sizeof(uuid_bytes)), 0);
+
+    buf.used = 0;
+    ASSERT_INT_EQ(sol_util_uuid_bytes_from_string(uuid_lh, &buf), 0);
+    ASSERT_INT_EQ(buf.used, sizeof(uuid_bytes));
+    ASSERT_INT_EQ(memcmp(buf.data, uuid_bytes, sizeof(uuid_bytes)), 0);
+
+    buf.used = 0;
+    ASSERT_INT_EQ(sol_util_uuid_bytes_from_string(uuid_u, &buf), 0);
+    ASSERT_INT_EQ(buf.used, sizeof(uuid_bytes));
+    ASSERT_INT_EQ(memcmp(buf.data, uuid_bytes, sizeof(uuid_bytes)), 0);
+
+    buf.used = 0;
+    ASSERT_INT_EQ(sol_util_uuid_bytes_from_string(uuid_l, &buf), 0);
+    ASSERT_INT_EQ(buf.used, sizeof(uuid_bytes));
+    ASSERT_INT_EQ(memcmp(buf.data, uuid_bytes, sizeof(uuid_bytes)), 0);
+
+    //UUID bytes to string
+    buf.used = 0;
+    ASSERT_INT_EQ(sol_util_uuid_string_from_bytes(true, true, uuid_bytes,
+        &buf), 0);
+    ASSERT(sol_str_slice_str_eq(uuid_uh, buf.data));
+
+    buf.used = 0;
+    ASSERT_INT_EQ(sol_util_uuid_string_from_bytes(true, false, uuid_bytes,
+        &buf), 0);
+    ASSERT(sol_str_slice_str_eq(uuid_u, buf.data));
+
+    buf.used = 0;
+    ASSERT_INT_EQ(sol_util_uuid_string_from_bytes(false, true, uuid_bytes,
+        &buf), 0);
+    ASSERT(sol_str_slice_str_eq(uuid_lh, buf.data));
+
+    buf.used = 0;
+    ASSERT_INT_EQ(sol_util_uuid_string_from_bytes(false, false, uuid_bytes,
+        &buf), 0);
+    ASSERT(sol_str_slice_str_eq(uuid_l, buf.data));
+
+    //UUID validation
+    ASSERT(sol_util_uuid_str_is_valid(uuid_uh));
+    ASSERT(sol_util_uuid_str_is_valid(uuid_lh));
+    ASSERT(sol_util_uuid_str_is_valid(uuid_u));
+    ASSERT(sol_util_uuid_str_is_valid(uuid_l));
+
+    ASSERT(!sol_util_uuid_str_is_valid(uuid_invalid));
+    ASSERT(!sol_util_uuid_str_is_valid(uuid_invalid2));
+    ASSERT(!sol_util_uuid_str_is_valid(uuid_invalid3));
+}
+
 TEST_MAIN();

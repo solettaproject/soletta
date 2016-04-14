@@ -304,43 +304,70 @@ uuid_gen(struct sol_uuid *ret)
     return 0;
 }
 
-// 37 = 2 * 16 (chars) + 4 (hyphens) + 1 (\0)
 SOL_API int
-sol_util_uuid_gen(bool upcase,
-    bool with_hyphens,
-    char id[SOL_STATIC_ARRAY_SIZE(37)])
+sol_util_uuid_string_from_bytes(bool uppercase, bool with_hyphens, const uint8_t uuid_bytes[SOL_STATIC_ARRAY_SIZE(16)], struct sol_buffer *uuid_str)
 {
     static struct sol_str_slice hyphen = SOL_STR_SLICE_LITERAL("-");
+    const struct sol_str_slice uuid = SOL_STR_SLICE_STR((char *)uuid_bytes, 16);
     /* hyphens on positions 8, 13, 18, 23 (from 0) */
     static const int hyphens_pos[] = { 8, 13, 18, 23 };
-    struct sol_uuid uuid = { { 0 } };
     unsigned i;
     int r;
 
-    struct sol_buffer buf = { 0 };
+    SOL_NULL_CHECK(uuid_str, -EINVAL);
 
-    sol_buffer_init_flags(&buf, id, 37,
-        SOL_BUFFER_FLAGS_MEMORY_NOT_OWNED | SOL_BUFFER_FLAGS_NO_NUL_BYTE);
+    r = sol_buffer_append_as_base16(uuid_str, uuid, uppercase);
+    SOL_INT_CHECK(r, < 0, r);
+
+    if (with_hyphens) {
+        for (i = 0; i < SOL_UTIL_ARRAY_SIZE(hyphens_pos); i++) {
+            r = sol_buffer_insert_slice(uuid_str, hyphens_pos[i], hyphen);
+            SOL_INT_CHECK(r, < 0, r);
+        }
+    }
+
+    return 0;
+}
+
+SOL_API int
+sol_util_uuid_bytes_from_string(struct sol_str_slice uuid_str, struct sol_buffer *uuid_bytes)
+{
+    /* hyphens on positions 8, 13, 18, 23 (from 0) */
+    static const int slices[] = { -1, 8, 13, 18, 23, 36 };
+    int r;
+    unsigned i;
+
+    SOL_NULL_CHECK(uuid_bytes, -EINVAL);
+
+    if (!sol_util_uuid_str_is_valid(uuid_str))
+        return -EINVAL;
+
+    if (uuid_str.len == 32)
+        return sol_buffer_append_from_base16(uuid_bytes, uuid_str, SOL_DECODE_BOTH);
+
+    for (i = 1; i < SOL_UTIL_ARRAY_SIZE(slices); i++) {
+        uuid_str.len = slices[i] - slices[i - 1] - 1;
+        r = sol_buffer_append_from_base16(uuid_bytes, uuid_str, SOL_DECODE_BOTH);
+        SOL_INT_CHECK(r, < 0, r);
+        uuid_str.data += uuid_str.len + 1;
+    }
+
+    return 0;
+}
+
+SOL_API int
+sol_util_uuid_gen(bool uppercase, bool with_hyphens, struct sol_buffer *uuid_buf)
+{
+    int r;
+    struct sol_uuid uuid = { { 0 } };
+
+    SOL_NULL_CHECK(uuid_buf, -EINVAL);
 
     r = uuid_gen(&uuid);
     SOL_INT_CHECK(r, < 0, r);
 
-    for (i = 0; i < SOL_UTIL_ARRAY_SIZE(uuid.bytes); i++) {
-        r = sol_buffer_append_printf(&buf, upcase ? "%02hhX" : "%02hhx",
-            uuid.bytes[i]);
-        SOL_INT_CHECK_GOTO(r, < 0, err);
-    }
-
-    if (with_hyphens) {
-        for (i = 0; i < SOL_UTIL_ARRAY_SIZE(hyphens_pos); i++) {
-            r = sol_buffer_insert_slice(&buf, hyphens_pos[i], hyphen);
-            SOL_INT_CHECK_GOTO(r, < 0, err);
-        }
-    }
-
-err:
-    sol_buffer_fini(&buf);
-    return r;
+    return sol_util_uuid_string_from_bytes(uppercase, with_hyphens, uuid.bytes,
+        uuid_buf);
 }
 
 SOL_API int
@@ -883,20 +910,19 @@ sol_util_uint32_mul(const uint32_t a, const uint32_t b, uint32_t *out)
 }
 
 SOL_API bool
-sol_util_uuid_str_valid(const char *str)
+sol_util_uuid_str_is_valid(const struct sol_str_slice uuid)
 {
-    size_t i, len;
+    size_t i;
 
-    len = strlen(str);
-    if (len == 32) {
-        for (i = 0; i < len; i++) {
-            if (!isxdigit((uint8_t)str[i]))
+    if (uuid.len == 32) {
+        for (i = 0; i < uuid.len; i++) {
+            if (!isxdigit((uint8_t)uuid.data[i]))
                 return false;
         }
-    } else if (len == 36) {
+    } else if (uuid.len == 36) {
         char c;
-        for (i = 0; i < len; i++) {
-            c = str[i];
+        for (i = 0; i < uuid.len; i++) {
+            c = uuid.data[i];
 
             if (i == 8 || i == 13 || i == 18 || i == 23) {
                 if (c != '-')
