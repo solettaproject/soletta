@@ -236,7 +236,7 @@ clear_buf:
     return remove_item_from_vector(&s->read.queue, item, -ENOMEM);
 }
 
-static int
+static ssize_t
 sol_socket_dtls_sendmsg(struct sol_socket *socket, const void *buf, size_t len,
     const struct sol_network_link_addr *cliaddr)
 {
@@ -262,7 +262,7 @@ sol_socket_dtls_sendmsg(struct sol_socket *socket, const void *buf, size_t len,
 
     encrypt_payload(s);
 
-    return (int)len;
+    return len;
 }
 
 static int
