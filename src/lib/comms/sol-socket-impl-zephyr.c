@@ -205,11 +205,12 @@ sol_socket_zephyr_set_write_monitor(struct sol_socket *s, bool on)
 }
 
 static ssize_t
-sol_socket_zephyr_recvmsg(struct sol_socket *s, void *buf, size_t len, struct sol_network_link_addr *cliaddr)
+sol_socket_zephyr_recvmsg(struct sol_socket *s, struct sol_buffer *buf, struct sol_network_link_addr *cliaddr)
 {
     struct sol_socket_zephyr *socket = (struct sol_socket_zephyr *)s;
     struct net_buf *netbuf;
     ssize_t buflen = -EAGAIN;
+    int r = 0;
 
     nano_task_sem_take(&socket->lock, TICKS_UNLIMITED);
 
@@ -221,11 +222,13 @@ sol_socket_zephyr_recvmsg(struct sol_socket *s, void *buf, size_t len, struct so
     }
     nano_task_sem_give(&socket->lock);
 
-    if (!buf)
-        return buflen;
+    if (SOL_BUFFER_CAN_RESIZE(buf)) {
+        r = sol_buffer_ensure(buf, buflen);
+        SOL_INT_CHECK_GOTO(r, < 0, err);
+    }
 
-    if (buflen > len)
-        buflen = len;
+    if (buflen > buf->capacity)
+        buflen = buf->capacity;
 
     if (cliaddr) {
         cliaddr->family = SOL_NETWORK_FAMILY_INET6;
@@ -233,11 +236,21 @@ sol_socket_zephyr_recvmsg(struct sol_socket *s, void *buf, size_t len, struct so
         memcpy(cliaddr->addr.in6, &NET_BUF_IP(netbuf)->srcipaddr, sizeof(cliaddr->addr.in6));
     }
 
-    memcpy(buf, ip_buf_appdata(netbuf), buflen);
+    memcpy(buf->data, ip_buf_appdata(netbuf), buflen);
+    buf->used = buflen;
+
+    if (SOL_BUFFER_NEEDS_NUL_BYTE(buf)) {
+        r = sol_buffer_ensure_nul_byte(buf);
+        SOL_INT_CHECK_GOTO(r, < 0, err);
+    }
 
     ip_buf_unref(netbuf);
 
     return buflen;
+
+err:
+    ip_buf_unref(netbuf);
+    return r;
 }
 
 /* HACK HACK HACK HACK
@@ -249,7 +262,8 @@ sol_socket_zephyr_recvmsg(struct sol_socket *s, void *buf, size_t len, struct so
 #include <ip/simple-udp.h>
 
 static ssize_t
-sol_socket_zephyr_sendmsg(struct sol_socket *s, const void *buf, size_t len, const struct sol_network_link_addr *cliaddr)
+sol_socket_zephyr_sendmsg(struct sol_socket *s, const struct sol_buffer *buf,
+    const struct sol_network_link_addr *cliaddr)
 {
     struct sol_socket_zephyr *socket = (struct sol_socket_zephyr *)s;
     struct net_context *ctx;
@@ -275,16 +289,16 @@ sol_socket_zephyr_sendmsg(struct sol_socket *s, const void *buf, size_t len, con
     NET_BUF_UDP(netbuf)->destport = uip_htons(tuple->local_port);
     uip_set_udp_conn(netbuf) = net_context_get_udp_connection(ctx)->udp_conn;
 
-    ptr = net_buf_add(netbuf, len);
-    memcpy(ptr, buf, len);
-    ip_buf_appdatalen(netbuf) = len;
+    ptr = net_buf_add(netbuf, buf->used);
+    memcpy(ptr, buf->data, buf->used);
+    ip_buf_appdatalen(netbuf) = buf->used;
 
     if (net_reply(ctx, netbuf) < 0) {
         ip_buf_unref(netbuf);
         return -EIO;
     }
 
-    return len;
+    return buf->used;
 }
 
 static struct sol_socket_net_context *
