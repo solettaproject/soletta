@@ -20,104 +20,213 @@
 #include <string.h>
 #include "sol-mainloop.h"
 #include "sol-uart.h"
+#include "sol-util.h"
+#include "sol-str-slice.h"
+#include "soletta.h"
 
-struct uart_data {
-    unsigned int id;
-    char rx_buffer[8];
-    unsigned int rx_index;
+#define UUID_LEN (37)
+#define MAX_PENDING_BYTES (2000)
+
+static struct sol_uart *producer;
+static struct sol_uart *consumer;
+static struct sol_timeout *producer_timeout;
+static struct sol_timeout *consumer_timeout;
+static struct sol_buffer consumer_buf = {
+    .flags = SOL_BUFFER_FLAGS_DEFAULT | SOL_BUFFER_FLAGS_NO_NUL_BYTE,
 };
 
-static void
-uart_rx(void *data, struct sol_uart *uart, unsigned char read_char)
-{
-    struct uart_data *uart_data = data;
-    static unsigned char missing_strings = 3;
+static bool producer_make_data(void *data);
 
-    uart_data->rx_buffer[uart_data->rx_index] = (char)read_char;
-    if (read_char == 0) {
-        uart_data->rx_index = 0;
-        printf("Data received on UART%d: %s\n",
-            uart_data->id, uart_data->rx_buffer);
-        missing_strings--;
-        if (missing_strings == 0)
+static void
+producer_data_written(void *data, struct sol_uart *uart, struct sol_blob *blob, int status)
+{
+    struct sol_str_slice slice;
+
+    slice.data = (const char *)blob->mem;
+    slice.len = blob->size;
+
+    if (status < 0) {
+        fprintf(stderr, "Could not write the UUID %.*s - Reason: %s\n", SOL_STR_SLICE_PRINT(slice),
+            sol_util_strerrora(-status));
+        sol_quit();
+    } else {
+        int r;
+        size_t pending;
+
+        printf("Producer: UUID %.*s written\n", SOL_STR_SLICE_PRINT(slice));
+
+        r = sol_uart_get_pending_bytes(uart, &pending);
+        if (r < 0) {
+            fprintf(stderr, "Could not get the pending bytes amount - Reason: %s\n",
+                    sol_util_strerrora(-status));
             sol_quit();
-    } else
-        uart_data->rx_index++;
+        } else if (pending > MAX_PENDING_BYTES && producer_timeout) {
+            printf("** Stoping data production - Too many pending bytes: %zu **\n", pending);
+            sol_timeout_del(producer_timeout);
+            producer_timeout = NULL;
+        } else if (pending == 0 && !producer_timeout) {
+            printf("** Producer will start to send more data **\n");
+            producer_timeout = sol_timeout_add(10, producer_make_data, NULL);
+            if (!producer_timeout) {
+                fprintf(stderr, "Could not recreate the producer timeout!\n");
+                sol_quit();
+            }
+        }
+    }
+}
+
+static bool
+producer_make_data(void *data)
+{
+    char *uuid;
+    struct sol_blob *blob;
+    int r;
+
+    uuid = calloc(UUID_LEN, sizeof(char));
+    if (!uuid) {
+        fprintf(stderr, "Could not alloc memory to store the UUID\n");
+        goto err_exit;
+    }
+
+    r = sol_util_uuid_gen(true, true, uuid);
+
+    if (r < 0) {
+        fprintf(stderr, "Could not create the UUID - Reason: %s\n",
+            sol_util_strerrora(-r));
+        goto err_exit;
+    }
+
+    blob = sol_blob_new(SOL_BLOB_TYPE_DEFAULT, NULL,
+        uuid, UUID_LEN);
+
+    if (!blob) {
+        fprintf(stderr, "Could not alloc memory for the blob\n");
+        goto err_exit;
+    }
+
+    r = sol_uart_write(producer, blob);
+    sol_blob_unref(blob);
+
+    if (r < 0) {
+        fprintf(stderr, "Could not not perform an UART write - Reason: %s\n",
+            sol_util_strerrora(-r));
+        goto err_exit;
+    }
+
+    return true;
+
+err_exit:
+    sol_quit();
+    producer_timeout = NULL;
+    return false;
+}
+
+static bool
+consumer_consume_data(void *data)
+{
+    int r;
+    char *sep;
+
+    r = sol_uart_read(consumer, &consumer_buf);
+
+    if (r < 0) {
+        fprintf(stderr, "Could not read data from UART - Reason: %s\n",
+            sol_util_strerrora(-r));
+        sol_quit();
+        consumer_timeout = NULL;
+        return false;
+    }
+
+    sep = memchr(consumer_buf.data, '\0', consumer_buf.used);
+
+    if (!sep)
+        return true;
+
+    printf("\n\n** Consumer ** : Received UUID %.*s\n\n",
+        SOL_STR_SLICE_PRINT(sol_buffer_get_slice(&consumer_buf)));
+    sol_buffer_remove_data(&consumer_buf, 0, strlen(consumer_buf.data) + 1);
+    return true;
 }
 
 static void
-uart_tx(void *data, struct sol_uart *uart, unsigned char *tx, int status)
+consumer_read_available(void *data, struct sol_uart *uart)
 {
-    static bool missing_tx = true;
-    struct uart_data *uart_data = data;
+    if (consumer_timeout)
+        return;
 
-    if (status > 0)
-        printf("UART%d data transmitted.\n", uart_data->id);
-    else
-        printf("UART%d transmission error.\n", uart_data->id);
-
-    if (missing_tx) {
-        missing_tx = false;
-        sprintf((char *)tx, "async");
-        sol_uart_write(uart, tx, strlen((char *)tx) + 1, uart_tx, uart_data);
+    consumer_timeout = sol_timeout_add(1000, consumer_consume_data, NULL);
+    if (!consumer_timeout) {
+        fprintf(stderr, "Could not create the consumer timeout!\n");
+        sol_quit();
     }
 }
 
-int
-main(int argc, char *argv[])
+static void
+startup(void)
 {
-    struct sol_uart *uart1, *uart2;
-    struct sol_uart_config config;
-    char uart1_buffer[8], uart2_buffer[8];
-    struct uart_data uart1_data, uart2_data;
+    struct sol_uart_config producer_config = {
+        SOL_SET_API_VERSION(.api_version = SOL_UART_CONFIG_API_VERSION, )
+        .baud_rate = SOL_UART_BAUD_RATE_9600,
+        .data_bits = SOL_UART_DATA_BITS_8,
+        .parity = SOL_UART_PARITY_NONE,
+        .stop_bits = SOL_UART_STOP_BITS_ONE,
+        .tx_cb = producer_data_written,
+    };
+    struct sol_uart_config consumer_config = {
+        SOL_SET_API_VERSION(.api_version = SOL_UART_CONFIG_API_VERSION, )
+        .baud_rate = SOL_UART_BAUD_RATE_9600,
+        .data_bits = SOL_UART_DATA_BITS_8,
+        .parity = SOL_UART_PARITY_NONE,
+        .stop_bits = SOL_UART_STOP_BITS_ONE,
+        .rx_cb = consumer_read_available,
+    };
 
-    sol_init();
+    char **argv;
+    int argc;
 
-    SOL_SET_API_VERSION(config.api_version = SOL_UART_CONFIG_API_VERSION; )
-    config.baud_rate = SOL_UART_BAUD_RATE_9600;
-    config.data_bits = SOL_UART_DATA_BITS_8;
-    config.parity = SOL_UART_PARITY_NONE;
-    config.stop_bits = SOL_UART_STOP_BITS_ONE;
-    config.flow_control = false;
-    config.rx_cb = uart_rx;
-    config.rx_cb_user_data = &uart1_data;
-    uart1 = sol_uart_open("ttyUSB0", &config);
-    if (!uart1) {
-        printf("Unable to get uart1.\n");
-        goto error_uart1;
+    argc = sol_argc();
+    argv = sol_argv();
+
+    if (argc < 3) {
+        fprintf(stderr, "Usage: ./uart-sample <producerUART> <consumerUART>\n");
+        goto err_exit;
     }
-    uart1_data.id = 1;
-    uart1_data.rx_index = 0;
 
-    config.rx_cb_user_data = &uart2_data;
-    uart2 = sol_uart_open("ttyUSB1", &config);
-    if (!uart2) {
-        printf("Unable to get uart2.\n");
-        goto error;
+    producer = sol_uart_open(argv[1], &producer_config);
+    if (!producer) {
+        fprintf(stderr, "Could not create the producer!\n");
+        goto err_exit;
     }
-    uart2_data.id = 2;
-    uart2_data.rx_index = 0;
 
-    sprintf(uart1_buffer, "Hello");
-    sol_uart_write(uart1, (unsigned char *)uart1_buffer,
-        strlen(uart1_buffer) + 1, uart_tx, &uart1_data);
+    consumer = sol_uart_open(argv[2], &consumer_config);
+    if (!consumer) {
+        fprintf(stderr, "Could not create the consumer\n");
+        goto err_exit;
+    }
 
-    sprintf(uart2_buffer, "world");
-    sol_uart_write(uart2, (unsigned char *)uart2_buffer,
-        strlen(uart2_buffer) + 1, uart_tx, &uart2_data);
+    producer_timeout = sol_timeout_add(10, producer_make_data, NULL);
+    if (!producer_timeout) {
+        fprintf(stderr, "Could not create the producer timeout!\n");
+        goto err_exit;
+    }
 
-    sol_run();
-
-    sol_shutdown();
-
-    sol_uart_close(uart1);
-    sol_uart_close(uart2);
-
-    return 0;
-
-error:
-    sol_uart_close(uart2);
-error_uart1:
-    sol_uart_close(uart1);
-    return -1;
+    return;
+err_exit:
+    sol_quit();
 }
+
+static void
+shutdown(void)
+{
+    if (producer)
+        sol_uart_close(producer);
+    if (consumer)
+        sol_uart_close(consumer);
+    if (producer_timeout)
+        sol_timeout_del(producer_timeout);
+    if (consumer_timeout)
+        sol_timeout_del(consumer_timeout);
+    sol_buffer_fini(&consumer_buf);
+}
+
+SOL_MAIN_DEFAULT(startup, shutdown);
