@@ -362,17 +362,17 @@ int sol_util_uint32_mul(const uint32_t op1, const uint32_t op2, uint32_t *out);
  * The generated string is 16 bytes-long (128 bits) long and conforms to v4
  * UUIDs (generated from random—or pseudo-random—numbers).
  *
- * @param upcase Whether to generate the UUID in upcase or not
+ * @param uppercase Whether to generate the UUID in uppercase or not
  * @param with_hyphens Format the resulting UUID string with hyphens
  *                     (e.g. "de305d54-75b4-431b-adb2-eb6b9e546014") or
  *                     without them.
- * @param id Where to store the generated id. It's 37 bytes in lenght
- *           so it accomodates the maximum lenght case -- 2 * 16
- *           (chars) + 4 (hyphens) + 1 (\0)
+ * @param uuid_buf An initialized buffer to be used to append the generated id.
+ *        It will have 36 bytes of lenght if with_hyphens is true or 32 bytes
+ *        of lenght if with_hyphens is false.
  *
  * @return 0 on success, negative error code otherwise.
  */
-int sol_util_uuid_gen(bool upcase, bool with_hyphens, char id[SOL_STATIC_ARRAY_SIZE(37)]);
+int sol_util_uuid_gen(bool uppercase, bool with_hyphens, struct sol_buffer *uuid_buf);
 
 /**
  * @brief Checks if a given universally unique identifier (UUID), in string
@@ -380,11 +380,39 @@ int sol_util_uuid_gen(bool upcase, bool with_hyphens, char id[SOL_STATIC_ARRAY_S
  *
  * All upcase/downcase, hyphenated/non-hyphenated cases are included.
  *
- * @param str The given UUID.
+ * @param uuid The given UUID formated in a string, with or without hyphens.
  *
  * @return @c true if it's valid, @c false otherwise.
  */
-bool sol_util_uuid_str_valid(const char *str);
+bool sol_util_uuid_str_is_valid(const struct sol_str_slice uuid);
+
+/**
+ * @brief Convert an UUID in byte format to UUID string format.
+ *
+ * @param uppercase Whether to create the UUID string in uppercase or not
+ * @param with_hyphens Format the resulting UUID string with hyphens
+ *                     (e.g. "de305d54-75b4-431b-adb2-eb6b9e546014") or
+ *                     without them.
+ * @param uuid_bytes A 16 byte array containing the UUID in byte format.
+ * @param uuid_str n initialized buffer to be used to append the converted uuid.
+ *        It will have 36 bytes of lenght if with_hyphens is true or 32 bytes
+ *        of lenght if with_hyphens is false.
+ *
+ * @return 0 on success, negative error code otherwise.
+ */
+int sol_util_uuid_string_from_bytes(bool uppercase, bool with_hyphens, const uint8_t uuid_bytes[SOL_STATIC_ARRAY_SIZE(16)], struct sol_buffer *uuid_str);
+
+/**
+ * @brief Convert an UUID in string format to a byte array with UUID bytes.
+ *
+ * @param uuid_str The UUID in string format, with or without hyphens, using
+ *        lowercase or uppercase characters.
+ * @param uuid_bytes an initialized buffer to be used to append the converted uuid,
+ *        totalizing 16 bytes.
+ *
+ * @return 0 on success, negative error code otherwise.
+ */
+int sol_util_uuid_bytes_from_string(struct sol_str_slice uuid_str, struct sol_buffer *uuid_bytes);
 
 /**
  * @brief Restricts a number between two other numbers.

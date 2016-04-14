@@ -788,12 +788,12 @@ err:
 static int
 generate_location(char **location)
 {
+    SOL_BUFFER_DECLARE_STATIC(uuid, 33);
     int r;
-    char uuid[37];
 
-    r = sol_util_uuid_gen(false, false, uuid);
+    r = sol_util_uuid_gen(false, false, &uuid);
     SOL_INT_CHECK(r, < 0, r);
-    *location = strndup(uuid, DEFAULT_LOCATION_PATH_SIZE);
+    *location = strndup(uuid.data, DEFAULT_LOCATION_PATH_SIZE);
     SOL_NULL_CHECK(*location, -ENOMEM);
     return 0;
 }
