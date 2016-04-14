@@ -25,6 +25,7 @@
 #include "sol-mainloop.h"
 #include "sol-network.h"
 #include "sol-network-util.h"
+#include "sol-util.h"
 #include "sol-util-internal.h"
 
 #include "sol-socket.h"
@@ -152,30 +153,41 @@ sol_socket_linux_del(struct sol_socket *socket)
 }
 
 static ssize_t
-sol_socket_linux_recvmsg(struct sol_socket *socket, void *buf, size_t len, struct sol_network_link_addr *cliaddr)
+sol_socket_linux_recvmsg(struct sol_socket *socket, struct sol_buffer *buf,
+    struct sol_network_link_addr *cliaddr)
 {
     struct sol_socket_linux *s = (struct sol_socket_linux *)socket;
     uint8_t sockaddr[sizeof(struct sockaddr_in6)] = { };
-    struct iovec iov = { .iov_base = buf,
-                         .iov_len = len };
+    struct iovec iov = { };
     struct msghdr msg = {
         .msg_name = &sockaddr,
         .msg_namelen = sizeof(sockaddr),
         .msg_iov = &iov,
-        .msg_iovlen = 1
+        .msg_iovlen = 1,
     };
     ssize_t r;
 
-    /* When more types of sockets (not just datagram) are accepted,
-     * remember to err if !buf && type != DGRAM */
-    if (!buf) {
+    if (SOL_BUFFER_CAN_RESIZE(buf)) {
         msg.msg_iov->iov_len = 0;
-        return recvmsg(s->fd, &msg, MSG_TRUNC | MSG_PEEK);
-    } else
-        r = recvmsg(s->fd, &msg, 0);
+        r = recvmsg(s->fd, &msg, MSG_TRUNC | MSG_PEEK);
 
-    if (r < 0)
-        return -errno;
+        r = sol_buffer_ensure(buf, r);
+        SOL_INT_CHECK(r, < 0, r);
+    }
+
+    iov.iov_len = buf->capacity;
+    iov.iov_base = buf->data;
+
+    r = recvmsg(s->fd, &msg, 0);
+    SOL_INT_CHECK(r, < 0, r);
+
+    buf->used = sol_util_min(r, (ssize_t)buf->capacity);
+    if (SOL_BUFFER_NEEDS_NUL_BYTE(buf)) {
+        int ret;
+
+        ret = sol_buffer_ensure_nul_byte(buf);
+        SOL_INT_CHECK(ret, < 0, ret);
+    }
 
     if (from_sockaddr((struct sockaddr *)sockaddr, sizeof(sockaddr), cliaddr) < 0)
         return -EINVAL;
@@ -289,13 +301,13 @@ is_multicast(enum sol_network_family family, const struct sockaddr *sockaddr)
 }
 
 static ssize_t
-sol_socket_linux_sendmsg(struct sol_socket *socket, const void *buf, size_t len,
+sol_socket_linux_sendmsg(struct sol_socket *socket, const struct sol_buffer *buf,
     const struct sol_network_link_addr *cliaddr)
 {
     struct sol_socket_linux *s = (struct sol_socket_linux *)socket;
     uint8_t sockaddr[sizeof(struct sockaddr_in6)] = { };
-    struct iovec iov = { .iov_base = (void *)buf,
-                         .iov_len = len };
+    struct iovec iov = { .iov_base = (void *)buf->data,
+                         .iov_len = buf->used };
     struct msghdr msg = { .msg_iov = &iov,
                           .msg_iovlen = 1 };
     socklen_t l;

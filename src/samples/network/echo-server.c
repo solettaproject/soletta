@@ -21,7 +21,7 @@
  * @brief Basic echo server
  *
  * Basic echo server. All data received is sent back.
- *  To see the usage help, -h or --help.
+ * To see the usage help, -h or --help.
  */
 
 #include <errno.h>
@@ -52,28 +52,19 @@ on_can_read(void *data, struct sol_socket *s)
 {
     ssize_t r;
     struct queue_item *item;
-    char *item_data;
-
-    item_data = malloc(1024);
-    if (!item_data) {
-        fprintf(stderr, "ERROR: Could not allocate memory an element data\n");
-        goto err;
-    }
 
     item = sol_vector_append(&queue);
     if (!item) {
         fprintf(stderr, "ERROR: Could not allocate memory for an element\n");
-        free(item_data);
         goto err;
     }
 
-    sol_buffer_init_flags(&item->buf, item_data, 1024, SOL_BUFFER_FLAGS_FIXED_CAPACITY);
-    r = sol_socket_recvmsg(s, item_data, 1024, &item->addr);
+    sol_buffer_init(&item->buf);
+    r = sol_socket_recvmsg(s, &item->buf, &item->addr);
     if (r < 0) {
         fprintf(stderr, "ERROR: Failed in receiving the message\n");
         goto err;
     }
-    item->buf.used = r;
 
     sol_socket_set_write_monitor(sock, true);
     return true;
@@ -94,7 +85,7 @@ on_can_write(void *data, struct sol_socket *s)
         return false;
     }
 
-    r = sol_socket_sendmsg(sock, item->buf.data, item->buf.used, &item->addr);
+    r = sol_socket_sendmsg(sock, &item->buf, &item->addr);
     if (r < 0) {
         fprintf(stderr, "ERROR: Could not send data\n");
         goto end;

@@ -187,12 +187,14 @@ remove_item_from_vector(struct sol_vector *vec, struct queue_item *item,
 }
 
 static ssize_t
-sol_socket_dtls_recvmsg(struct sol_socket *socket, void *buf, size_t len, struct sol_network_link_addr *cliaddr)
+sol_socket_dtls_recvmsg(struct sol_socket *socket, struct sol_buffer *buf,
+    struct sol_network_link_addr *cliaddr)
 {
     struct sol_socket_dtls *s = (struct sol_socket_dtls *)socket;
     struct sol_buffer new_buf;
     void *buf_copy;
     struct queue_item *item;
+    int ret;
 
     if (s->read.queue.len == 0) {
         SOL_DBG("Receive queue empty, returning 0");
@@ -205,66 +207,44 @@ sol_socket_dtls_recvmsg(struct sol_socket *socket, void *buf, size_t len, struct
         return -EAGAIN;
     }
 
-    if (!buf)
-        return item->buffer.used;
-
     memcpy(cliaddr, &item->addr, sizeof(*cliaddr));
 
-    if (item->buffer.used <= len) {
-        memcpy(buf, item->buffer.data, item->buffer.used);
-        return remove_item_from_vector(&s->read.queue, item,
-            item->buffer.used);
-    }
+    ret = sol_buffer_set_buffer(buf, &item->buffer);
+    SOL_INT_CHECK(ret, < 0, ret);
 
-    memcpy(buf, item->buffer.data, len);
-
-    buf_copy = sol_util_memdup((const char *)item->buffer.data + len,
-        item->buffer.used - len);
-    SOL_NULL_CHECK_GOTO(buf_copy, clear_buf);
-
-    sol_buffer_init_flags(&new_buf, buf_copy, len,
-        SOL_BUFFER_FLAGS_CLEAR_MEMORY | SOL_BUFFER_FLAGS_NO_NUL_BYTE |
-        SOL_BUFFER_FLAGS_FIXED_CAPACITY);
-    new_buf.used = item->buffer.used - len;
-
-    sol_buffer_fini(&item->buffer);
-    item->buffer = new_buf;
-
-    return len;
-
-clear_buf:
-    SOL_WRN("Could not copy buffer for short read, discarding unencrypted data");
-    return remove_item_from_vector(&s->read.queue, item, -ENOMEM);
+    return remove_item_from_vector(&s->read.queue, item, buf->used);
 }
 
 static ssize_t
-sol_socket_dtls_sendmsg(struct sol_socket *socket, const void *buf, size_t len,
+sol_socket_dtls_sendmsg(struct sol_socket *socket, const struct sol_buffer *buf,
     const struct sol_network_link_addr *cliaddr)
 {
     struct sol_socket_dtls *s = (struct sol_socket_dtls *)socket;
     struct queue_item *item;
-    void *buf_copy;
+    int ret;
 
     if (s->write.queue.len > 4) {
         SOL_WRN("Transmission queue too long");
         return -ENOMEM;
     }
 
-    buf_copy = sol_util_memdup(buf, len);
-    SOL_NULL_CHECK(buf_copy, -ENOMEM);
-
     item = sol_vector_append(&s->write.queue);
     SOL_NULL_CHECK(item, -ENOMEM);
 
     item->addr = *cliaddr;
-    sol_buffer_init_flags(&item->buffer, buf_copy, len,
-        SOL_BUFFER_FLAGS_CLEAR_MEMORY | SOL_BUFFER_FLAGS_NO_NUL_BYTE |
-        SOL_BUFFER_FLAGS_FIXED_CAPACITY);
-    item->buffer.used = len;
+    sol_buffer_init_flags(&item->buffer, NULL, 0,
+        SOL_BUFFER_FLAGS_NO_NUL_BYTE | SOL_BUFFER_FLAGS_CLEAR_MEMORY);
+    ret = sol_buffer_set_buffer(&item->buffer, buf);
+    if (ret < 0) {
+        SOL_WRN("Could not append the buffer");
+        sol_buffer_fini(&item->buffer);
+        sol_vector_del_last(&s->write.queue);
+        return ret;
+    }
 
     encrypt_payload(s);
 
-    return len;
+    return buf->used;
 }
 
 static int
@@ -304,19 +284,20 @@ read_encrypted(void *data, struct sol_socket *wrapped)
     struct sol_socket_dtls *socket = data;
     struct sol_network_link_addr cliaddr;
     session_t session = { 0 };
-    uint8_t buf[DTLS_MAX_BUF];
     int len;
+
+    SOL_BUFFER_DECLARE_STATIC(buffer, DTLS_MAX_BUF);
 
     SOL_DBG("Reading encrypted data from wrapped socket");
 
-    len = sol_socket_recvmsg(socket->wrapped, buf, sizeof(buf), &cliaddr);
+    len = sol_socket_recvmsg(socket->wrapped, &buffer, &cliaddr);
     SOL_INT_CHECK(len, < 0, false);
 
     session.size = sizeof(session.addr);
     if (to_sockaddr(&cliaddr, &session.addr.sa, &session.size) < 0)
         return false;
 
-    return dtls_handle_message(socket->context, &session, buf, len) == 0;
+    return dtls_handle_message(socket->context, &session, buffer.data, len) == 0;
 }
 
 static int
@@ -416,6 +397,7 @@ write_encrypted(struct dtls_context_t *ctx, session_t *session, uint8_t *buf, si
 {
     struct sol_socket_dtls *socket = dtls_get_app_data(ctx);
     struct sol_network_link_addr addr;
+    struct sol_buffer buffer = SOL_BUFFER_INIT_CONST(buf, len);
     int r;
 
     if (from_sockaddr(&session->addr.sa, session->size, &addr) < 0) {
@@ -423,7 +405,7 @@ write_encrypted(struct dtls_context_t *ctx, session_t *session, uint8_t *buf, si
         return -EINVAL;
     }
 
-    return sol_socket_sendmsg(socket->wrapped, buf, len, &addr);
+    return sol_socket_sendmsg(socket->wrapped, &buffer, &addr);
 }
 
 static bool

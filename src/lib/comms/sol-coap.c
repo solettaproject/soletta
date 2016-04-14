@@ -762,7 +762,7 @@ on_can_write(void *data, struct sol_socket *s)
     if (err)
         return true;
 
-    ret = sol_socket_sendmsg(s, buf.data, buf.used, &outgoing->cliaddr);
+    ret = sol_socket_sendmsg(s, &buf, &outgoing->cliaddr);
     /* Eventually we are going to re-send it. */
     sol_buffer_fini(&buf);
 
@@ -1589,23 +1589,9 @@ on_can_read(void *data, struct sol_socket *s)
      * datagrams, since this *calculate exact needed size* step would
      * have to change on those cases. */
 
-    /* calculate exact needed size */
-    len = sol_socket_recvmsg(s, NULL, 0, NULL);
-    SOL_INT_CHECK_GOTO(len, < 0, err_recv);
-
-    SOL_DBG("allocating %zd bytes for pkt %p", len, pkt);
-    err = sol_buffer_ensure(&pkt->buf, len);
-    if (err < 0) {
-        SOL_WRN("Could not allocate space (%zd bytes) to receive from socket"
-            " (%d): %s", len, err, sol_util_strerrora(-err));
-        coap_packet_free(pkt);
-        return true;
-    }
-
     /* store at the beginning of the buffer and reset 'used' */
-    len = sol_socket_recvmsg(s, pkt->buf.data, len, &cliaddr);
+    len = sol_socket_recvmsg(s, &pkt->buf, &cliaddr);
     SOL_INT_CHECK_GOTO(len, < 0, err_recv);
-    pkt->buf.used = len;
 
     err = coap_packet_parse(pkt);
     if (err < 0) {
