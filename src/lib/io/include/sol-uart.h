@@ -106,7 +106,7 @@ struct sol_uart_config {
     enum sol_uart_data_bits data_bits; /**< The data bits value */
     enum sol_uart_parity parity; /**< The parity value*/
     enum sol_uart_stop_bits stop_bits; /**< The stop bits value */
-    void (*rx_cb)(void *user_data, struct sol_uart *uart, uint8_t byte_read); /** Set a callback to be called every time a character is received on UART */
+    void (*rx_cb)(void *user_data, struct sol_uart *uart); /** Set a callback to be called every time a character is received on UART */
     const void *rx_cb_user_data; /**< User data to @c rx_cb */
     bool flow_control; /**< Enables software flow control(XOFF and XON) */
 };
@@ -251,6 +251,17 @@ void sol_uart_close(struct sol_uart *uart);
  * callback is called.
  */
 bool sol_uart_write(struct sol_uart *uart, const uint8_t *tx, unsigned int length, void (*tx_cb)(void *data, struct sol_uart *uart, uint8_t *tx, int status), const void *data);
+
+/**
+ * @brief Read from UART bus
+ *
+ * @param uart The UART bus handle
+ * @param rx Where to store the UART data
+ * @param length number of bytes to read
+ *
+ * @return the number of bytes read or negative errno on error.
+ */
+int sol_uart_read(struct sol_uart *uart, uint8_t *rx, size_t length);
 
 /**
  * @}
