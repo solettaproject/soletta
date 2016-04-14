@@ -775,7 +775,7 @@ on_can_write(void *data, struct sol_socket *s)
         sol_ptr_vector_get_len(&server->pending),
         outgoing->pkt->buf.used, outgoing->pkt->buf.capacity);
     sol_coap_packet_debug(outgoing->pkt);
-    if (err < 0) {
+    if (ret < 0) {
         uint16_t id;
         SOL_BUFFER_DECLARE_STATIC(addr, SOL_INET_ADDR_STRLEN);
 
