@@ -177,6 +177,21 @@ body{
     cursor: pointer;
     margin-top: 51px;
 }
+#example-info-code{   /*Added styling for hidden textarea*/
+    position: inherit;
+    resize:none;
+    z-index:-1;
+    background: #2d3237;
+    border: none;
+    outline: none;
+    overflow: hidden;
+    color: #2d3237;
+}
+#example-info-code::selection { /*Stay hidden while selection*/
+    background-color: #2d3237;
+    background: transparent;
+    color: #2d3237;
+}
 #example-code-copied{
     margin-top: 51px;
 }
