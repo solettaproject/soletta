@@ -612,6 +612,7 @@ main(int argc, char *argv[])
     struct sol_oic_client *client;
     struct sol_network_link_addr cliaddr = { .family = SOL_NETWORK_FAMILY_INET, .port = 5683 };
     const char *resource_type = NULL;
+    const char *interface_type = NULL;
 
     bool (*found_resource_cb)(struct sol_oic_client *cli, struct sol_oic_resource *res, void *data) = NULL;
 
@@ -629,8 +630,11 @@ main(int argc, char *argv[])
         return 1;
     }
 
-    if (argc >= 3)
+    if (argc >= 3 && argv[2][0])
         resource_type = argv[2];
+
+    if (argc >= 4 && argv[3][0])
+        interface_type = argv[3];
 
     if (!sol_network_link_addr_from_str(&cliaddr, "224.0.1.187")) {
         SOL_WRN("could not convert multicast ip address to sockaddr_in");
@@ -670,7 +674,7 @@ main(int argc, char *argv[])
             server_info_cb, NULL);
     else
         sol_oic_client_find_resource(client, &cliaddr, resource_type,
-            found_resource_cb, &ctx);
+            interface_type, found_resource_cb, &ctx);
 
     ret = sol_run();
 

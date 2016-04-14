@@ -157,7 +157,11 @@ void sol_oic_client_del(struct sol_oic_client *client);
  *        May be a multicast address if it is desired to look for resources in
  *        multiple servers.
  * @param resource_type A string representation of the type of the desired
- *        resource.
+ *        resource. If empty or @c NULL, resources from all types will be
+ *        discovered.
+ * @param resource_interface A string representation of the interface of the desired
+ *        resource. If empty or @c NULL, resources with all interfaces will be
+ *        discovered.
  * @param resource_found_cb Callback to be called when a resource is found or
  *        when timeout is reached. Parameter cli is the sol_oic_client used to
  *        perform the request, res is the resource that was discovered and data
@@ -168,6 +172,7 @@ void sol_oic_client_del(struct sol_oic_client *client);
  */
 bool sol_oic_client_find_resource(struct sol_oic_client *client,
     struct sol_network_link_addr *addr, const char *resource_type,
+    const char *resource_interface,
     bool (*resource_found_cb)(struct sol_oic_client *cli,
     struct sol_oic_resource *res,
     void *data),

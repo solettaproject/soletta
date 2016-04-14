@@ -730,11 +730,13 @@ _find_resource_reply_cb(struct sol_coap_server *server,
 SOL_API bool
 sol_oic_client_find_resource(struct sol_oic_client *client,
     struct sol_network_link_addr *addr, const char *resource_type,
+    const char *resource_interface,
     bool (*resource_found_cb)(struct sol_oic_client *cli,
     struct sol_oic_resource *res,
     void *data),
     const void *data)
 {
+    char query[64];
     static const char oic_well_known[] = "/oic/res";
     struct sol_coap_packet *req;
     struct find_resource_ctx *ctx;
@@ -766,10 +768,16 @@ sol_oic_client_find_resource(struct sol_oic_client *client,
         goto out;
     }
 
-    if (resource_type) {
-        char query[64];
-
+    if (resource_type && *resource_type) {
         r = snprintf(query, sizeof(query), "rt=%s", resource_type);
+        if (r < 0 || r >= (int)sizeof(query))
+            goto out;
+
+        sol_coap_add_option(req, SOL_COAP_OPTION_URI_QUERY, query, r);
+    }
+
+    if (resource_interface && *resource_interface) {
+        r = snprintf(query, sizeof(query), "if=%s", resource_interface);
         if (r < 0 || r >= (int)sizeof(query))
             goto out;
 

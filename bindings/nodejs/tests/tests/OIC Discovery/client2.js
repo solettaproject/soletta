@@ -48,7 +48,7 @@ var defaultAddress = {
 
 async.series( [
 	function waitForDiscoveryToComplete( callback ) {
-		soletta.sol_oic_client_find_resource( client, destination, "",
+		soletta.sol_oic_client_find_resource( client, destination, "", "",
 			function( client, resource ) {
 				discoveryCallbackCount++;
 				if ( resource && resource.href === "/a/" + process.argv[ 2 ] ) {
