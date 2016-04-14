@@ -49,7 +49,7 @@ struct sol_uart {
         void (*tx_cb)(void *data, struct sol_uart *uart, uint8_t *tx, int status);
         const void *tx_user_data;
         const uint8_t *tx_buffer;
-        unsigned int tx_length, tx_index;
+        size_t tx_length, tx_index;
     } async;
 };
 
@@ -220,15 +220,15 @@ error:
     return false;
 }
 
-SOL_API bool
-sol_uart_write(struct sol_uart *uart, const uint8_t *tx, unsigned int length, void (*tx_cb)(void *data, struct sol_uart *uart, uint8_t *tx, int status), const void *data)
+SOL_API int
+sol_uart_write(struct sol_uart *uart, const uint8_t *tx, size_t length, void (*tx_cb)(void *data, struct sol_uart *uart, uint8_t *tx, int status), const void *data)
 {
-    SOL_NULL_CHECK(uart, false);
-    SOL_EXP_CHECK(uart->async.tx_fd_handler != NULL, false);
+    SOL_NULL_CHECK(uart, -EINVAL);
+    SOL_EXP_CHECK(uart->async.tx_fd_handler != NULL, -EBUSY);
 
     uart->async.tx_fd_handler = sol_fd_add(uart->fd,
         FD_ERROR_FLAGS | SOL_FD_FLAGS_OUT, uart_tx_callback, uart);
-    SOL_NULL_CHECK(uart->async.tx_fd_handler, false);
+    SOL_NULL_CHECK(uart->async.tx_fd_handler, -ENOMEM);
 
     uart->async.tx_buffer = tx;
     uart->async.tx_cb = tx_cb;
@@ -236,7 +236,7 @@ sol_uart_write(struct sol_uart *uart, const uint8_t *tx, unsigned int length, vo
     uart->async.tx_index = 0;
     uart->async.tx_length = length;
 
-    return true;
+    return 0;
 }
 
 SOL_API int

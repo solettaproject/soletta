@@ -47,7 +47,7 @@ struct sol_uart {
         const void *tx_user_data;
         struct sol_timeout *tx_writer;
         const uint8_t *tx_buffer;
-        unsigned int tx_length;
+        size_t tx_length;
     } async;
 };
 
@@ -158,20 +158,21 @@ sol_uart_close(struct sol_uart *uart)
     free(uart);
 }
 
-SOL_API bool
-sol_uart_write(struct sol_uart *uart, const uint8_t *tx, unsigned int length, void (*tx_cb)(void *data, struct sol_uart *uart, uint8_t *tx, int status), const void *data)
+SOL_API int
+sol_uart_write(struct sol_uart *uart, const uint8_t *tx, size_t length, void (*tx_cb)(void *data, struct sol_uart *uart, uint8_t *tx, int status), const void *data)
 {
-    SOL_NULL_CHECK(uart, false);
-    SOL_EXP_CHECK(uart->async.tx_buffer, false);
+    SOL_NULL_CHECK(uart, -EINVAL);
+    SOL_EXP_CHECK(uart->async.tx_writer, -EBUSY);
+
+    uart->async.tx_writer = sol_timeout_add(0, uart_tx_cb, uart);
+    SOL_NULL_CHECK(uart->async.tx_writer, -ENOMEM);
 
     uart->async.tx_buffer = tx;
     uart->async.tx_cb = tx_cb;
     uart->async.tx_user_data = data;
     uart->async.tx_length = length;
 
-    uart->async.tx_writer = sol_timeout_add(0, uart_tx_cb, uart);
-
-    return true;
+    return 0;
 }
 
 SOL_API int

@@ -250,7 +250,7 @@ void sol_uart_close(struct sol_uart *uart);
  * @note Caller should guarantee that tx buffer will not be freed until
  * callback is called.
  */
-bool sol_uart_write(struct sol_uart *uart, const uint8_t *tx, unsigned int length, void (*tx_cb)(void *data, struct sol_uart *uart, uint8_t *tx, int status), const void *data);
+int sol_uart_write(struct sol_uart *uart, const uint8_t *tx, size_t length, void (*tx_cb)(void *data, struct sol_uart *uart, uint8_t *tx, int status), const void *data);
 
 /**
  * @brief Read from UART bus
