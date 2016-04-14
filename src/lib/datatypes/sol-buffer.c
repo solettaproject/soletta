@@ -30,6 +30,23 @@ nul_byte_size(const struct sol_buffer *buf)
     return (buf->flags & SOL_BUFFER_FLAGS_NO_NUL_BYTE) ? 0 : 1;
 }
 
+static void *
+secure_realloc(struct sol_buffer *buf, size_t new_size)
+{
+    char *new_data = NULL;
+
+    if (!new_size)
+        goto end;
+
+    new_data = malloc(new_size);
+    memcpy(new_data, buf->data, sol_min(new_size, buf->capacity));
+
+end:
+    sol_util_secure_clear_memory(buf->data, buf->capacity);
+    free(buf->data);
+    return new_data;
+}
+
 SOL_API int
 sol_buffer_resize(struct sol_buffer *buf, size_t new_size)
 {
@@ -41,7 +58,11 @@ sol_buffer_resize(struct sol_buffer *buf, size_t new_size)
     if (buf->capacity == new_size)
         return 0;
 
-    new_data = realloc(buf->data, new_size);
+    if (buf->flags & SOL_BUFFER_FLAGS_CLEAR_MEMORY)
+        new_data = secure_realloc(buf, new_size);
+    else
+        new_data = realloc(buf->data, new_size);
+
     if (!new_data && new_size)
         return -errno;
 
@@ -838,7 +859,7 @@ sol_buffer_fini(struct sol_buffer *buf)
 {
     if (!buf)
         return;
-    if ((buf->flags & SOL_BUFFER_FLAGS_CLEAR_MEMORY) == SOL_BUFFER_FLAGS_CLEAR_MEMORY)
+    if (buf->flags & SOL_BUFFER_FLAGS_CLEAR_MEMORY)
         sol_util_secure_clear_memory(buf->data, buf->capacity);
     if (!(buf->flags & SOL_BUFFER_FLAGS_NO_FREE))
         free(buf->data);
