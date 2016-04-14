@@ -170,7 +170,7 @@ sol_mqtt_event_loop(void *data, int fd, uint32_t active_flags)
 
     /* No more data to write, unset SOL_FD_FLAGS_OUT */
     if (active_flags & SOL_FD_FLAGS_OUT && !mosquitto_want_write(mqtt->mosq) &&
-        !sol_fd_unset_flags(mqtt->socket_watch, SOL_FD_FLAGS_OUT)) {
+        !sol_fd_remove_flags(mqtt->socket_watch, SOL_FD_FLAGS_OUT)) {
         SOL_WRN("Unable to unset SOL_FD_FLAGS_OUT");
         goto remove;
     }
