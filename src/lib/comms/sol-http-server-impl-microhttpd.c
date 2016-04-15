@@ -472,7 +472,7 @@ progressive_response_cb(void *data, uint64_t pos, char *buf, size_t size)
         return 0;
     }
 
-    len = sol_min(size, progressive->buffer.used);
+    len = sol_util_min(size, progressive->buffer.used);
     memcpy(buf, progressive->buffer.data, len);
 
     r = sol_buffer_remove_data(&progressive->buffer, 0, len);

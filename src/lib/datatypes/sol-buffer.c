@@ -40,7 +40,7 @@ secure_realloc(struct sol_buffer *buf, size_t new_size)
 
     new_data = malloc(new_size);
     SOL_NULL_CHECK(new_data, NULL);
-    memcpy(new_data, buf->data, sol_min(new_size, buf->capacity));
+    memcpy(new_data, buf->data, sol_util_min(new_size, buf->capacity));
 
 end:
     sol_util_secure_clear_memory(buf->data, buf->capacity);

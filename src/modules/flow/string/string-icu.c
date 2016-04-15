@@ -521,7 +521,7 @@ string_length_process(struct sol_flow_node *node,
     SOL_INT_CHECK(r, < 0, r);
 
     if (mdata->n)
-        result = sol_min((uint32_t)u_strlen(value), mdata->n);
+        result = sol_util_min((uint32_t)u_strlen(value), mdata->n);
     else
         result = u_strlen(value);
 
