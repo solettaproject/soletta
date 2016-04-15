@@ -266,3 +266,24 @@ sol_uart_read(struct sol_uart *uart, struct sol_buffer *buf)
     SOL_INT_CHECK(r, < 0, r);
     return (int)sol_util_fill_buffer(uart->fd, buf, total);
 }
+
+SOL_API int
+sol_uart_get_pending_bytes(struct sol_uart *uart, size_t *pending_bytes)
+{
+    int r;
+    struct sol_blob *blob;
+    uint16_t i;
+
+    SOL_NULL_CHECK(uart, -EINVAL);
+    SOL_NULL_CHECK(pending_bytes, -EINVAL);
+
+    *pending_bytes = 0;
+    SOL_PTR_VECTOR_FOREACH_IDX (&uart->pending_blobs, blob, i) {
+        r = sol_util_size_add(*pending_bytes, blob->size, pending_bytes);
+        SOL_INT_CHECK(r, < 0, r);
+    }
+
+    *pending_bytes -= uart->written;
+
+    return 0;
+}

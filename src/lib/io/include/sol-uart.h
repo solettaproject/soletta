@@ -259,6 +259,16 @@ int sol_uart_write(struct sol_uart *uart, struct sol_blob *blob);
  */
 int sol_uart_read(struct sol_uart *uart, struct sol_buffer *buf);
 
+
+/**
+ * @brief Get the number of bytes that were not written yet.
+ *
+ * @param uart The UART bus handle
+ * @param pending_bytes Where to store the pending bytes amount
+ * @return 0 on success or negative errno on error
+ */
+int sol_uart_get_pending_bytes(struct sol_uart *uart, size_t *pending_bytes);
+
 /**
  * @}
  */
