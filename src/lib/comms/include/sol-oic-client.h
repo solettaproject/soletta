@@ -64,8 +64,7 @@ struct sol_oic_resource {
      */
     struct sol_str_slice href;
     /**
-     * @brief A string representation of the identification of the device that
-     * contains this resource.
+     * @brief The Device ID as UUID 16-byte array.
      */
     struct sol_str_slice device_id;
     /**
