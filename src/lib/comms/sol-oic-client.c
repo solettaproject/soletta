@@ -169,6 +169,21 @@ sol_oic_resource_ref(struct sol_oic_resource *r)
     return r;
 }
 
+static void
+clear_vector_list(struct sol_vector *vector, void *data)
+{
+    uint16_t i;
+    struct sol_str_slice *str;
+
+    if (data)
+        free(data);
+    else {
+        SOL_VECTOR_FOREACH_IDX (vector, str, i)
+            free((char *)str->data);
+    }
+    sol_vector_clear(vector);
+}
+
 SOL_API void
 sol_oic_resource_unref(struct sol_oic_resource *r)
 {
@@ -180,11 +195,8 @@ sol_oic_resource_unref(struct sol_oic_resource *r)
         free((char *)r->href.data);
         free((char *)r->device_id.data);
 
-        sol_vector_clear(&r->types);
-        free(r->types_data);
-
-        sol_vector_clear(&r->interfaces);
-        free(r->interfaces_data);
+        clear_vector_list(&r->types, r->types_data);
+        clear_vector_list(&r->interfaces, r->interfaces_data);
 
         free(r);
     }
@@ -445,10 +457,10 @@ client_get_info(struct sol_oic_client *client,
     int r;
 
     ctx = sol_util_memdup(&(struct server_info_ctx) {
-            .client = client,
-            .cb = info_received_cb,
-            .data = data,
-        }, sizeof(*ctx));
+        .client = client,
+        .cb = info_received_cb,
+        .data = data,
+    }, sizeof(*ctx));
     SOL_NULL_CHECK(ctx, false);
 
     req = sol_coap_packet_request_new(SOL_COAP_METHOD_GET, SOL_COAP_TYPE_CON);
@@ -602,6 +614,25 @@ _new_resource(void)
 }
 
 static bool
+extract_list_from_map(const CborValue *map, const char *key, char **data, struct sol_vector *vector)
+{
+    CborValue value;
+
+    if (cbor_value_map_find_value(map, key, &value) != CborNoError)
+        return false;
+
+    if (cbor_value_is_text_string(&value))
+        return sol_cbor_bsv_to_vector(&value, data, vector);
+
+    if (cbor_value_is_array(&value)) {
+        *data = NULL;
+        return sol_cbor_array_to_vector(&value, vector);
+    }
+
+    return false;
+}
+
+static bool
 _iterate_over_resource_reply_payload(struct sol_coap_packet *req,
     const struct sol_network_link_addr *addr,
     const struct find_resource_ctx *ctx, bool *cb_return)
@@ -656,10 +687,10 @@ _iterate_over_resource_reply_payload(struct sol_coap_packet *req,
                 &res->href))
                 goto error;
 
-            if (!sol_cbor_map_get_bsv(&resources_array,
+            if (!extract_list_from_map(&resources_array,
                 SOL_OIC_KEY_RESOURCE_TYPES, &res->types_data, &res->types))
                 goto error;
-            if (!sol_cbor_map_get_bsv(&resources_array,
+            if (!extract_list_from_map(&resources_array,
                 SOL_OIC_KEY_INTERFACES, &res->interfaces_data,
                 &res->interfaces))
                 goto error;
@@ -780,10 +811,10 @@ sol_oic_client_find_resource(struct sol_oic_client *client,
     SOL_NULL_CHECK(client, false);
 
     ctx = sol_util_memdup(&(struct find_resource_ctx) {
-            .client = client,
-            .cb = resource_found_cb,
-            .data = data,
-        }, sizeof(*ctx));
+        .client = client,
+        .cb = resource_found_cb,
+        .data = data,
+    }, sizeof(*ctx));
     SOL_NULL_CHECK(ctx, false);
 
     /* Multicast discovery should be non-confirmable */
@@ -928,11 +959,11 @@ _resource_request(struct sol_oic_client *client, struct sol_oic_resource *res,
     struct sol_network_link_addr addr;
     struct sol_oic_map_writer map_encoder;
     struct resource_request_ctx *ctx = sol_util_memdup(&(struct resource_request_ctx) {
-            .client = client,
-            .cb = callback,
-            .data = data,
-            .res = res,
-        }, sizeof(*ctx));
+        .client = client,
+        .cb = callback,
+        .data = data,
+        .res = res,
+    }, sizeof(*ctx));
 
     SOL_NULL_CHECK(ctx, false);
 
@@ -1053,11 +1084,11 @@ _observe_with_polling(struct sol_oic_client *client, struct sol_oic_resource *re
     void *data)
 {
     struct resource_request_ctx *ctx = sol_util_memdup(&(struct resource_request_ctx) {
-            .client = client,
-            .cb = callback,
-            .data = data,
-            .res = res
-        }, sizeof(*ctx));
+        .client = client,
+        .cb = callback,
+        .data = data,
+        .res = res
+    }, sizeof(*ctx));
 
     SOL_NULL_CHECK(ctx, false);
 
