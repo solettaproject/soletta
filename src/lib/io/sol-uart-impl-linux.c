@@ -24,6 +24,7 @@
 #include <stdlib.h>
 #include <termios.h>
 #include <unistd.h>
+#include <sys/ioctl.h>
 
 #define SOL_LOG_DOMAIN &_log_domain
 #include "sol-log-internal.h"
@@ -32,48 +33,164 @@
 #include "sol-uart.h"
 #include "sol-util-internal.h"
 #include "sol-util-file.h"
+#include "sol-vector.h"
 
 SOL_LOG_INTERNAL_DECLARE_STATIC(_log_domain, "uart");
 
 #define FD_ERROR_FLAGS (SOL_FD_FLAGS_ERR | SOL_FD_FLAGS_HUP | SOL_FD_FLAGS_NVAL)
 
-struct sol_uart {
-    int fd;
-    struct {
-        void *rx_fd_handler;
-        void (*rx_cb)(void *data, struct sol_uart *uart, uint8_t byte_read);
-        const void *rx_user_data;
+#define DEFAULT_BUFFER_SIZE (4096)
 
-        void *tx_fd_handler;
-        void (*tx_cb)(void *data, struct sol_uart *uart, uint8_t *tx, int status);
-        const void *tx_user_data;
-        const uint8_t *tx_buffer;
-        unsigned int tx_length, tx_index;
-    } async;
+struct sol_uart {
+    struct sol_fd *fd_handler;
+    const void *user_data;
+    ssize_t (*on_data)(void *data, struct sol_uart *uart, const struct sol_buffer *buf);
+    void (*on_feed_done)(void *data, struct sol_uart *uart, struct sol_blob *blob, int status);
+    struct sol_timeout *read_timeout;
+    struct sol_ptr_vector pending_blobs;
+    struct sol_buffer rx;
+    size_t feed_size;
+    size_t pending_feed;
+    size_t written; //How many bytes We've written so far for the first element of pending_blobs
+    int fd;
+    bool delete_me;
+    bool in_use;
 };
 
+static void
+close_uart(struct sol_uart *uart)
+{
+    struct sol_blob *blob;
+    uint16_t i;
+
+    uart->in_use = true;
+    SOL_PTR_VECTOR_FOREACH_IDX (&uart->pending_blobs, blob, i) {
+        if (uart->on_feed_done)
+            uart->on_feed_done((void *)uart->user_data, uart, blob, -ECANCELED);
+        sol_blob_unref(blob);
+    }
+
+    if (uart->rx.used)
+        uart->on_data((void *)uart->user_data, uart, &uart->rx);
+
+    sol_ptr_vector_clear(&uart->pending_blobs);
+    sol_buffer_fini(&uart->rx);
+    close(uart->fd);
+    free(uart);
+}
+
 static bool
-uart_rx_callback(void *data, int fd, uint32_t active_flags)
+read_timeout(void *data)
 {
     struct sol_uart *uart = data;
+    ssize_t r;
+    bool keep_running = true;
+    int err;
 
-    if (!uart->async.rx_cb)
-        return true;
+    uart->in_use = true;
+    r = uart->on_data((void *)uart->user_data, uart, &uart->rx);
+    uart->in_use = false;
+    SOL_INT_CHECK_GOTO(r, < 0, exit);
+
+    err = sol_buffer_remove_data(&uart->rx, 0, r);
+    SOL_INT_CHECK(err, < 0, true);
+
+    if (!uart->rx.used) {
+        keep_running = false;
+        uart->read_timeout = NULL;
+    }
+
+exit:
+    if (uart->delete_me)
+        close_uart(uart);
+    return keep_running;
+}
+
+static bool
+uart_fd_handler_callback(void *data, int fd, uint32_t active_flags)
+{
+    struct sol_uart *uart = data;
+    struct sol_blob *blob;
+    int status = 0;
+    ssize_t r = 0;
 
     if (active_flags & FD_ERROR_FLAGS) {
         SOL_ERR("Error flag was set on UART file descriptor %d.", fd);
         return true;
     }
-    if (active_flags & SOL_FD_FLAGS_IN) {
-        uint8_t c; /* Backing storage for next sol_buffer */
-        struct sol_buffer buf = SOL_BUFFER_INIT_FLAGS(&c, sizeof(c),
-            SOL_BUFFER_FLAGS_MEMORY_NOT_OWNED | SOL_BUFFER_FLAGS_NO_NUL_BYTE);
-        int status = sol_util_fill_buffer(uart->fd, &buf, 1);
-        if (status > 0)
-            uart->async.rx_cb((void *)uart->async.rx_user_data, uart, c);
+
+    if ((active_flags & SOL_FD_FLAGS_IN) && uart->on_data) {
+        size_t remaining = uart->rx.capacity - uart->rx.used;
+
+        if (!remaining && !(uart->rx.flags & SOL_BUFFER_FLAGS_FIXED_CAPACITY)) {
+            int err;
+
+            err = sol_buffer_expand(&uart->rx, DEFAULT_BUFFER_SIZE);
+            SOL_INT_CHECK(err, < 0, true);
+            remaining = DEFAULT_BUFFER_SIZE;
+        }
+
+        if (remaining > 0) {
+            r = read(uart->fd, sol_buffer_at_end(&uart->rx), remaining);
+            if (r < 0) {
+                if (errno == EAGAIN || errno == EINTR)
+                    return true;
+                else {
+                    status = errno;
+                    SOL_WRN("Could not read from the UART fd: %d - Reason:%s", uart->fd,
+                        sol_util_strerrora(status));
+                    return true;
+                }
+            }
+        }
+
+        uart->rx.used += r;
+
+        if (uart->rx.used && !uart->read_timeout) {
+            uart->read_timeout = sol_timeout_add(0, read_timeout, uart);
+            SOL_NULL_CHECK(uart->read_timeout, true);
+        } else if (!uart->rx.used && uart->read_timeout) {
+            sol_timeout_del(uart->read_timeout);
+            uart->read_timeout = NULL;
+        }
     }
+
+    //SOL_FD_FLAGS_OUT
+
+    if (!sol_ptr_vector_get_len(&uart->pending_blobs))
+        return true;
+
+    blob = sol_ptr_vector_get_no_check(&uart->pending_blobs, 0);
+    r = write(uart->fd, (char *)blob->mem + uart->written,
+        blob->size - uart->written);
+
+    if (r < 0) {
+        if (errno == EAGAIN || errno == EINTR)
+            return true;
+        else {
+            status = errno;
+            SOL_WRN("Could not write at the UART fd: %d - Reason:%s", uart->fd,
+                sol_util_strerrora(status));
+            goto exit;
+        }
+    }
+
+    uart->written += r;
+    uart->pending_feed -= r;
+    if (uart->written != blob->size)
+        return true;
+
+exit:
+    sol_ptr_vector_del(&uart->pending_blobs, 0);
+    uart->written = 0;
+    if (!sol_ptr_vector_get_len(&uart->pending_blobs))
+        sol_fd_remove_flags(uart->fd_handler, SOL_FD_FLAGS_OUT);
+    if (uart->on_feed_done)
+        uart->on_feed_done((void *)uart->user_data, uart, blob, status);
+    sol_blob_unref(blob);
     return true;
 }
+
 
 SOL_API struct sol_uart *
 sol_uart_open(const char *port_name, const struct sol_uart_config *config)
@@ -152,14 +269,34 @@ sol_uart_open(const char *port_name, const struct sol_uart_config *config)
     }
     tcflush(uart->fd, TCIOFLUSH);
 
-    uart->async.rx_fd_handler = sol_fd_add(uart->fd,
-        FD_ERROR_FLAGS | SOL_FD_FLAGS_IN, uart_rx_callback, uart);
-    if (!uart->async.rx_fd_handler) {
-        SOL_ERR("Unable to add file descriptor to watch UART.");
-        goto fail;
+    if (config->on_data) {
+        size_t data_size;
+        void *rx_buf = NULL;
+        enum sol_buffer_flags flags = SOL_BUFFER_FLAGS_NO_NUL_BYTE | SOL_BUFFER_FLAGS_DEFAULT;
+
+        uart->fd_handler = sol_fd_add(uart->fd,
+            FD_ERROR_FLAGS | SOL_FD_FLAGS_IN, uart_fd_handler_callback, uart);
+        if (!uart->fd_handler) {
+            SOL_ERR("Unable to add file descriptor to watch UART.");
+            goto fail;
+        }
+
+        uart->on_data = config->on_data;
+        data_size = config->data_buffer_size;
+        if (data_size) {
+            flags |= SOL_BUFFER_FLAGS_FIXED_CAPACITY;
+
+            rx_buf = malloc(data_size);
+            SOL_NULL_CHECK_GOTO(rx_buf, fail);
+        }
+
+        sol_buffer_init_flags(&uart->rx, rx_buf, data_size, flags);
     }
-    uart->async.rx_cb = config->rx_cb;
-    uart->async.rx_user_data = config->rx_cb_user_data;
+
+    uart->on_feed_done = config->on_feed_done;
+    sol_ptr_vector_init(&uart->pending_blobs);
+    uart->user_data = config->user_data;
+    uart->feed_size = config->feed_size;
 
     return uart;
 
@@ -174,71 +311,71 @@ SOL_API void
 sol_uart_close(struct sol_uart *uart)
 {
     SOL_NULL_CHECK(uart);
-    if (uart->async.rx_fd_handler)
-        sol_fd_del(uart->async.rx_fd_handler);
-    if (uart->async.tx_fd_handler)
-        sol_fd_del(uart->async.tx_fd_handler);
-    close(uart->fd);
-    free(uart);
-}
+    SOL_EXP_CHECK(uart->delete_me);
 
-static void
-uart_tx_dispatch(struct sol_uart *uart, int status)
-{
-    uart->async.tx_fd_handler = NULL;
-    if (!uart->async.tx_cb)
+    if (uart->fd_handler) {
+        sol_fd_del(uart->fd_handler);
+        uart->fd_handler = NULL;
+    }
+
+    if (uart->read_timeout) {
+        sol_timeout_del(uart->read_timeout);
+        uart->read_timeout = NULL;
+    }
+
+    if (uart->in_use) {
+        uart->delete_me = true;
         return;
-    uart->async.tx_cb((void *)uart->async.tx_user_data, uart,
-        (uint8_t *)uart->async.tx_buffer, status);
+    }
+
+    close_uart(uart);
 }
 
-static bool
-uart_tx_callback(void *data, int fd, uint32_t active_flags)
+SOL_API int
+sol_uart_feed(struct sol_uart *uart, struct sol_blob *blob)
 {
-    struct sol_uart *uart = data;
-    int ret;
+    int r;
+    size_t total;
+    bool fd_created = false;
 
-    if (active_flags & FD_ERROR_FLAGS) {
-        SOL_ERR("Error flag was set on UART file descriptor %d.", fd);
-        ret = -1;
-        goto error;
+    SOL_NULL_CHECK(uart, -EINVAL);
+    SOL_NULL_CHECK(blob, -EINVAL);
+    SOL_EXP_CHECK(uart->delete_me, -EINVAL);
+
+    r = sol_util_size_add(uart->pending_feed, blob->size, &total);
+    SOL_INT_CHECK(r, < 0, r);
+
+    if (uart->feed_size && total >= uart->feed_size)
+        return -ENOSPC;
+
+    if (!uart->fd_handler) {
+        uart->fd_handler = sol_fd_add(uart->fd,
+            FD_ERROR_FLAGS | SOL_FD_FLAGS_OUT, uart_fd_handler_callback, uart);
+        SOL_NULL_CHECK(uart->fd_handler, -ENOMEM);
+        fd_created = true;
+    } else {
+        bool err;
+
+        err = sol_fd_add_flags(uart->fd_handler, SOL_FD_FLAGS_OUT);
+        SOL_EXP_CHECK(!err, -EINVAL);
     }
 
-    if (uart->async.tx_index == uart->async.tx_length) {
-        uart_tx_dispatch(uart, uart->async.tx_index);
-        return false;
+    r = -EOVERFLOW;
+    SOL_NULL_CHECK_GOTO(sol_blob_ref(blob), err_ref);
+
+    r = sol_ptr_vector_append(&uart->pending_blobs, blob);
+    SOL_INT_CHECK_GOTO(r, < 0, err_append);
+
+    uart->pending_feed = total;
+
+    return 0;
+
+err_append:
+    sol_blob_unref(blob);
+err_ref:
+    if (fd_created) {
+        sol_fd_del(uart->fd_handler);
+        uart->fd_handler = NULL;
     }
-
-    ret = write(fd, uart->async.tx_buffer + uart->async.tx_index,
-        uart->async.tx_length - uart->async.tx_index);
-    if (ret < 0) {
-        SOL_ERR("Error when writing to file descriptor %d.", fd);
-        goto error;
-    }
-
-    uart->async.tx_index += ret;
-    return true;
-
-error:
-    uart_tx_dispatch(uart, ret);
-    return false;
-}
-
-SOL_API bool
-sol_uart_write(struct sol_uart *uart, const uint8_t *tx, unsigned int length, void (*tx_cb)(void *data, struct sol_uart *uart, uint8_t *tx, int status), const void *data)
-{
-    SOL_NULL_CHECK(uart, false);
-    SOL_EXP_CHECK(uart->async.tx_fd_handler != NULL, false);
-
-    uart->async.tx_fd_handler = sol_fd_add(uart->fd,
-        FD_ERROR_FLAGS | SOL_FD_FLAGS_OUT, uart_tx_callback, uart);
-    SOL_NULL_CHECK(uart->async.tx_fd_handler, false);
-
-    uart->async.tx_buffer = tx;
-    uart->async.tx_cb = tx_cb;
-    uart->async.tx_user_data = data;
-    uart->async.tx_index = 0;
-    uart->async.tx_length = length;
-
-    return true;
+    return r;
 }
