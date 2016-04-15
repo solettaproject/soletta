@@ -21,6 +21,8 @@
 #include <stdbool.h>
 #include <stdint.h>
 
+#include <sol-types.h>
+#include <sol-buffer.h>
 #include <sol-common-buildopts.h>
 #include <sol-macros.h>
 
@@ -93,6 +95,7 @@ enum sol_uart_stop_bits {
 };
 
 /**
+ * @struct sol_uart_config
  * @brief A configuration struct used to set the UART paramenters.
  *
  * @see sol_uart_open()
@@ -102,12 +105,32 @@ struct sol_uart_config {
 #define SOL_UART_CONFIG_API_VERSION (1) /**< compile time API version to be checked during runtime */
     uint16_t api_version; /**< must match #SOL_UART_CONFIG_API_VERSION at runtime */
 #endif
+    /**
+     * @brief Informs that there is data available to read.
+     *
+     * One should call sol_uart_read() in order to read the data.
+     *
+     * @param data User data as provided in sol_uart_config::user_data
+     * @param uart The UART handle
+     * @see sol_uart_read()
+     */
+    void (*rx_cb)(void *data, struct sol_uart *uart);
+    /**
+     * @brief Informs that a write operation has ended.
+     *
+     * @param data User data as provided in sol_uart_config::user_data
+     * @param uart The UART handle
+     * @param blob The blob that was written
+     * @param status 0 on success or negative errno on error
+     * @note There is no need to call sol_blob_unref().
+     * @see sol_uart_write()
+     */
+    void (*tx_cb)(void *data, struct sol_uart *uart, struct sol_blob *blob, int status);
+    const void *user_data; /**< User data to sol_uart_config::tx_cb() and  sol_uart_config::rx_cb() */
     enum sol_uart_baud_rate baud_rate; /**< The baud rate value */
     enum sol_uart_data_bits data_bits; /**< The data bits value */
     enum sol_uart_parity parity; /**< The parity value*/
     enum sol_uart_stop_bits stop_bits; /**< The stop bits value */
-    void (*rx_cb)(void *user_data, struct sol_uart *uart, uint8_t byte_read); /** Set a callback to be called every time a character is received on UART */
-    const void *rx_cb_user_data; /**< User data to @c rx_cb */
     bool flow_control; /**< Enables software flow control(XOFF and XON) */
 };
 
@@ -236,21 +259,31 @@ struct sol_uart *sol_uart_open(const char *port_name, const struct sol_uart_conf
 void sol_uart_close(struct sol_uart *uart);
 
 /**
- * @brief Perform a UART asynchronous transmission.
+ * @brief Perform an UART asynchronous transmission.
+ *
+ * This function will queue a write operation on the UART bus. It calls
+ * sol_blob_ref(), thus it's safe to call sol_blob_unref() right after this function
+ * returns. After a blob is completely written the callback sol_uart_config::tx_cb() is called, if provided.
+ *
  *
  * @param uart The UART bus handle
- * @param tx The output buffer to be sent
- * @param length number of bytes to be transfer
- * @param tx_cb callback to be called when transmission finish, in case of
- * success the status parameter on tx_cb should be equal to length otherwise
- * an error happen during the transmission
- * @param data the first parameter of tx_cb
- * @return true if transfer was started
+ * @param blob The blob to be written
+ * @return 0 on success or negative errno on error
+ * @see sol_uart_config::tx_cb()
  *
- * @note Caller should guarantee that tx buffer will not be freed until
- * callback is called.
  */
-bool sol_uart_write(struct sol_uart *uart, const uint8_t *tx, unsigned int length, void (*tx_cb)(void *data, struct sol_uart *uart, uint8_t *tx, int status), const void *data);
+int sol_uart_write(struct sol_uart *uart, struct sol_blob *blob);
+
+/**
+ * @brief Perform an UART synchronous read
+ *
+ * @param uart The UART bus handle
+ * @param buf Where to store the UART received bytes - The buffer must be already initialzed
+ *
+ * @return 0 on success or negative errno on error
+ * @see sol_uart_config::rx_cb()
+ */
+int sol_uart_read(struct sol_uart *uart, struct sol_buffer *buf);
 
 /**
  * @}
