@@ -108,6 +108,14 @@ enum sol_buffer_flags {
 #define SOL_BUFFER_NEEDS_NUL_BYTE(buf) (!((buf)->flags & SOL_BUFFER_FLAGS_NO_NUL_BYTE))
 
 /**
+ * @def SOL_BUFFER_CAN_RESIZE()
+ *
+ * Convenience flag to check if the buffer is resizable.
+ */
+#define SOL_BUFFER_CAN_RESIZE(buf) \
+    (!(buf->flags & (SOL_BUFFER_FLAGS_FIXED_CAPACITY | SOL_BUFFER_FLAGS_MEMORY_NOT_OWNED)))
+
+/**
  * @struct sol_buffer
  *
  * @brief A sol_buffer is a dynamic array, that can be resized if needed.
