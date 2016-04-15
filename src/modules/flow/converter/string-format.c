@@ -679,10 +679,10 @@ insert_thousands_grouping(
         digits_ptr = digits + n_digits;
 
     while ((l = group_generator_next(&groupgen)) > 0) {
-        ssize_t tmp = sol_max(remaining, min_width);
-        l = sol_min(l, sol_max(tmp, (ssize_t)1));
-        n_zeros = sol_max((ssize_t)0, l - remaining);
-        n_chars = sol_max((ssize_t)0, sol_min(remaining, l));
+        ssize_t tmp = sol_util_max(remaining, min_width);
+        l = sol_util_min(l, sol_util_max(tmp, (ssize_t)1));
+        n_zeros = sol_util_max((ssize_t)0, l - remaining);
+        n_chars = sol_util_max((ssize_t)0, sol_util_min(remaining, l));
 
         /* Use n_zero zero's and n_chars chars */
         /* Count only, don't do anything. */
@@ -709,10 +709,10 @@ insert_thousands_grouping(
         min_width -= thousands_sep_len;
     }
     if (!loop_broken) {
-        ssize_t tmp = sol_max(remaining, min_width);
-        l = sol_max(tmp, (ssize_t)1);
-        n_zeros = sol_max((ssize_t)0, l - remaining);
-        n_chars = sol_max((ssize_t)0, sol_min(remaining, l));
+        ssize_t tmp = sol_util_max(remaining, min_width);
+        l = sol_util_max(tmp, (ssize_t)1);
+        n_zeros = sol_util_max((ssize_t)0, l - remaining);
+        n_chars = sol_util_max((ssize_t)0, sol_util_min(remaining, l));
 
         /* Use n_zero zero's and n_chars chars */
         count += (use_separator ? thousands_sep_len : 0) + n_zeros + n_chars;

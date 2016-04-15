@@ -504,9 +504,9 @@ selector_format_do(struct sol_flow_node *node)
         if (!n_values)
             goto post_value;
 
-        idx = sol_max((int16_t)(mdata->cursor - n_values / 2), (int16_t)0);
+        idx = sol_util_max((int16_t)(mdata->cursor - n_values / 2), (int16_t)0);
         if (idx + n_values > len)
-            idx = sol_max((int16_t)(len - n_values), (int16_t)0);
+            idx = sol_util_max((int16_t)(len - n_values), (int16_t)0);
     } else {
         idx = mdata->cursor;
         n_values = 1;
@@ -766,7 +766,7 @@ next_set(struct sol_flow_node *node,
     if (mdata->circular)
         mdata->cursor = (mdata->cursor + 1) % len;
     else
-        mdata->cursor = sol_min(mdata->cursor + 1, len - 1);
+        mdata->cursor = sol_util_min(mdata->cursor + 1, len - 1);
 
     SOL_DBG("next (len = %d): curr is now %d", len, mdata->cursor);
 
@@ -789,7 +789,7 @@ previous_set(struct sol_flow_node *node,
     if (mdata->circular)
         mdata->cursor = mdata->cursor ? mdata->cursor - 1 : len - 1;
     else
-        mdata->cursor = (int16_t)(sol_max(mdata->cursor - 1, 0));
+        mdata->cursor = (int16_t)(sol_util_max(mdata->cursor - 1, 0));
 
     SOL_DBG("prev (len = %d): curr is now %d", len, mdata->cursor);
 
@@ -1548,7 +1548,7 @@ integer_custom_open(struct sol_flow_node *node,
     SOL_INT_CHECK_GOTO(n_min, < 0, err);
 
     /* -1 to take away sign */
-    mdata->n_digits = sol_max(n_min, n_max) - 1;
+    mdata->n_digits = sol_util_max(n_min, n_max) - 1;
 
     mdata->chars = calloc(1, mdata->n_digits);
     SOL_NULL_CHECK_GOTO(mdata->chars, err);

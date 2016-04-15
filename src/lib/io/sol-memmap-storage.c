@@ -190,7 +190,7 @@ sol_memmap_write_raw_do(const char *path, const char *name, const struct sol_mem
         value |= (old_value & ~mask);
         fwrite(&value, entry->size, 1, file);
     } else {
-        fwrite(blob->mem, sol_min(entry->size, blob->size), 1, file);
+        fwrite(blob->mem, sol_util_min(entry->size, blob->size), 1, file);
     }
 
     if (ferror(file)) {

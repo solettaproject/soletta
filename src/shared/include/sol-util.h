@@ -79,6 +79,38 @@ extern "C" {
 #define SOL_NSEC_PER_USEC 1000ULL
 
 /**
+ * @brief Gets the minimum value
+ *
+ * This will generate shadowing warnings if the same kind
+ * is nested, but the warnings on type mismatch are a fair benefit.
+ *
+ * Use temporary variables to address nested call cases.
+ */
+#define sol_util_min(x, y) \
+    ({ \
+        __typeof__(x)_min1 = (x); \
+        __typeof__(y)_min2 = (y); \
+        (void)(&_min1 == &_min2); \
+        _min1 < _min2 ? _min1 : _min2; \
+    })
+
+/**
+ * @brief Gets the maximum value
+ *
+ * This will generate shadowing warnings if the same kind
+ * is nested, but the warnings on type mismatch are a fair benefit.
+ *
+ * Use temporary variables to address nested call cases.
+ */
+#define sol_util_max(x, y) \
+    ({ \
+        __typeof__(x)_max1 = (x); \
+        __typeof__(y)_max2 = (y); \
+        (void)(&_max1 == &_max2); \
+        _max1 > _max2 ? _max1 : _max2; \
+    })
+
+/**
  * @brief Gets the current time (Monotonic).
  *
  * @return The current time represented in @c struct timespec.
