@@ -358,6 +358,26 @@ sol_buffer_get_slice(const struct sol_buffer *buf)
 }
 
 /**
+ * @brief Copy @c src into @c dst, ensuring that will fit.
+ *
+ * If data exists, then it won't be moved/shiffted, instead it will be
+ * overriden.
+ *
+ * @param dst The buffer's destiny
+ * @param src The source data
+ *
+ * @return @c 0 on success, error code (always negative) otherwise
+ */
+static inline int
+sol_buffer_set_buffer(struct sol_buffer *dst, const struct sol_buffer *src)
+{
+    if (!dst || !src)
+        return -EINVAL;
+
+    return sol_buffer_set_slice(dst, sol_buffer_get_slice(src));
+}
+
+/**
  * @brief Creates a string slice from the buffer's data starting at position @c pos.
  *
  * @param buf The buffer
@@ -457,6 +477,27 @@ int sol_buffer_append_buffer(struct sol_buffer *dst, const struct sol_buffer *sr
 int sol_buffer_set_slice_at(struct sol_buffer *buf, size_t pos, const struct sol_str_slice slice);
 
 /**
+ * @brief Copy @c src into @c dst at position @c pos,
+ * ensuring that will fit.
+ *
+ * The memory regions of @a src and @a dst may overlap.
+ *
+ * @param dst The buffer's destiny
+ * @param pos Start position
+ * @param src The source data
+ *
+ * @return @c 0 on success, error code (always negative) otherwise
+ */
+static inline int
+sol_buffer_set_buffer_at(struct sol_buffer *dst, size_t pos, const struct sol_buffer *src)
+{
+    if (!dst || !src)
+        return -EINVAL;
+
+    return sol_buffer_set_slice_at(dst, pos, sol_buffer_get_slice(src));
+}
+
+/**
  * @brief Set character @c c into @c buf at position @c pos,
  * reallocating if necessary.
  *
@@ -498,6 +539,25 @@ int sol_buffer_insert_bytes(struct sol_buffer *buf, size_t pos, const uint8_t *b
  */
 int sol_buffer_insert_slice(struct sol_buffer *buf, size_t pos, const struct sol_str_slice slice);
 
+/**
+ * @brief Insert the @c dst into @c src at position @c pos, reallocating if necessary.
+ *
+ * If pos == src->end, then the behavior is the same as @ref sol_buffer_append_buffer
+ *
+ * @param dst Destination buffer
+ * @param pos Start position
+ * @param src Source buffer
+ *
+ * @return @c 0 on success, error code (always negative) otherwise
+ */
+static inline int
+sol_buffer_insert_buffer(struct sol_buffer *dst, size_t pos, const struct sol_buffer *src)
+{
+    if (!dst || !src)
+        return -EINVAL;
+
+    return sol_buffer_insert_slice(dst, pos, sol_buffer_get_slice(src));
+}
 
 // TODO: move this to some other file? where
 /**
