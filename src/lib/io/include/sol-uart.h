@@ -21,6 +21,8 @@
 #include <stdbool.h>
 #include <stdint.h>
 
+#include <sol-types.h>
+#include <sol-buffer.h>
 #include <sol-common-buildopts.h>
 #include <sol-macros.h>
 
@@ -102,12 +104,13 @@ struct sol_uart_config {
 #define SOL_UART_CONFIG_API_VERSION (1) /**< compile time API version to be checked during runtime */
     uint16_t api_version; /**< must match #SOL_UART_CONFIG_API_VERSION at runtime */
 #endif
+    void (*rx_cb)(void *user_data, struct sol_uart *uart); /**< Used to inform data there's data available to read */
+    void (*tx_cb)(void *data, struct sol_uart *uart, struct sol_blob *blob, int status); /**< Used to inform that transfer has ended. On success @c status is 0 on error @c status is a negative errno */
+    const void *user_data; /**< User data to @c rx_cb */
     enum sol_uart_baud_rate baud_rate; /**< The baud rate value */
     enum sol_uart_data_bits data_bits; /**< The data bits value */
     enum sol_uart_parity parity; /**< The parity value*/
     enum sol_uart_stop_bits stop_bits; /**< The stop bits value */
-    void (*rx_cb)(void *user_data, struct sol_uart *uart, uint8_t byte_read); /** Set a callback to be called every time a character is received on UART */
-    const void *rx_cb_user_data; /**< User data to @c rx_cb */
     bool flow_control; /**< Enables software flow control(XOFF and XON) */
 };
 
@@ -236,21 +239,25 @@ struct sol_uart *sol_uart_open(const char *port_name, const struct sol_uart_conf
 void sol_uart_close(struct sol_uart *uart);
 
 /**
- * @brief Perform a UART asynchronous transmission.
+ * @brief Perform an UART asynchronous transmission.
  *
  * @param uart The UART bus handle
- * @param tx The output buffer to be sent
- * @param length number of bytes to be transfer
- * @param tx_cb callback to be called when transmission finish, in case of
- * success the status parameter on tx_cb should be equal to length otherwise
- * an error happen during the transmission
- * @param data the first parameter of tx_cb
- * @return true if transfer was started
+ * @param blob The blob to be written
+ * @return 0 on success negative errno on error
  *
- * @note Caller should guarantee that tx buffer will not be freed until
- * callback is called.
  */
-bool sol_uart_write(struct sol_uart *uart, const uint8_t *tx, unsigned int length, void (*tx_cb)(void *data, struct sol_uart *uart, uint8_t *tx, int status), const void *data);
+int sol_uart_write(struct sol_uart *uart, struct sol_blob *blob);
+
+/**
+ * @brief Perform an UART synchronous read
+ *
+ * @param uart The UART bus handle
+ * @param rx Where to store the UART data
+ * @param length number of bytes to read
+ *
+ * @return the number of bytes read or negative errno on error
+ */
+int sol_uart_read(struct sol_uart *uart, struct sol_buffer *buf);
 
 /**
  * @}
