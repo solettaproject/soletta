@@ -244,12 +244,41 @@ _parse_platform_info_payload(struct sol_oic_platform_information *info,
 }
 
 static bool
+extract_device_id(CborValue *map, struct sol_buffer *device_id)
+{
+    CborValue value;
+    CborError err;
+    struct sol_str_slice slice;
+    int r;
+
+    sol_buffer_init_flags(device_id, NULL, 0, SOL_BUFFER_FLAGS_NO_NUL_BYTE);
+    if (cbor_value_map_find_value(map, SOL_OIC_KEY_DEVICE_ID, &value) != CborNoError)
+        return false;
+
+    if (cbor_value_is_byte_string(&value))
+        return cbor_value_dup_byte_string(&value, (uint8_t **)&device_id->data,
+            &device_id->used, NULL) == CborNoError;
+
+    if (cbor_value_is_text_string(&value)) {
+        err = cbor_value_dup_text_string(&value, (char **)&slice.data,
+            &slice.len, NULL);
+        SOL_INT_CHECK(err, != CborNoError, false);
+        r = sol_util_uuid_bytes_from_string(slice, device_id);
+        free((char *)slice.data);
+        return r == 0;
+    }
+
+    return false;
+}
+
+static bool
 _parse_server_info_payload(struct sol_oic_server_information *info,
     uint8_t *payload, uint16_t payload_len)
 {
     CborParser parser;
     CborError err;
     CborValue root;
+    struct sol_buffer device_id;
 
     err = cbor_parser_init(payload, payload_len, 0, &parser, &root);
     SOL_INT_CHECK(err, != CborNoError, false);
@@ -260,9 +289,14 @@ _parse_server_info_payload(struct sol_oic_server_information *info,
     if (!sol_cbor_map_get_str_value(&root, SOL_OIC_KEY_SPEC_VERSION,
         &info->spec_version))
         return false;
-    if (!sol_cbor_map_get_bytestr_value(&root, SOL_OIC_KEY_DEVICE_ID,
-        &info->device_id))
+
+    if (!extract_device_id(&root, &device_id))
         goto error;
+    info->device_id.data = sol_buffer_steal_or_copy(&device_id,
+        &info->device_id.len);
+    sol_buffer_fini(&device_id);
+    SOL_NULL_CHECK_GOTO(info->device_id.data, error);
+
     if (!sol_cbor_map_get_str_value(&root, SOL_OIC_KEY_DATA_MODEL_VERSION,
         &info->data_model_version))
         goto error;
@@ -577,7 +611,7 @@ _iterate_over_resource_reply_payload(struct sol_coap_packet *req,
     CborValue root, devices_array, resources_array, value, map;
     struct sol_buffer *buf;
     size_t offset;
-    struct sol_str_slice device_id;
+    struct sol_buffer device_id;
     struct sol_oic_resource *res = NULL;
     CborValue bitmap_value, secure_value;
     uint64_t bitmap;
@@ -603,8 +637,7 @@ _iterate_over_resource_reply_payload(struct sol_coap_packet *req,
     for (; cbor_value_is_map(&devices_array) && err == CborNoError;
         err = cbor_value_advance(&devices_array)) {
         SOL_INT_CHECK(err, != CborNoError, false);
-        if (!sol_cbor_map_get_bytestr_value(&devices_array, SOL_OIC_KEY_DEVICE_ID,
-            &device_id))
+        if (!extract_device_id(&devices_array, &device_id))
             return false;
 
         err  = cbor_value_map_find_value(&devices_array,
@@ -661,27 +694,27 @@ _iterate_over_resource_reply_payload(struct sol_coap_packet *req,
             res->observable = res->observable || _has_observable_option(req);
             res->addr = *addr;
             res->device_id.data = sol_util_memdup(device_id.data,
-                device_id.len);
+                device_id.used);
             if (!res->device_id.data)
                 goto error;
-            res->device_id.len = device_id.len;
+            res->device_id.len = device_id.used;
             if (!ctx->cb(ctx->client, res, (void *)ctx->data)) {
                 sol_oic_resource_unref(res);
-                free((char *)device_id.data);
+                sol_buffer_fini(&device_id);
                 *cb_return  = false;
                 return true;
             }
 
             sol_oic_resource_unref(res);
         }
-        free((char *)device_id.data);
+        sol_buffer_fini(&device_id);
     }
 
     return true;
 
 error:
     sol_oic_resource_unref(res);
-    free((char *)device_id.data);
+    sol_buffer_fini(&device_id);
     return false;
 }
 
