@@ -3,7 +3,7 @@ IoT Web API
 
 Abstract
 --------
-This document presents a JavaScript API for [OIC](http://www.openinterconnect.org/) [Core Specification](http://openinterconnect.org/developer-resources/specs/), based on the [Soletta C API](http://solettaproject.github.io/docs/c-api/group__OIC.html).
+This document presents a JavaScript API for [OIC](http://www.openinterconnect.org/) [Core Specification](http://openinterconnect.org/developer-resources/specs/).
 
 Introduction
 ------------
@@ -38,11 +38,11 @@ Therefore the **API entry point** is an object that exposes the local device fun
 When a device is constructed, the implementation should announce its presence.
 Adding an event listener to the 'devicefound' event should turn on presence observing, i.e. the API implementation should make a request to watch presence notifications, and fire a 'devicefound' event when a presence notification is received.
 
-**Resource identification** is URL path, relative to a given device.
+**Resource identification** is URL path, relative to a given device. A URL composed of the ```oic``` scheme, the device ID as host and the resource path can also be used for identifying a resource: ```oic://<deviceID>/<resourcePath>```. However, this specification uses the device ID and resource ID separately.
 
 On each device there are special resources, implementing device discovery, resource discovery, platform discovery, etc. Platform needs to be discoverable on a resource with a fixed URI ```/oic/p```, device on ```/oic/d``` and resources on ```/oic/res```. This API encapsulates these special resources and the hardcoded/fixed URIs by explicit function names and parameters.
 
-**Device discovery** uses endpoint discovery: multicast request "GET /oic/res" to "All CoAP nodes" (```224.0.1.187``` for IPv4 and ```FF0X::FD``` for IPv6, port 5683). The response lists devices and their resources (at least URI, resource type, interfaces, and media types).
+**Device discovery** uses endpoint discovery: multicast request "GET /oic/res" to "All CoAP nodes" (```224.0.1.187``` for IPv4 and ```FF0X::FD``` for IPv6, port 5683). The response lists devices and their resources (at least URI, resource type, interfaces, and media types). Since this is basically a resource discovery, it is merged with resource discovery.
 
 **Resource discovery** is based on the existence of resources (directories) set up for discovery. It can be achieved in 3 ways:
 - direct discovery through peer inquiry (unicast or multicast)
@@ -65,7 +65,7 @@ The API entry point is the local OIC stack executed on an OIC device. Multiple d
 
 When the constructor is invoked without parameters, the device is started in the default (server) role.
 ```javascript
-var oic = require('oic');
+var oic = require('oic')();
 ```
 If the OIC functionality is forced in client-only mode,  the ```OicServer``` API is not available on it (all server methods fail with ```NotSupportedError```).
 ```javascript
@@ -367,7 +367,7 @@ Code Examples
 ### Getting device configuration
 
 ```javascript
-var oic = require('oic');
+var oic = require('oic')();
 if (oic.device.uuid) {  // configuration is valid
   startServer();
   startClient();
