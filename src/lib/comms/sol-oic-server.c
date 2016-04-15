@@ -95,7 +95,13 @@ static sol_coap_responsecode_t
 _sol_oic_server_d(const struct sol_network_link_addr *cliaddr, const void *data,
     const struct sol_oic_map_reader *input, struct sol_oic_map_writer *output)
 {
+    SOL_BUFFER_DECLARE_STATIC(dev_id, 37);
     bool ret;
+    int r;
+
+    r = sol_util_uuid_string_from_bytes(true, true,
+        sol_platform_get_machine_id_as_bytes(), &dev_id);
+    SOL_INT_CHECK_GOTO(r, < 0, error);
 
     APPEND_KEY_VALUE(server_info, SOL_OIC_KEY_DEVICE_NAME, device_name);
     SOL_EXP_CHECK_GOTO(!ret, error);
@@ -105,9 +111,8 @@ _sol_oic_server_d(const struct sol_network_link_addr *cliaddr, const void *data,
         data_model_version);
     SOL_EXP_CHECK_GOTO(!ret, error);
 
-    ret = sol_oic_map_append(output, &SOL_OIC_REPR_BYTE_STRING(
-        SOL_OIC_KEY_DEVICE_ID, oic_server.server_info->device_id.data,
-        oic_server.server_info->device_id.len));
+    ret = sol_oic_map_append(output, &SOL_OIC_REPR_TEXT_STRING(
+        SOL_OIC_KEY_DEVICE_ID, dev_id.data, dev_id.used));
     return SOL_COAP_RSPCODE_CONTENT;
 
 error:
@@ -189,6 +194,7 @@ res_payload_do(CborEncoder *encoder,
     size_t buflen,
     const uint8_t *uri_query,
     uint16_t uri_query_len,
+    struct sol_buffer *dev_id,
     const uint8_t **encoder_start)
 {
     CborEncoder array, device_map, array_res;
@@ -202,8 +208,7 @@ res_payload_do(CborEncoder *encoder,
     err = cbor_encoder_create_array(encoder, &array, 1);
     err |= cbor_encoder_create_map(&array, &device_map, 2);
     err |= cbor_encode_text_stringz(&device_map, SOL_OIC_KEY_DEVICE_ID);
-    err |= cbor_encode_byte_string(&device_map,
-        sol_platform_get_machine_id_as_bytes(), 16);
+    err |= cbor_encode_text_string(&device_map, dev_id->data, dev_id->used);
     err |= cbor_encode_text_stringz(&device_map, SOL_OIC_KEY_RESOURCE_LINKS);
     err |= cbor_encoder_create_array(&device_map, &array_res,
         CborIndefiniteLength);
@@ -281,6 +286,7 @@ _sol_oic_server_res(struct sol_coap_server *server,
     const struct sol_coap_resource *resource, struct sol_coap_packet *req,
     const struct sol_network_link_addr *cliaddr, void *data)
 {
+    SOL_BUFFER_DECLARE_STATIC(dev_id, 37);
     const uint8_t format_cbor = SOL_COAP_CONTENTTYPE_APPLICATION_CBOR;
     const uint8_t *uri_query, *encoder_start;
     struct sol_coap_packet *resp;
@@ -300,6 +306,10 @@ _sol_oic_server_res(struct sol_coap_server *server,
         uri_query_len = 0;
     }
 
+    r = sol_util_uuid_string_from_bytes(true, true,
+        sol_platform_get_machine_id_as_bytes(), &dev_id);
+    SOL_INT_CHECK(r, < 0, ENOMEM);
+
     resp = sol_coap_packet_new(req);
     SOL_NULL_CHECK(resp, -ENOMEM);
 
@@ -313,7 +323,7 @@ _sol_oic_server_res(struct sol_coap_server *server,
 
     /* phony run, to calc size */
     err = res_payload_do(&encoder, NULL, 0, uri_query,
-        uri_query_len, &encoder_start);
+        uri_query_len, &dev_id, &encoder_start);
 
     if (err != CborErrorOutOfMemory)
         goto err;
@@ -327,7 +337,7 @@ _sol_oic_server_res(struct sol_coap_server *server,
 
     /* now encode for sure */
     err = res_payload_do(&encoder, sol_buffer_at(buf, offset),
-        encoder.bytes_needed, uri_query, uri_query_len, &encoder_start);
+        encoder.bytes_needed, uri_query, uri_query_len, &dev_id, &encoder_start);
 
 err:
     if (err != CborNoError) {
