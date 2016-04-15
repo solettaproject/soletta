@@ -26,6 +26,7 @@
 #include <string.h>
 #include <sys/ioctl.h>
 #include <sys/socket.h>
+#include <unistd.h>
 
 #include "sol-log.h"
 #include "sol-mainloop.h"
@@ -250,24 +251,24 @@ main(int argc, char *argv[])
 
     server = sol_coap_server_new(&servaddr);
     if (!server) {
-        SOL_WRN("Could not create a coap server using port %d.", DEFAULT_UDP_PORT);
+        fprintf(stderr, "Could not create a coap server using port %d.\n", DEFAULT_UDP_PORT);
         return -1;
     }
 
     if (sol_coap_server_register_resource(server, &light, NULL) < 0) {
-        SOL_WRN("Could not register light resource");
-        return -1;
+        perror("Could not register light resource");
+        goto err;
     }
 
     console_fd = open("/dev/console", O_RDWR);
     if (console_fd < 0) {
         perror("Could not open '/dev/console'");
-        return -1;
+        goto err;
     }
 
     if (ioctl(console_fd, KDGETLED, (char *)&old_led_state)) {
         perror("Could not get the keyboard leds state");
-        return -1;
+        goto err_fd;
     }
 
     context.server = server;
@@ -275,12 +276,20 @@ main(int argc, char *argv[])
 
     sol_run();
 
-    sol_coap_server_unref(server);
 
     if (ioctl(console_fd, KDSETLED, old_led_state)) {
         perror("Could not return the leds to the old state");
-        return -1;
+        goto err_fd;
     }
 
+    sol_coap_server_unref(server);
+    close(console_fd);
+
     return 0;
+
+err_fd:
+    close(console_fd);
+err:
+    sol_coap_server_unref(server);
+    return -1;
 }
