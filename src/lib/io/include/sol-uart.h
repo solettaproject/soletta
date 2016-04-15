@@ -265,14 +265,27 @@ void sol_uart_close(struct sol_uart *uart);
  * sol_blob_ref(), thus it's safe to call sol_blob_unref() right after this function
  * returns. After a blob is completely written the callback sol_uart_config::tx_cb() is called, if provided.
  *
+ * One can use sol_uart_get_pending_write_bytes() to check the amount of bytes that were not written
+ * yet. This may be useful to control the amount of that that is going to be written on the UART bus.
  *
  * @param uart The UART bus handle
  * @param blob The blob to be written
  * @return 0 on success or negative errno on error
  * @see sol_uart_config::tx_cb()
+ * @see sol_uart_get_pending_write_bytes()
  *
  */
 int sol_uart_write(struct sol_uart *uart, struct sol_blob *blob);
+
+/**
+ * @brief Get the number of bytes that were not written yet.
+ *
+ * @param uart The UART bus handle
+ * @param pending_bytes Where to store the pending bytes amount. It's the sum of all queued blobs to be written.
+ * @return 0 on success or negative errno on error
+ * @see sol_uart_write()
+ */
+int sol_uart_get_pending_write_bytes(struct sol_uart *uart, size_t *pending_bytes);
 
 /**
  * @}

@@ -227,3 +227,22 @@ err_blob:
     }
     return r;
 }
+
+SOL_API int
+sol_uart_get_pending_write_bytes(struct sol_uart *uart, size_t *pending_bytes)
+{
+    int r;
+    struct sol_blob *blob;
+    uint16_t i;
+
+    SOL_NULL_CHECK(uart, -EINVAL);
+    SOL_NULL_CHECK(pending_bytes, -EINVAL);
+
+    *pending_bytes = 0;
+    SOL_PTR_VECTOR_FOREACH_IDX (&uart->pending_blobs, blob, i) {
+        r = sol_util_size_add(*pending_bytes, blob->size, pending_bytes);
+        SOL_INT_CHECK(r, < 0, r);
+    }
+
+    return 0;
+}
