@@ -1214,12 +1214,14 @@ well_known_get(struct sol_coap_server *server,
     r = sol_coap_header_set_code(resp, SOL_COAP_RSPCODE_CONTENT);
     if (r < 0) {
         SOL_WRN("Failed to set header code on packet %p", resp);
+        sol_coap_packet_unref(resp);
         return -EINVAL;
     }
 
     r = coap_get_header_len(resp);
     if (r < 0) {
         SOL_WRN("Failed to get header len from packet %p", resp);
+        sol_coap_packet_unref(resp);
         return -EINVAL;
     }
     len = r;
