@@ -29,62 +29,100 @@
 #include "sol-mainloop.h"
 #include "sol-util-internal.h"
 #include "sol-interrupt_scheduler_riot.h"
+#include "sol-util.h"
+#include "sol-vector.h"
 
 SOL_LOG_INTERNAL_DECLARE_STATIC(_log_domain, "uart");
 
+#define DEFAULT_BUFFER_SIZE (128)
+
 struct sol_uart {
-    uart_t id;
-    struct {
-        void *handler;
-
-        void (*rx_cb)(void *data, struct sol_uart *uart, uint8_t byte_read);
-        const void *rx_user_data;
-
-        void (*tx_cb)(void *data, struct sol_uart *uart, uint8_t *tx, int status);
-        const void *tx_user_data;
-        struct sol_timeout *tx_writer;
-        const uint8_t *tx_buffer;
-        unsigned int tx_length;
-    } async;
+    ssize_t (*rx_cb)(void *data, struct sol_uart *uart, const struct sol_buffer *buf);
+    void (*tx_cb)(void *data, struct sol_uart *uart, struct sol_blob *blob, int status);
+    const void *user_data;
+    struct sol_timeout *tx_writer;
+    struct sol_timeout *rx_reader;
+    void *handler;
+    struct sol_ptr_vector pending_blobs;
+    struct sol_buffer rx_buffer;
+    size_t pending_tx;
+    size_t tx_size;
+    int id;
 };
+
+static bool
+rx_timeout(void *data)
+{
+    struct sol_uart *uart = data;
+    ssize_t r;
+
+    r = uart->rx_cb((void *)uart->user_data, uart, &uart->rx_buffer);
+    SOL_INT_CHECK(r, < 0, true);
+
+    r = sol_buffer_remove_data(&uart->rx_buffer, 0, r);
+    SOL_INT_CHECK(r, < 0, true);
+
+    if (uart->rx_buffer.used)
+        return true;
+
+    uart->rx_reader = NULL;
+    return false;
+}
 
 static void
 uart_rx_cb(void *arg, uint8_t data)
 {
     struct sol_uart *uart = arg;
+    int r;
 
-    if (!uart->async.rx_cb)
+    if (!uart->rx_cb)
         return;
-    uart->async.rx_cb((void *)uart->async.rx_user_data, uart,
-        (uint8_t)data);
+
+    r = sol_buffer_append_char(&uart->rx_buffer, (char)data);
+    SOL_INT_CHECK(r, < 0);
+
+    if (!uart->rx_reader) {
+        uart->rx_reader = sol_timeout_add(0, rx_timeout, uart);
+        SOL_NULL_CHECK(uart->rx_reader);
+    }
 }
 
 static void
-uart_tx_dispatch(struct sol_uart *uart, int status)
+uart_tx_dispatch(struct sol_uart *uart, struct sol_blob *blob, int status)
 {
-    uint8_t *tx = (uint8_t *)uart->async.tx_buffer;
-
-    uart->async.tx_buffer = NULL;
-    if (!uart->async.tx_cb)
+    if (!uart->tx_cb)
         return;
-    uart->async.tx_cb((void *)uart->async.tx_user_data, uart, tx, status);
+    uart->tx_cb((void *)uart->user_data, uart, blob, status);
 }
 
 static bool
 uart_tx_cb(void *arg)
 {
     struct sol_uart *uart = arg;
+    struct sol_blob *blob;
+    bool r = true;
 
-    uart_write(uart->id, uart->async.tx_buffer, uart->async.tx_length);
-    uart->async.tx_writer = NULL;
-    uart_tx_dispatch(uart, uart->async.tx_length);
+    blob = sol_ptr_vector_take(&uart->pending_blobs, 0);
 
-    return false;
+    uart_write(uart->id, blob->mem, blob->size);
+
+    uart->pending_tx -= blob->size;
+
+    if (!sol_ptr_vector_get_len(&uart->pending_blobs)) {
+        uart->tx_writer = NULL;
+        r = false;
+    }
+
+    uart_tx_dispatch(uart, blob, 0);
+    sol_blob_unref(blob);
+    return r;
 }
 
 SOL_API struct sol_uart *
 sol_uart_open(const char *port_name, const struct sol_uart_config *config)
 {
+    size_t rx_size;
+    void *rx_buf;
     struct sol_uart *uart;
     const unsigned int baud_rata_table[] = {
         [SOL_UART_BAUD_RATE_9600] = 9600,
@@ -119,15 +157,30 @@ sol_uart_open(const char *port_name, const struct sol_uart_config *config)
     uart_poweron(uart->id);
     ret = sol_interrupt_scheduler_uart_init_int(uart->id,
         baud_rata_table[config->baud_rate], uart_rx_cb, uart,
-        &uart->async.handler);
+        &uart->handler);
     SOL_INT_CHECK_GOTO(ret, != 0, fail);
 
-    uart->async.rx_cb = config->rx_cb;
-    uart->async.rx_user_data = config->rx_cb_user_data;
-    uart->async.tx_buffer = NULL;
+    uart->rx_cb = config->rx_cb;
+    uart->tx_cb = config->tx_cb;
+    uart->user_data = config->user_data;
+    sol_ptr_vector_init(&uart->pending_blobs);
+
+    rx_size = config->rx_size;
+    if (!rx_size)
+        rx_size = DEFAULT_BUFFER_SIZE;
+    uart->tx_size = config->tx_size;
+
+    rx_buf = malloc(rx_size);
+    SOL_NULL_CHECK_GOTO(rx_buf, err_buf);
+    sol_buffer_init_flags(&uart->rx_buffer, rx_buf, rx_size,
+        SOL_BUFFER_FLAGS_FIXED_CAPACITY | SOL_BUFFER_FLAGS_NO_NUL_BYTE);
+
     return uart;
 
+err_buf:
+    sol_interrupt_scheduler_uart_stop(uart->id, uart->handler);
 fail:
+    uart_poweroff(uart->id);
     free(uart);
     return NULL;
 }
@@ -135,32 +188,69 @@ fail:
 SOL_API void
 sol_uart_close(struct sol_uart *uart)
 {
+    struct sol_blob *blob;
+    uint16_t i;
+
     SOL_NULL_CHECK(uart);
 
-    if (uart->async.tx_writer) {
-        sol_timeout_del(uart->async.tx_writer);
-        uart_tx_dispatch(uart, -1);
+    SOL_PTR_VECTOR_FOREACH_IDX (&uart->pending_blobs, blob, i) {
+        uart_tx_dispatch(uart, blob, -ECANCELED);
+        sol_blob_unref(blob);
     }
 
-    if (uart->async.handler)
-        sol_interrupt_scheduler_uart_stop(uart->id, uart->async.handler);
-    uart_poweroff(uart->id);
+    if (uart->tx_writer)
+        sol_timeout_del(uart->tx_writer);
 
+    if (uart->rx_reader)
+        sol_timeout_del(uart->rx_reader);
+
+    if (uart->handler)
+        sol_interrupt_scheduler_uart_stop(uart->id, uart->handler);
+
+    uart_poweroff(uart->id);
+    sol_ptr_vector_clear(&uart->pending_blobs);
+    sol_buffer_fini(&uart->rx_buffer);
     free(uart);
 }
 
-SOL_API bool
-sol_uart_write(struct sol_uart *uart, const uint8_t *tx, unsigned int length, void (*tx_cb)(void *data, struct sol_uart *uart, uint8_t *tx, int status), const void *data)
+SOL_API int
+sol_uart_write(struct sol_uart *uart, struct sol_blob *blob)
 {
-    SOL_NULL_CHECK(uart, false);
-    SOL_EXP_CHECK(uart->async.tx_buffer, false);
+    bool created_writer = false;
+    size_t total;
+    int r;
 
-    uart->async.tx_buffer = tx;
-    uart->async.tx_cb = tx_cb;
-    uart->async.tx_user_data = data;
-    uart->async.tx_length = length;
+    SOL_NULL_CHECK(uart, -EINVAL);
+    SOL_NULL_CHECK(blob, -EINVAL);
 
-    uart->async.tx_writer = sol_timeout_add(0, uart_tx_cb, uart);
+    if (uart->tx_size) {
+        r = sol_util_size_add(uart->pending_tx, blob->size, &total);
+        SOL_INT_CHECK(r, < 0, r);
 
-    return true;
+        if (total >= uart->tx_size)
+            return -ENOSPC;
+    }
+
+    if (!uart->tx_writer) {
+        uart->tx_writer = sol_timeout_add(0, uart_tx_cb, uart);
+        SOL_NULL_CHECK(uart->tx_writer, -ENOMEM);
+        created_writer = true;
+    }
+
+
+    r = -EOVERFLOW;
+    SOL_NULL_CHECK_GOTO(sol_blob_ref(blob), err_blob);
+    r = sol_ptr_vector_append(&uart->pending_blobs, blob);
+    SOL_INT_CHECK_GOTO(r, < 0, err_append);
+    uart->pending_tx += blob->size;
+    return 0;
+
+err_append:
+    sol_blob_unref(blob);
+err_blob:
+    if (created_writer) {
+        sol_timeout_del(uart->tx_writer);
+        uart->tx_writer = NULL;
+    }
+    return r;
 }
