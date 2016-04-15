@@ -189,6 +189,24 @@ static const struct sol_oic_resource_type oic_p_resource_type = {
 };
 
 static CborError
+encode_array_from_bsv(CborEncoder *map, const char *val)
+{
+    const char *p = NULL;
+    struct sol_str_slice token, slice = sol_str_slice_from_str(val),
+        delim = SOL_STR_SLICE_LITERAL(" ");
+    CborEncoder array;
+    CborError err;
+
+    err = cbor_encoder_create_array(map, &array, CborIndefiniteLength);
+
+    while (sol_str_slice_split_iterate(slice, &token, &p, delim))
+        err |= cbor_encode_text_string(&array, token.data, token.len);
+
+    err |= cbor_encoder_close_container(map, &array);
+    return err;
+}
+
+static CborError
 res_payload_do(CborEncoder *encoder,
     uint8_t *buf,
     size_t buflen,
@@ -245,12 +263,12 @@ res_payload_do(CborEncoder *encoder,
 
         if (iter->iface) {
             err |= cbor_encode_text_stringz(&map, SOL_OIC_KEY_INTERFACES);
-            err |= cbor_encode_text_stringz(&map, iter->iface);
+            err |= encode_array_from_bsv(&map, iter->iface);
         }
 
         if (iter->rt) {
             err |= cbor_encode_text_stringz(&map, SOL_OIC_KEY_RESOURCE_TYPES);
-            err |= cbor_encode_text_stringz(&map, iter->rt);
+            err |= encode_array_from_bsv(&map, iter->rt);
         }
 
         err |= cbor_encode_text_stringz(&map, SOL_OIC_KEY_POLICY);
