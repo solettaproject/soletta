@@ -29,6 +29,7 @@
 #include <sol-macros.h>
 #include <sol-str-slice.h>
 #include <sol-buffer.h>
+#include <sol-memdesc.h>
 
 #ifdef __cplusplus
 extern "C" {
@@ -817,6 +818,45 @@ sol_json_serialize_null(struct sol_buffer *buffer)
 
     return sol_buffer_append_slice(buffer, null);
 }
+
+/**
+ * @brief Appends the serialization of the given memory based on its description.
+ *
+ * If the SOL_MEMDESC_TYPE_STRUCTURE or SOL_MEMDESC_TYPE_PTR with
+ * children, then it will be serialized as an object with keys being
+ * the description name.
+ *
+ * @param buffer Buffer containing the new JSON document.
+ * @param desc the memory description to use when serializing.
+ * @param container the container memory described by @a desc.
+ * @param detailed if false, all members of struct, pointer and arrays
+ *        marked as detailed will be omitted. If the given @a desc is
+ *        explicitly given and it's a detailed member, it will be
+ *        always serialized. That is, the option is only valid for
+ *        sub-members in children array.
+ *
+ * @return @c 0 on success, error code (always negative) otherwise.
+ *
+ * @see sol_json_load_memdesc()
+ */
+int sol_json_serialize_memdesc(struct sol_buffer *buffer, const struct sol_memdesc *desc, const void *container, bool detailed) SOL_ATTR_NONNULL(1, 2, 3);
+
+/**
+ * @brief Loads the members of a memory from JSON according to its description.
+ *
+ * If the SOL_MEMDESC_TYPE_STRUCTURE or SOL_MEMDESC_TYPE_PTR with
+ * children, then it will be loaded from an object with keys being
+ * the description name.
+ *
+ * @param token the token to convert to memory using description.
+ * @param desc the memory description to use when loading.
+ * @param container the container memory described by @a desc.
+ *
+ * @return @c 0 on success, error code (always negative) otherwise.
+ *
+ * @see sol_json_serialize_memdesc()
+ */
+int sol_json_load_memdesc(const struct sol_json_token *token, const struct sol_memdesc *desc, void *container) SOL_ATTR_NONNULL(1, 2, 3);
 
 /**
  *  @brief Copy to a @ref sol_buffer the string pointed by @c token.
