@@ -1,6 +1,9 @@
 test-$(TEST_ARENA) += test-arena
 test-test-arena-$(TEST_ARENA) := test.c test-arena.c
 
+test-$(TEST_MEMDESC) += test-memdesc
+test-test-memdesc-$(TEST_MEMDESC) := test.c test-memdesc.c
+
 test-internal-$(TEST_COAP) += test-coap
 test-internal-test-coap-$(TEST_COAP) := test.c test-coap.c
 test-internal-test-coap-$(TEST_COAP)-deps := lib/comms/coap.o
