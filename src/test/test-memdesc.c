@@ -644,6 +644,89 @@ test_SOL_MEMDESC_TYPE_STRUCTURE_of_struct(void)
     sol_memdesc_free_content(&desc, &a);
 }
 
+DEFINE_TEST(test_simple_SOL_MEMDESC_TYPE_ENUMERATION);
+static void
+test_simple_SOL_MEMDESC_TYPE_ENUMERATION(void)
+{
+    const struct sol_memdesc desc = {
+        SOL_SET_API_VERSION(.api_version = SOL_MEMDESC_API_VERSION, )
+        .type = SOL_MEMDESC_TYPE_ENUMERATION,
+        .size = sizeof(int16_t),
+        .defcontent.e = 0x1234,
+        .enumeration_mapping = (const struct sol_str_table_int64[]){
+            SOL_STR_TABLE_INT64_ITEM("en-0x1234", 0x1234),
+            SOL_STR_TABLE_INT64_ITEM("one", 1),
+            SOL_STR_TABLE_INT64_ITEM("two", 2),
+            {}
+        },
+    };
+    int16_t a, b, c;
+    const char *s;
+    int r;
+
+    r = sol_memdesc_init_defaults(&desc, &a);
+    ASSERT_INT_EQ(r, 0);
+    ASSERT_INT_EQ(a, desc.defcontent.e);
+
+    r = sol_memdesc_init_defaults(&desc, &b);
+    ASSERT_INT_EQ(r, 0);
+    ASSERT_INT_EQ(b, desc.defcontent.e);
+
+    r = sol_memdesc_compare(&desc, &a, &b);
+    ASSERT_INT_EQ(r, 0);
+    ASSERT_INT_EQ(errno, 0);
+
+    s = sol_memdesc_enumeration_to_str(&desc, &a);
+    ASSERT_STR_EQ(s, "en-0x1234");
+    ASSERT_INT_EQ(errno, 0);
+
+    c = 1;
+    r = sol_memdesc_set_content(&desc, &a, &c);
+    ASSERT_INT_EQ(r, 0);
+    ASSERT_INT_EQ(a, c);
+
+    s = sol_memdesc_enumeration_to_str(&desc, &a);
+    ASSERT_STR_EQ(s, "one");
+    ASSERT_INT_EQ(errno, 0);
+
+    c = 2;
+    r = sol_memdesc_set_content(&desc, &a, &c);
+    ASSERT_INT_EQ(r, 0);
+    ASSERT_INT_EQ(a, c);
+
+    s = sol_memdesc_enumeration_to_str(&desc, &a);
+    ASSERT_STR_EQ(s, "two");
+    ASSERT_INT_EQ(errno, 0);
+
+    c = 3;
+    r = sol_memdesc_set_content(&desc, &a, &c);
+    ASSERT_INT_EQ(r, 0);
+    ASSERT_INT_EQ(a, c);
+
+    s = sol_memdesc_enumeration_to_str(&desc, &a);
+    ASSERT(s == NULL);
+    ASSERT_INT_EQ(errno, ENOENT);
+
+    r = sol_memdesc_compare(&desc, &a, &c);
+    ASSERT_INT_EQ(r, 0);
+    ASSERT_INT_EQ(errno, 0);
+
+    r = sol_memdesc_compare(&desc, &a, &b);
+    ASSERT(r < 0);
+    ASSERT_INT_EQ(errno, 0);
+
+    r = sol_memdesc_enumeration_from_str(&desc, &a, sol_str_slice_from_str("one"));
+    ASSERT_INT_EQ(r, 0);
+    ASSERT_INT_EQ(a, 1);
+
+    r = sol_memdesc_enumeration_from_str(&desc, &a, sol_str_slice_from_str("en-0x1234"));
+    ASSERT_INT_EQ(r, 0);
+    ASSERT_INT_EQ(a, 0x1234);
+
+    sol_memdesc_free_content(&desc, &a);
+    sol_memdesc_free_content(&desc, &b);
+}
+
 /* sol_vector links elem_size and len to access data. */
 /*
  * SOL_MEMDESC_TYPE_ARRAY with strdup()/free()/strcmp()/strlen() as
@@ -1211,14 +1294,21 @@ DEFINE_TEST(test_serialize);
 static void
 test_serialize(void)
 {
+    enum myenum {
+        enum0 = 0,
+        enum1,
+        enum2
+    };
     struct myst {
         uint64_t u64;
         struct sol_vector v;
+        struct sol_vector ve;
         uint8_t u8;
     };
     struct myst defval = {
         .u64 = 0xf234567890123456,
         .v = SOL_VECTOR_INIT(struct sol_vector),
+        .ve = SOL_VECTOR_INIT(enum myenum),
         .u8 = 0x72,
     };
     struct sol_memdesc desc = {
@@ -1278,6 +1368,27 @@ test_serialize(void)
             {
                 .base = {
                     SOL_SET_API_VERSION(.api_version = SOL_MEMDESC_API_VERSION, )
+                    .type = SOL_MEMDESC_TYPE_ARRAY,
+                    .size = sizeof(struct sol_vector),
+                    .ops = &SOL_MEMDESC_OPS_VECTOR,
+                    .array_item = &(const struct sol_memdesc){
+                        SOL_SET_API_VERSION(.api_version = SOL_MEMDESC_API_VERSION, )
+                        .size = sizeof(enum myenum),
+                        .type = SOL_MEMDESC_TYPE_ENUMERATION,
+                        .enumeration_mapping = (const struct sol_str_table_int64[]){
+                            SOL_STR_TABLE_INT64_ITEM("enum0", enum0),
+                            SOL_STR_TABLE_INT64_ITEM("enum1", enum1),
+                            SOL_STR_TABLE_INT64_ITEM("enum2", enum2),
+                            {}
+                        },
+                    },
+                },
+                .offset = offsetof(struct myst, ve),
+                .name = "ve",
+            },
+            {
+                .base = {
+                    SOL_SET_API_VERSION(.api_version = SOL_MEMDESC_API_VERSION, )
                     .type = SOL_MEMDESC_TYPE_UINT8,
                 },
                 .offset = offsetof(struct myst, u8),
@@ -1324,6 +1435,11 @@ test_serialize(void)
         "            [3] = {\n"
         "                .key = \"key\\t303\",\n"
         "                .value = \"value\\\"303\\\"\"}}},\n"
+        "    .ve = {\n"
+        "        [0] = enum0,\n"
+        "        [1] = enum1,\n"
+        "        [2] = enum2,\n"
+        "        [3] = 3},\n"
         "    .u8 = 114}"
         "";
     struct sol_buffer out = SOL_BUFFER_INIT_EMPTY;
@@ -1351,6 +1467,13 @@ test_serialize(void)
             kv->key = k;
             kv->value = v;
         }
+    }
+
+    for (j = 0; j < 4; j++) {
+        enum myenum *e = sol_vector_append(&defval.ve);
+
+        ASSERT(e);
+        *e = j;
     }
 
     r = sol_memdesc_init_defaults(&desc, &a);
@@ -1386,6 +1509,7 @@ test_serialize(void)
         sol_vector_clear(vec);
     }
     sol_vector_clear(&defval.v);
+    sol_vector_clear(&defval.ve);
 }
 
 TEST_MAIN();
