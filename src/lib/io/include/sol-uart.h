@@ -21,6 +21,8 @@
 #include <stdbool.h>
 #include <stdint.h>
 
+#include <sol-types.h>
+#include <sol-buffer.h>
 #include <sol-common-buildopts.h>
 #include <sol-macros.h>
 
@@ -42,6 +44,13 @@ extern "C" {
  * @{
  */
 
+/**
+ * @struct sol_uart
+ * @brief A handle to a UART device.
+ * @see sol_uart_open()
+ * @see sol_uart_close()
+ * @see sol_uart_write()
+ */
 struct sol_uart;
 
 /**
@@ -58,13 +67,13 @@ enum sol_uart_baud_rate {
 };
 
 /**
- * @brief Amount of stop bits.
+ * @brief Amount of data bits.
  */
 enum sol_uart_data_bits {
-    SOL_UART_DATA_BITS_8 = 0,
-    SOL_UART_DATA_BITS_7,
-    SOL_UART_DATA_BITS_6,
-    SOL_UART_DATA_BITS_5
+    SOL_UART_DATA_BITS_8 = 0, /**< Use 8 data bits */
+    SOL_UART_DATA_BITS_7, /**< Use 7 data bits */
+    SOL_UART_DATA_BITS_6, /**< Use 6 data bits */
+    SOL_UART_DATA_BITS_5 /**< Use 5 data bits */
 };
 
 /**
@@ -81,22 +90,28 @@ enum sol_uart_parity {
  * @brief Amount of stop bits.
  */
 enum sol_uart_stop_bits {
-    SOL_UART_STOP_BITS_ONE = 0,
-    SOL_UART_STOP_BITS_TWO
+    SOL_UART_STOP_BITS_ONE = 0, /**< Use one stop bit*/
+    SOL_UART_STOP_BITS_TWO /**< Use two stop bits */
 };
 
+/**
+ * @brief A configuration struct used to set the UART paramenters.
+ *
+ * @see sol_uart_open()
+ */
 struct sol_uart_config {
 #ifndef SOL_NO_API_VERSION
-#define SOL_UART_CONFIG_API_VERSION (1)
-    uint16_t api_version;
+#define SOL_UART_CONFIG_API_VERSION (1) /**< compile time API version to be checked during runtime */
+    uint16_t api_version; /**< must match #SOL_UART_CONFIG_API_VERSION at runtime */
 #endif
-    enum sol_uart_baud_rate baud_rate;
-    enum sol_uart_data_bits data_bits;
-    enum sol_uart_parity parity;
-    enum sol_uart_stop_bits stop_bits;
-    void (*rx_cb)(void *user_data, struct sol_uart *uart, uint8_t byte_read); /** Set a callback to be called every time a character is received on UART */
-    const void *rx_cb_user_data;
-    bool flow_control; /** Enables software flow control(XOFF and XON) */
+    void (*rx_cb)(void *user_data, struct sol_uart *uart); /**< Used to inform data there's data available to read */
+    void (*tx_cb)(void *data, struct sol_uart *uart, struct sol_blob *blob, int status); /**< Used to inform that transfer has ended. On success @c status is 0 on error @c status is a negative errno */
+    const void *user_data; /**< User data to @c rx_cb */
+    enum sol_uart_baud_rate baud_rate; /**< The baud rate value */
+    enum sol_uart_data_bits data_bits; /**< The data bits value */
+    enum sol_uart_parity parity; /**< The parity value*/
+    enum sol_uart_stop_bits stop_bits; /**< The stop bits value */
+    bool flow_control; /**< Enables software flow control(XOFF and XON) */
 };
 
 /**
@@ -224,21 +239,35 @@ struct sol_uart *sol_uart_open(const char *port_name, const struct sol_uart_conf
 void sol_uart_close(struct sol_uart *uart);
 
 /**
- * @brief Perform a UART asynchronous transmission.
+ * @brief Perform an UART asynchronous transmission.
  *
  * @param uart The UART bus handle
- * @param tx The output buffer to be sent
- * @param length number of bytes to be transfer
- * @param tx_cb callback to be called when transmission finish, in case of
- * success the status parameter on tx_cb should be equal to length otherwise
- * an error happen during the transmission
- * @param data the first parameter of tx_cb
- * @return true if transfer was started
+ * @param blob The blob to be written
+ * @return 0 on success negative errno on error
  *
- * @note Caller should guarantee that tx buffer will not be freed until
- * callback is called.
  */
-bool sol_uart_write(struct sol_uart *uart, const uint8_t *tx, unsigned int length, void (*tx_cb)(void *data, struct sol_uart *uart, uint8_t *tx, int status), const void *data);
+int sol_uart_write(struct sol_uart *uart, struct sol_blob *blob);
+
+/**
+ * @brief Perform an UART synchronous read
+ *
+ * @param uart The UART bus handle
+ * @param rx Where to store the UART data
+ * @param length number of bytes to read
+ *
+ * @return the number of bytes read or negative errno on error
+ */
+int sol_uart_read(struct sol_uart *uart, struct sol_buffer *buf);
+
+
+/**
+ * @brief Get the number of bytes that were not written yet.
+ *
+ * @param uart The UART bus handle
+ * @param pending_bytes Where to store the pending bytes amount
+ * @return 0 on success or negative errno on error
+ */
+int sol_uart_get_pending_bytes(struct sol_uart *uart, size_t *pending_bytes);
 
 /**
  * @}
