@@ -198,6 +198,20 @@ sol_vector_del_last(struct sol_vector *v)
 }
 
 /**
+ * @brief Remove an range of element from the vector.
+ *
+ * Removes the range starting at index @a start from the vector and
+ * goes until @a start + @a len.
+ *
+ * @param v Vector pointer
+ * @param start Index of the first element to remove
+ * @param len the number of elements to remover
+ *
+ * @return @c 0 on success, error code (always negative) otherwise
+ */
+int sol_vector_del_range(struct sol_vector *v, uint16_t start, uint16_t len);
+
+/**
  * @brief Delete all elements from the vector.
  *
  * And frees the memory allocated for them. The vector returns to the initial state (empty).
@@ -530,6 +544,24 @@ static inline int
 sol_ptr_vector_del(struct sol_ptr_vector *pv, uint16_t i)
 {
     return sol_vector_del(&pv->base, i);
+}
+
+/**
+ * @brief Remove an range of pointers from the vector.
+ *
+ * Removes the range starting at index @a start from the vector and
+ * goes until @a start + @a len.
+ *
+ * @param pv Pointer Vector pointer
+ * @param start Index of the first element to remove
+ * @param len the number of elements to remover
+ *
+ * @return @c 0 on success, error code (always negative) otherwise
+ */
+static inline int
+sol_ptr_vector_del_range(struct sol_ptr_vector *pv, uint16_t start, uint16_t len)
+{
+    return sol_vector_del_range(&pv->base, start, len);
 }
 
 /**
