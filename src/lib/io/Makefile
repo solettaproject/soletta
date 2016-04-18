@@ -38,8 +38,6 @@ obj-io-gpio-$(USE_GPIO) := \
     sol-gpio-common.o
 obj-io-gpio-$(PLATFORM_RIOTOS) += \
     sol-gpio-impl-riot.o
-obj-io-gpio-$(PLATFORM_CONTIKI) += \
-    sol-gpio-impl-contiki.o
 obj-io-gpio-$(PLATFORM_LINUX) += \
     sol-gpio-impl-linux.o
 obj-io-gpio-$(PLATFORM_ZEPHYR) += \
