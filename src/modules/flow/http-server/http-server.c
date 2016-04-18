@@ -180,7 +180,10 @@ server_ref(int32_t opt_port)
         r = sol_ptr_vector_append(&servers, sdata);
         SOL_INT_CHECK_GOTO(r, < 0, err_vec);
 
-        sdata->server = sol_http_server_new(port);
+        sdata->server = sol_http_server_new(&(struct sol_http_server_config) {
+            SOL_SET_API_VERSION(.api_version = SOL_HTTP_SERVER_CONFIG_API_VERSION, )
+            .port = port,
+        });
         SOL_NULL_CHECK_GOTO(sdata->server, err_server);
 
         sdata->port = port;

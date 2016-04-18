@@ -18,6 +18,7 @@
 
 #pragma once
 
+#include <sol-certificate.h>
 #include <sol-http.h>
 #include <sol-network.h>
 #include <time.h>
@@ -52,6 +53,29 @@ extern "C" {
  * deleted with sol_http_server_del()
  */
 struct sol_http_server;
+
+/**
+ * @struct sol_http_server_config
+ * @brief
+ *
+ * It's created with sol_http_server_new() and should be later
+ * deleted with sol_http_server_del()
+ */
+struct sol_http_server_config {
+#ifndef SOL_NO_API_VERSION
+#define SOL_HTTP_SERVER_CONFIG_API_VERSION (1)  /**< compile time API version to be checked during runtime */
+    /**
+     * must match #SOL_HTTP_SERVER_CONFIG_API_VERSION at runtime.
+     */
+    uint16_t api_version;
+#endif
+
+    uint16_t port;
+    struct {
+        const struct sol_cert *cert;
+        const struct sol_cert *key;
+    } security;
+};
 
 /**
  * @struct sol_http_request
@@ -91,11 +115,13 @@ struct sol_http_progressive_response;
  * Try to run a second instance in the
  * same port will result in fail.
  *
- * @param port The port where the server will bind.
+ * @param config The parameters to setup the server.
  *
  * @return a handle to the server on success, otherwise @c NULL is returned.
+ *
+ * @see sol_http_server_config
  */
-struct sol_http_server *sol_http_server_new(uint16_t port);
+struct sol_http_server *sol_http_server_new(const struct sol_http_server_config *config);
 
 /**
  * @brief Destroy the @a server instance.

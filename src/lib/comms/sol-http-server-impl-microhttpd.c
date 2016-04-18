@@ -52,6 +52,20 @@
 
 #define SOL_HTTP_REQUEST_BUFFER_SIZE 4096
 
+#ifndef SOL_NO_API_VERSION
+#define SOL_HTTP_SERVER_CONFIG_CHECK_API_VERSION(config, ...) \
+    if ((config)->api_version != SOL_HTTP_SERVER_CONFIG_API_VERSION) { \
+        SOL_WRN("" # config \
+            "(%p)->api_version(%hu) != " \
+            "SOL_HTTP_SERVER_CONFIG_API_VERSION(%hu)", \
+            (config), (config)->api_version, \
+            SOL_HTTP_SERVER_CONFIG_API_VERSION); \
+        return __VA_ARGS__; \
+    }
+#else
+#define SOL_HTTP_SERVER_CONFIG_CHECK_API_VERSION(config, ...)
+#endif
+
 struct http_handler {
     time_t last_modified;
     struct sol_str_slice path;
@@ -1015,7 +1029,7 @@ notify_connection_finished_cb(void *data, struct MHD_Connection *connection,
 }
 
 SOL_API struct sol_http_server *
-sol_http_server_new(uint16_t port)
+sol_http_server_new(const struct sol_http_server_config *config)
 {
     static const enum sol_fd_flags fd_flags =
         SOL_FD_FLAGS_IN | SOL_FD_FLAGS_OUT | SOL_FD_FLAGS_ERR |
@@ -1023,6 +1037,9 @@ sol_http_server_new(uint16_t port)
     const union MHD_DaemonInfo *info;
     struct http_connection *conn;
     struct sol_http_server *server;
+
+    SOL_NULL_CHECK(config, NULL);
+    SOL_HTTP_SERVER_CONFIG_CHECK_API_VERSION(config, NULL);
 
     server = calloc(1, sizeof(*server));
     SOL_NULL_CHECK(server, NULL);
@@ -1035,12 +1052,32 @@ sol_http_server_new(uint16_t port)
 
     server->buf_size = SOL_HTTP_REQUEST_BUFFER_SIZE;
 
-    server->daemon = MHD_start_daemon(MHD_USE_SUSPEND_RESUME,
-        port, NULL, NULL,
-        http_server_handler, server,
-        MHD_OPTION_NOTIFY_CONNECTION, notify_connection_cb, server,
-        MHD_OPTION_NOTIFY_COMPLETED, notify_connection_finished_cb, server,
-        MHD_OPTION_END);
+    if (config->security.cert && config->security.key) {
+        struct sol_blob *cert_contents, *key_contents;
+        cert_contents = sol_cert_get_contents(config->security.cert);
+        key_contents = sol_cert_get_contents(config->security.key);
+
+        if (!(cert_contents && key_contents))
+            goto err_daemon;
+
+        server->daemon = MHD_start_daemon(MHD_USE_SUSPEND_RESUME | MHD_USE_SSL,
+            config->port, NULL, NULL,
+            http_server_handler, server,
+            MHD_OPTION_NOTIFY_CONNECTION, notify_connection_cb, server,
+            MHD_OPTION_NOTIFY_COMPLETED, notify_connection_finished_cb, server,
+            MHD_OPTION_HTTPS_MEM_KEY, (char *)key_contents->mem,
+            MHD_OPTION_HTTPS_MEM_CERT, (char *)cert_contents->mem,
+            MHD_OPTION_END);
+        sol_blob_unref(cert_contents);
+        sol_blob_unref(key_contents);
+    } else {
+        server->daemon = MHD_start_daemon(MHD_USE_SUSPEND_RESUME,
+            config->port, NULL, NULL,
+            http_server_handler, server,
+            MHD_OPTION_NOTIFY_CONNECTION, notify_connection_cb, server,
+            MHD_OPTION_NOTIFY_COMPLETED, notify_connection_finished_cb, server,
+            MHD_OPTION_END);
+    }
     SOL_NULL_CHECK_GOTO(server->daemon, err_daemon);
 
     info = MHD_get_daemon_info(server->daemon, MHD_DAEMON_INFO_LISTEN_FD);
