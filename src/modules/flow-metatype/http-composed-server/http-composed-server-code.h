@@ -269,7 +269,10 @@
     "        SOL_NULL_CHECK_GOTO(sdata, err_sdata);\n" \
     "        r = sol_ptr_vector_append(&servers, sdata);\n" \
     "        SOL_INT_CHECK_GOTO(r, < 0, err_vec);\n" \
-    "        sdata->server = sol_http_server_new(port);\n" \
+    "        sdata->server = sol_http_server_new(&(struct sol_http_server_config) {\n" \
+    "            SOL_SET_API_VERSION(.api_version = SOL_HTTP_SERVER_CONFIG_API_VERSION, )\n" \
+    "            .port = port\n" \
+    "        });\n" \
     "        SOL_NULL_CHECK_GOTO(sdata->server, err_server);\n" \
     "        sdata->port = port;\n" \
     "    }\n" \
