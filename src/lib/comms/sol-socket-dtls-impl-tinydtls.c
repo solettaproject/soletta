@@ -285,6 +285,7 @@ read_encrypted(void *data, struct sol_socket *wrapped)
     struct sol_network_link_addr cliaddr;
     session_t session = { 0 };
     int len;
+    SOL_BUFFER_DECLARE_STATIC(buffer, DTLS_MAX_BUF);
 
     SOL_BUFFER_DECLARE_STATIC(buffer, DTLS_MAX_BUF);
 
