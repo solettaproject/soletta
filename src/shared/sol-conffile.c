@@ -37,9 +37,21 @@
 #include "sol-memmap-storage.h"
 #endif
 
+/**
+ * Internal routines for parsing flow conf files (node type
+ * declarations) and node aliases
+ */
+
+struct sol_alias_ctx {
+    char *type_name;
+    struct sol_vector aliases;
+    unsigned long precedence;
+};
+
 static struct sol_ptr_vector _conffile_entry_vector; /* entries created by conffiles */
 static struct sol_ptr_vector _conffiles_loaded; /* paths of the currently loaded conffiles */
 static struct sol_arena *str_arena;
+static struct sol_vector node_aliases_map = SOL_VECTOR_INIT(struct sol_alias_ctx);
 
 #ifdef USE_MEMMAP
 static struct sol_ptr_vector _memory_maps;
@@ -698,6 +710,18 @@ exit:
 }
 
 static void
+clear_aliases(void)
+{
+    uint16_t i;
+    struct sol_alias_ctx *ctx;
+
+    SOL_VECTOR_FOREACH_IDX (&node_aliases_map, ctx, i)
+        sol_vector_clear(&ctx->aliases);
+
+    sol_vector_clear(&node_aliases_map);
+}
+
+static void
 _clear_data(void)
 {
     void *ptr;
@@ -717,6 +741,8 @@ _clear_data(void)
     sol_ptr_vector_clear(&_conffiles_loaded);
 
     sol_arena_del(str_arena);
+
+    clear_aliases();
 
 #ifdef USE_MEMMAP
     _clear_memory_maps();
@@ -916,10 +942,186 @@ _load_vector_defaults(void)
     free(name_str);
 }
 
+static enum sol_util_iterate_dir_reason
+iterate_dir_cb(void *data, const char *dir_path, struct dirent *en)
+{
+    struct sol_vector aliases = SOL_VECTOR_INIT(struct sol_str_slice);
+    char path[PATH_MAX], *sep, *endptr = NULL;
+    struct sol_buffer *file_contents = data;
+    enum sol_json_loop_reason end_reason;
+    struct sol_json_scanner scanner;
+    unsigned long precedence = 0;
+    struct sol_json_token value;
+    struct sol_str_slice *slice;
+    uint16_t i;
+    int r;
+
+    SOL_BUFFER_DECLARE_STATIC(node_name, 128);
+
+    if (!strendswith(en->d_name, ".json"))
+        return SOL_UTIL_ITERATE_DIR_CONTINUE;
+
+    sep = strchr(en->d_name, '-');
+
+    if (sep) {
+        precedence = sol_util_strtoul
+                (en->d_name, &endptr, sep - en->d_name, 10);
+        if (endptr == en->d_name || errno != 0)
+            SOL_INF("Could not parse the precedence for file '%s' - "
+                "Using 0 as precedence", en->d_name);
+    } else
+        SOL_INF("Could not find the separator '-' in the file name '%s'."
+            " Using 0 as precedence ", en->d_name);
+
+    r = snprintf(path, sizeof(path), "%s/%s", dir_path, en->d_name);
+    SOL_INT_CHECK(r, < 0, -EINVAL);
+    SOL_INT_CHECK(r, >= (int)sizeof(path), -ENOMEM);
+
+    SOL_DBG("Reading alias file '%s' with precedence equals to %lu",
+        path, precedence);
+
+    r = sol_util_load_file_buffer(path, file_contents);
+    SOL_INT_CHECK(r, < 0, r);
+
+    sol_json_scanner_init(&scanner, file_contents->data, file_contents->used);
+
+    SOL_JSON_SCANNER_ARRAY_LOOP (&scanner, &value, SOL_JSON_TYPE_OBJECT_START,
+        end_reason) {
+        struct sol_alias_ctx *alias_ctx;
+        struct sol_json_token obj_key, obj_value;
+
+        SOL_JSON_SCANNER_OBJECT_LOOP_NEST (&scanner, &value, &obj_key,
+            &obj_value, end_reason) {
+            struct sol_json_scanner array_scanner;
+            struct sol_json_token array_token;
+
+            if (SOL_JSON_TOKEN_STR_LITERAL_EQ(&obj_key, "aliases")) {
+                sol_json_scanner_init_from_token(&array_scanner, &obj_value);
+
+                SOL_JSON_SCANNER_ARRAY_LOOP (&array_scanner, &array_token,
+                    SOL_JSON_TYPE_STRING, end_reason) {
+                    struct sol_buffer buf;
+
+                    r = sol_json_token_get_unescaped_string(&array_token, &buf);
+                    SOL_INT_CHECK_GOTO(r, < 0, err_exit);
+
+                    slice = sol_vector_append(&aliases);
+                    if (!slice) {
+                        r = -ENOMEM;
+                        sol_buffer_fini(&buf);
+                        goto err_exit;
+                    }
+
+                    r = sol_arena_slice_dup(str_arena, slice,
+                        sol_buffer_get_slice(&buf));
+                    sol_buffer_fini(&buf);
+                    SOL_INT_CHECK_GOTO(r, < 0, err_exit);
+                }
+
+                if (end_reason != SOL_JSON_LOOP_REASON_OK) {
+                    SOL_WRN("Error: Invalid Json.");
+                    r = -EINVAL;
+                    goto err_exit;
+                }
+            } else if (SOL_JSON_TOKEN_STR_LITERAL_EQ(&obj_key, "name")) {
+                r = sol_json_token_get_unescaped_string(&obj_value, &node_name);
+                SOL_INT_CHECK_GOTO(r, < 0, err_exit);
+            }
+        }
+
+        if (end_reason != SOL_JSON_LOOP_REASON_OK) {
+            SOL_WRN("Error: Invalid Json.");
+            r = -EINVAL;
+            goto err_exit;
+        }
+
+        r = -EINVAL;
+        SOL_INT_CHECK_GOTO(node_name.used, == 0, err_exit);
+
+        alias_ctx = sol_vector_append(&node_aliases_map);
+        SOL_NULL_CHECK_GOTO(alias_ctx, err_exit);
+
+        alias_ctx->type_name = sol_arena_strdup_slice(str_arena,
+            sol_buffer_get_slice(&node_name));
+        SOL_NULL_CHECK_GOTO(alias_ctx->type_name, err_exit);
+
+        alias_ctx->precedence = precedence;
+        memcpy(&alias_ctx->aliases, &aliases, sizeof(struct sol_vector));
+
+        aliases.data = NULL;
+        aliases.len = 0;
+        node_name.used = 0;
+    }
+
+    if (end_reason != SOL_JSON_LOOP_REASON_OK) {
+        SOL_WRN("Invalid JSON file: %s", path);
+        return -EINVAL;
+    }
+
+    file_contents->used = 0;
+    return SOL_UTIL_ITERATE_DIR_CONTINUE;
+
+err_exit:
+    SOL_VECTOR_FOREACH_IDX (&aliases, slice, i)
+        free(slice);
+    sol_vector_clear(&aliases);
+    return r;
+}
+
+
+static int
+alias_compare(const void *v1, const void *v2)
+{
+    const struct sol_alias_ctx *ctx1, *ctx2;
+
+    ctx1 = v1;
+    ctx2 = v2;
+
+    if (ctx1->precedence == ctx2->precedence)
+        return 0;
+    //desc order
+    if (ctx1->precedence > ctx2->precedence)
+        return -1;
+    return 1;
+}
+
+
+static int
+load_aliases(void)
+{
+    struct sol_buffer file_contents = SOL_BUFFER_INIT_EMPTY;
+    char path[PATH_MAX], install_rootdir[PATH_MAX] = {};
+    int r;
+
+    r = sol_util_get_rootdir(install_rootdir, sizeof(install_rootdir));
+    SOL_INT_CHECK(r, >= (int)sizeof(install_rootdir), false);
+
+    r = snprintf(path, sizeof(path), "%s%s", install_rootdir, FLOWALIASESDIR);
+    SOL_INT_CHECK(r, >= (int)sizeof(path), -EINVAL);
+    SOL_INT_CHECK(r, < 0, -EINVAL);
+
+    SOL_DBG("Looking for aliases at: %s", path);
+    r = sol_util_iterate_dir(path, iterate_dir_cb, &file_contents);
+    sol_buffer_fini(&file_contents);
+    if (r == -ENOENT)
+        return 0;
+    SOL_INT_CHECK_GOTO(r, < 0, err_exit);
+
+    qsort(node_aliases_map.data, node_aliases_map.len,
+        node_aliases_map.elem_size, alias_compare);
+
+    return 0;
+
+err_exit:
+    clear_aliases();
+    return r;
+}
+
 static int
 _init(void)
 {
-    static int first_call = true;
+    static bool first_call = true;
+    int r;
 
     if (first_call) {
         str_arena = sol_arena_new();
@@ -933,11 +1135,19 @@ _init(void)
 #ifdef USE_MEMMAP
         sol_ptr_vector_init(&_memory_maps);
 #endif
+        r = load_aliases();
+        SOL_INT_CHECK_GOTO(r, < 0, err_aliases);
+
         atexit(_clear_data);
+        first_call = false;
     }
-    first_call = false;
 
     return 0;
+
+err_aliases:
+    sol_arena_del(str_arena);
+    str_arena = NULL;
+    return r;
 }
 
 static int
@@ -949,7 +1159,7 @@ _bsearch_entry_cb(const void *data1, const void *data2)
 }
 
 static int
-_resolve_config(const char *id, const char **type, const char ***opts)
+_resolve_config_do(const char *id, const char **type, const char ***opts)
 {
     struct sol_conffile_entry key;
     struct sol_conffile_entry *entry;
@@ -985,6 +1195,58 @@ _resolve_config(const char *id, const char **type, const char ***opts)
 
     if (opts && entry->options.base.len)
         *opts = (const char **)entry->options.base.data;
+
+    return 0;
+}
+
+const char *
+sol_conffile_resolve_alias(const struct sol_str_slice alias)
+{
+    int r;
+    uint16_t i;
+    struct sol_alias_ctx *ctx;
+
+    r = _init();
+    SOL_INT_CHECK(r, < 0, NULL);
+
+    SOL_VECTOR_FOREACH_IDX (&node_aliases_map, ctx, i) {
+        struct sol_str_slice *aux_alias;
+        uint16_t j;
+
+        SOL_VECTOR_FOREACH_IDX (&ctx->aliases, aux_alias, j) {
+            if (sol_str_slice_eq(*aux_alias, alias))
+                return ctx->type_name;
+        }
+    }
+
+    return NULL;
+}
+
+static int
+_resolve_config(const char *id, const char **type, const char ***opts)
+{
+    int r;
+    const char *real_type;
+
+    r = _resolve_config_do(id, type, opts);
+    if (r == 0) {
+        /* the resolved type may be an alias, try to resolve it */
+        real_type = sol_conffile_resolve_alias(sol_str_slice_from_str(*type));
+        if (real_type)
+            *type = real_type;
+        return r;
+    }
+
+    /* no entry in conf files, try resolving the ID to an alias
+     * directly, then */
+    real_type = sol_conffile_resolve_alias(sol_str_slice_from_str(id));
+    if (!real_type)
+        return -ENOENT;
+
+    *type = real_type;
+    r = _resolve_config_do(id, type, opts);
+    if (r != -ENOENT)
+        return r;
 
     return 0;
 }

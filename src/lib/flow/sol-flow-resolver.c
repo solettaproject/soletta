@@ -18,6 +18,7 @@
 
 #include <stddef.h>
 
+#include "sol-conffile.h"
 #include "sol-flow-resolver.h"
 #include "sol-flow-internal.h"
 #include "sol-flow-buildopts.h"
@@ -82,9 +83,10 @@ sol_flow_resolve(
     const struct sol_flow_node_type **type,
     struct sol_flow_node_named_options *named_opts)
 {
+    int err;
+    const char *type_name;
     const struct sol_flow_node_type *tmp_type;
     struct sol_flow_node_named_options tmp_named_opts = {};
-    int err;
 
     SOL_NULL_CHECK(id, -EINVAL);
     SOL_NULL_CHECK(type, -EINVAL);
@@ -105,9 +107,20 @@ sol_flow_resolve(
 
     err = resolver->resolve(resolver->data, id, &tmp_type, &tmp_named_opts);
     if (err < 0) {
-        SOL_DBG("could not resolve module for id='%s' using resolver=%s",
-            id, resolver->name);
-        return -ENOENT;
+        type_name = sol_conffile_resolve_alias(sol_str_slice_from_str(id));
+        if (!type_name) {
+            SOL_DBG("Could not resolve module nor alias for id='%s'"
+                " using resolver=%s", id, resolver->name);
+            return -ENOENT;
+        }
+        err = resolver->resolve(resolver->data, type_name, &tmp_type,
+            &tmp_named_opts);
+        if (err < 0) {
+            SOL_DBG("Could not resolve module for id='%s' (type='%s')"
+                " using resolver=%s: %s", id, type_name, resolver->name,
+                sol_util_strerrora(-err));
+            return -ENOENT;
+        }
     } else
         SOL_DBG("module for id='%s' resolved using resolver=%s",
             id, resolver->name);
