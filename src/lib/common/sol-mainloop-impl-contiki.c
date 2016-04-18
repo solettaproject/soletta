@@ -25,8 +25,7 @@
 #include "sol-mainloop-impl.h"
 #include "sol-vector.h"
 
-#define DEFAULT_USLEEP_TIME 10000
-#define DEFAULT_USLEEP_TIME_TICKS (CLOCK_SECOND * DEFAULT_USLEEP_TIME) / NSEC_PER_SEC
+extern process_event_t sol_udp_socket_event;
 
 static process_event_t event;
 static process_data_t event_data;
@@ -87,19 +86,22 @@ sol_mainloop_impl_platform_shutdown(void)
     sol_ptr_vector_clear(&event_handler_vector);
 }
 
-static inline clock_time_t
-ticks_until_next_timeout(void)
+static inline bool
+ticks_until_next_timeout(clock_time_t *sleeptime)
 {
     struct timespec ts;
 
+    if (sol_mainloop_common_idler_first() != NULL) {
+        *sleeptime = 0;
+        return true;
+    }
+
     if (!sol_mainloop_common_timespec_first(&ts))
-        return 0;
+        return false;
 
-    if (ts.tv_sec < 0)
-        return 0;
-
-    return ts.tv_sec * CLOCK_SECOND +
-           (CLOCK_SECOND / NSEC_PER_SEC) * ts.tv_nsec;
+    *sleeptime = ts.tv_sec * CLOCK_SECOND +
+           (CLOCK_SECOND / SOL_NSEC_PER_SEC) * ts.tv_nsec;
+    return true;
 }
 
 void
@@ -116,19 +118,22 @@ sol_mainloop_impl_run(void)
 bool
 sol_mainloop_contiki_iter(void)
 {
-    // Another event could make process wakeup
-    etimer_stop(&et);
+    clock_time_t sleeptime;
+    bool ret;
 
+    sol_mainloop_common_timeout_process();
     event_dispatch();
-
-    sol_mainloop_common_timeout_process();
     sol_mainloop_common_idler_process();
-    sol_mainloop_common_timeout_process();
 
     if (!sol_mainloop_common_loop_check())
         return false;
 
-    etimer_set(&et, ticks_until_next_timeout());
+    ret = ticks_until_next_timeout(&sleeptime);
+    if (ret)
+        etimer_set(&et, sleeptime);
+    else
+        etimer_stop(&et);
+
     return true;
 }
 
@@ -219,9 +224,6 @@ event_dispatch(void)
 {
     int i;
     struct sol_event_handler_contiki *event_handler;
-
-    if (event != sensors_event)
-        return;
 
     event_handling_processing = true;
     SOL_PTR_VECTOR_FOREACH_IDX (&event_handler_vector, event_handler, i) {
