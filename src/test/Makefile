@@ -5,6 +5,10 @@ test-internal-$(TEST_COAP) += test-coap
 test-internal-test-coap-$(TEST_COAP) := test.c test-coap.c
 test-internal-test-coap-$(TEST_COAP)-deps := lib/comms/coap.o
 
+test-internal-$(TEST_CONNMAN) += test-connman
+test-internal-test-connman-$(TEST_CONNMAN) := test-connman.c
+test-internal-test-connman-$(TEST_CONNMAN)-deps := lib/comms/sol-connman-impl-connman.o
+
 test-$(TEST_FBP) += test-fbp
 test-test-fbp-$(TEST_FBP) := test.c test-fbp.c
 

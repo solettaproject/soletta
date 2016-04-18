@@ -54,6 +54,22 @@ extern void sol_network_shutdown(void);
 extern void sol_oic_server_shutdown(void);
 #endif
 
+#ifdef CONNMAN
+extern int sol_connman_init(void);
+extern void sol_connman_shutdown(void);
+#else
+static int
+sol_connman_init(void)
+{
+    return 0;
+}
+
+static void
+sol_connman_shutdown(void)
+{
+}
+#endif
+
 int sol_comms_init(void);
 void sol_comms_shutdown(void);
 
@@ -74,8 +90,14 @@ sol_comms_init(void)
     if (ret != 0)
         goto http_server_error;
 
+    ret = sol_connman_init();
+    if (ret != 0)
+        goto connman_error;
+
     return 0;
 
+connman_error:
+    sol_connman_shutdown();
 http_server_error:
     sol_http_client_init();
 http_client_error:
@@ -93,4 +115,5 @@ sol_comms_shutdown(void)
     sol_http_client_shutdown();
     sol_http_server_shutdown();
     sol_network_shutdown();
+    sol_connman_shutdown();
 }
