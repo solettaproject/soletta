@@ -139,6 +139,34 @@ sol_vector_del(struct sol_vector *v, uint16_t i)
     return 0;
 }
 
+SOL_API int
+sol_vector_del_range(struct sol_vector *v, uint16_t start, uint16_t len)
+{
+    size_t tail_len;
+
+    if (start >= v->len)
+        return -EINVAL;
+
+    if ((uint32_t)start + len >= (uint32_t)v->len)
+        len = v->len - start;
+
+    v->len -= len;
+    tail_len = v->len - start;
+
+    if (tail_len) {
+        unsigned char *data, *dst, *src;
+
+        data = v->data;
+        dst = &data[v->elem_size * start];
+        src = dst + len * v->elem_size;
+        memmove(dst, src, v->elem_size * tail_len);
+    }
+
+    sol_vector_shrink(v);
+    return 0;
+}
+
+
 SOL_API void
 sol_vector_clear(struct sol_vector *v)
 {

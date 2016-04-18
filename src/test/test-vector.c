@@ -381,6 +381,66 @@ vector_initializes_elements_to_zero(void)
 }
 
 
+DEFINE_TEST(test_vector_del_range);
+
+static void
+test_vector_del_range(void)
+{
+    static const unsigned int N = 16;
+    struct sol_vector v;
+    uint32_t *item;
+    uint16_t i;
+
+    sol_vector_init(&v, sizeof(uint32_t));
+
+    // Add elements.
+    for (i = 0; i < N; i++) {
+        item = sol_vector_append(&v);
+        ASSERT(item);
+        *item = i;
+    }
+    ASSERT_INT_EQ(v.len, N);
+
+    // Delete elements.
+    sol_vector_del_range(&v, 0, 2);
+    ASSERT_INT_EQ(v.len, N - 2);
+
+    // Verify elements.
+    for (i = 0; i < N - 2; i++) {
+        item = sol_vector_get(&v, i);
+        ASSERT(item);
+        ASSERT_INT_EQ(*item, i + 2);
+    }
+
+    // Delete elements.
+    sol_vector_del_range(&v, N - 4, 2);
+    ASSERT_INT_EQ(v.len, N - 4);
+
+    // Verify elements.
+    for (i = 0; i < N - 4; i++) {
+        item = sol_vector_get(&v, i);
+        ASSERT(item);
+        ASSERT_INT_EQ(*item, i + 2);
+    }
+
+    // Delete elements.
+    sol_vector_del_range(&v, N / 2, 3);
+    ASSERT_INT_EQ(v.len, N - 7);
+
+    // Verify elements.
+    for (i = 0; i < N - 7; i++) {
+        item = sol_vector_get(&v, i);
+        ASSERT(item);
+        if (i < N / 2) {
+            ASSERT_INT_EQ(*item, i + 2);
+        } else {
+            ASSERT_INT_EQ(*item, i + 2 + 3);
+        }
+    }
+
+    sol_vector_clear(&v);
+}
+
 DEFINE_TEST(test_vector_del);
 
 static void
