@@ -414,6 +414,7 @@ sol_socket_ip_default_new(const struct sol_socket_options *options)
     nano_sem_give(&socket->lock);
     socket->on_can_write = options->on_can_write;
     socket->on_can_read = options->on_can_read;
+    socket->data = options->data;
 
     return &socket->base;
 
