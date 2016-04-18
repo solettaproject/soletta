@@ -37,8 +37,6 @@
 #include "sol-mainloop-impl.h"
 #include "sol-vector.h"
 
-#define DEFAULT_USLEEP_TIME 10000
-
 #define MSG_BUFFER_SIZE 32
 static msg_t msg_buffer[MSG_BUFFER_SIZE];
 
@@ -99,25 +97,28 @@ sol_mainloop_impl_platform_shutdown(void)
     sol_mainloop_common_source_shutdown();
 }
 
-static inline uint32_t
-sleeptime_until_next_timeout(void)
+static inline bool
+sleeptime_until_next_timeout(uint32_t *sleeptime)
 {
     struct timespec ts;
-    uint32_t sleeptime = DEFAULT_USLEEP_TIME;
     bool ret;
+
+    sol_mainloop_impl_lock();
+    ret = sol_mainloop_common_idler_first() != NULL;
+    sol_mainloop_impl_unlock();
+    if (ret) {
+        *sleeptime = 0;
+        return true;
+    }
 
     sol_mainloop_impl_lock();
     ret = sol_mainloop_common_timespec_first(&ts);
     sol_mainloop_impl_unlock();
+    if (!ret)
+        return false;
 
-    if (ret) {
-        if (ts.tv_sec < 0)
-            sleeptime = 0;
-        else
-            sleeptime = ts.tv_sec * SOL_USEC_PER_SEC + ts.tv_nsec / SOL_NSEC_PER_USEC;
-    }
-
-    return sleeptime;
+    *sleeptime = ts.tv_sec * SOL_USEC_PER_SEC + ts.tv_nsec / SOL_NSEC_PER_USEC;
+    return true;
 }
 
 void
@@ -125,15 +126,27 @@ sol_mainloop_impl_iter(void)
 {
     msg_t msg;
     uint32_t sleeptime;
+    int msg_count;
+    bool ret;
 
     sol_mainloop_common_timeout_process();
-    sol_mainloop_common_idler_process();
-    sol_mainloop_common_timeout_process();
 
-    if (!sol_mainloop_common_loop_check())
-        return;
-
-    sleeptime = sleeptime_until_next_timeout();
-    if (xtimer_msg_receive_timeout(&msg, sleeptime) > 0)
+    /* Process all available msgs first */
+    msg_count = msg_avail();
+    while (msg_count--) {
+        msg_receive(&msg);
         sol_interrupt_scheduler_process(&msg);
+    }
+
+    /* Then we check if we need to sleep for a time or indefinetely */
+    ret = sleeptime_until_next_timeout(&sleeptime);
+    if (ret) {
+        if (xtimer_msg_receive_timeout(&msg, sleeptime) > 0)
+            sol_interrupt_scheduler_process(&msg);
+    } else {
+        msg_receive(&msg);
+        sol_interrupt_scheduler_process(&msg);
+    }
+
+    sol_mainloop_common_idler_process();
 }
