@@ -349,6 +349,7 @@ sol_socket_ip_default_new(const struct sol_socket_options *options)
     socket->entry.pid = KERNEL_PID_UNDEF;
     socket->on_can_read = options->on_can_read;
     socket->on_can_write = options->on_can_write;
+    socket->data = options->data;
 
     return &socket->base;
 
