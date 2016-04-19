@@ -25,6 +25,7 @@
 #include <sol-common-buildopts.h>
 #include <sol-str-slice.h>
 #include <sol-macros.h>
+#include <sol-buffer.h>
 
 #ifdef __cplusplus
 extern "C" {
@@ -1083,6 +1084,525 @@ sol_memdesc_get_structure_member_memory(const struct sol_memdesc *structure_desc
     errno = 0;
     return ((uint8_t *)structure_memory) + member_desc->offset;
 }
+
+/**
+ * @brief Helper to fetch the memory as the largest supported unsigned integer.
+ *
+ * @param desc the memory description.
+ * @param memory the memory to get content.
+ *
+ * @return the number as uint64_t. On errors, errno is set to non-zero.
+ *
+ * @see sol_memdesc_is_unsigned().
+ */
+static inline uint64_t
+sol_memdesc_get_as_uint64(const struct sol_memdesc *desc, const void *memory)
+{
+    int64_t i64;
+
+    errno = EINVAL;
+    if (!desc || !memory)
+        return 0;
+
+#ifndef SOL_NO_API_VERSION
+    if (desc->api_version != SOL_MEMDESC_API_VERSION_COMPILED)
+        return 0;
+#endif
+
+    errno = 0;
+    switch (desc->type) {
+    case SOL_MEMDESC_TYPE_UINT8:
+        return *(const uint8_t *)memory;
+    case SOL_MEMDESC_TYPE_UINT16:
+        return *(const uint16_t *)memory;
+    case SOL_MEMDESC_TYPE_UINT32:
+        return *(const uint32_t *)memory;
+    case SOL_MEMDESC_TYPE_UINT64:
+        return *(const uint64_t *)memory;
+    case SOL_MEMDESC_TYPE_ULONG:
+        return *(const unsigned long *)memory;
+    case SOL_MEMDESC_TYPE_SIZE:
+        return *(const size_t *)memory;
+    case SOL_MEMDESC_TYPE_INT8:
+        i64 = *(const int8_t *)memory;
+        goto check_signed;
+    case SOL_MEMDESC_TYPE_INT16:
+        i64 = *(const int16_t *)memory;
+        goto check_signed;
+    case SOL_MEMDESC_TYPE_INT32:
+        i64 = *(const int32_t *)memory;
+        goto check_signed;
+    case SOL_MEMDESC_TYPE_INT64:
+        i64 = *(const int64_t *)memory;
+        goto check_signed;
+    case SOL_MEMDESC_TYPE_LONG:
+        i64 = *(const long *)memory;
+        goto check_signed;
+    case SOL_MEMDESC_TYPE_SSIZE:
+        i64 = *(const ssize_t *)memory;
+        goto check_signed;
+    case SOL_MEMDESC_TYPE_BOOLEAN:
+        return *(const bool *)memory;
+    case SOL_MEMDESC_TYPE_DOUBLE:
+        i64 = *(const double *)memory;
+        goto check_signed;
+    case SOL_MEMDESC_TYPE_STRING:
+    case SOL_MEMDESC_TYPE_CONST_STRING:
+    case SOL_MEMDESC_TYPE_PTR:
+    case SOL_MEMDESC_TYPE_STRUCTURE:
+    case SOL_MEMDESC_TYPE_ARRAY:
+    default:
+        errno = EINVAL;
+        return 0;
+    }
+
+check_signed:
+    if (i64 < 0) {
+        errno = ERANGE;
+        return 0;
+    }
+    return i64;
+}
+
+/**
+ * @brief Helper to fetch the memory as the largest supported signed integer.
+ *
+ * @param desc the memory description.
+ * @param memory the memory to get content.
+ *
+ * @return the number as int64_t. On errors, errno is set to non-zero.
+ *
+ * @see sol_memdesc_is_signed().
+ */
+static inline int64_t
+sol_memdesc_get_as_int64(const struct sol_memdesc *desc, const void *memory)
+{
+    uint64_t u64;
+
+    errno = EINVAL;
+    if (!desc || !memory)
+        return 0;
+
+#ifndef SOL_NO_API_VERSION
+    if (desc->api_version != SOL_MEMDESC_API_VERSION_COMPILED)
+        return 0;
+#endif
+
+    errno = 0;
+    switch (desc->type) {
+    case SOL_MEMDESC_TYPE_UINT8:
+        return *(const uint8_t *)memory;
+    case SOL_MEMDESC_TYPE_UINT16:
+        return *(const uint16_t *)memory;
+    case SOL_MEMDESC_TYPE_UINT32:
+        return *(const uint32_t *)memory;
+    case SOL_MEMDESC_TYPE_UINT64:
+        u64 = *(const uint64_t *)memory;
+        goto check_overflow;
+    case SOL_MEMDESC_TYPE_ULONG:
+        u64 = *(const unsigned long *)memory;
+        goto check_overflow;
+    case SOL_MEMDESC_TYPE_SIZE:
+        u64 = *(const size_t *)memory;
+        goto check_overflow;
+    case SOL_MEMDESC_TYPE_INT8:
+        return *(const int8_t *)memory;
+    case SOL_MEMDESC_TYPE_INT16:
+        return *(const int16_t *)memory;
+    case SOL_MEMDESC_TYPE_INT32:
+        return *(const int32_t *)memory;
+    case SOL_MEMDESC_TYPE_INT64:
+        return *(const int64_t *)memory;
+    case SOL_MEMDESC_TYPE_LONG:
+        return *(const long *)memory;
+    case SOL_MEMDESC_TYPE_SSIZE:
+        return *(const ssize_t *)memory;
+    case SOL_MEMDESC_TYPE_BOOLEAN:
+        return *(const bool *)memory;
+    case SOL_MEMDESC_TYPE_DOUBLE:
+        return *(const double *)memory;
+    case SOL_MEMDESC_TYPE_STRING:
+    case SOL_MEMDESC_TYPE_CONST_STRING:
+    case SOL_MEMDESC_TYPE_PTR:
+    case SOL_MEMDESC_TYPE_STRUCTURE:
+    case SOL_MEMDESC_TYPE_ARRAY:
+    default:
+        errno = EINVAL;
+        return 0;
+    }
+
+check_overflow:
+    if (u64 > INT64_MAX) {
+        errno = ERANGE;
+        return 0;
+    }
+    return u64;
+}
+
+/**
+ * @brief Helper to check if type is unsigned integer-compatible.
+ *
+ * @param desc the memory description.
+ *
+ * @return true if it is unsigned integer (uint8_t, uint16_t, uint32_t, uint64_t,
+ *         unsigned long or size_t).
+ */
+static inline bool
+sol_memdesc_is_unsigned(const struct sol_memdesc *desc)
+{
+    errno = EINVAL;
+    if (!desc)
+        return false;
+
+#ifndef SOL_NO_API_VERSION
+    if (desc->api_version != SOL_MEMDESC_API_VERSION_COMPILED)
+        return false;
+#endif
+
+    errno = 0;
+    switch (desc->type) {
+    case SOL_MEMDESC_TYPE_UINT8:
+    case SOL_MEMDESC_TYPE_UINT16:
+    case SOL_MEMDESC_TYPE_UINT32:
+    case SOL_MEMDESC_TYPE_UINT64:
+    case SOL_MEMDESC_TYPE_ULONG:
+    case SOL_MEMDESC_TYPE_SIZE:
+        return true;
+    case SOL_MEMDESC_TYPE_INT8:
+    case SOL_MEMDESC_TYPE_INT16:
+    case SOL_MEMDESC_TYPE_INT32:
+    case SOL_MEMDESC_TYPE_INT64:
+    case SOL_MEMDESC_TYPE_LONG:
+    case SOL_MEMDESC_TYPE_SSIZE:
+    case SOL_MEMDESC_TYPE_BOOLEAN:
+    case SOL_MEMDESC_TYPE_DOUBLE:
+    case SOL_MEMDESC_TYPE_STRING:
+    case SOL_MEMDESC_TYPE_CONST_STRING:
+    case SOL_MEMDESC_TYPE_PTR:
+    case SOL_MEMDESC_TYPE_STRUCTURE:
+    case SOL_MEMDESC_TYPE_ARRAY:
+    default:
+        return false;
+    }
+}
+
+/**
+ * @brief Helper to check if type is signed integer-compatible.
+ *
+ * @param desc the memory description.
+ *
+ * @return true if it is signed integer (int8_t, int16_t, int32_t, int64_t,
+ *         long or ssize_t).
+ */
+static inline bool
+sol_memdesc_is_signed(const struct sol_memdesc *desc)
+{
+    errno = EINVAL;
+    if (!desc)
+        return false;
+
+#ifndef SOL_NO_API_VERSION
+    if (desc->api_version != SOL_MEMDESC_API_VERSION_COMPILED)
+        return false;
+#endif
+
+    errno = 0;
+    switch (desc->type) {
+    case SOL_MEMDESC_TYPE_UINT8:
+    case SOL_MEMDESC_TYPE_UINT16:
+    case SOL_MEMDESC_TYPE_UINT32:
+    case SOL_MEMDESC_TYPE_UINT64:
+    case SOL_MEMDESC_TYPE_ULONG:
+    case SOL_MEMDESC_TYPE_SIZE:
+        return false;
+    case SOL_MEMDESC_TYPE_INT8:
+    case SOL_MEMDESC_TYPE_INT16:
+    case SOL_MEMDESC_TYPE_INT32:
+    case SOL_MEMDESC_TYPE_INT64:
+    case SOL_MEMDESC_TYPE_LONG:
+    case SOL_MEMDESC_TYPE_SSIZE:
+        return true;
+    case SOL_MEMDESC_TYPE_BOOLEAN:
+    case SOL_MEMDESC_TYPE_DOUBLE:
+    case SOL_MEMDESC_TYPE_STRING:
+    case SOL_MEMDESC_TYPE_CONST_STRING:
+    case SOL_MEMDESC_TYPE_PTR:
+    case SOL_MEMDESC_TYPE_STRUCTURE:
+    case SOL_MEMDESC_TYPE_ARRAY:
+    default:
+        return false;
+    }
+}
+
+/**
+ * @brief Options on how to serialize a memory given its description.
+ */
+struct sol_memdesc_serialize_options {
+#ifndef SOL_NO_API_VERSION
+#define SOL_MEMDESC_SERIALIZE_OPTIONS_API_VERSION (1) /**< @brief API version to use in struct sol_memdesc_serialize_options::api_version */
+    uint16_t api_version; /**< @brief API version, must match SOL_MEMDESC_SERIALIZE_OPTIONS_API_VERSION at runtime */
+#endif
+    /**
+     * @brief function used to format a signed integer.
+     *
+     * If not provided printf() will be used using the current locale.
+     *
+     * Should return 0 on success, negative errno on failure.
+     */
+    int (*serialize_int64)(const struct sol_memdesc *desc, int64_t value, struct sol_buffer *buffer);
+    /**
+     * @brief function used to format an unsigned integer.
+     *
+     * If not provided printf() will be used using the current locale.
+     *
+     * Should return 0 on success, negative errno on failure.
+     */
+    int (*serialize_uint64)(const struct sol_memdesc *desc, uint64_t value, struct sol_buffer *buffer);
+    /**
+     * @brief function used to format a double precision floating point number.
+     *
+     * If not provided printf() with @c "%g" will be used using the current locale.
+     *
+     * Should return 0 on success, negative errno on failure.
+     */
+    int (*serialize_double)(const struct sol_memdesc *desc, double value, struct sol_buffer *buffer);
+    /**
+     * @brief function used to format a boolean.
+     *
+     * If not provided "true"  or "false" will be used.
+     *
+     * Should return 0 on success, negative errno on failure.
+     */
+    int (*serialize_boolean)(const struct sol_memdesc *desc, bool value, struct sol_buffer *buffer);
+    /**
+     * @brief function used to format a pointer.
+     *
+     * If not provided printf() with @c "%p" will be used using the
+     * current locale.
+     *
+     * Often this is used for NULL or when the desc->children is
+     * empty, otherwise the code will handle SOL_MEMDESC_TYPE_PTR as a
+     * structure, accessing the pointed memory.
+     *
+     * Should return 0 on success, negative errno on failure.
+     */
+    int (*serialize_pointer)(const struct sol_memdesc *desc, const void *value, struct sol_buffer *buffer);
+    /**
+     * @brief function used to format a string.
+     *
+     * If not will place the string inside double-quotes and inner
+     * quotes and non-printable chars will be escaped.
+     *
+     * @note the given value may be @c NULL!
+     *
+     * Should return 0 on success, negative errno on failure.
+     */
+    int (*serialize_string)(const struct sol_memdesc *desc, const char *value, struct sol_buffer *buffer);
+    /**
+     * @brief function used to format a struct member.
+     *
+     * If not provided the function will print use the
+     * struct sol_str_slice under
+     * struct sol_memdesc_serialize_options::structure. If
+     * struct sol_memdesc_serialize_options::structure::show_key, then
+     * struct sol_memdesc_serialize_options::structure::key::start and
+     * struct sol_memdesc_serialize_options::structure::key::end are used around the
+     * struct sol_memdesc::name that is dumped as-is.
+     *
+     * If multiple members exist, they will be separated with
+     * struct sol_memdesc_serialize_options::structure::separator.
+     *
+     * Should return 0 on success, negative errno on failure.
+     */
+    int (*serialize_structure_member)(const struct sol_memdesc *structure, const struct sol_memdesc_structure_member *member, const void *memory, struct sol_buffer *buffer, const struct sol_memdesc_serialize_options *opts, struct sol_buffer *prefix, bool is_first);
+    /**
+     * @brief function used to format an array item.
+     *
+     * If not provided the function will print use the
+     * struct sol_str_slice under
+     * struct sol_memdesc_serialize_options::array. If
+     * struct sol_memdesc_serialize_options::array::show_index, then
+     * struct sol_memdesc_serialize_options::array::index::start and
+     * struct sol_memdesc_serialize_options::array::index::end are used around the
+     * @c idx.
+     *
+     * If multiple items exist, they will be separated with
+     * struct sol_memdesc_serialize_options::array::separator.
+     *
+     * Should return 0 on success, negative errno on failure.
+     */
+    int (*serialize_array_item)(const struct sol_memdesc *desc, size_t idx, const void *memory, struct sol_buffer *buffer, const struct sol_memdesc_serialize_options *opts, struct sol_buffer *prefix);
+    /**
+     * @brief options used by serialize_structure_member.
+     *
+     * These options control the behavior of
+     * struct sol_memdesc_serialize_options::serialize_structure_member.
+     */
+    struct {
+        struct {
+            /**
+             * Used when starting a new structure.
+             */
+            const struct sol_str_slice start;
+            /**
+             * Used when finishing a structure.
+             */
+            const struct sol_str_slice end;
+            /**
+             * Used to indent a new container.
+             */
+            const struct sol_str_slice indent;
+        } container;
+        struct {
+            /**
+             * Used when starting a new structure member.
+             *
+             * This is only to be used if
+             * struct sol_memdesc_serialize_options::structure::show_key.
+             */
+            const struct sol_str_slice start;
+            /**
+             * Used when finishing a structure member.
+             *
+             * This is only to be used if
+             * struct sol_memdesc_serialize_options::structure::show_key.
+             */
+            const struct sol_str_slice end;
+            /**
+             * Used to indent a new key.
+             */
+            const struct sol_str_slice indent;
+        } key;
+        struct {
+            /**
+             * Used when starting a new structure value.
+             */
+            const struct sol_str_slice start;
+            /**
+             * Used when finishing structure value.
+             */
+            const struct sol_str_slice end;
+            /**
+             * Used to indent a new value.
+             */
+            const struct sol_str_slice indent;
+        } value;
+        /**
+         * Used if multiple members exist.
+         */
+        struct sol_str_slice separator;
+        /**
+         * Controls whenever the key is to be serialized.
+         */
+        bool show_key;
+        /**
+         * Controls whenever struct sol_memdesc_structure_member::detail
+         * is to be printed.
+         *
+         * If true, detail members will be printed. If false, only
+         * non-detail members will.
+         */
+        bool detailed;
+    } structure;
+    /**
+     * @brief options used by serialize_array_item
+     *
+     * These options control the behavior of
+     * struct sol_memdesc_serialize_options::serialize_array_item.
+     */
+    struct {
+        struct {
+            /**
+             * Used when starting a new array.
+             */
+            const struct sol_str_slice start;
+            /**
+             * Used when finishing a array.
+             */
+            const struct sol_str_slice end;
+            /**
+             * Used to indent a new array.
+             */
+            const struct sol_str_slice indent;
+        } container;
+        struct {
+            /**
+             * Used when starting a new array item.
+             *
+             * This is only to be used if
+             * struct sol_memdesc_serialize_options::array::show_index.
+             */
+            const struct sol_str_slice start;
+            /**
+             * Used when finishing a array item.
+             *
+             * This is only to be used if
+             * struct sol_memdesc_serialize_options::array::show_index.
+             */
+            const struct sol_str_slice end;
+            /**
+             * Used to indent a new index.
+             */
+            const struct sol_str_slice indent;
+        } index;
+        struct {
+            /**
+             * Used when starting a new array item value.
+             */
+            const struct sol_str_slice start;
+            /**
+             * Used when finishing array item value.
+             */
+            const struct sol_str_slice end;
+            /**
+             * Used to indent a new value.
+             */
+            const struct sol_str_slice indent;
+        } value;
+        /**
+         * Used if multiple items exist.
+         */
+        struct sol_str_slice separator;
+        /**
+         * Controls whenever the index is to be serialized.
+         */
+        bool show_index;
+    } array;
+};
+
+/**
+ * @brief the default struct sol_memdesc_serialize_options.
+ *
+ * This symbol defines the original serialize options used by Soletta,
+ * it can be used to get default slices as well as serialization functions.
+ *
+ * For instance, if you want to customize the serialization of a given
+ * structure member but not others, then you can override
+ * struct sol_memdesc_serialize_options::serialize_structure_member and
+ * call SOL_MEMDESC_SERIALIZE_OPTIONS::serialize_structure_member whenever
+ * to use the standard output.
+ */
+extern const struct sol_memdesc_serialize_options SOL_MEMDESC_SERIALIZE_OPTIONS_DEFAULT;
+
+/**
+ * @brief Serialize a memory to a buffer using a description.
+ *
+ * If no options are provided, then it will serialize in a C-like
+ * pattern, however if struct member names are not valid C symbols, it
+ * will not be a valid C.
+ *
+ * @param desc the memory description.
+ * @param memory the memory to serialize.
+ * @param buffer where to serialize the memory. Must be pre-initialized,
+ *        contents will be appended.
+ * @param opts if provided will modify how to serialize the memory.
+ * @param prefix some prefix to be added to lines, it will be modified
+ *        during iteration to contain new indent strings. May be null
+ *        so a local buffer is automatically created and destroyed.
+ *
+ * @return 0 on success, negative errno otherwise.
+ */
+int sol_memdesc_serialize(const struct sol_memdesc *desc, const void *memory, struct sol_buffer *buffer, const struct sol_memdesc_serialize_options *opts, struct sol_buffer *prefix);
 
 /**
  * @}
