@@ -217,7 +217,18 @@ def get_type_from_property(prop):
         return 'enum:%s' % ','.join(prop['enum'])
     raise ValueError('Unknown type for property')
 
+def all_props_are_read_only(props):
+    for prop_name, prop_descr in props.items():
+        if not prop_descr['read_only']:
+            return False
+
+    return True
+
+
 def object_to_repr_vec_fn_common_c(state_struct_name, name, props, client, equivalent={}):
+    if client and all_props_are_read_only(props):
+        return '';
+
     for item_name, item_props in equivalent.items():
         if item_props[0] == client and props_are_equivalent(props, item_props[1]):
             return '''static bool
