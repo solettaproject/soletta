@@ -1711,7 +1711,7 @@ if __name__ == '__main__':
     generated = []
     print('Generating code for schemas: ', end='')
     for schema_dir in args.schema_dirs:
-        for path in (f for f in os.listdir(schema_dir) if seems_schema(f)):
+        for path in (f for f in sorted(os.listdir(schema_dir)) if seems_schema(f)):
             print(path, end=', ')
 
             try:
