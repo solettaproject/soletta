@@ -152,13 +152,13 @@ def generate_object_to_repr_vec_fn_common_c(state_struct_name, name, props, clie
         if 'enum' in prop_descr:
             tbl = '%s_%s_tbl' % (state_struct_name, prop_name)
             val = '%s[state->state.%s].key' % (tbl, prop_name)
-            vallen = '%s[state->state.%s].len' % val
+            vallen = '%s[state->state.%s].len' % (tbl, prop_name)
 
             ftype = 'SOL_OIC_REPR_TEXT_STRING'
             fargs = (val, vallen)
         elif prop_descr['type'] == 'boolean':
             val = 'state->state.%s' % prop_name
-        
+
             ftype = 'SOL_OIC_REPR_BOOLEAN'
             fargs = (val, )
         elif prop_descr['type'] == 'string':
