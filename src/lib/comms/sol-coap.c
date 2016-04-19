@@ -1201,7 +1201,8 @@ well_known_get(struct sol_coap_server *server,
 {
     struct resource_context *c;
     struct sol_coap_packet *resp;
-    size_t len;
+    struct sol_buffer *buf;
+    size_t offset;
     uint16_t i;
     int r;
 
@@ -1215,16 +1216,15 @@ well_known_get(struct sol_coap_server *server,
     if (r < 0) {
         SOL_WRN("Failed to set header code on packet %p", resp);
         sol_coap_packet_unref(resp);
-        return -EINVAL;
+        return r;
     }
 
-    r = coap_get_header_len(resp);
+    r = sol_coap_packet_get_payload(resp, &buf, &offset);
     if (r < 0) {
-        SOL_WRN("Failed to get header len from packet %p", resp);
+        SOL_WRN("Failed to get payload from packet %p", resp);
         sol_coap_packet_unref(resp);
-        return -EINVAL;
+        return r;
     }
-    len = r;
 
     SOL_VECTOR_FOREACH_IDX (&server->contexts, c, i) {
         size_t tmp = 0;
@@ -1233,18 +1233,18 @@ well_known_get(struct sol_coap_server *server,
         if (!(res->flags & SOL_COAP_FLAGS_WELL_KNOWN))
             continue;
 
-        r = sol_buffer_insert_char(&resp->buf, len++, '<');
+        r = sol_buffer_insert_char(buf, offset++, '<');
         SOL_INT_CHECK_GOTO(r, < 0, error);
 
-        r = sol_coap_uri_path_to_buf(res->path, &resp->buf, len, &tmp);
+        r = sol_coap_uri_path_to_buf(res->path, buf, offset, &tmp);
         SOL_INT_CHECK_GOTO(r, < 0, error);
-        len += tmp;
+        offset += tmp;
 
-        r = sol_buffer_insert_char(&resp->buf, len++, '>');
+        r = sol_buffer_insert_char(buf, offset++, '>');
         SOL_INT_CHECK_GOTO(r, < 0, error);
 
         if (i < server->contexts.len) {
-            r = sol_buffer_insert_char(&resp->buf, len++, ',');
+            r = sol_buffer_insert_char(buf, offset++, ',');
             SOL_INT_CHECK_GOTO(r, < 0, error);
         }
     }
