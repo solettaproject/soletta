@@ -31,6 +31,9 @@
 
 struct sol_socket_net_context;
 
+static const struct net_addr addr_any = { .family = AF_INET6,
+                                          .in6_addr = IN6ADDR_ANY_INIT };
+
 struct sol_socket_zephyr {
     struct sol_socket base;
 
@@ -55,6 +58,7 @@ struct sol_socket_zephyr {
 struct sol_socket_net_context {
     struct sol_socket_zephyr *socket;
     struct net_context *context;
+    struct net_addr bind_addr;
     nano_thread_id_t fiber;
     uint8_t stack[RECV_STACKSIZE] __stack;
 };
@@ -305,15 +309,16 @@ static struct sol_socket_net_context *
 socket_net_context_new(struct sol_socket_zephyr *s, const struct sol_network_link_addr *addr)
 {
     struct sol_socket_net_context *ctx;
-    struct net_addr bindaddr;
 
     ctx = calloc(1, sizeof(*ctx));
     SOL_NULL_CHECK(ctx, NULL);
 
-    bindaddr.family = sol_network_sol_to_af(addr->family);
-    memcpy(&bindaddr.in6_addr, addr->addr.in6, sizeof(bindaddr.in6_addr));
+    ctx->bind_addr.family = sol_network_sol_to_af(addr->family);
+    memcpy(&ctx->bind_addr.in6_addr, addr->addr.in6,
+        sizeof(ctx->bind_addr.in6_addr));
 
-    ctx->context = net_context_get(IPPROTO_UDP, NULL, 0, &bindaddr, addr->port);
+    ctx->context = net_context_get
+            (IPPROTO_UDP, &addr_any, 0, &ctx->bind_addr, addr->port);
     SOL_NULL_CHECK_GOTO(ctx->context, err);
     ctx->socket = s;
 
