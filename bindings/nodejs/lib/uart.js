@@ -36,17 +36,22 @@ exports.open = function( init ) {
             parity: soletta.sol_uart_parity_from_str( parity ),
             stop_bits: soletta.sol_uart_stop_bits_from_str( stopBits ),
             flow_control: flowControl,
-            callback: function( data ) {
+            on_data: function( data ) {
                 callback_data[0].dispatchEvent( "read", {
                     type: "read",
                     data: data
+                } );
+            },
+            on_feed_done: function( cb_status ) {
+                callback_data[0].dispatchEvent( "write", {
+                    type: "write"
                 } );
             },
         }
 
         var uart = soletta.sol_uart_open( init.port, config );
         if ( !uart ) {
-            reject( new Error( "Could not open SPI device" ) );
+            reject( new Error( "Could not open UART device" ) );
             return;
         }
         connection = UARTConnection( uart );
@@ -75,13 +80,17 @@ _.extend( UARTConnection.prototype, {
             else
                 buffer = new Buffer( value );
 
-            var returnStatus = soletta.sol_uart_write( this._connection, buffer,
-                function( data, dataSize ) {
+            var returnStatus = soletta.sol_uart_feed( this._connection, buffer,
+                function( cb_status ) {
+                if ( cb_status < 0 ) {
+                    reject( new Error( "UART write failed" ) );
+                } else {
                     fulfill();
+                }
             });
 
-            if ( !returnStatus ) {
-                reject( new Error( "UART transmission failed" ) );
+            if ( ( typeof returnStatus === 'undefined' ) || returnStatus < 0) {
+                reject( new Error( "UART write failed" ) );
             }
         }, this ) );
     },

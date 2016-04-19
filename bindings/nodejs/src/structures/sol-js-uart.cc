@@ -38,15 +38,26 @@ bool c_sol_uart_config(v8::Local<v8::Object> jsUARTConfig,
     VALIDATE_AND_ASSIGN((*config), stop_bits, sol_uart_stop_bits, IsInt32,
         "(Amount of stop bits)", false, jsUARTConfig, Int32Value);
 
-    Local<Value> read_cb = Nan::Get(jsUARTConfig,
-        Nan::New("callback").ToLocalChecked()).ToLocalChecked();
-    if (read_cb->IsFunction()) {
-        Nan::Callback *rx_cb =
-            new Nan::Callback(Local<Function>::Cast(read_cb));
+    Local<Value> on_data_cb = Nan::Get(jsUARTConfig,
+        Nan::New("on_data").ToLocalChecked()).ToLocalChecked();
+    if (on_data_cb->IsFunction()) {
+        Nan::Callback *on_data =
+            new Nan::Callback(Local<Function>::Cast(on_data_cb));
 
-        uart_data->rx_cb = rx_cb;
-        config->rx_cb_user_data = uart_data;
+        uart_data->on_data_cb = on_data;
     }
+
+    Local<Value> on_feed_done_cb = Nan::Get(jsUARTConfig,
+        Nan::New("on_feed_done").ToLocalChecked()).ToLocalChecked();
+    if (on_feed_done_cb->IsFunction()) {
+        Nan::Callback *on_feed_done =
+            new Nan::Callback(Local<Function>::Cast(on_feed_done_cb));
+
+        uart_data->on_feed_done_cb = on_feed_done;
+    }
+    config->user_data = uart_data;
+    config->feed_size = 0;
+    config->data_buffer_size = 0;
 
     VALIDATE_AND_ASSIGN((*config), flow_control, bool, IsBoolean,
         "(Enable software flow control)", false, jsUARTConfig,

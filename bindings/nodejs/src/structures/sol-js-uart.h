@@ -21,11 +21,18 @@
 
 #include <v8.h>
 #include <sol-uart.h>
+#include <map>
+
+struct CallbackInfo {
+    Nan::Callback *callback;
+    Nan::Persistent<v8::Value> *js_buffer;
+};
 
 struct sol_uart_data {
     sol_uart *uart;
-    Nan::Callback *rx_cb;
-    Nan::Callback *tx_cb;
+    Nan::Callback *on_data_cb;
+    Nan::Callback *on_feed_done_cb;
+    std::map<sol_blob *, CallbackInfo *> feed_callbacks_map;
 };
 
 bool c_sol_uart_config(v8::Local<v8::Object> UARTConfig, sol_uart_data *data,

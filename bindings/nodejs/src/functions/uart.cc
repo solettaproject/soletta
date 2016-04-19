@@ -16,6 +16,8 @@
  * limitations under the License.
  */
 
+#include <sol-buffer.h>
+#include <sol-str-slice.h>
 #include <sol-uart.h>
 #include <node.h>
 #include <nan.h>
@@ -32,19 +34,59 @@ public:
     static const char *jsClassName() { return "SolUART"; }
 };
 
-static void sol_uart_read_callback(void *user_data, struct sol_uart *uart,
-    unsigned char byte_read) {
+static ssize_t sol_uart_on_data_callback(void *user_data,
+    struct sol_uart *uart, const struct sol_buffer *buf) {
     Nan::HandleScope scope;
     sol_uart_data *uart_data = (sol_uart_data *)user_data;
-    Nan::Callback *callback = uart_data->rx_cb;
+    if (!uart_data)
+        return 0;
+
+    Nan::Callback *callback = uart_data->on_data_cb;
     if (!callback)
+        return 0;
+
+    struct sol_str_slice slice;
+    slice = sol_buffer_get_slice(buf);
+    Local<Value> buffer =
+        Nan::CopyBuffer(slice.data, slice.len).ToLocalChecked();
+
+    Local<Value> arguments[1] = {
+        buffer
+    };
+    callback->Call(1, arguments);
+
+    return slice.len;
+}
+
+static void sol_uart_on_feed_done_callback(void *user_data,
+    struct sol_uart *uart, struct sol_blob *blob, int status) {
+    Nan::HandleScope scope;
+    sol_uart_data *uart_data = (sol_uart_data *)user_data;
+    if (!uart_data)
         return;
 
     Local<Value> arguments[1] = {
-        Nan::New(byte_read)
+        Nan::New(status)
     };
 
-    callback->Call(1, arguments);
+    Nan::Callback *on_feed_done_cb = uart_data->on_feed_done_cb;
+    if (on_feed_done_cb)
+        on_feed_done_cb->Call(1, arguments);
+
+   // Retrieve the JS feed callback and call it
+   auto iter = uart_data->feed_callbacks_map.find(blob);
+   if (iter != uart_data->feed_callbacks_map.end()) {
+       CallbackInfo *info = iter->second;
+       Nan::Callback *callback = info->callback;
+       callback->Call(1, arguments);
+       uart_data->feed_callbacks_map.erase(blob);
+       delete callback;
+
+       Nan::Persistent<Value> *js_buffer = info->js_buffer;
+       js_buffer->Reset();
+       delete js_buffer;
+       delete info;
+   }
 }
 
 NAN_METHOD(bind_sol_uart_open) {
@@ -58,21 +100,25 @@ NAN_METHOD(bind_sol_uart_open) {
         return;
 
     sol_uart_data *uart_data = new sol_uart_data;
-    uart_data->rx_cb = NULL;
-    uart_data->tx_cb = NULL;
+    uart_data->on_data_cb = NULL;
+    uart_data->on_feed_done_cb = NULL;
     if (!c_sol_uart_config(info[1]->ToObject(), uart_data, &config)) {
         delete uart_data;
         Nan::ThrowError("Unable to extract sol_uart_config\n");
         return;
     }
 
-    Nan::Callback *readCallback = uart_data->rx_cb;
-    config.rx_cb = sol_uart_read_callback;
+    Nan::Callback *on_data_cb = uart_data->on_data_cb;
+    Nan::Callback *on_feed_done_cb = uart_data->on_feed_done_cb;
+    config.on_data = sol_uart_on_data_callback;
+    config.on_feed_done = sol_uart_on_feed_done_callback;
 
     uart = sol_uart_open((const char *)*String::Utf8Value(info[0]), &config);
     if (!uart) {
-        if (readCallback)
-            delete readCallback;
+        if (on_data_cb)
+            delete on_data_cb;
+        if (on_feed_done_cb)
+            delete on_feed_done_cb;
         delete uart_data;
         hijack_unref();
         return;
@@ -91,44 +137,22 @@ NAN_METHOD(bind_sol_uart_close) {
         return;
 
     sol_uart *uart = uart_data->uart;
-    Nan::Callback *callback = uart_data->rx_cb;
+    Nan::Callback *on_data_cb = uart_data->on_data_cb;
+    Nan::Callback *on_feed_done_cb = uart_data->on_feed_done_cb;
     sol_uart_close(uart);
-    if (callback) {
-        delete callback;
-    }
+
+    if (on_data_cb)
+        delete on_data_cb;
+
+    if (on_feed_done_cb)
+        delete on_feed_done_cb;
+
+    hijack_unref();
     delete uart_data;
     Nan::SetInternalFieldPointer(jsUART, 0, 0);
-    hijack_unref();
 }
 
-static void sol_uart_write_callback(void *data, struct sol_uart *uart,
-    unsigned char *tx, int status) {
-    Nan::HandleScope scope;
-    Local<Value> buffer;
-    sol_uart_data *uart_data = (sol_uart_data *)data;
-    Nan::Callback *callback = uart_data->tx_cb;
-    if (!callback)
-        return;
-
-    if (status >= 0) {
-        Local <Object> bufObj;
-        bufObj = Nan::NewBuffer((char *)tx, status).ToLocalChecked();
-        buffer = bufObj;
-    } else {
-        free(tx);
-        buffer = Nan::Null();
-    }
-
-    Local<Value> arguments[2] = {
-        buffer,
-        Nan::New(status)
-    };
-    callback->Call(2, arguments);
-
-    delete callback;
-}
-
-NAN_METHOD(bind_sol_uart_write) {
+NAN_METHOD(bind_sol_uart_feed) {
     VALIDATE_ARGUMENT_COUNT(info, 3);
     VALIDATE_ARGUMENT_TYPE_OR_NULL(info, 0, IsObject);
     VALIDATE_ARGUMENT_TYPE_OR_NULL(info, 1, IsObject);
@@ -140,36 +164,41 @@ NAN_METHOD(bind_sol_uart_write) {
         return;
 
     sol_uart *uart = uart_data->uart;
-    unsigned char *outputBuffer = (unsigned char *) 0;
-
     if (!node::Buffer::HasInstance(info[1])) {
         Nan::ThrowTypeError("Argument 1 must be a Buffer");
         return;
     }
 
     size_t length = node::Buffer::Length(info[1]);
+    Nan::Persistent<Value> *js_buffer = new Nan::Persistent<Value>(info[1]);
 
-    outputBuffer = (unsigned char *) malloc(length * sizeof(unsigned char));
-    if (!outputBuffer) {
-        Nan::ThrowError("Failed to allocate memory for output buffer");
+    struct sol_blob *blob;
+    blob = sol_blob_new(&SOL_BLOB_TYPE_NO_FREE_DATA, NULL,
+        node::Buffer::Data(info[1]), length);
+    if (!blob) {
+        js_buffer->Reset();
+        delete js_buffer;
+        Nan::ThrowError("Failed to allocate memory for blob");
         return;
     }
 
-    memcpy(outputBuffer, node::Buffer::Data(info[1]), length);
+    CallbackInfo *callback_info = new CallbackInfo;
+    callback_info->callback = new Nan::Callback(Local<Function>::Cast(info[2]));
+    callback_info->js_buffer = js_buffer;
 
-    Nan::Callback *callback =
-        new Nan::Callback(Local<Function>::Cast(info[2]));
-    bool returnValue =
-        sol_uart_write(uart, outputBuffer, length, sol_uart_write_callback,
-            uart_data);
+    // Map JS feed callback info to a blob
+    uart_data->feed_callbacks_map[blob] = callback_info;
+    int returnValue = sol_uart_feed(uart, blob);
+    if (returnValue < 0) {
+        uart_data->feed_callbacks_map.erase(blob);
+        js_buffer->Reset();
+        delete js_buffer;
 
-    if (!returnValue) {
-        delete callback;
-        free(outputBuffer);
-    } else {
-        uart_data->tx_cb = callback;
+        delete callback_info->callback;
+        delete callback_info;
     }
 
+    sol_blob_unref(blob);
     info.GetReturnValue().Set(Nan::New(returnValue));
 }
 
