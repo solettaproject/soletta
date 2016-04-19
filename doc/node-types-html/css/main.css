@@ -155,6 +155,27 @@ body{
     right:0px;
     top:91px;
     bottom:0px;
+    padding-right:22px; /*Added padding to prevent overlap of Nodetype title with scroll bar*/ 
+    overflow-y: auto;   /*Added scrollbar*/
+    overflow-x: hidden;  
+}
+/*Scroll bar styling*/
+::-webkit-scrollbar {
+  height: 8px;
+  width: 6px;
+  background-color: #4f5357;
+}
+
+::-webkit-scrollbar-track {
+    border-radius: 5px;
+}
+
+::-webkit-scrollbar-thumb {
+    border-radius: 5px;
+    background-color: #33b7e9;
+}
+::-webkit-scrollbar-corner{
+  background-color: #4f5357;
 }
 #example-image-container{
     position: absolute;
