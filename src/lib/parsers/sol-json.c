@@ -18,6 +18,7 @@
 
 #include <ctype.h>
 #include <errno.h>
+#include <limits.h>
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
@@ -787,6 +788,477 @@ sol_json_serialize_boolean(struct sol_buffer *buffer, bool val)
     SOL_INT_CHECK(r, < 0, r);
 
     return 0;
+}
+
+static int
+memdesc_serialize_int64(const struct sol_memdesc *desc, int64_t value, struct sol_buffer *buffer)
+{
+    return sol_json_serialize_int64(buffer, value);
+}
+
+static int
+memdesc_serialize_uint64(const struct sol_memdesc *desc, uint64_t value, struct sol_buffer *buffer)
+{
+    return sol_json_serialize_uint64(buffer, value);
+}
+
+static int
+memdesc_serialize_double(const struct sol_memdesc *desc, double value, struct sol_buffer *buffer)
+{
+    return sol_json_serialize_double(buffer, value);
+}
+
+static int
+memdesc_serialize_boolean(const struct sol_memdesc *desc, bool value, struct sol_buffer *buffer)
+{
+    return sol_json_serialize_boolean(buffer, value);
+}
+
+static int
+memdesc_serialize_pointer(const struct sol_memdesc *desc, const void *value, struct sol_buffer *buffer)
+{
+    if (value)
+        return sol_json_serialize_uint64(buffer, (uintptr_t)value);
+    else
+        return sol_json_serialize_null(buffer);
+}
+
+static int
+memdesc_serialize_string(const struct sol_memdesc *desc, const char *value, struct sol_buffer *buffer)
+{
+    if (value)
+        return sol_json_serialize_string(buffer, value);
+    else
+        return sol_json_serialize_null(buffer);
+}
+
+static int
+memdesc_serialize_structure_member_key(const struct sol_memdesc *member, struct sol_buffer *buf, const struct sol_memdesc_serialize_options *opts, struct sol_buffer *prefix)
+{
+    int r;
+
+    if (opts->structure.key.start.len) {
+        r = sol_buffer_append_slice(buf, opts->structure.key.start);
+        if (r < 0)
+            return r;
+    }
+
+    r = sol_json_serialize_string(buf, member->name);
+    if (r < 0)
+        return r;
+
+    if (opts->structure.key.end.len)
+        return sol_buffer_append_slice(buf, opts->structure.key.end);
+
+    return 0;
+}
+
+static int
+memdesc_serialize_structure_member(const struct sol_memdesc *structure, const struct sol_memdesc *member, const void *container, struct sol_buffer *buf, const struct sol_memdesc_serialize_options *opts, struct sol_buffer *prefix, bool is_first)
+{
+    int r;
+
+    if (!is_first) {
+        if (opts->structure.separator.len) {
+            r = sol_buffer_append_slice(buf, opts->structure.separator);
+            if (r < 0)
+                return r;
+        }
+    }
+
+    r = memdesc_serialize_structure_member_key(member, buf, opts, prefix);
+    if (r < 0)
+        return r;
+
+    return sol_memdesc_serialize(member, container, buf, opts, prefix);
+}
+
+SOL_API int
+sol_json_serialize_memdesc(struct sol_buffer *buffer, const struct sol_memdesc *desc, const void *container, bool detailed)
+{
+    const struct sol_memdesc_serialize_options json_serialize_options = {
+        SOL_SET_API_VERSION(.api_version = SOL_MEMDESC_SERIALIZE_OPTIONS_API_VERSION, )
+        .serialize_int64 = memdesc_serialize_int64,
+        .serialize_uint64 = memdesc_serialize_uint64,
+        .serialize_double = memdesc_serialize_double,
+        .serialize_boolean = memdesc_serialize_boolean,
+        .serialize_pointer = memdesc_serialize_pointer,
+        .serialize_string = memdesc_serialize_string,
+        .serialize_structure_member = memdesc_serialize_structure_member,
+        .structure = {
+            .container = {
+                .start = SOL_STR_SLICE_LITERAL("{"),
+                .end = SOL_STR_SLICE_LITERAL("}"),
+            },
+            .key = {
+                .end = SOL_STR_SLICE_LITERAL(":"),
+            },
+            .separator = SOL_STR_SLICE_LITERAL(","),
+            .show_key = true,
+        },
+        .array = {
+            .container = {
+                .start = SOL_STR_SLICE_LITERAL("["),
+                .end = SOL_STR_SLICE_LITERAL("]"),
+            },
+            .separator = SOL_STR_SLICE_LITERAL(","),
+            .show_index = false,
+        },
+        .detailed = detailed,
+    };
+
+    SOL_NULL_CHECK(buffer, -EINVAL);
+    SOL_NULL_CHECK(desc, -EINVAL);
+    SOL_NULL_CHECK(container, -EINVAL);
+
+    return sol_memdesc_serialize(desc, container, buffer, &json_serialize_options, NULL);
+}
+
+static inline const struct sol_memdesc *
+find_memdesc_for_key(const struct sol_memdesc *desc, const struct sol_json_token *token)
+{
+    const struct sol_memdesc *found;
+    struct sol_buffer buf;
+    struct sol_str_slice key;
+
+    if (sol_json_token_get_unescaped_string(token, &buf) < 0)
+        return NULL;
+
+    key = sol_buffer_get_slice(&buf);
+    found = sol_memdesc_find_structure_member(desc, key);
+    sol_buffer_fini(&buf);
+    return found;
+}
+
+SOL_API int
+sol_json_load_memdesc(const struct sol_json_token *token, const struct sol_memdesc *desc, void *container)
+{
+    void *mem;
+    int r;
+
+    SOL_NULL_CHECK(token, -EINVAL);
+    SOL_NULL_CHECK(desc, -EINVAL);
+    SOL_NULL_CHECK(container, -EINVAL);
+
+    mem = sol_memdesc_get_memory(desc, container);
+    SOL_NULL_CHECK(mem, -EINVAL);
+
+    switch (desc->type) {
+    case SOL_MEMDESC_TYPE_UNKNOWN:
+        return -EINVAL;
+    case SOL_MEMDESC_TYPE_UINT8: {
+        uint8_t *m = mem;
+        uint64_t v;
+
+        r = sol_json_token_get_uint64(token, &v);
+        if (r < 0)
+            return r;
+
+        if (v > UINT8_MAX)
+            return -ERANGE;
+
+        *m = v;
+        return 0;
+    }
+    case SOL_MEMDESC_TYPE_UINT16: {
+        uint16_t *m = mem;
+        uint64_t v;
+
+        r = sol_json_token_get_uint64(token, &v);
+        if (r < 0)
+            return r;
+
+        if (v > UINT16_MAX)
+            return -ERANGE;
+
+        *m = v;
+        return 0;
+    }
+    case SOL_MEMDESC_TYPE_UINT32:
+        return sol_json_token_get_uint32(token, mem);
+    case SOL_MEMDESC_TYPE_UINT64:
+        return sol_json_token_get_uint64(token, mem);
+    case SOL_MEMDESC_TYPE_ULONG: {
+        unsigned long *m = mem;
+        uint64_t v;
+
+        r = sol_json_token_get_uint64(token, &v);
+        if (r < 0)
+            return r;
+
+        if (v > ULONG_MAX)
+            return -ERANGE;
+
+        *m = v;
+        return 0;
+    }
+    case SOL_MEMDESC_TYPE_SIZE: {
+        size_t *m = mem;
+        uint64_t v;
+
+        r = sol_json_token_get_uint64(token, &v);
+        if (r < 0)
+            return r;
+
+        if (v > SIZE_MAX)
+            return -ERANGE;
+
+        *m = v;
+        return 0;
+    }
+    case SOL_MEMDESC_TYPE_INT8: {
+        int8_t *m = mem;
+        int64_t v;
+
+        r = sol_json_token_get_int64(token, &v);
+        if (r < 0)
+            return r;
+
+        if (v < INT8_MIN || v > INT8_MAX)
+            return -ERANGE;
+
+        *m = v;
+        return 0;
+    }
+    case SOL_MEMDESC_TYPE_INT16: {
+        int16_t *m = mem;
+        int64_t v;
+
+        r = sol_json_token_get_int64(token, &v);
+        if (r < 0)
+            return r;
+
+        if (v < INT16_MIN || v > INT16_MAX)
+            return -ERANGE;
+
+        *m = v;
+        return 0;
+    }
+    case SOL_MEMDESC_TYPE_INT32:
+        return sol_json_token_get_int32(token, mem);
+    case SOL_MEMDESC_TYPE_INT64:
+        return sol_json_token_get_int64(token, mem);
+    case SOL_MEMDESC_TYPE_LONG: {
+        long *m = mem;
+        int64_t v;
+
+        r = sol_json_token_get_int64(token, &v);
+        if (r < 0)
+            return r;
+
+        if (v < LONG_MIN || v > LONG_MAX)
+            return -ERANGE;
+
+        *m = v;
+        return 0;
+    }
+    case SOL_MEMDESC_TYPE_SSIZE: {
+        ssize_t *m = mem;
+        int64_t v;
+
+        r = sol_json_token_get_int64(token, &v);
+        if (r < 0)
+            return r;
+
+        if (v < SSIZE_MIN || v > SSIZE_MAX)
+            return -ERANGE;
+
+        *m = v;
+        return 0;
+    }
+    case SOL_MEMDESC_TYPE_BOOLEAN: {
+        enum sol_json_type tt;
+        bool *m = mem;
+
+        tt = sol_json_token_get_type(token);
+        if (tt == SOL_JSON_TYPE_TRUE)
+            *m = true;
+        else if (tt == SOL_JSON_TYPE_FALSE)
+            *m = false;
+        else
+            return -EINVAL;
+        return 0;
+    }
+    case SOL_MEMDESC_TYPE_DOUBLE:
+        return sol_json_token_get_double(token, mem);
+    case SOL_MEMDESC_TYPE_CONST_STRING:
+        SOL_WRN("SOL_MEMDESC_TYPE_CONST_STRING is not supported when loading from JSON, desc=%p '%s'", desc, desc->name);
+        return -EINVAL;
+    case SOL_MEMDESC_TYPE_STRING: {
+        char **m = mem;
+
+        free(*m);
+        *m = sol_json_token_get_unescaped_string_copy(token);
+        return 0;
+    }
+    case SOL_MEMDESC_TYPE_PTR: {
+        enum sol_json_type tt;
+        void **m = mem;
+
+        tt = sol_json_token_get_type(token);
+        if (tt == SOL_JSON_TYPE_NULL) {
+            if (*m && desc->children)
+                sol_memdesc_free(desc->children, *m);
+            *m = NULL;
+        } else if (!desc->children) {
+            uint64_t v;
+
+            r = sol_json_token_get_uint64(token, &v);
+            if (v > ULONG_MAX)
+                return -ERANGE;
+            *m = (void *)(uintptr_t)v;
+        } else {
+            if (!*m) {
+                *m = sol_memdesc_new_with_defaults(desc->children);
+                if (!*m)
+                    return -ENOMEM;
+            }
+            return sol_json_load_memdesc(token, desc->children, *m);
+        }
+        return 0;
+    }
+    case SOL_MEMDESC_TYPE_STRUCTURE: {
+        const struct sol_memdesc *itr;
+        struct sol_json_scanner scanner;
+        struct sol_json_token sub, key, value;
+        enum sol_json_loop_reason reason;
+        enum sol_json_type tt;
+        bool *done;
+        size_t len, idx;
+
+        if (!desc->children) {
+            SOL_WRN("desc=%p (%s) is SOL_MEMDESC_TYPE_STRUCTURE but does not provide children", desc, desc->name);
+            return -EINVAL;
+        }
+#ifndef SOL_NO_API_VERSION
+        if (desc->children->api_version != SOL_MEMDESC_API_VERSION) {
+            SOL_WRN("children %p->api_version(%" PRIu16 ") != SOL_MEMDESC_API_VERSION (%" PRIu16 ")",
+                desc->children, desc->children->api_version, SOL_MEMDESC_API_VERSION);
+            return -EINVAL;
+        }
+#endif
+
+        tt = sol_json_token_get_type(token);
+        if (tt != SOL_JSON_TYPE_OBJECT_START)
+            return -EINVAL;
+
+        len = 0;
+        SOL_MEMDESC_FOREACH_STRUCTURE_MEMBER(desc, itr) {
+            len++;
+        }
+
+        done = alloca(len * sizeof(bool));
+        memset(done, 0, len * sizeof(bool));
+
+        sol_json_scanner_init_from_token(&scanner, token);
+        SOL_JSON_SCANNER_OBJECT_LOOP (&scanner, &sub, &key, &value, reason) {
+            itr = find_memdesc_for_key(desc, &key);
+            if (!itr) {
+                SOL_INF("ignored key %.*s: no matching memdesc.", SOL_STR_SLICE_PRINT(sol_json_token_to_slice(&key)));
+                continue;
+            }
+
+            r = sol_json_load_memdesc(&value, itr, mem);
+            if (r < 0)
+                return r;
+
+            idx = itr - desc->children;
+            done[idx] = true;
+        }
+        if (reason != SOL_JSON_LOOP_REASON_OK)
+            return -EINVAL;
+
+        r = 0;
+        SOL_MEMDESC_FOREACH_STRUCTURE_MEMBER(desc, itr) {
+            idx = itr - desc->children;
+            if (!itr->optional && !done[idx]) {
+                SOL_WRN("required member '%s' was not provided.", itr->name);
+                r = -ENOENT;
+            }
+        }
+
+        return r;
+    }
+    case SOL_MEMDESC_TYPE_ARRAY: {
+        struct sol_json_scanner scanner;
+        struct sol_json_token sub;
+        enum sol_json_loop_reason reason;
+        enum sol_json_type tt;
+        size_t len;
+
+        if (!desc->children) {
+            SOL_WRN("desc=%p (%s) is SOL_MEMDESC_TYPE_ARRAY but does not provide children", desc, desc->name);
+            return -EINVAL;
+        }
+#ifndef SOL_NO_API_VERSION
+        if (desc->children->api_version != SOL_MEMDESC_API_VERSION) {
+            SOL_WRN("children %p->api_version(%" PRIu16 ") != SOL_MEMDESC_API_VERSION (%" PRIu16 ")",
+                desc->children, desc->children->api_version, SOL_MEMDESC_API_VERSION);
+            return -EINVAL;
+        }
+#endif
+        if (!desc->ops) {
+            SOL_WRN("desc=%p (%s) is SOL_MEMDESC_TYPE_ARRAY but does not provide ops", desc, desc->name);
+            return -EINVAL;
+        }
+#ifndef SOL_NO_API_VERSION
+        if (desc->ops->api_version != SOL_MEMDESC_OPS_API_VERSION) {
+            SOL_WRN("ops %p->api_version(%" PRIu16 ") != SOL_MEMDESC_OPS_API_VERSION (%" PRIu16 ")",
+                desc->ops, desc->ops->api_version, SOL_MEMDESC_OPS_API_VERSION);
+            return -EINVAL;
+        }
+#endif
+        if (!desc->ops->array.resize) {
+            SOL_WRN("desc=%p (%s) is SOL_MEMDESC_TYPE_ARRAY but does not provide ops->array.resize", desc, desc->name);
+            return -EINVAL;
+        }
+
+        tt = sol_json_token_get_type(token);
+        if (tt != SOL_JSON_TYPE_ARRAY_START)
+            return -EINVAL;
+
+        sol_json_scanner_init_from_token(&scanner, token);
+        len = 0;
+        SOL_JSON_SCANNER_ARRAY_LOOP_ALL(&scanner, &sub, reason) {
+            if (!sol_json_scanner_skip_over(&scanner, &sub))
+                return -EINVAL;
+            len++;
+        }
+        if (reason != SOL_JSON_LOOP_REASON_OK)
+            return -EINVAL;
+
+        r = sol_memdesc_resize_array(desc, mem, len);
+        if (r < 0)
+            return r;
+
+        sol_json_scanner_init_from_token(&scanner, token);
+        len = 0;
+        SOL_JSON_SCANNER_ARRAY_LOOP_ALL(&scanner, &sub, reason) {
+            struct sol_json_token el = sub;
+            void *itmem;
+
+            if (!sol_json_scanner_skip_over(&scanner, &el))
+                return -EINVAL;
+            el.start = sub.start;
+
+            itmem = sol_memdesc_get_array_element(desc, mem, len);
+            if (!itmem)
+                return -EINVAL;
+            r = sol_json_load_memdesc(&el, desc->children, itmem);
+            if (r < 0) {
+                sol_memdesc_resize_array(desc, mem, len);
+                return r;
+            }
+
+            sub.end = el.end;
+            len++;
+        }
+
+        return 0;
+    }
+    default:
+        return -EINVAL;
+    }
 }
 
 #define MAX_BYTES_UNICODE 3
