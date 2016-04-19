@@ -559,6 +559,7 @@ sol_coap_packet_new(struct sol_coap_packet *old)
     return pkt;
 
 err:
+    errno = -r;
     free(pkt);
     return NULL;
 }
@@ -1066,6 +1067,7 @@ sol_coap_packet_request_new(sol_coap_method_t method, sol_coap_msgtype_t type)
     return pkt;
 
 err:
+    errno = -r;
     sol_coap_packet_unref(pkt);
     return NULL;
 }
