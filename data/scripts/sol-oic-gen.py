@@ -71,7 +71,9 @@ def load_json_schema(directory, path, schemas={}):
                 props['required'] = field in required
 
                 if props['read_only']:
-                    props['description'] = props['description'][len('ReadOnly,'):].strip()
+                    props['short_description'] = doc[len('ReadOnly,'):].strip()
+                else:
+                    props['short_description'] = props.get('description', None)
 
         descr['title'] = title
 
@@ -133,7 +135,7 @@ def props_are_equivalent(p1, p2):
 def object_fields_common_c(state_struct_name, name, props):
     fields = []
     for prop_name, descr in props.items():
-        doc = '/* %s */' % descr.get('description', '???')
+        doc = '/* %s */' % descr.get('short_description', '???')
         if 'enum' in descr:
             var_type = 'enum %s_%s' % (state_struct_name, prop_name)
         else:
@@ -758,8 +760,8 @@ def generate_enums_common_c(name, props):
     output = []
     for field, descr in props.items():
         if 'enum' in descr:
-            if 'description' in descr:
-                output.append('''/* %s */''' % descr['description'])
+            if 'short_description' in descr:
+                output.append('''/* %s */''' % descr['short_description'])
             output.append('''enum %(struct_name)s_%(field_name)s { %(items)s };''' % {
                 'struct_name': name,
                 'field_name': field,
@@ -871,7 +873,7 @@ def generate_object_json(resource_type, struct_name, node_name, title, props, se
 
         in_ports.append({
             'data_type': JSON_TO_SOL_JSON[prop_descr.get('type', 'string')],
-            'description': prop_descr.get('description', '???'),
+            'description': prop_descr.get('short_description', '???'),
             'methods': {
                 'process': '%s_set_%s' % (struct_name, prop_name)
             },
@@ -894,7 +896,7 @@ def generate_object_json(resource_type, struct_name, node_name, title, props, se
     for prop_name, prop_descr in props.items():
         out_ports.append({
             'data_type': JSON_TO_SOL_JSON[prop_descr.get('type', 'string')],
-            'description': prop_descr.get('description', '???'),
+            'description': prop_descr.get('short_description', '???'),
             'name': '%s' % get_port_name(prop_name)
         })
 
