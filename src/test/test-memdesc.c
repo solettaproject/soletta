@@ -1204,4 +1204,185 @@ test_vector_SOL_MEMDESC_TYPE_ARRAY(void)
     sol_vector_clear(&defval.v);
 }
 
+DEFINE_TEST(test_serialize);
+static void
+test_serialize(void)
+{
+    struct myst {
+        uint64_t u64;
+        struct sol_vector v;
+        uint8_t u8;
+    };
+    struct myst defval = {
+        .u64 = 0xf234567890123456,
+        .v = SOL_VECTOR_INIT(struct sol_vector),
+        .u8 = 0x72,
+    };
+    struct sol_memdesc desc = {
+        SOL_SET_API_VERSION(.api_version = SOL_MEMDESC_API_VERSION, )
+        .size = sizeof(struct myst),
+        .type = SOL_MEMDESC_TYPE_STRUCTURE,
+        .defcontent.p = &defval,
+        .structure_members = (const struct sol_memdesc_structure_member[]){
+            {
+                .base = {
+                    SOL_SET_API_VERSION(.api_version = SOL_MEMDESC_API_VERSION, )
+                    .type = SOL_MEMDESC_TYPE_UINT64,
+                },
+                .offset = offsetof(struct myst, u64),
+                .name = "u64",
+            },
+            {
+                .base = {
+                    SOL_SET_API_VERSION(.api_version = SOL_MEMDESC_API_VERSION, )
+                    .type = SOL_MEMDESC_TYPE_ARRAY,
+                    .size = sizeof(struct sol_vector),
+                    .ops = &SOL_MEMDESC_OPS_VECTOR,
+                    .array_item = &(const struct sol_memdesc){
+                        SOL_SET_API_VERSION(.api_version = SOL_MEMDESC_API_VERSION, )
+                        .size = sizeof(struct sol_vector),
+                        .type = SOL_MEMDESC_TYPE_ARRAY,
+                        .ops = &SOL_MEMDESC_OPS_VECTOR,
+                        .array_item = &(const struct sol_memdesc){
+                            SOL_SET_API_VERSION(.api_version = SOL_MEMDESC_API_VERSION, )
+                            .size = sizeof(struct sol_key_value),
+                            .type = SOL_MEMDESC_TYPE_STRUCTURE,
+                            .structure_members = (const struct sol_memdesc_structure_member[]){
+                                {
+                                    .base = {
+                                        SOL_SET_API_VERSION(.api_version = SOL_MEMDESC_API_VERSION, )
+                                        .type = SOL_MEMDESC_TYPE_STRING,
+                                    },
+                                    .offset = offsetof(struct sol_key_value, key),
+                                    .name = "key",
+                                },
+                                {
+                                    .base = {
+                                        SOL_SET_API_VERSION(.api_version = SOL_MEMDESC_API_VERSION, )
+                                        .type = SOL_MEMDESC_TYPE_STRING,
+                                    },
+                                    .offset = offsetof(struct sol_key_value, value),
+                                    .name = "value",
+                                },
+                                {}
+                            },
+                        },
+                    },
+                },
+                .offset = offsetof(struct myst, v),
+                .name = "v",
+            },
+            {
+                .base = {
+                    SOL_SET_API_VERSION(.api_version = SOL_MEMDESC_API_VERSION, )
+                    .type = SOL_MEMDESC_TYPE_UINT8,
+                },
+                .offset = offsetof(struct myst, u8),
+                .name = "u8",
+            },
+            {}
+        },
+    };
+    const char expected[] = ""
+        "{\n"
+        "    .u64 = 17452669531780691030,\n"
+        "    .v = {\n"
+        "        [0] = {\n"
+        "            [0] = {\n"
+        "                .key = \"key\\t0\",\n"
+        "                .value = \"value\\\"0\\\"\"}},\n"
+        "        [1] = {\n"
+        "            [0] = {\n"
+        "                .key = \"key\\t100\",\n"
+        "                .value = \"value\\\"100\\\"\"},\n"
+        "            [1] = {\n"
+        "                .key = \"key\\t101\",\n"
+        "                .value = \"value\\\"101\\\"\"}},\n"
+        "        [2] = {\n"
+        "            [0] = {\n"
+        "                .key = \"key\\t200\",\n"
+        "                .value = \"value\\\"200\\\"\"},\n"
+        "            [1] = {\n"
+        "                .key = \"key\\t201\",\n"
+        "                .value = \"value\\\"201\\\"\"},\n"
+        "            [2] = {\n"
+        "                .key = \"key\\t202\",\n"
+        "                .value = \"value\\\"202\\\"\"}},\n"
+        "        [3] = {\n"
+        "            [0] = {\n"
+        "                .key = \"key\\t300\",\n"
+        "                .value = \"value\\\"300\\\"\"},\n"
+        "            [1] = {\n"
+        "                .key = \"key\\t301\",\n"
+        "                .value = \"value\\\"301\\\"\"},\n"
+        "            [2] = {\n"
+        "                .key = \"key\\t302\",\n"
+        "                .value = \"value\\\"302\\\"\"},\n"
+        "            [3] = {\n"
+        "                .key = \"key\\t303\",\n"
+        "                .value = \"value\\\"303\\\"\"}}},\n"
+        "    .u8 = 114}"
+        "";
+    struct sol_buffer out = SOL_BUFFER_INIT_EMPTY;
+    struct myst a;
+    struct sol_key_value *kv;
+    size_t i, j;
+    int r;
+
+    for (j = 0; j < 4; j++) {
+        struct sol_vector *vec = sol_vector_append(&defval.v);
+
+        ASSERT(vec);
+        sol_vector_init(vec, sizeof(struct sol_key_value));
+        for (i = 0; i < (j + 1); i++) {
+            char *k, *v;
+
+            r = asprintf(&k, "key\t%zd", i + j * 100);
+            ASSERT(r > 0);
+
+            r = asprintf(&v, "value\"%zd\"", i + j * 100);
+            ASSERT(r > 0);
+
+            kv = sol_vector_append(vec);
+            ASSERT(kv);
+            kv->key = k;
+            kv->value = v;
+        }
+    }
+
+    r = sol_memdesc_init_defaults(&desc, &a);
+    ASSERT_INT_EQ(r, 0);
+    ASSERT_INT_EQ(a.v.len, defval.v.len);
+
+    for (j = 0; j < defval.v.len; j++) {
+        const struct sol_vector *vec_a = sol_vector_get(&a.v, j);
+        const struct sol_vector *vec_b = sol_vector_get(&defval.v, j);
+
+        ASSERT(vec_a);
+        ASSERT(vec_b);
+        ASSERT_INT_EQ(vec_a->len, vec_b->len);
+    }
+
+    r = sol_memdesc_serialize(&desc, &a, &out, NULL, NULL);
+    ASSERT_INT_EQ(r, 0);
+
+    ASSERT_STR_EQ(out.data, expected);
+
+    sol_memdesc_free_content(&desc, &a);
+    sol_buffer_fini(&out);
+
+    for (j = 0; j < defval.v.len; j++) {
+        struct sol_vector *vec = sol_vector_get(&defval.v, j);
+
+        for (i = 0; i <  vec->len; i++) {
+            kv = sol_vector_get(vec, i);
+            free((void *)kv->key);
+            free((void *)kv->value);
+        }
+
+        sol_vector_clear(vec);
+    }
+    sol_vector_clear(&defval.v);
+}
+
 TEST_MAIN();

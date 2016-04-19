@@ -802,3 +802,542 @@ SOL_API const struct sol_memdesc_ops SOL_MEMDESC_OPS_PTR_VECTOR = {
         .resize = vector_ops_resize_array,
     },
 };
+
+static int
+serialize_indent(struct sol_buffer *buf, struct sol_buffer *prefix, const struct sol_str_slice str)
+{
+    int r;
+
+    if (!str.len)
+        return 0;
+
+    r = sol_buffer_append_slice(prefix, str);
+    if (r < 0)
+        return r;
+
+    return sol_buffer_append_buffer(buf, prefix);
+}
+
+static int
+serialize_deindent(struct sol_buffer *buf, struct sol_buffer *prefix, const struct sol_str_slice str, bool output)
+{
+    int r;
+
+    if (!str.len)
+        return 0;
+
+    SOL_INT_CHECK(prefix->used, < str.len, -EINVAL);
+
+    r = sol_buffer_remove_data(prefix, prefix->used - str.len, str.len);
+    if (r < 0)
+        return r;
+
+    if (output)
+        return sol_buffer_append_buffer(buf, prefix);
+    return 0;
+}
+
+static int
+default_serialize_int64(const struct sol_memdesc *desc, int64_t value, struct sol_buffer *buffer)
+{
+    return sol_buffer_append_printf(buffer, "%" PRIi64, value);
+}
+
+static int
+default_serialize_uint64(const struct sol_memdesc *desc, uint64_t value, struct sol_buffer *buffer)
+{
+    return sol_buffer_append_printf(buffer, "%" PRIu64, value);
+}
+
+static int
+default_serialize_double(const struct sol_memdesc *desc, double value, struct sol_buffer *buffer)
+{
+    return sol_buffer_append_printf(buffer, "%g", value);
+}
+
+static int
+default_serialize_boolean(const struct sol_memdesc *desc, bool value, struct sol_buffer *buffer)
+{
+    if (value)
+        return sol_buffer_append_slice(buffer, sol_str_slice_from_str("true"));
+    else
+        return sol_buffer_append_slice(buffer, sol_str_slice_from_str("false"));
+}
+
+static int
+default_serialize_pointer(const struct sol_memdesc *desc, const void *value, struct sol_buffer *buffer)
+{
+    return sol_buffer_append_printf(buffer, "%p", value);
+}
+
+static int
+default_serialize_string(const struct sol_memdesc *desc, const char *value, struct sol_buffer *buffer)
+{
+    const char *last = value;
+    const char *itr;
+    int r;
+
+    if (!value)
+        return sol_buffer_append_slice(buffer, sol_str_slice_from_str("NULL"));
+
+    r = sol_buffer_append_char(buffer, '"');
+    if (r < 0)
+        return r;
+
+    for (itr = value; *itr != '\0'; itr++) {
+        if (!isprint(*itr) || *itr == '"') {
+            r = sol_buffer_append_bytes(buffer, (const uint8_t *)last, itr - last);
+            if (r < 0)
+                return r;
+            last = itr + 1;
+
+            if (*itr == '"')
+                r = sol_buffer_append_slice(buffer, sol_str_slice_from_str("\\\""));
+            else if (*itr == '\t')
+                r = sol_buffer_append_slice(buffer, sol_str_slice_from_str("\\t"));
+            else if (*itr == '\n')
+                r = sol_buffer_append_slice(buffer, sol_str_slice_from_str("\\n"));
+            else if (*itr == '\r')
+                r = sol_buffer_append_slice(buffer, sol_str_slice_from_str("\\r"));
+            else if (*itr == '\f')
+                r = sol_buffer_append_slice(buffer, sol_str_slice_from_str("\\f"));
+            else if (*itr == '\v')
+                r = sol_buffer_append_slice(buffer, sol_str_slice_from_str("\\v"));
+            else
+                r = sol_buffer_append_printf(buffer, "\\x%x", *itr);
+            if (r < 0)
+                return r;
+        }
+    }
+
+    if (last < itr) {
+        r = sol_buffer_append_bytes(buffer, (const uint8_t *)last, itr - last);
+        if (r < 0)
+            return r;
+    }
+
+    return sol_buffer_append_char(buffer, '"');
+}
+
+static int
+default_serialize_structure_member_key(const struct sol_memdesc_structure_member *member, struct sol_buffer *buf, const struct sol_memdesc_serialize_options *opts, struct sol_buffer *prefix)
+{
+    int r;
+
+    r = serialize_indent(buf, prefix, opts->structure.key.indent);
+    if (r < 0)
+        return r;
+
+    if (opts->structure.key.start.len) {
+        r = sol_buffer_append_slice(buf, opts->structure.key.start);
+        if (r < 0)
+            return r;
+    }
+
+    r = sol_buffer_append_slice(buf, sol_str_slice_from_str(member->name));
+    if (r < 0)
+        return r;
+
+    if (opts->structure.key.end.len) {
+        r = sol_buffer_append_slice(buf, opts->structure.key.end);
+        if (r < 0)
+            return r;
+    }
+
+    return 0;
+}
+
+static int
+default_serialize_structure_member(const struct sol_memdesc *structure, const struct sol_memdesc_structure_member *member, const void *memory, struct sol_buffer *buf, const struct sol_memdesc_serialize_options *opts, struct sol_buffer *prefix, bool is_first)
+{
+    int r;
+
+    if (!is_first) {
+        if (opts->structure.separator.len) {
+            r = sol_buffer_append_slice(buf, opts->structure.separator);
+            if (r < 0)
+                return r;
+        }
+    }
+
+    if (opts->structure.show_key) {
+        r = default_serialize_structure_member_key(member, buf, opts, prefix);
+        if (r < 0)
+            return r;
+    }
+
+    r = serialize_indent(buf, prefix, opts->structure.value.indent);
+    if (r < 0)
+        return r;
+
+    if (opts->structure.value.start.len) {
+        r = sol_buffer_append_slice(buf, opts->structure.value.start);
+        if (r < 0)
+            return r;
+    }
+
+    r = sol_memdesc_serialize(&member->base, memory, buf, opts, prefix);
+    if (r < 0)
+        return r;
+
+    if (opts->structure.value.end.len) {
+        r = sol_buffer_append_slice(buf, opts->structure.value.end);
+        if (r < 0)
+            return r;
+    }
+
+    r = serialize_deindent(buf, prefix, opts->structure.value.indent, false);
+    if (r < 0)
+        return r;
+
+    if (opts->structure.show_key)
+        return serialize_deindent(buf, prefix, opts->structure.key.indent, false);
+    return 0;
+}
+
+static int
+default_serialize_array_item_index(size_t idx, struct sol_buffer *buf, const struct sol_memdesc_serialize_options *opts, struct sol_buffer *prefix)
+{
+    int r;
+
+    r = serialize_indent(buf, prefix, opts->array.index.indent);
+    if (r < 0)
+        return r;
+
+    if (opts->array.index.start.len) {
+        r = sol_buffer_append_slice(buf, opts->array.index.start);
+        if (r < 0)
+            return r;
+    }
+
+    r = sol_buffer_append_printf(buf, "%zu", idx);
+    if (r < 0)
+        return r;
+
+    if (opts->array.index.end.len) {
+        r = sol_buffer_append_slice(buf, opts->array.index.end);
+        if (r < 0)
+            return r;
+    }
+
+    return 0;
+}
+
+static int
+default_serialize_array_item(const struct sol_memdesc *desc, size_t idx, const void *memory, struct sol_buffer *buf, const struct sol_memdesc_serialize_options *opts, struct sol_buffer *prefix)
+{
+    int r;
+
+    if (idx > 0) {
+        if (opts->array.separator.len) {
+            r = sol_buffer_append_slice(buf, opts->array.separator);
+            if (r < 0)
+                return r;
+        }
+    }
+
+    if (opts->array.show_index) {
+        r = default_serialize_array_item_index(idx, buf, opts, prefix);
+        if (r < 0)
+            return r;
+    }
+
+    r = serialize_indent(buf, prefix, opts->array.value.indent);
+    if (r < 0)
+        return r;
+
+    if (opts->array.value.start.len) {
+        r = sol_buffer_append_slice(buf, opts->array.value.start);
+        if (r < 0)
+            return r;
+    }
+
+    r = sol_memdesc_serialize(desc->array_item, memory, buf, opts, prefix);
+    if (r < 0)
+        return r;
+
+    if (opts->array.value.end.len) {
+        r = sol_buffer_append_slice(buf, opts->array.value.end);
+        if (r < 0)
+            return r;
+    }
+
+    r = serialize_deindent(buf, prefix, opts->array.value.indent, false);
+    if (r < 0)
+        return r;
+
+    if (opts->array.show_index)
+        return serialize_deindent(buf, prefix, opts->array.index.indent, false);
+    return 0;
+}
+
+SOL_API const struct sol_memdesc_serialize_options SOL_MEMDESC_SERIALIZE_OPTIONS_DEFAULT = {
+    SOL_SET_API_VERSION(.api_version = SOL_MEMDESC_SERIALIZE_OPTIONS_API_VERSION, )
+    .serialize_int64 = default_serialize_int64,
+    .serialize_uint64 = default_serialize_uint64,
+    .serialize_double = default_serialize_double,
+    .serialize_boolean = default_serialize_boolean,
+    .serialize_pointer = default_serialize_pointer,
+    .serialize_string = default_serialize_string,
+    .serialize_structure_member = default_serialize_structure_member,
+    .serialize_array_item = default_serialize_array_item,
+    .structure = {
+        .container = {
+            .start = SOL_STR_SLICE_LITERAL("{\n"),
+            .end = SOL_STR_SLICE_LITERAL("}"),
+        },
+        .key = {
+            .start = SOL_STR_SLICE_LITERAL("."),
+            .end = SOL_STR_SLICE_LITERAL(" = "),
+            .indent = SOL_STR_SLICE_LITERAL("    "),
+        },
+        .separator = SOL_STR_SLICE_LITERAL(",\n"),
+        .show_key = true,
+        .detailed = true,
+    },
+    .array = {
+        .container = {
+            .start = SOL_STR_SLICE_LITERAL("{\n"),
+            .end = SOL_STR_SLICE_LITERAL("}"),
+        },
+        .index = {
+            .start = SOL_STR_SLICE_LITERAL("["),
+            .end = SOL_STR_SLICE_LITERAL("] = "),
+            .indent = SOL_STR_SLICE_LITERAL("    "),
+        },
+        .separator = SOL_STR_SLICE_LITERAL(",\n"),
+        .show_index = true,
+    },
+};
+
+static int
+serialize_boolean(const struct sol_memdesc *desc, const void *memory, struct sol_buffer *buf, const struct sol_memdesc_serialize_options *opts)
+{
+    const bool *m = memory;
+
+    if (opts->serialize_boolean)
+        return opts->serialize_boolean(desc, *m, buf);
+    else
+        return default_serialize_boolean(desc, *m, buf);
+}
+
+static int
+serialize_double(const struct sol_memdesc *desc, const void *memory, struct sol_buffer *buf, const struct sol_memdesc_serialize_options *opts)
+{
+    const double *m = memory;
+
+    if (opts->serialize_double)
+        return opts->serialize_double(desc, *m, buf);
+    else
+        return default_serialize_double(desc, *m, buf);
+}
+
+static int
+serialize_int64(const struct sol_memdesc *desc, const void *memory, struct sol_buffer *buf, const struct sol_memdesc_serialize_options *opts)
+{
+    int64_t m = sol_memdesc_get_as_int64(desc, memory);
+
+    if (opts->serialize_int64)
+        return opts->serialize_int64(desc, m, buf);
+    else
+        return default_serialize_int64(desc, m, buf);
+}
+
+static int
+serialize_uint64(const struct sol_memdesc *desc, const void *memory, struct sol_buffer *buf, const struct sol_memdesc_serialize_options *opts)
+{
+    uint64_t m = sol_memdesc_get_as_uint64(desc, memory);
+
+    if (opts->serialize_uint64)
+        return opts->serialize_uint64(desc, m, buf);
+    else
+        return default_serialize_uint64(desc, m, buf);
+}
+
+static int
+serialize_string(const struct sol_memdesc *desc, const void *memory, struct sol_buffer *buf, const struct sol_memdesc_serialize_options *opts)
+{
+    const char *const *m = memory;
+
+    if (opts->serialize_string)
+        return opts->serialize_string(desc, *m, buf);
+    else
+        return default_serialize_string(desc, *m, buf);
+}
+
+static int serialize(const struct sol_memdesc *desc, const void *memory, struct sol_buffer *buf, const struct sol_memdesc_serialize_options *opts, struct sol_buffer *prefix);
+
+static int
+serialize_pointer(const struct sol_memdesc *desc, const void *memory, struct sol_buffer *buf, const struct sol_memdesc_serialize_options *opts, struct sol_buffer *prefix)
+{
+    const void *const *m = memory;
+
+    if (!*m || !desc->pointed_item) {
+        if (opts->serialize_pointer)
+            return opts->serialize_pointer(desc, *m, buf);
+        else
+            return default_serialize_pointer(desc, *m, buf);
+    }
+
+    CHECK_MEMDESC(desc->pointed_item, -EINVAL);
+    return serialize(desc->pointed_item, *m, buf, opts, prefix);
+}
+
+static int
+serialize_structure_member(const struct sol_memdesc *structure, const struct sol_memdesc_structure_member *member, const void *memory, struct sol_buffer *buffer, const struct sol_memdesc_serialize_options *opts, struct sol_buffer *prefix, bool is_first)
+{
+    if (opts->serialize_structure_member)
+        return opts->serialize_structure_member(structure, member, memory, buffer, opts, prefix, is_first);
+    else
+        return default_serialize_structure_member(structure, member, memory, buffer, opts, prefix, is_first);
+}
+
+static int
+serialize_structure(const struct sol_memdesc *desc, const void *memory, struct sol_buffer *buf, const struct sol_memdesc_serialize_options *opts, struct sol_buffer *prefix)
+{
+    const struct sol_memdesc_structure_member *itr;
+    const void *itmem;
+    bool is_first = true;
+    int r;
+
+    r = serialize_indent(buf, prefix, opts->structure.container.indent);
+    if (r < 0)
+        return r;
+
+    if (opts->structure.container.start.len) {
+        r = sol_buffer_append_slice(buf, opts->structure.container.start);
+        if (r < 0)
+            return r;
+    }
+
+    SOL_MEMDESC_FOREACH_STRUCTURE_MEMBER_MEMORY(desc, itr, memory, itmem) {
+        if (!opts->structure.detailed && itr->detail)
+            continue;
+        r = serialize_structure_member(desc, itr, itmem, buf, opts, prefix, is_first);
+        if (r < 0)
+            return r;
+        if (is_first)
+            is_first = false;
+    }
+
+    r = serialize_deindent(buf, prefix, opts->structure.container.indent, true);
+    if (r < 0)
+        return r;
+
+    if (opts->structure.container.end.len) {
+        r = sol_buffer_append_slice(buf, opts->structure.container.end);
+        if (r < 0)
+            return r;
+    }
+
+    return 0;
+}
+
+static int
+serialize_array_item(const struct sol_memdesc *desc, size_t idx, const void *memory, struct sol_buffer *buffer, const struct sol_memdesc_serialize_options *opts, struct sol_buffer *prefix)
+{
+    if (opts->serialize_array_item)
+        return opts->serialize_array_item(desc, idx, memory, buffer, opts, prefix);
+    else
+        return default_serialize_array_item(desc, idx, memory, buffer, opts, prefix);
+}
+
+static int
+serialize_array(const struct sol_memdesc *desc, const void *memory, struct sol_buffer *buf, const struct sol_memdesc_serialize_options *opts, struct sol_buffer *prefix)
+{
+    const void *mem = memory;
+    const void *item;
+    ssize_t idx, len;
+    int r;
+
+    SOL_NULL_CHECK(mem, -EINVAL);
+
+    len = sol_memdesc_get_array_length(desc, mem);
+    if (len < 0)
+        return len;
+
+    r = serialize_indent(buf, prefix, opts->array.container.indent);
+    if (r < 0)
+        return r;
+
+    if (opts->array.container.start.len) {
+        r = sol_buffer_append_slice(buf, opts->array.container.start);
+        if (r < 0)
+            return r;
+    }
+
+    SOL_MEMDESC_FOREACH_ARRAY_ELEMENT_IN_RANGE(desc, mem, 0, len, idx, item) {
+        r = serialize_array_item(desc, idx, item, buf, opts, prefix);
+        if (r < 0)
+            return r;
+    }
+
+    r = serialize_deindent(buf, prefix, opts->array.container.indent, true);
+    if (r < 0)
+        return r;
+
+    if (opts->array.container.end.len) {
+        r = sol_buffer_append_slice(buf, opts->array.container.end);
+        if (r < 0)
+            return r;
+    }
+
+    return 0;
+}
+
+static int
+serialize(const struct sol_memdesc *desc, const void *memory, struct sol_buffer *buf, const struct sol_memdesc_serialize_options *opts, struct sol_buffer *prefix)
+{
+    if (desc->type == SOL_MEMDESC_TYPE_BOOLEAN)
+        return serialize_boolean(desc, memory, buf, opts);
+    else if (desc->type == SOL_MEMDESC_TYPE_DOUBLE)
+        return serialize_double(desc, memory, buf, opts);
+    else if (desc->type == SOL_MEMDESC_TYPE_STRING ||
+        desc->type == SOL_MEMDESC_TYPE_CONST_STRING)
+        return serialize_string(desc, memory, buf, opts);
+    else if (sol_memdesc_is_unsigned(desc))
+        return serialize_uint64(desc, memory, buf, opts);
+    else if (sol_memdesc_is_signed(desc))
+        return serialize_int64(desc, memory, buf, opts);
+    else if (desc->type == SOL_MEMDESC_TYPE_PTR)
+        return serialize_pointer(desc, memory, buf, opts, prefix);
+    else if (desc->type == SOL_MEMDESC_TYPE_STRUCTURE)
+        return serialize_structure(desc, memory, buf, opts, prefix);
+    else if (desc->type == SOL_MEMDESC_TYPE_ARRAY)
+        return serialize_array(desc, memory, buf, opts, prefix);
+    else {
+        SOL_WRN("unhandled type %d for desc=%p", desc->type, desc);
+        return -EINVAL;
+    }
+}
+
+SOL_API int
+sol_memdesc_serialize(const struct sol_memdesc *desc, const void *memory, struct sol_buffer *buffer, const struct sol_memdesc_serialize_options *opts, struct sol_buffer *prefix)
+{
+    struct sol_buffer local_prefix = SOL_BUFFER_INIT_EMPTY;
+    int r;
+
+    CHECK_MEMDESC(desc, -EINVAL);
+    SOL_NULL_CHECK(memory, -EINVAL);
+    SOL_NULL_CHECK(buffer, -EINVAL);
+
+    if (!opts)
+        opts = &SOL_MEMDESC_SERIALIZE_OPTIONS_DEFAULT;
+#ifndef SOL_NO_API_VERSION
+    else {
+        if (opts->api_version != SOL_MEMDESC_SERIALIZE_OPTIONS_API_VERSION) {
+            SOL_WRN("opts(%p)->api_version(%" PRIu16 ") != SOL_MEMDESC_SERIALIZE_OPTIONS_API_VERSION(%" PRIu16 ")",
+                opts, opts->api_version, SOL_MEMDESC_SERIALIZE_OPTIONS_API_VERSION);
+            return -EINVAL;
+        }
+    }
+#endif
+
+    if (!prefix)
+        prefix = &local_prefix;
+
+    r = serialize(desc, memory, buffer, opts, prefix);
+    sol_buffer_fini(&local_prefix);
+
+    return r;
+}
