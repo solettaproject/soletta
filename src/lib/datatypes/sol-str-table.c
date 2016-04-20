@@ -19,6 +19,7 @@
 #include <inttypes.h>
 
 #include "sol-macros.h"
+#include "sol-log.h"
 #include "sol-str-table.h"
 #include "sol-util-internal.h"
 
@@ -30,16 +31,24 @@ sol_str_table_lookup_fallback(const struct sol_str_table *table,
     const struct sol_str_table *iter;
     uint16_t len;
 
-    if (SOL_UNLIKELY(key.len > INT16_MAX))
+    errno = EINVAL;
+    SOL_NULL_CHECK(table, fallback);
+
+    if (SOL_UNLIKELY(key.len > INT16_MAX)) {
+        errno = EINVAL;
         return fallback;
+    }
 
     len = (uint16_t)key.len;
 
     for (iter = table; iter->key; iter++) {
         if (iter->len == len && memcmp(iter->key, key.data, len) == 0) {
+            errno = 0;
             return iter->val;
         }
     }
+
+    errno = ENOENT;
     return fallback;
 }
 
@@ -49,17 +58,38 @@ sol_str_table_ptr_lookup_fallback(const struct sol_str_table_ptr *table,
     const void *fallback)
 {
     const struct sol_str_table_ptr *iter;
-    size_t len;
 
-    if (SOL_UNLIKELY(key.len > INT16_MAX))
-        return fallback;
-
-    len = key.len;
+    errno = EINVAL;
+    SOL_NULL_CHECK(table, fallback);
 
     for (iter = table; iter->key; iter++) {
-        if (iter->len == len && memcmp(iter->key, key.data, len) == 0) {
+        if (iter->len == key.len && memcmp(iter->key, key.data, key.len) == 0) {
+            errno = 0;
             return iter->val;
         }
     }
+
+    errno = ENOENT;
+    return fallback;
+}
+
+SOL_API int64_t
+sol_str_table_int64_lookup_fallback(const struct sol_str_table_int64 *table,
+    const struct sol_str_slice key,
+    int64_t fallback)
+{
+    const struct sol_str_table_int64 *iter;
+
+    errno = EINVAL;
+    SOL_NULL_CHECK(table, fallback);
+
+    for (iter = table; iter->key; iter++) {
+        if (iter->len == key.len && memcmp(iter->key, key.data, key.len) == 0) {
+            errno = 0;
+            return iter->val;
+        }
+    }
+
+    errno = ENOENT;
     return fallback;
 }
