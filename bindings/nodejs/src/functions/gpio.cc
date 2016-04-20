@@ -42,10 +42,10 @@ static void sol_gpio_read_callback(void *data, struct sol_gpio *gpio, bool value
     if (!callback)
         return;
 
-    Local<Value> arguments[2] = {
+    Local<Value> arguments[1] = {
         Nan::New(value)
     };
-    callback->Call(2, arguments);
+    callback->Call(1, arguments);
 }
 
 NAN_METHOD(bind_sol_gpio_open) {
@@ -83,10 +83,11 @@ NAN_METHOD(bind_sol_gpio_open) {
         info.GetReturnValue().Set(SolGpio::New(gpio_data));
         return;
     } else {
-        if (callback)
+        if (callback) {
             delete callback;
+            hijack_unref();
+        }
         delete gpio_data;
-        hijack_unref();
     }
 }
 
@@ -105,10 +106,11 @@ NAN_METHOD(bind_sol_gpio_close) {
     sol_gpio_close(gpio);
     if (callback) {
         delete callback;
-        delete gpio_data;
-        Nan::SetInternalFieldPointer(jsGpio, 0, 0);
         hijack_unref();
     }
+
+    delete gpio_data;
+    Nan::SetInternalFieldPointer(jsGpio, 0, 0);
 }
 
 NAN_METHOD(bind_sol_gpio_write) {
