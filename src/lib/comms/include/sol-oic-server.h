@@ -215,59 +215,74 @@ struct sol_oic_resource_type {
     struct sol_str_slice path;
 
     struct {
-        sol_coap_responsecode_t (*handle)(const struct sol_network_link_addr *cliaddr,
-            const void *data, const struct sol_oic_map_reader *input, struct sol_oic_map_writer *output);
+        int (*handle)(void *data, struct sol_oic_request *request);
     }
     /**
      * @brief Callback handle to GET requests
      *
-     * @param cliaddr The client address.
      * @param data The user's data pointer.
-     * @param input Always NULL because GET requests shouldn't cointain payload
-     *        data. Parameter kept for compatibility reasons.
-     * @param output Handler to write data to response packet using, for
-     *        example, @ref sol_oic_map_append().
+     * @param request Information about this request. Use
+     *        sol_oic_server_request_get_reader() to get the request data
+     *        reader, sol_oic_server_response_new() to create a response and
+     *        sol_oic_server_send_response() to reply this request with the
+     *        response created.
      *
-     * @return The coap response code of this request.
+     * @return @c 0 on success or a negative number on errors.
+     *
+     * @see sol_oic_server_request_get_reader
+     * @see sol_oic_server_response_new
+     * @see sol_oic_server_send_response
      */
     get,
     /**
      * @brief Callback handle to PUT requests
      *
-     * @param cliaddr The client address.
      * @param data The user's data pointer.
-     * @param input Handler to read request packet data using, for example,
-     *        @ref SOL_OIC_MAP_LOOP() macro.
-     * @param output Handler to write data to response packet using, for
-     *        example, @ref sol_oic_map_append().
+     * @param request Information about this request. Use
+     *        sol_oic_server_request_get_reader() to get the request data
+     *        reader, sol_oic_server_response_new() to create a response and
+     *        sol_oic_server_send_response() to reply this request with the
+     *        response created.
      *
-     * @return The coap response code of this request.
+     * @return @c 0 on success or a negative number on errors.
+     *
+     * @see sol_oic_server_request_get_reader
+     * @see sol_oic_server_response_new
+     * @see sol_oic_server_send_response
      */
         put,
     /**
      * @brief Callback handle to POST requests
      *
-     * @param cliaddr The client address.
      * @param data The user's data pointer.
-     * @param input Handler to read request packet data using, for example,
-     *        @ref SOL_OIC_MAP_LOOP() macro.
-     * @param output Handler to write data to response packet using, for
-     *        example, @ref sol_oic_map_append().
+     * @param request Information about this request. Use
+     *        sol_oic_server_request_get_reader() to get the request data
+     *        reader, sol_oic_server_response_new() to create a response and
+     *        sol_oic_server_send_response() to reply this request with the
+     *        response created.
      *
-     * @return The coap response code of this request.
+     * @return @c 0 on success or a negative number on errors.
+     *
+     * @see sol_oic_server_request_get_reader
+     * @see sol_oic_server_response_new
+     * @see sol_oic_server_send_response
      */
         post,
     /**
      * @brief Callback handle to DELETE requests
      *
-     * @param cliaddr The client address.
      * @param data The user's data pointer.
-     * @param input Always NULL because DELETE requests shouldn't cointain
-     *        payload data. Parameter kept for compatibility reasons.
-     * @param output Handler to write data to response packet using, for
-     *        example, @ref sol_oic_map_append().
+     * @param request Information about this request. Use
+     *        sol_oic_server_request_get_reader() to get the request data
+     *        reader, sol_oic_server_response_new() to create a response and
+     *        sol_oic_server_send_response() to reply this request with the
+     *        response created.
      *
-     * @return The coap response code of this request.
+     * @return @c 0 on success or a negative number on errors.
+     *
+     * @see sol_oic_server_request_get_reader
+     * @see sol_oic_server_response_new
+     * @see sol_oic_server_send_response
      */
         del;
 };
@@ -321,6 +336,54 @@ void sol_oic_server_del_resource(struct sol_oic_server_resource *resource);
 bool sol_oic_notify_observers(struct sol_oic_server_resource *resource,
     bool (*fill_repr_map)(void *data, struct sol_oic_map_writer *oic_map_writer),
     const void *data);
+
+/**
+ * @brief Send a reponse as a reply to a request.
+ *
+ * After sending the response, response and request elements memory are released
+ * even on errors.
+ *
+ * @param request The request that created this response.
+ * @param response The response to be sent.
+ * @param code The CoAP code to be used in response packet.
+ *
+ * @return @c 0 on success or a negative number on errors.
+ */
+int sol_oic_server_send_response(struct sol_oic_request *request, struct sol_oic_response *response, sol_coap_responsecode_t code);
+
+/**
+ * @brief Create a new response to send a reply to @a request.
+ *
+ * @param request The request to be used to reply with this response.
+ *
+ * @return A new response on success or NULL on errors.
+ */
+struct sol_oic_response *sol_oic_server_response_new(struct sol_oic_request *request);
+
+/**
+ * @brief Free the response and all memory hold by it.
+ *
+ * @param response The response to be freed.
+ */
+void sol_oic_server_response_free(struct sol_oic_response *response);
+
+/**
+ * @brief Get the packet writer from a response.
+ *
+ * @param response The response to retrieve the writer.
+ *
+ * @return The packet writer from this response.
+ */
+struct sol_oic_map_writer *sol_oic_server_response_get_writer(struct sol_oic_response *response);
+
+/**
+ * @brief Get the packet reader from a request.
+ *
+ * @param request The request to retrieve the reader.
+ *
+ * @return The packet reader from this request.
+ */
+struct sol_oic_map_reader *sol_oic_server_request_get_reader(struct sol_oic_request *request);
 
 /**
  * @}

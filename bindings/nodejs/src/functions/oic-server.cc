@@ -87,51 +87,57 @@ public:
 };
 
 #define ENTITY_HANDLER_SIGNATURE \
-    const struct sol_network_link_addr *cliaddr, \
-    const void *data, \
-    const struct sol_oic_map_reader *input, \
-    struct sol_oic_map_writer *output
+    void *data, \
+    struct sol_oic_request *request
 
-static sol_coap_responsecode_t entityHandler(ENTITY_HANDLER_SIGNATURE,
+static int entityHandler(ENTITY_HANDLER_SIGNATURE,
     enum OicServerMethod method) {
     Nan::HandleScope scope;
     sol_coap_responsecode_t returnValue = SOL_COAP_RSPCODE_NOT_IMPLEMENTED;
     struct ResourceInfo *info = (struct ResourceInfo *)data;
+    struct sol_oic_response *response = NULL;
     Local<Object> outputPayload = Nan::New<Object>();
-    Local<Value> arguments[3] = {
-        js_sol_network_link_addr(cliaddr),
-        js_sol_oic_map_reader(input),
+    Local<Value> arguments[2] = {
+        js_sol_oic_map_reader(sol_oic_server_request_get_reader(request)),
         outputPayload
     };
+    //TODO: Make JS API Async
     Nan::Callback *callback = info->handlers[method];
     if (callback) {
-        Local<Value> jsReturnValue = callback->Call(3, arguments);
+        Local<Value> jsReturnValue = callback->Call(2, arguments);
         VALIDATE_CALLBACK_RETURN_VALUE_TYPE(jsReturnValue, IsUint32,
             "entity handler", returnValue);
         returnValue = (sol_coap_responsecode_t)
             Nan::To<uint32_t>(jsReturnValue).FromJust();
 
-        if (!c_sol_oic_map_writer(outputPayload, output)) {
+        response = sol_oic_server_response_new(request);
+        if (!response) {
+            Nan::ThrowError("entity handler: Failed to create response");
+        }
+        if (!c_sol_oic_map_writer(outputPayload,
+            sol_oic_server_response_get_writer(response))) {
+            sol_oic_server_response_free(response);
             Nan::ThrowError("entity handler: Failed to encode output payload");
         }
+
     }
-    return returnValue;
+    return sol_oic_server_send_response(request, response, returnValue);
 }
 
-static sol_coap_responsecode_t defaultGet(ENTITY_HANDLER_SIGNATURE) {
-    return entityHandler(cliaddr, data, input, output, OIC_SERVER_GET);
+static int defaultGet(ENTITY_HANDLER_SIGNATURE) {
+    return entityHandler(data, request, OIC_SERVER_GET);
 }
 
-static sol_coap_responsecode_t defaultPut(ENTITY_HANDLER_SIGNATURE) {
-    return entityHandler(cliaddr, data, input, output, OIC_SERVER_PUT);
+static int defaultPut(ENTITY_HANDLER_SIGNATURE) {
+    return entityHandler(data, request, OIC_SERVER_PUT);
 }
 
-static sol_coap_responsecode_t defaultPost(ENTITY_HANDLER_SIGNATURE) {
-    return entityHandler(cliaddr, data, input, output, OIC_SERVER_POST);
+static int defaultPost(ENTITY_HANDLER_SIGNATURE) {
+    return entityHandler(data, request, OIC_SERVER_POST);
 }
 
-static sol_coap_responsecode_t defaultDel(ENTITY_HANDLER_SIGNATURE) {
-    return entityHandler(cliaddr, data, input, output, OIC_SERVER_DEL);
+static int defaultDel(ENTITY_HANDLER_SIGNATURE) {
+    return entityHandler(data, request, OIC_SERVER_DEL);
 }
 
 #define ASSIGN_STR_SLICE_MEMBER_FROM_PROPERTY(to, from, message, member) \

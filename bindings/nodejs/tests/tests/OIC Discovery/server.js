@@ -28,7 +28,7 @@ theResource = soletta.sol_oic_server_add_resource( {
 		interface: "oic.if.baseline",
 		resource_type: "core.light",
 		path: "/a/" + process.argv[ 2 ],
-		put: function putHandler( clientAddress, input, output ) {
+		put: function putHandler( input, output ) {
 			testUtils.assert( "deepEqual", input, { uuid: process.argv[ 2 ] },
 				"Server: PUT request payload is as expected" );
 			output.putRequests = ++putRequests;

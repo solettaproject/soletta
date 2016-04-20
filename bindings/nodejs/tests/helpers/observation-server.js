@@ -34,7 +34,7 @@ theResource = soletta.sol_oic_server_add_resource( _.extend( {
 		interface: "oic.if.baseline",
 		resource_type: "core.light",
 		path: "/a/" + uuid,
-		put: function putHandler( clientAddress, input, output ) {
+		put: function putHandler( input, output ) {
 			if ( input.finished === uuid ) {
 				observationCount++;
 				output.clientsFinished = observationCount;
@@ -45,7 +45,7 @@ theResource = soletta.sol_oic_server_add_resource( _.extend( {
 			return soletta.sol_coap_responsecode_t.SOL_COAP_RSPCODE_OK;
 		},
 	}, setObservable ? {} : {
-		get: function getHandler( clientAddress, input, output ) {
+		get: function getHandler( input, output ) {
 			_.extend( output, payload.generate() );
 			return soletta.sol_coap_responsecode_t.SOL_COAP_RSPCODE_OK;
 		}
