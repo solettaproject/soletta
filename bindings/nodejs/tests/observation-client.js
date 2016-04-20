@@ -39,7 +39,7 @@ var destination = soletta.sol_network_link_addr_from_str( {
 
 async.series( [
 	function findResource( callback ) {
-		var result = soletta.sol_oic_client_find_resource( client, destination, "",
+		var result = soletta.sol_oic_client_find_resource( client, destination, "", "",
 			function( client, resource ) {
 				if ( !resource ) {
 					callback( new Error( messagePrefix + "Resource not found" ) );

@@ -67,7 +67,8 @@ NAN_METHOD(bind_sol_oic_client_find_resource) {
     VALIDATE_ARGUMENT_TYPE(info, 0, IsObject);
     VALIDATE_ARGUMENT_TYPE(info, 1, IsObject);
     VALIDATE_ARGUMENT_TYPE(info, 2, IsString);
-    VALIDATE_ARGUMENT_TYPE(info, 3, IsFunction);
+    VALIDATE_ARGUMENT_TYPE(info, 3, IsString);
+    VALIDATE_ARGUMENT_TYPE(info, 4, IsFunction);
 
     struct sol_network_link_addr theAddress;
     if (!c_sol_network_link_addr(Nan::To<Object>(info[1]).ToLocalChecked(),
@@ -83,13 +84,14 @@ NAN_METHOD(bind_sol_oic_client_find_resource) {
     }
 
     OicCallbackData *callbackData =
-        OicCallbackData::New(jsClient, Local<Function>::Cast(info[3]));
+        OicCallbackData::New(jsClient, Local<Function>::Cast(info[4]));
     if (!callbackData) {
         return;
     }
 
     bool result = sol_oic_client_find_resource((struct sol_oic_client *)client,
-        &theAddress, (const char *)*String::Utf8Value(info[2]), resourceFound,
+        &theAddress, (const char *)*String::Utf8Value(info[2]),
+        (const char *)*String::Utf8Value(info[3]), resourceFound,
         callbackData);
 
     if (!result) {

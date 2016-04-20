@@ -1221,11 +1221,11 @@ send_discovery_packets(struct client_resource *resource)
 
     if (multicast_ipv4.family != SOL_NETWORK_FAMILY_UNSPEC)
         sol_oic_client_find_resource(resource->client, &multicast_ipv4, resource->rt,
-            found_resource, resource);
+            NULL, found_resource, resource);
     sol_oic_client_find_resource(resource->client, &multicast_ipv6_local, resource->rt,
-        found_resource, resource);
+        NULL, found_resource, resource);
     sol_oic_client_find_resource(resource->client, &multicast_ipv6_site, resource->rt,
-        found_resource, resource);
+        NULL, found_resource, resource);
 }
 
 static bool
@@ -1335,11 +1335,11 @@ send_scan_packets(struct client_resource *resource)
     clear_scanned_ids(&resource->scanned_ids);
     if (multicast_ipv4.family != SOL_NETWORK_FAMILY_UNSPEC)
         sol_oic_client_find_resource(resource->client, &multicast_ipv4,
-             resource->rt, scan_callback, resource);
+             resource->rt, NULL, scan_callback, resource);
     sol_oic_client_find_resource(resource->client, &multicast_ipv6_local,
-         resource->rt, scan_callback, resource);
+         resource->rt, NULL, scan_callback, resource);
     sol_oic_client_find_resource(resource->client, &multicast_ipv6_site,
-         resource->rt, scan_callback, resource);
+         resource->rt, NULL, scan_callback, resource);
 }
 
 static bool
