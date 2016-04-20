@@ -209,6 +209,7 @@ bindings-nodejs: $(SOL_LIB_OUTPUT)
 		SOL_CONFIG_USE_UART=$(USE_UART) \
 		SOL_CONFIG_USE_PWM=$(USE_PWM) \
 		SOL_CONFIG_USE_SPI=$(USE_SPI) \
+		SOL_CONFIG_USE_I2C=$(USE_I2C) \
 		SOL_CONFIG_NETWORK=$(NETWORK) \
 			$(NODEJS) bindings/nodejs/configure-bindings.js
 
