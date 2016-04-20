@@ -281,7 +281,7 @@ struct sol_http_progressive_response *sol_http_server_send_progressive_response(
  *
  * @param progressive The progressive response created with
  * sol_http_server_send_progressive_response()
- * @param data The data to be sent.
+ * @param blob The blob to be sent.
  *
  * @return @c 0 on success, error code (always negative) otherwise.
  *
@@ -289,7 +289,7 @@ struct sol_http_progressive_response *sol_http_server_send_progressive_response(
  * @see sol_http_server_send_progressive_response()
  */
 int sol_http_progressive_response_feed(struct sol_http_progressive_response *progressive,
-    const struct sol_str_slice data);
+    struct sol_blob *blob);
 
 /**
  * @brief Delete the progressive response.
