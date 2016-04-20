@@ -155,6 +155,10 @@ err:
 #define SSIZE_MAX LONG_MAX
 #endif
 
+#ifndef SSIZE_MIN
+#define SSIZE_MIN LONG_MIN
+#endif
+
 #ifdef __cplusplus
 }
 #endif

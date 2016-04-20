@@ -142,6 +142,8 @@ sol_buffer_append_bytes(struct sol_buffer *buf, const uint8_t *bytes, size_t siz
     int err;
 
     SOL_NULL_CHECK(buf, -EINVAL);
+    if (size == 0)
+        return 0;
 
     err = sol_buffer_expand(buf, size);
     if (err < 0)
@@ -177,6 +179,9 @@ sol_buffer_set_slice_at(struct sol_buffer *buf, size_t pos, const struct sol_str
     size_t nul_size;
 
     SOL_NULL_CHECK(buf, -EINVAL);
+    if (slice.len == 0)
+        return 0;
+
     if (buf->used < pos) {
         return -EINVAL;
     }
@@ -244,6 +249,9 @@ sol_buffer_insert_bytes(struct sol_buffer *buf, size_t pos, const uint8_t *bytes
 
     SOL_NULL_CHECK(buf, -EINVAL);
     SOL_INT_CHECK(pos, > buf->used, -EINVAL);
+
+    if (size == 0)
+        return 0;
 
     if (pos == buf->used)
         return sol_buffer_append_bytes(buf, bytes, size);

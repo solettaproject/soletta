@@ -2,6 +2,10 @@ config TEST_ARENA
 	bool "arena"
 	default y
 
+config TEST_MEMDESC
+	bool "memdesc"
+	default y
+
 config TEST_BUFFER
 	bool "buffer"
 	default y
