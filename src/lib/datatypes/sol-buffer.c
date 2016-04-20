@@ -436,7 +436,7 @@ sol_buffer_ensure_nul_byte(struct sol_buffer *buf)
         return 0;
 
     if (buf->used >= SIZE_MAX - 1 ||
-        sol_buffer_ensure(buf, buf->used + 1) < 0)
+        sol_buffer_ensure(buf, buf->used) < 0)
         return -ENOMEM;
 
     *((char *)buf->data + buf->used) = '\0';
