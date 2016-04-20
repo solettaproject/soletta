@@ -1075,6 +1075,39 @@ default_serialize_structure_member_key(const struct sol_memdesc_structure_member
     return 0;
 }
 
+#ifdef SOL_MEMDESC_DESCRIPTION
+static int
+default_serialize_structure_member_description(const struct sol_memdesc_structure_member *member, struct sol_buffer *buf, const struct sol_memdesc_serialize_options *opts, struct sol_buffer *prefix)
+{
+    int r;
+
+    if (!member->description)
+        return 0;
+
+    r = serialize_indent(buf, prefix, opts->structure.description.indent);
+    if (r < 0)
+        return r;
+
+    if (opts->structure.description.start.len) {
+        r = sol_buffer_append_slice(buf, opts->structure.description.start);
+        if (r < 0)
+            return r;
+    }
+
+    r = sol_buffer_append_slice(buf, sol_str_slice_from_str(member->description));
+    if (r < 0)
+        return r;
+
+    if (opts->structure.description.end.len) {
+        r = sol_buffer_append_slice(buf, opts->structure.description.end);
+        if (r < 0)
+            return r;
+    }
+
+    return serialize_deindent(buf, prefix, opts->structure.description.indent, false);
+}
+#endif
+
 static int
 default_serialize_structure_member(const struct sol_memdesc *structure, const struct sol_memdesc_structure_member *member, const void *memory, struct sol_buffer *buf, const struct sol_memdesc_serialize_options *opts, struct sol_buffer *prefix, bool is_first)
 {
@@ -1113,6 +1146,14 @@ default_serialize_structure_member(const struct sol_memdesc *structure, const st
         if (r < 0)
             return r;
     }
+
+#ifdef SOL_MEMDESC_DESCRIPTION
+    if (opts->structure.show_description) {
+        r = default_serialize_structure_member_description(member, buf, opts, prefix);
+        if (r < 0)
+            return r;
+    }
+#endif
 
     r = serialize_deindent(buf, prefix, opts->structure.value.indent, false);
     if (r < 0)
@@ -1220,9 +1261,14 @@ SOL_API const struct sol_memdesc_serialize_options SOL_MEMDESC_SERIALIZE_OPTIONS
             .end = SOL_STR_SLICE_LITERAL(" = "),
             .indent = SOL_STR_SLICE_LITERAL("    "),
         },
+        SOL_MEMDESC_SET_DESCRIPTION(.description = {
+            .start = SOL_STR_SLICE_LITERAL(" /* "),
+            .end = SOL_STR_SLICE_LITERAL(" */"),
+        }, )
         .separator = SOL_STR_SLICE_LITERAL(",\n"),
         .show_key = true,
         .detailed = true,
+        SOL_MEMDESC_SET_DESCRIPTION(.show_description = true, )
     },
     .array = {
         .container = {
