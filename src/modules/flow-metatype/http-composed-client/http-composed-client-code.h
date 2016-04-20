@@ -131,7 +131,7 @@
     "}\n" \
     "static void\n" \
     "http_composed_client_request_finished(void *data,\n" \
-    "    const struct sol_http_client_connection *connection,\n" \
+    "    struct sol_http_client_connection *connection,\n" \
     "    struct sol_http_response *response)\n" \
     "{\n" \
     "    int r = 0;\n" \

@@ -29,8 +29,8 @@ static FILE *fd;
 struct sol_http_client_connection *pending;
 
 static ssize_t
-recv_func(void *userdata, const struct sol_http_client_connection *connection,
-    struct sol_buffer *buffer)
+on_data_func(void *userdata, struct sol_http_client_connection *connection,
+    const struct sol_buffer *buffer)
 {
     ssize_t ret;
 
@@ -44,7 +44,7 @@ recv_func(void *userdata, const struct sol_http_client_connection *connection,
 }
 
 static void
-response_func(void *userdata, const struct sol_http_client_connection *connection,
+response_func(void *userdata, struct sol_http_client_connection *connection,
     struct sol_http_response *response)
 {
     fclose(fd);
@@ -63,7 +63,7 @@ response_func(void *userdata, const struct sol_http_client_connection *connectio
 
 static const struct sol_http_request_interface iface = {
     SOL_SET_API_VERSION(.api_version = SOL_HTTP_REQUEST_INTERFACE_API_VERSION, )
-    .recv_cb = recv_func,
+    .on_data = on_data_func,
     .response_cb = response_func
 };
 

@@ -209,8 +209,18 @@ extern "C" {
  *    <ul>
  *    <li> sol_uart_feed()
  *    <li> struct sol_uart_config
+ *    </ul>
+ * <li> @ref Crypto
+ *    <ul>
  *    <li> sol_message_digest_feed()
  *    <li> struct sol_message_digest_config
+ *    </ul>
+ * <li> @ref HTTP
+ *    <ul>
+ *    <li> sol_http_progressive_response_feed()
+ *    <li> sol_http_progressive_response_sse_feed()
+ *    <li> struct sol_http_server_progressive_config
+ *    <li> struct sol_http_request_interface
  *    </ul>
  * </ul>
  */
