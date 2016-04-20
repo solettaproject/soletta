@@ -279,6 +279,55 @@ sol_http_response_set_sse_headers(struct sol_http_response *response)
 }
 
 /**
+ * @brief Progressive server response configuration.
+ * @struct sol_http_server_progressive_config
+ * @see sol_http_server_send_progressive_response()
+ */
+struct sol_http_server_progressive_config {
+#ifndef SOL_NO_API_VERSION
+#define SOL_HTTP_SERVER_PROGRESSIVE_CONFIG_API_VERSION (1)
+    /**
+     * api_version must match SOL_HTTP_REQUEST_INTERFACE_API_VERSION
+     * at runtime.
+     */
+    uint16_t api_version;
+#endif
+    /**
+     * @brief Callback used to inform that a struct @ref sol_blob was sent
+     * @param data The user data
+     * @param progressive The progressive response
+     * @param blob The blob that was transfered
+     * @note The blob will unref for you automatically
+     * @note It's safe to call sol_http_progressive_response_del() inside this callback.
+     */
+    void (*on_feed_done)(void *data, struct sol_http_progressive_response *progressive, struct sol_blob *blob, int status);
+    /**
+     * @brief Callback used to inform that the client has closed the connection.
+     *
+     * @param data The user data
+     * @param progressive The progressive response
+     */
+    void (*on_close)(void *data, const struct sol_http_progressive_response *progressive);
+    const void *user_data; /*<< User data to @c on_feed and @c on_close*/
+    /**
+     * The output buffer size - 0 means unlimited data.
+     *
+     * @see sol_http_progressive_response_feed()
+     */
+
+    /**
+     * The feed buffer max size. The value @c 0 means unlimited data.
+     * Since sol_http_progressive_response_feed() works with blobs, no extra buffers will be allocated in order
+     * to store @c feed_size bytes. All the blobs that are schedule to be written will be referenced
+     * and the sum of all queued blobs must not be equal or exceed @c feed_size.
+     * If it happens sol_http_progressive_response_feed() will return @c -ENOSPC and one must start to control the
+     * writing flow until @c on_feed_done is called.
+     * @see sol_http_progressive_response_feed()
+     */
+    size_t feed_size;
+};
+
+/**
  * @brief Send the response and keep connection alive to request given in the
  * callback registered on sol_http_server_register_handler().
  *
@@ -289,34 +338,56 @@ sol_http_response_set_sse_headers(struct sol_http_response *response)
  * sol_http_server_register_handler().
  * @param response The response for the request containing the data
  * and parameters (e.g http headers)
- * @param on_close Callback called when the connection is closed.
- * @param cb_data The data pointer to be passed to @a cb.
+ * @param config The progressive connection configuration.
  *
  * @return @c sol_http_progressive_response on success, @c NULL otherwise.
  *
  * @see sol_http_server_send_response()
  * @see sol_http_progressive_response_del()
  * @see sol_http_progressive_response_feed()
+ * @see @ref sol_http_server_progressive_config
  */
 struct sol_http_progressive_response *sol_http_server_send_progressive_response(struct sol_http_request *request,
-    const struct sol_http_response *response,
-    void (*on_close)(void *data, const struct sol_http_progressive_response *progressive),
-    const void *cb_data);
+    const struct sol_http_response *response, const struct sol_http_server_progressive_config *config);
 
 /**
  * @brief Send data for the progressive response.
  *
+ * If the sum of all blobs plus the new >= @ref sol_http_server_progressive_config::feed_size
+ * this function will return -ENOSPC and the blob will not be sent.
+ *
  * @param progressive The progressive response created with
  * sol_http_server_send_progressive_response()
- * @param data The data to be sent.
+ * @param blob The blob to be sent.
  *
- * @return @c 0 on success, error code (always negative) otherwise.
+ * @return @c 0 on success, @c -ENOSPC if sol_message_digest_config::feed_size is not zero and there's
+ * no more space left or -errno on error. If error or -ENOPSC, If error, then the input reference is not taken.
  *
  * @see sol_http_progressive_response_del()
  * @see sol_http_server_send_progressive_response()
  */
 int sol_http_progressive_response_feed(struct sol_http_progressive_response *progressive,
-    const struct sol_str_slice data);
+    struct sol_blob *blob);
+
+/**
+ * @brief Send sse data for the progressive response.
+ *
+ * If the sum of all blobs plus the new >= @ref sol_http_server_progressive_config::feed_size
+ * this function will return -ENOSPC and the blob will not be sent.
+ *
+ * This function will automatically add the SSE prefix and suffix.
+ *
+ * @param progressive The progressive response created with
+ * sol_http_server_send_progressive_response()
+ * @param blob The blob to be sent.
+ *
+ * @return @c 0 on success, @c -ENOSPC if sol_message_digest_config::feed_size is not zero and there's
+ * no more space left or -errno on error. If error or -ENOPSC, If error, then the input reference is not taken.
+ *
+ * @see sol_http_progressive_response_feed()
+ */
+int sol_http_progressive_response_sse_feed(struct sol_http_progressive_response *progressive,
+    struct sol_blob *blob);
 
 /**
  * @brief Delete the progressive response.

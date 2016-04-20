@@ -78,7 +78,7 @@ struct http_client_node_type {
     void (*close_node)(struct sol_flow_node *node, void *data);
     int (*setup_params)(struct http_data *mdata, struct sol_http_params *params);
     void (*http_response)(void *data,
-        const struct sol_http_client_connection *conn,
+        struct sol_http_client_connection *conn,
         struct sol_http_response *response);
 };
 
@@ -253,7 +253,7 @@ common_url_process(struct sol_flow_node *node, void *data, uint16_t port, uint16
 
 static void
 remove_connection(struct http_data *mdata,
-    const struct sol_http_client_connection *connection)
+    struct sol_http_client_connection *connection)
 {
     if (sol_ptr_vector_remove(&mdata->pending_conns, connection) < 0)
         SOL_WRN("Failed to find pending connection %p", connection);
@@ -265,7 +265,7 @@ remove_connection(struct http_data *mdata,
  */
 static int
 check_response(struct http_data *mdata, struct sol_flow_node *node,
-    const struct sol_http_client_connection *connection,
+    struct sol_http_client_connection *connection,
     struct sol_http_response *response)
 {
 
@@ -356,7 +356,7 @@ is_accepted_content_type(const char *content_type, const char *accept)
 
 static void
 request_finished(void *data,
-    const struct sol_http_client_connection *connection,
+    struct sol_http_client_connection *connection,
     struct sol_http_response *response, bool accept_empty_response)
 {
     int ret;
@@ -415,15 +415,15 @@ err:
 
 static void
 common_request_finished(void *data,
-    const struct sol_http_client_connection *connection,
+    struct sol_http_client_connection *connection,
     struct sol_http_response *response)
 {
     request_finished(data, connection, response, false);
 }
 
 static ssize_t
-sse_received_data_cb(void *data, const struct sol_http_client_connection *conn,
-    struct sol_buffer *buf)
+sse_received_data_cb(void *data, struct sol_http_client_connection *conn,
+    const struct sol_buffer *buf)
 {
     struct sol_flow_node *node = data;
     const struct http_client_node_type *type;
@@ -483,7 +483,7 @@ exit:
 
 static void
 sse_response_end_cb(void *data,
-    const struct sol_http_client_connection *conn,
+    struct sol_http_client_connection *conn,
     struct sol_http_response *response)
 {
     struct sol_flow_node *node = data;
@@ -511,7 +511,7 @@ common_get_process(struct sol_flow_node *node, void *data, uint16_t port,
     struct sol_http_param_value *param;
     static const struct sol_http_request_interface req_iface = {
         SOL_SET_API_VERSION(.api_version = SOL_HTTP_REQUEST_INTERFACE_API_VERSION, )
-        .recv_cb = sse_received_data_cb,
+        .on_data = sse_received_data_cb,
         .response_cb = sse_response_end_cb,
     };
 
@@ -1523,7 +1523,7 @@ clear_sol_key_value_vector(struct sol_vector *vector)
 
 static void
 request_node_http_response(void *data,
-    const struct sol_http_client_connection *conn,
+    struct sol_http_client_connection *conn,
     struct sol_http_response *response)
 {
     struct sol_flow_node *node = data;

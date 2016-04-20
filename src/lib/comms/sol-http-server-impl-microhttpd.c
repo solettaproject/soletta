@@ -66,6 +66,22 @@
 #define SOL_HTTP_SERVER_CONFIG_CHECK_API_VERSION(config, ...)
 #endif
 
+static struct sol_blob sse_prefix = {
+    .type = &SOL_BLOB_TYPE_NO_FREE,
+    .parent = NULL,
+    .mem = (void *)"data: ",
+    .size = sizeof("data: ") - 1,
+    .refcnt = 1
+};
+
+static struct sol_blob sse_suffix = {
+    .type = &SOL_BLOB_TYPE_NO_FREE,
+    .parent = NULL,
+    .mem = (void *)"\n\n",
+    .size = sizeof("\n\n") - 1,
+    .refcnt = 1
+};
+
 struct http_handler {
     time_t last_modified;
     struct sol_str_slice path;
@@ -90,9 +106,13 @@ struct sol_http_request {
 
 struct sol_http_progressive_response {
     struct sol_http_request *request;
-    void (*on_del)(void *data, const struct sol_http_progressive_response *progressive);
+    void (*on_close)(void *data, const struct sol_http_progressive_response *progressive);
+    void (*on_feed_done)(void *data, struct sol_http_progressive_response *progressive, struct sol_blob *blob, int status);
     const void *cb_data;
-    struct sol_buffer buffer;
+    struct sol_ptr_vector pending_blobs;
+    size_t written;
+    size_t feed_size;
+    size_t accumulated_bytes;
     bool delete_me;
     bool graceful_del;
 };
@@ -458,39 +478,55 @@ build_mhd_response(const struct sol_http_response *response, time_t last_modifie
 static void
 progressive_response_del_cb(void *data)
 {
+    struct sol_blob *blob;
+    uint16_t i;
     struct sol_http_progressive_response *progressive = data;
 
-    if (progressive->on_del)
-        progressive->on_del((void *)progressive->cb_data, progressive);
+    SOL_PTR_VECTOR_FOREACH_IDX (&progressive->pending_blobs, blob, i) {
+        if (progressive->on_feed_done)
+            progressive->on_feed_done((void *)progressive->cb_data, progressive, blob, -ECANCELED);
+        sol_blob_unref(blob);
+    }
 
-    sol_buffer_fini(&progressive->buffer);
+    if (progressive->on_close)
+        progressive->on_close((void *)progressive->cb_data, progressive);
+
+    sol_ptr_vector_clear(&progressive->pending_blobs);
     free(progressive);
 }
 
 static ssize_t
 progressive_response_cb(void *data, uint64_t pos, char *buf, size_t size)
 {
-    int r;
-    ssize_t len;
+    size_t len;
+    struct sol_blob *blob;
     struct sol_http_progressive_response *progressive = data;
 
     if (progressive->delete_me) {
         if (!progressive->graceful_del ||
-            (progressive->graceful_del && !progressive->buffer.used))
+            (progressive->graceful_del && !sol_ptr_vector_get_len(&progressive->pending_blobs)))
             return MHD_CONTENT_READER_END_OF_STREAM;
     }
 
-    if (!progressive->buffer.used) {
+    if (!sol_ptr_vector_get_len(&progressive->pending_blobs)) {
         MHD_suspend_connection(progressive->request->connection);
         progressive->request->suspended = true;
         return 0;
     }
 
-    len = sol_util_min(size, progressive->buffer.used);
-    memcpy(buf, progressive->buffer.data, len);
+    blob = sol_ptr_vector_get_no_check(&progressive->pending_blobs, 0);
+    len = sol_util_min(size, blob->size);
+    memcpy(buf, (char *)blob->mem + progressive->written, len);
+    progressive->written += len;
 
-    r = sol_buffer_remove_data(&progressive->buffer, 0, len);
-    SOL_INT_CHECK(r, < 0, MHD_CONTENT_READER_END_WITH_ERROR);
+    if (progressive->written == blob->size) {
+        progressive->accumulated_bytes -= blob->size;
+        sol_ptr_vector_del(&progressive->pending_blobs, 0);
+        progressive->written = 0;
+        if (progressive->on_feed_done)
+            progressive->on_feed_done((void *)progressive->cb_data, progressive, blob, 0);
+        sol_blob_unref(blob);
+    }
 
     return len;
 }
@@ -1246,9 +1282,7 @@ sol_http_server_send_response(struct sol_http_request *request, struct sol_http_
 
 SOL_API struct sol_http_progressive_response *
 sol_http_server_send_progressive_response(struct sol_http_request *request,
-    const struct sol_http_response *response,
-    void (*on_del)(void *data, const struct sol_http_progressive_response *progressive),
-    const void *cb_data)
+    const struct sol_http_response *response, const struct sol_http_server_progressive_config *config)
 {
     int ret;
     struct sol_http_progressive_response *progressive;
@@ -1257,11 +1291,20 @@ sol_http_server_send_progressive_response(struct sol_http_request *request,
     SOL_NULL_CHECK(request, NULL);
     SOL_NULL_CHECK(request->connection, NULL);
     SOL_NULL_CHECK(response, NULL);
+    SOL_NULL_CHECK(config, NULL);
+
+#ifndef SOL_NO_API_VERSION
+    if (config->api_version != SOL_HTTP_SERVER_PROGRESSIVE_CONFIG_API_VERSION) {
+        SOL_WRN("Incorrect API version for struct sol_http_server_progressive_config."
+            "Expected '%u' - Received: '%u'", SOL_HTTP_SERVER_PROGRESSIVE_CONFIG_API_VERSION, config->api_version);
+        return 0;
+    }
+#endif
 
     progressive = calloc(1, sizeof(*progressive));
     SOL_NULL_CHECK(progressive, NULL);
 
-    sol_buffer_init(&progressive->buffer);
+    sol_ptr_vector_init(&progressive->pending_blobs);
     progressive->request = request;
 
     if (request->suspended) {
@@ -1278,14 +1321,15 @@ sol_http_server_send_progressive_response(struct sol_http_request *request,
 
     SOL_INT_CHECK_GOTO(ret, != MHD_YES, err);
 
-    progressive->on_del = on_del;
-    progressive->cb_data = cb_data;
+    progressive->on_close = config->on_close;
+    progressive->cb_data = config->user_data;
+    progressive->on_feed_done = config->on_feed_done;
+    progressive->feed_size = config->feed_size;
 
     return progressive;
 
 err:
     MHD_destroy_response(mhd_response);
-    sol_buffer_fini(&progressive->buffer);
     free(progressive);
     return NULL;
 }
@@ -1305,24 +1349,85 @@ sol_http_progressive_response_del(struct sol_http_progressive_response *progress
     }
 }
 
-SOL_API int
-sol_http_progressive_response_feed(struct sol_http_progressive_response *progressive,
-    const struct sol_str_slice data)
+static int
+queue_blob(struct sol_http_progressive_response *progressive,
+    struct sol_blob *blob)
 {
     int ret;
+    size_t total;
 
-    SOL_NULL_CHECK(progressive, -EINVAL);
-    SOL_EXP_CHECK(progressive->delete_me == true, -EINVAL);
-
-    ret = sol_buffer_append_slice(&progressive->buffer, data);
+    ret = sol_util_size_add(progressive->accumulated_bytes, blob->size, &total);
     SOL_INT_CHECK(ret, < 0, ret);
+
+    if (progressive->feed_size && total >= progressive->feed_size)
+        return -ENOSPC;
+
+    ret = sol_ptr_vector_append(&progressive->pending_blobs, blob);
+    SOL_INT_CHECK(ret, < 0, ret);
+
+    sol_blob_ref(blob);
 
     if (progressive->request->suspended) {
         progressive->request->suspended = false;
         MHD_resume_connection(progressive->request->connection);
     }
 
+    progressive->accumulated_bytes = total;
+
     return 0;
+}
+
+SOL_API int
+sol_http_progressive_response_feed(struct sol_http_progressive_response *progressive,
+    struct sol_blob *blob)
+{
+    SOL_NULL_CHECK(progressive, -EINVAL);
+    SOL_EXP_CHECK(progressive->delete_me == true, -EINVAL);
+    SOL_NULL_CHECK(blob, -EINVAL);
+
+    return queue_blob(progressive, blob);
+}
+
+SOL_API int
+sol_http_progressive_response_sse_feed(struct sol_http_progressive_response *progressive,
+    struct sol_blob *blob)
+{
+    int r;
+    bool suspended;
+
+    SOL_NULL_CHECK(progressive, -EINVAL);
+    SOL_EXP_CHECK(progressive->delete_me == true, -EINVAL);
+    SOL_NULL_CHECK(blob, -EINVAL);
+
+    suspended = progressive->request->suspended;
+
+    r = queue_blob(progressive, &sse_prefix);
+    SOL_INT_CHECK(r, < 0, r);
+
+    r = queue_blob(progressive, blob);
+    SOL_INT_CHECK_GOTO(r, < 0, err_data);
+
+    r = queue_blob(progressive, &sse_suffix);
+    SOL_INT_CHECK_GOTO(r, < 0, err_suffix);
+
+    return 0;
+
+err_suffix:
+    progressive->accumulated_bytes -= blob->size;
+    sol_ptr_vector_del_last(&progressive->pending_blobs);
+    sol_blob_unref(blob);
+
+err_data:
+    progressive->accumulated_bytes -= sse_prefix.size;
+    sol_ptr_vector_del_last(&progressive->pending_blobs);
+    sol_blob_unref(&sse_prefix);
+
+    if (!suspended) {
+        progressive->request->suspended = false;
+        MHD_resume_connection(progressive->request->connection);
+    }
+
+    return r;
 }
 
 SOL_API int

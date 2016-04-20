@@ -81,7 +81,7 @@ server_unref(void)
 
 static void
 v1_access_finished(void *data,
-    const struct sol_http_client_connection *connection,
+    struct sol_http_client_connection *connection,
     struct sol_http_response *response)
 {
     int r;
@@ -296,7 +296,7 @@ err:
 
 static void
 v1_request_finished(void *data,
-    const struct sol_http_client_connection *connection,
+    struct sol_http_client_connection *connection,
     struct sol_http_response *response)
 {
     int r;
