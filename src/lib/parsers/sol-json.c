@@ -833,6 +833,17 @@ memdesc_serialize_string(const struct sol_memdesc *desc, const char *value, stru
 }
 
 static int
+memdesc_serialize_enumeration(const struct sol_memdesc *desc, const void *memory, struct sol_buffer *buffer)
+{
+    const char *string = sol_memdesc_enumeration_to_str(desc, memory);
+
+    if (string)
+        return sol_json_serialize_string(buffer, string);
+    else
+        return sol_json_serialize_int64(buffer, sol_memdesc_get_as_int64(desc, memory));
+}
+
+static int
 memdesc_serialize_structure_member_key(const struct sol_memdesc_structure_member *member, struct sol_buffer *buf, const struct sol_memdesc_serialize_options *opts, struct sol_buffer *prefix)
 {
     int r;
@@ -884,6 +895,7 @@ sol_json_serialize_memdesc(struct sol_buffer *buffer, const struct sol_memdesc *
         .serialize_boolean = memdesc_serialize_boolean,
         .serialize_pointer = memdesc_serialize_pointer,
         .serialize_string = memdesc_serialize_string,
+        .serialize_enumeration = memdesc_serialize_enumeration,
         .serialize_structure_member = memdesc_serialize_structure_member,
         .structure = {
             .container = {
@@ -942,125 +954,33 @@ sol_json_load_memdesc(const struct sol_json_token *token, const struct sol_memde
     switch (desc->type) {
     case SOL_MEMDESC_TYPE_UNKNOWN:
         return -EINVAL;
-    case SOL_MEMDESC_TYPE_UINT8: {
-        uint8_t *m = memory;
-        uint64_t v;
-
-        r = sol_json_token_get_uint64(token, &v);
-        if (r < 0)
-            return r;
-
-        if (v > UINT8_MAX)
-            return -ERANGE;
-
-        *m = v;
-        return 0;
-    }
-    case SOL_MEMDESC_TYPE_UINT16: {
-        uint16_t *m = memory;
-        uint64_t v;
-
-        r = sol_json_token_get_uint64(token, &v);
-        if (r < 0)
-            return r;
-
-        if (v > UINT16_MAX)
-            return -ERANGE;
-
-        *m = v;
-        return 0;
-    }
+    case SOL_MEMDESC_TYPE_UINT8:
+    case SOL_MEMDESC_TYPE_UINT16:
     case SOL_MEMDESC_TYPE_UINT32:
-        return sol_json_token_get_uint32(token, memory);
     case SOL_MEMDESC_TYPE_UINT64:
-        return sol_json_token_get_uint64(token, memory);
-    case SOL_MEMDESC_TYPE_ULONG: {
-        unsigned long *m = memory;
-        uint64_t v;
-
-        r = sol_json_token_get_uint64(token, &v);
-        if (r < 0)
-            return r;
-
-        if (v > ULONG_MAX)
-            return -ERANGE;
-
-        *m = v;
-        return 0;
-    }
+    case SOL_MEMDESC_TYPE_ULONG:
     case SOL_MEMDESC_TYPE_SIZE: {
-        size_t *m = memory;
         uint64_t v;
 
         r = sol_json_token_get_uint64(token, &v);
         if (r < 0)
             return r;
 
-        if (v > SIZE_MAX)
-            return -ERANGE;
-
-        *m = v;
-        return 0;
+        return sol_memdesc_set_as_uint64(desc, memory, v);
     }
-    case SOL_MEMDESC_TYPE_INT8: {
-        int8_t *m = memory;
-        int64_t v;
-
-        r = sol_json_token_get_int64(token, &v);
-        if (r < 0)
-            return r;
-
-        if (v < INT8_MIN || v > INT8_MAX)
-            return -ERANGE;
-
-        *m = v;
-        return 0;
-    }
-    case SOL_MEMDESC_TYPE_INT16: {
-        int16_t *m = memory;
-        int64_t v;
-
-        r = sol_json_token_get_int64(token, &v);
-        if (r < 0)
-            return r;
-
-        if (v < INT16_MIN || v > INT16_MAX)
-            return -ERANGE;
-
-        *m = v;
-        return 0;
-    }
+    case SOL_MEMDESC_TYPE_INT8:
+    case SOL_MEMDESC_TYPE_INT16:
     case SOL_MEMDESC_TYPE_INT32:
-        return sol_json_token_get_int32(token, memory);
     case SOL_MEMDESC_TYPE_INT64:
-        return sol_json_token_get_int64(token, memory);
-    case SOL_MEMDESC_TYPE_LONG: {
-        long *m = memory;
-        int64_t v;
-
-        r = sol_json_token_get_int64(token, &v);
-        if (r < 0)
-            return r;
-
-        if (v < LONG_MIN || v > LONG_MAX)
-            return -ERANGE;
-
-        *m = v;
-        return 0;
-    }
+    case SOL_MEMDESC_TYPE_LONG:
     case SOL_MEMDESC_TYPE_SSIZE: {
-        ssize_t *m = memory;
         int64_t v;
 
         r = sol_json_token_get_int64(token, &v);
         if (r < 0)
             return r;
 
-        if (v < SSIZE_MIN || v > SSIZE_MAX)
-            return -ERANGE;
-
-        *m = v;
-        return 0;
+        return sol_memdesc_set_as_int64(desc, memory, v);
     }
     case SOL_MEMDESC_TYPE_BOOLEAN: {
         enum sol_json_type tt;
@@ -1086,6 +1006,34 @@ sol_json_load_memdesc(const struct sol_json_token *token, const struct sol_memde
         free(*m);
         *m = sol_json_token_get_unescaped_string_copy(token);
         return 0;
+    }
+    case SOL_MEMDESC_TYPE_ENUMERATION: {
+        enum sol_json_type tt;
+
+        tt = sol_json_token_get_type(token);
+        if (tt == SOL_JSON_TYPE_NUMBER) {
+            int64_t v;
+
+            r = sol_json_token_get_int64(token, &v);
+            if (r < 0)
+                return r;
+
+            return sol_memdesc_set_as_int64(desc, memory, v);
+        } else if (tt == SOL_JSON_TYPE_STRING) {
+            struct sol_buffer buf;
+
+            r = sol_json_token_get_unescaped_string(token, &buf);
+            if (r < 0)
+                return r;
+
+            r = sol_memdesc_enumeration_from_str(desc, memory, sol_buffer_get_slice(&buf));
+            sol_buffer_fini(&buf);
+            return r;
+        } else {
+            SOL_WRN("enumerations should be number of string, got json-type %c: %.*s",
+                tt, sol_json_token_get_size(token), token->start);
+            return -EINVAL;
+        }
     }
     case SOL_MEMDESC_TYPE_PTR: {
         enum sol_json_type tt;

@@ -22,8 +22,10 @@
 #include <stdbool.h>
 #include <stdint.h>
 #include <stdlib.h>
+#include <limits.h>
 #include <sol-common-buildopts.h>
 #include <sol-str-slice.h>
+#include <sol-str-table.h>
 #include <sol-macros.h>
 #include <sol-buffer.h>
 
@@ -175,6 +177,28 @@ enum sol_memdesc_type {
      * @see SOL_MEMDESC_TYPE_STRING
      */
     SOL_MEMDESC_TYPE_CONST_STRING,
+    /**
+     * @brief enumeration
+     *
+     * Enumerations assign an integer to some symbol, then we offer a
+     * translation table in struct sol_memdesc::enumeration_mapping
+     * using struct sol_str_table_int64. If that is not enough, then
+     * provide your own
+     * struct sol_memdesc::ops::enumeration::from_str and
+     * struct sol_memdesc::ops::enumeration::to_str, these will
+     * receive the actual pointer to memory and thus can work with any
+     * precision.
+     *
+     * Since enumerations don' t have an implicit size, one @b must
+     * define struct sol_memdesc::size, which is limited to 64-bits (8
+     * bytes).
+     *
+     * By default the value is based on
+     * struct sol_memdesc::defcontent::e (64-bit signed integer).
+     * One can change the behavior by setting a custom
+     * struct sol_memdesc::ops::init_defaults.
+     */
+    SOL_MEMDESC_TYPE_ENUMERATION,
     /**
      * @brief generic pointer (void *).
      *
@@ -348,6 +372,44 @@ struct sol_memdesc_ops_array {
 };
 
 /**
+ * @brief Operations specific to SOL_MEMDESC_TYPE_ENUMERATION.
+ *
+ * This provides enumeration-specific operations to use when dealing with a
+ * memory description.
+ *
+ * @see struct sol_memdesc_ops
+ * @see struct sol_memdesc
+ */
+struct sol_memdesc_ops_enumeration {
+#ifndef SOL_NO_API_VERSION
+#define SOL_MEMDESC_OPS_ENUMERATION_API_VERSION (1) /**< API version to use in struct sol_memdesc_ops_enumeration::api_version */
+    uint16_t api_version; /**< @brief API version, must match SOL_MEMDESC_OPS_ENUMERATION_API_VERSION at runtime */
+#endif
+    /**
+     * @brief convert enumeration value to string.
+     *
+     * On error, NULL should be returned and errno set. On success non-NULL is returned.
+     *
+     * @see sol_memdesc_enumeration_to_str()
+     */
+    const char *(*to_str)(const struct sol_memdesc *desc, const void *memory);
+    /**
+     * @brief convert enumeration value from string.
+     *
+     * The return is stored in @c ptr_return, which must be the size stated in
+     * struct sol_memdesc::size as returned by sol_memdesc_get_size().
+     *
+     * The string is given in the form of a slice so it doesn't need
+     * to be null-terminated.
+     *
+     * On error, negative errno is returned. 0 on success.
+     *
+     * @see sol_memdesc_enumeration_from_str()
+     */
+    int (*from_str)(const struct sol_memdesc *desc, void *ptr_return, const struct sol_str_slice str);
+};
+
+/**
  * @brief override operations to be used in this memory description.
  *
  * By default the operations will be done in a fixed way unless
@@ -385,7 +447,8 @@ struct sol_memdesc_ops {
      *
      * The parameter @c ptr_content is a pointer to the actual content,
      * depends on the actual type. If a SOL_MEMDESC_TYPE_BOOLEAN, for
-     * example, it must be a @c bool*.
+     * example, it must be a @c bool*. For SOL_MEMDESC_TYPE_ENUMERATION,
+     * the pointer will be memcpy() using the given sol_memdesc_get_size().
      *
      * Should return 0 on success, negative errno on errors.
      *
@@ -431,6 +494,7 @@ struct sol_memdesc_ops {
     int (*free_content)(const struct sol_memdesc *desc, void *memory);
     union {
         const struct sol_memdesc_ops_array *array;
+        const struct sol_memdesc_ops_enumeration *enumeration;
     };
 };
 
@@ -489,6 +553,7 @@ struct sol_memdesc {
         ssize_t ssz; /**< @brief use when SOL_MEMDESC_TYPE_SSIZE */
         bool b; /**< @brief use when SOL_MEMDESC_TYPE_BOOLEAN */
         double d; /**< @brief use when SOL_MEMDESC_TYPE_DOUBLE */
+        int64_t e; /**< @brief use when SOL_MEMDESC_TYPE_ENUMERATION */
         const char *s; /**< @brief use when SOL_MEMDESC_TYPE_STRING or SOL_MEMDESC_TYPE_CONST_STRING */
         const void *p; /**< @brief use when SOL_MEMDESC_TYPE_PTR, SOL_MEMDESC_TYPE_STRUCTURE or SOL_MEMDESC_TYPE_ARRAY */
     } defcontent;
@@ -519,6 +584,13 @@ struct sol_memdesc {
          * Loops should stop when type is SOL_MEMDESC_TYPE_UNKNOWN (0).
          */
         const struct sol_memdesc_structure_member *structure_members;
+        /**
+         * @brief null-terminated array of struct sol_str_table.
+         *
+         * Only to be used in SOL_MEMDESC_TYPE_ENUMERATION.
+         *
+         */
+        const struct sol_str_table_int64 *enumeration_mapping;
     };
 
     /**
@@ -661,6 +733,7 @@ sol_memdesc_get_size(const struct sol_memdesc *desc)
         return sizeof(void *);
     case SOL_MEMDESC_TYPE_STRUCTURE:
     case SOL_MEMDESC_TYPE_ARRAY:
+    case SOL_MEMDESC_TYPE_ENUMERATION:
         if (desc->size)
             return desc->size;
 
@@ -1086,6 +1159,36 @@ sol_memdesc_get_structure_member_memory(const struct sol_memdesc *structure_desc
 }
 
 /**
+ * @brief convert enumeration value to string.
+ *
+ * @param enumeration the memory description of the enumeration of
+ *        type SOL_MEMDESC_TYPE_ENUMERATION.
+ * @param memory the memory of the enumeration.
+ *
+ * @return On error, NULL should be returned and errno set. On success non-NULL is returned.
+ */
+const char *sol_memdesc_enumeration_to_str(const struct sol_memdesc *enumeration, const void *memory);
+
+/**
+ * @brief convert enumeration value from string.
+ *
+ * The return is stored in @c ptr_return, which must be the size stated in
+ * struct sol_memdesc::size as returned by sol_memdesc_get_size().
+ *
+ * The string is given in the form of a slice so it doesn't need
+ * to be null-terminated.
+ *
+ * @param enumeration the memory description of the enumeration of
+ *        type SOL_MEMDESC_TYPE_ENUMERATION.
+ * @param str the slice with the string to convert, doesn't need to be null-terminated.
+ * @param ptr_return where to store the converted value. Must be a pointer to a memory
+ *        of size sol_memdesc_get_size().
+ *
+ * @return On error, negative errno is returned. 0 on success.
+ */
+int sol_memdesc_enumeration_from_str(const struct sol_memdesc *enumeration, void *ptr_return, const struct sol_str_slice str);
+
+/**
  * @brief Helper to fetch the memory as the largest supported unsigned integer.
  *
  * @param desc the memory description.
@@ -1146,6 +1249,21 @@ sol_memdesc_get_as_uint64(const struct sol_memdesc *desc, const void *memory)
     case SOL_MEMDESC_TYPE_DOUBLE:
         i64 = *(const double *)memory;
         goto check_signed;
+    case SOL_MEMDESC_TYPE_ENUMERATION: {
+        uint8_t offset = 0;
+
+        if (desc->size > sizeof(int64_t)) {
+            errno = EINVAL;
+            return 0;
+        }
+#if __BYTE_ORDER__ == __ORDER_BIG_ENDIAN__
+        else if (desc->size < sizeof(int64_t))
+            offset = sizeof(desc->defcontent.e) - desc->size;
+#endif
+        i64 = 0;
+        memcpy((uint8_t *)&i64 + offset, memory, desc->size);
+        goto check_signed;
+    }
     case SOL_MEMDESC_TYPE_STRING:
     case SOL_MEMDESC_TYPE_CONST_STRING:
     case SOL_MEMDESC_TYPE_PTR:
@@ -1221,6 +1339,21 @@ sol_memdesc_get_as_int64(const struct sol_memdesc *desc, const void *memory)
         return *(const bool *)memory;
     case SOL_MEMDESC_TYPE_DOUBLE:
         return *(const double *)memory;
+    case SOL_MEMDESC_TYPE_ENUMERATION: {
+        int64_t i64 = 0;
+        uint8_t offset = 0;
+
+        if (desc->size > sizeof(int64_t)) {
+            errno = EINVAL;
+            return 0;
+        }
+#if __BYTE_ORDER__ == __ORDER_BIG_ENDIAN__
+        else if (desc->size < sizeof(int64_t))
+            offset = sizeof(desc->defcontent.e) - desc->size;
+#endif
+        memcpy((uint8_t *)&i64 + offset, memory, desc->size);
+        return i64;
+    }
     case SOL_MEMDESC_TYPE_STRING:
     case SOL_MEMDESC_TYPE_CONST_STRING:
     case SOL_MEMDESC_TYPE_PTR:
@@ -1237,6 +1370,236 @@ check_overflow:
         return 0;
     }
     return u64;
+}
+
+/**
+ * @brief Helper to set the memory as the largest supported unsigned integer.
+ *
+ * @param desc the memory description.
+ * @param memory the memory to set content.
+ * @param value the number as uint64_t.
+ *
+ * @return 0 on success, negative errno on errors.
+ *
+ * @see sol_memdesc_is_unsigned().
+ */
+static inline int
+sol_memdesc_set_as_uint64(const struct sol_memdesc *desc, void *memory, uint64_t value)
+{
+    if (!desc || !memory)
+        return -EINVAL;
+
+#ifndef SOL_NO_API_VERSION
+    if (desc->api_version != SOL_MEMDESC_API_VERSION_COMPILED)
+        return -EINVAL;
+#endif
+
+    switch (desc->type) {
+    case SOL_MEMDESC_TYPE_UINT8:
+        if (value > UINT8_MAX)
+            return -EOVERFLOW;
+        *(uint8_t *)memory = value;
+        return 0;
+    case SOL_MEMDESC_TYPE_UINT16:
+        if (value > UINT16_MAX)
+            return -EOVERFLOW;
+        *(uint16_t *)memory = value;
+        return 0;
+    case SOL_MEMDESC_TYPE_UINT32:
+        if (value > UINT32_MAX)
+            return -EOVERFLOW;
+        *(uint32_t *)memory = value;
+        return 0;
+    case SOL_MEMDESC_TYPE_UINT64:
+        *(uint64_t *)memory = value;
+        return 0;
+    case SOL_MEMDESC_TYPE_ULONG:
+        if (value > ULONG_MAX)
+            return -EOVERFLOW;
+        *(unsigned long *)memory = value;
+        return 0;
+    case SOL_MEMDESC_TYPE_SIZE:
+        if (value > SIZE_MAX)
+            return -EOVERFLOW;
+        *(size_t *)memory = value;
+        return 0;
+    case SOL_MEMDESC_TYPE_INT8:
+        if (value > INT8_MAX)
+            return -EOVERFLOW;
+        *(int8_t *)memory = value;
+        return 0;
+    case SOL_MEMDESC_TYPE_INT16:
+        if (value > INT16_MAX)
+            return -EOVERFLOW;
+        *(int16_t *)memory = value;
+        return 0;
+    case SOL_MEMDESC_TYPE_INT32:
+        if (value > INT32_MAX)
+            return -EOVERFLOW;
+        *(int32_t *)memory = value;
+        return 0;
+    case SOL_MEMDESC_TYPE_INT64:
+        if (value > INT64_MAX)
+            return -EOVERFLOW;
+        *(int64_t *)memory = value;
+        return 0;
+    case SOL_MEMDESC_TYPE_LONG:
+        if (value > LONG_MAX)
+            return -EOVERFLOW;
+        *(long *)memory = value;
+        return 0;
+    case SOL_MEMDESC_TYPE_SSIZE:
+        if (value > SSIZE_MAX)
+            return -EOVERFLOW;
+        *(ssize_t *)memory = value;
+        return 0;
+    case SOL_MEMDESC_TYPE_BOOLEAN:
+        *(bool *)memory = !!value;
+        return 0;
+    case SOL_MEMDESC_TYPE_DOUBLE:
+        *(double *)memory = value;
+        return 0;
+    case SOL_MEMDESC_TYPE_ENUMERATION: {
+        uint8_t offset = 0;
+
+        if (desc->size > sizeof(int64_t))
+            return -EINVAL;
+#if __BYTE_ORDER__ == __ORDER_BIG_ENDIAN__
+        else if (desc->size < sizeof(int64_t))
+            offset = sizeof(desc->defcontent.e) - desc->size;
+#endif
+
+        if (value > (((uint64_t)1 << (desc->size * 8 - 1)) - 1))
+            return -EOVERFLOW;
+
+        memcpy(memory, (uint8_t *)&value + offset, desc->size);
+        return 0;
+    }
+    case SOL_MEMDESC_TYPE_STRING:
+    case SOL_MEMDESC_TYPE_CONST_STRING:
+    case SOL_MEMDESC_TYPE_PTR:
+    case SOL_MEMDESC_TYPE_STRUCTURE:
+    case SOL_MEMDESC_TYPE_ARRAY:
+    default:
+        return -EINVAL;
+    }
+}
+
+/**
+ * @brief Helper to set the memory as the largest supported signed integer.
+ *
+ * @param desc the memory description.
+ * @param memory the memory to set content.
+ * @param value the number as int64_t.
+ *
+ * @return 0 on success, negative errno on errors.
+ *
+ * @see sol_memdesc_is_signed().
+ */
+static inline int64_t
+sol_memdesc_set_as_int64(const struct sol_memdesc *desc, void *memory, int64_t value)
+{
+    if (!desc || !memory)
+        return -EINVAL;
+
+#ifndef SOL_NO_API_VERSION
+    if (desc->api_version != SOL_MEMDESC_API_VERSION_COMPILED)
+        return -EINVAL;
+#endif
+
+    switch (desc->type) {
+    case SOL_MEMDESC_TYPE_UINT8:
+        if (value < 0 || value > UINT8_MAX)
+            return -EOVERFLOW;
+        *(uint8_t *)memory = value;
+        return 0;
+    case SOL_MEMDESC_TYPE_UINT16:
+        if (value < 0 || value > UINT16_MAX)
+            return -EOVERFLOW;
+        *(uint16_t *)memory = value;
+        return 0;
+    case SOL_MEMDESC_TYPE_UINT32:
+        if (value < 0 || value > UINT32_MAX)
+            return -EOVERFLOW;
+        *(uint32_t *)memory = value;
+        return 0;
+    case SOL_MEMDESC_TYPE_UINT64:
+        if (value < 0)
+            return -EOVERFLOW;
+        *(uint64_t *)memory = value;
+        return 0;
+    case SOL_MEMDESC_TYPE_ULONG:
+        if (value < 0 || value > ULONG_MAX)
+            return -EOVERFLOW;
+        *(unsigned long *)memory = value;
+        return 0;
+    case SOL_MEMDESC_TYPE_SIZE:
+        if (value < 0 || value > SIZE_MAX)
+            return -EOVERFLOW;
+        *(size_t *)memory = value;
+        return 0;
+    case SOL_MEMDESC_TYPE_INT8:
+        if (value < INT8_MIN || value > INT8_MAX)
+            return -EOVERFLOW;
+        *(int8_t *)memory = value;
+        return 0;
+    case SOL_MEMDESC_TYPE_INT16:
+        if (value < INT16_MIN || value > INT16_MAX)
+            return -EOVERFLOW;
+        *(int16_t *)memory = value;
+        return 0;
+    case SOL_MEMDESC_TYPE_INT32:
+        if (value < INT32_MIN || value > INT32_MAX)
+            return -EOVERFLOW;
+        *(int32_t *)memory = value;
+        return 0;
+    case SOL_MEMDESC_TYPE_INT64:
+        *(int64_t *)memory = value;
+        return 0;
+    case SOL_MEMDESC_TYPE_LONG:
+        if (value < LONG_MIN || value > LONG_MAX)
+            return -EOVERFLOW;
+        *(long *)memory = value;
+        return 0;
+    case SOL_MEMDESC_TYPE_SSIZE:
+        if (value < SSIZE_MIN || value > SSIZE_MAX)
+            return -EOVERFLOW;
+        *(ssize_t *)memory = value;
+        return 0;
+    case SOL_MEMDESC_TYPE_BOOLEAN:
+        *(bool *)memory = !!value;
+        return 0;
+    case SOL_MEMDESC_TYPE_DOUBLE:
+        *(double *)memory = value;
+        return 0;
+    case SOL_MEMDESC_TYPE_ENUMERATION: {
+        uint8_t offset = 0;
+
+        if (desc->size > sizeof(int64_t))
+            return -EINVAL;
+#if __BYTE_ORDER__ == __ORDER_BIG_ENDIAN__
+        else if (desc->size < sizeof(int64_t))
+            offset = sizeof(desc->defcontent.e) - desc->size;
+#endif
+
+        if (desc->size < sizeof(int64_t)) {
+            if (value > (((int64_t)1 << (desc->size * 8 - 1)) - 1))
+                return -EOVERFLOW;
+            if (value < -((int64_t)1 << (desc->size * 8 - 1)))
+                return -EOVERFLOW;
+        }
+
+        memcpy(memory, (uint8_t *)&value + offset, desc->size);
+        return 0;
+    }
+    case SOL_MEMDESC_TYPE_STRING:
+    case SOL_MEMDESC_TYPE_CONST_STRING:
+    case SOL_MEMDESC_TYPE_PTR:
+    case SOL_MEMDESC_TYPE_STRUCTURE:
+    case SOL_MEMDESC_TYPE_ARRAY:
+    default:
+        return -EINVAL;
+    }
 }
 
 /**
@@ -1281,6 +1644,7 @@ sol_memdesc_is_unsigned(const struct sol_memdesc *desc)
     case SOL_MEMDESC_TYPE_PTR:
     case SOL_MEMDESC_TYPE_STRUCTURE:
     case SOL_MEMDESC_TYPE_ARRAY:
+    case SOL_MEMDESC_TYPE_ENUMERATION:
     default:
         return false;
     }
@@ -1292,7 +1656,7 @@ sol_memdesc_is_unsigned(const struct sol_memdesc *desc)
  * @param desc the memory description.
  *
  * @return true if it is signed integer (int8_t, int16_t, int32_t, int64_t,
- *         long or ssize_t).
+ *         long, ssize_t or enumeration).
  */
 static inline bool
 sol_memdesc_is_signed(const struct sol_memdesc *desc)
@@ -1321,6 +1685,7 @@ sol_memdesc_is_signed(const struct sol_memdesc *desc)
     case SOL_MEMDESC_TYPE_INT64:
     case SOL_MEMDESC_TYPE_LONG:
     case SOL_MEMDESC_TYPE_SSIZE:
+    case SOL_MEMDESC_TYPE_ENUMERATION:
         return true;
     case SOL_MEMDESC_TYPE_BOOLEAN:
     case SOL_MEMDESC_TYPE_DOUBLE:
@@ -1390,14 +1755,28 @@ struct sol_memdesc_serialize_options {
     /**
      * @brief function used to format a string.
      *
-     * If not will place the string inside double-quotes and inner
-     * quotes and non-printable chars will be escaped.
+     * If not provided will place the string inside double-quotes and
+     * inner quotes and non-printable chars will be escaped.
      *
      * @note the given value may be @c NULL!
      *
      * Should return 0 on success, negative errno on failure.
      */
     int (*serialize_string)(const struct sol_memdesc *desc, const char *value, struct sol_buffer *buffer);
+    /**
+     * @brief function used to format an enumeration.
+     *
+     * If not provided will place the enumeration as string (if available)
+     * or integer if not.
+     *
+     * For ease of use one can use sol_memdesc_enumeration_to_str()
+     * and sol_memdesc_get_as_int64() on @c memory.
+     *
+     * @note the given value may be @c NULL!
+     *
+     * Should return 0 on success, negative errno on failure.
+     */
+    int (*serialize_enumeration)(const struct sol_memdesc *desc, const void *memory, struct sol_buffer *buffer);
     /**
      * @brief function used to format a struct member.
      *

@@ -49,6 +49,8 @@
             _CHECK_API(memdesc->ops, SOL_MEMDESC_OPS_API_VERSION, on_failure); \
             if (memdesc->type == SOL_MEMDESC_TYPE_ARRAY && memdesc->ops->array) { \
                 _CHECK_API(memdesc->ops->array, SOL_MEMDESC_OPS_ARRAY_API_VERSION, on_failure); \
+            } else if (memdesc->type == SOL_MEMDESC_TYPE_ENUMERATION && memdesc->ops->enumeration) { \
+                _CHECK_API(memdesc->ops->enumeration, SOL_MEMDESC_OPS_ENUMERATION_API_VERSION, on_failure); \
             } \
         } \
         if (memdesc->type == SOL_MEMDESC_TYPE_ARRAY) { \
@@ -70,6 +72,14 @@
         } else if (memdesc->type == SOL_MEMDESC_TYPE_PTR) { \
             if (memdesc->pointed_item) { \
                 _CHECK_API(memdesc->pointed_item, SOL_MEMDESC_API_VERSION, on_failure); \
+            } \
+        } else if (memdesc->type == SOL_MEMDESC_TYPE_ENUMERATION) { \
+            if (!memdesc->size) { \
+                SOL_WRN("" # memdesc "(%p)->size cannot be zero for enumeration.", memdesc); \
+                on_failure; \
+            } else if (memdesc->size > sizeof(int64_t)) { \
+                SOL_WRN("" # memdesc "(%p)->size cannot be larger than 8 bytes (64bits) for enumeration.", memdesc); \
+                on_failure; \
             } \
         } \
     } while (0)
@@ -110,6 +120,7 @@ sol_memdesc_type_from_str(const char *str)
         SOL_STR_TABLE_ITEM("double", SOL_MEMDESC_TYPE_DOUBLE),
         SOL_STR_TABLE_ITEM("string", SOL_MEMDESC_TYPE_STRING),
         SOL_STR_TABLE_ITEM("const string", SOL_MEMDESC_TYPE_CONST_STRING),
+        SOL_STR_TABLE_ITEM("enumeration", SOL_MEMDESC_TYPE_ENUMERATION),
         SOL_STR_TABLE_ITEM("pointer", SOL_MEMDESC_TYPE_PTR),
         SOL_STR_TABLE_ITEM("structure", SOL_MEMDESC_TYPE_STRUCTURE),
         SOL_STR_TABLE_ITEM("array", SOL_MEMDESC_TYPE_ARRAY),
@@ -142,6 +153,7 @@ sol_memdesc_type_to_str(enum sol_memdesc_type type)
         [SOL_MEMDESC_TYPE_DOUBLE] = "double",
         [SOL_MEMDESC_TYPE_STRING] = "string",
         [SOL_MEMDESC_TYPE_CONST_STRING] = "const string",
+        [SOL_MEMDESC_TYPE_ENUMERATION] = "enumeration",
         [SOL_MEMDESC_TYPE_PTR] = "pointer",
         [SOL_MEMDESC_TYPE_STRUCTURE] = "structure",
         [SOL_MEMDESC_TYPE_ARRAY] = "array",
@@ -155,6 +167,29 @@ sol_memdesc_type_to_str(enum sol_memdesc_type type)
 
 static int copy_structure(const struct sol_memdesc *structure_desc, void *memory, const void *ptr_content);
 static int copy_array(const struct sol_memdesc *array_desc, void *dst_memory, const void *src_memory);
+
+
+static inline uint8_t
+enumeration_offsetof_int64(const struct sol_memdesc *desc)
+{
+#if __BYTE_ORDER__ == __ORDER_BIG_ENDIAN__
+    if (desc->size < sizeof(int64_t))
+        return sizeof(desc->defcontent.e) - desc->size;
+#endif
+
+    return 0;
+}
+
+static inline int64_t
+enumeration_as_int64(const struct sol_memdesc *desc, const void *mem)
+{
+    int64_t i64 = 0;
+    uint8_t offset = enumeration_offsetof_int64(desc);
+
+
+    memcpy((uint8_t *)&i64 + offset, mem, desc->size);
+    return i64;
+}
 
 static inline const void *
 get_defcontent(const struct sol_memdesc *desc)
@@ -191,6 +226,11 @@ get_defcontent(const struct sol_memdesc *desc)
     case SOL_MEMDESC_TYPE_STRING:
     case SOL_MEMDESC_TYPE_CONST_STRING:
         return &desc->defcontent.s;
+    case SOL_MEMDESC_TYPE_ENUMERATION: {
+        const uint8_t *m = (const uint8_t *)&desc->defcontent.e;
+
+        return m + enumeration_offsetof_int64(desc);
+    }
     case SOL_MEMDESC_TYPE_PTR:
         return &desc->defcontent.p;
     case SOL_MEMDESC_TYPE_STRUCTURE:
@@ -465,6 +505,17 @@ compare_content(const struct sol_memdesc *desc, const void *a_mem, const void *b
         else
             return strcmp(*a, *b);
     }
+    case SOL_MEMDESC_TYPE_ENUMERATION: {
+        int64_t a = enumeration_as_int64(desc, a_mem);
+        int64_t b = enumeration_as_int64(desc, b_mem);
+
+        if (a < b)
+            return -1;
+        else if (a > b)
+            return 1;
+        else
+            return 0;
+    }
     case SOL_MEMDESC_TYPE_PTR: {
         const void *const *a = a_mem;
         const void *const *b = b_mem;
@@ -675,6 +726,68 @@ sol_memdesc_resize_array(const struct sol_memdesc *array, void *memory, size_t l
     }
 
     return array->ops->array->resize(array, memory, length);
+}
+
+SOL_API const char *
+sol_memdesc_enumeration_to_str(const struct sol_memdesc *enumeration, const void *memory)
+{
+    const struct sol_str_table_int64 *itr;
+    int64_t v;
+
+    errno = EINVAL;
+    CHECK_MEMDESC(enumeration, NULL);
+    SOL_NULL_CHECK(memory, NULL);
+
+    if (enumeration->type != SOL_MEMDESC_TYPE_ENUMERATION) {
+        SOL_WRN("enumeration=%p is not SOL_MEMDESC_TYPE_ENUMERATION", enumeration);
+        return NULL;
+    } else if (enumeration->ops && enumeration->ops->enumeration && enumeration->ops->enumeration->to_str) {
+        errno = 0;
+        return enumeration->ops->enumeration->to_str(enumeration, memory);
+    } else if (!enumeration->enumeration_mapping) {
+        SOL_WRN("enumeration=%p is SOL_MEMDESC_TYPE_ENUMERATION but does not provide enumeration_mapping or ops->enumeration->to_str", enumeration);
+        return NULL;
+    }
+
+    v = enumeration_as_int64(enumeration, memory);
+    for (itr = enumeration->enumeration_mapping; itr->key != NULL; itr++) {
+        if (itr->val == v) {
+            errno = 0;
+            return itr->key;
+        }
+    }
+
+    errno = ENOENT;
+    return NULL;
+}
+
+SOL_API int
+sol_memdesc_enumeration_from_str(const struct sol_memdesc *enumeration, void *ptr_return, const struct sol_str_slice str)
+{
+    const uint8_t *src;
+    int64_t v;
+
+    CHECK_MEMDESC(enumeration, -EINVAL);
+    SOL_NULL_CHECK(ptr_return, -EINVAL);
+    SOL_INT_CHECK(str.len, == 0, -EINVAL);
+
+    if (enumeration->type != SOL_MEMDESC_TYPE_ENUMERATION) {
+        SOL_WRN("enumeration=%p is not SOL_MEMDESC_TYPE_ENUMERATION", enumeration);
+        return -EINVAL;
+    } else if (enumeration->ops && enumeration->ops->enumeration && enumeration->ops->enumeration->from_str)
+        return enumeration->ops->enumeration->from_str(enumeration, ptr_return, str);
+    else if (!enumeration->enumeration_mapping) {
+        SOL_WRN("enumeration=%p is SOL_MEMDESC_TYPE_ENUMERATION but does not provide enumeration_mapping or ops->enumeration->from_str", enumeration);
+        return -EINVAL;
+    }
+
+    v = sol_str_table_int64_lookup_fallback(enumeration->enumeration_mapping, str, 0);
+    if (errno)
+        return -errno;
+
+    src = (const uint8_t *)&v + enumeration_offsetof_int64(enumeration);
+
+    return set_content(enumeration, ptr_return, src);
 }
 
 static int
@@ -924,6 +1037,17 @@ default_serialize_string(const struct sol_memdesc *desc, const char *value, stru
 }
 
 static int
+default_serialize_enumeration(const struct sol_memdesc *desc, const void *memory, struct sol_buffer *buffer)
+{
+    const char *string = sol_memdesc_enumeration_to_str(desc, memory);
+
+    if (string)
+        return sol_buffer_append_slice(buffer, sol_str_slice_from_str(string));
+
+    return sol_buffer_append_printf(buffer, "%" PRIi64, sol_memdesc_get_as_int64(desc, memory));
+}
+
+static int
 default_serialize_structure_member_key(const struct sol_memdesc_structure_member *member, struct sol_buffer *buf, const struct sol_memdesc_serialize_options *opts, struct sol_buffer *prefix)
 {
     int r;
@@ -1083,6 +1207,7 @@ SOL_API const struct sol_memdesc_serialize_options SOL_MEMDESC_SERIALIZE_OPTIONS
     .serialize_boolean = default_serialize_boolean,
     .serialize_pointer = default_serialize_pointer,
     .serialize_string = default_serialize_string,
+    .serialize_enumeration = default_serialize_enumeration,
     .serialize_structure_member = default_serialize_structure_member,
     .serialize_array_item = default_serialize_array_item,
     .structure = {
@@ -1167,6 +1292,15 @@ serialize_string(const struct sol_memdesc *desc, const void *memory, struct sol_
         return opts->serialize_string(desc, *m, buf);
     else
         return default_serialize_string(desc, *m, buf);
+}
+
+static int
+serialize_enumeration(const struct sol_memdesc *desc, const void *memory, struct sol_buffer *buf, const struct sol_memdesc_serialize_options *opts)
+{
+    if (opts->serialize_enumeration)
+        return opts->serialize_enumeration(desc, memory, buf);
+    else
+        return default_serialize_enumeration(desc, memory, buf);
 }
 
 static int serialize(const struct sol_memdesc *desc, const void *memory, struct sol_buffer *buf, const struct sol_memdesc_serialize_options *opts, struct sol_buffer *prefix);
@@ -1299,6 +1433,8 @@ serialize(const struct sol_memdesc *desc, const void *memory, struct sol_buffer 
     else if (desc->type == SOL_MEMDESC_TYPE_STRING ||
         desc->type == SOL_MEMDESC_TYPE_CONST_STRING)
         return serialize_string(desc, memory, buf, opts);
+    else if (desc->type == SOL_MEMDESC_TYPE_ENUMERATION)
+        return serialize_enumeration(desc, memory, buf, opts);
     else if (sol_memdesc_is_unsigned(desc))
         return serialize_uint64(desc, memory, buf, opts);
     else if (sol_memdesc_is_signed(desc))

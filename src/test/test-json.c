@@ -571,6 +571,11 @@ DEFINE_TEST(test_json_serialize_memdesc);
 static void
 test_json_serialize_memdesc(void)
 {
+    enum myenum {
+        enum0 = 0,
+        enum1,
+        enum2
+    };
     const struct myst {
         int64_t i64;
         char *s;
@@ -584,6 +589,7 @@ test_json_serialize_memdesc(void)
     };
     struct sol_vector int_vector = SOL_VECTOR_INIT(int32_t);
     struct sol_vector kv_vector = SOL_VECTOR_INIT(struct sol_key_value);
+    struct sol_vector enum_vector = SOL_VECTOR_INIT(enum myenum);
     const struct test {
         struct sol_memdesc desc;
         const char *expected_detailed;
@@ -793,6 +799,27 @@ test_json_serialize_memdesc(void)
                 SOL_SET_API_VERSION(.api_version = SOL_MEMDESC_API_VERSION, )
                 .size = sizeof(struct sol_vector),
                 .type = SOL_MEMDESC_TYPE_ARRAY,
+                .defcontent.p = &enum_vector,
+                .ops = &SOL_MEMDESC_OPS_VECTOR,
+                .array_item = &(const struct sol_memdesc){
+                    SOL_SET_API_VERSION(.api_version = SOL_MEMDESC_API_VERSION, )
+                    .type = SOL_MEMDESC_TYPE_ENUMERATION,
+                    .size = sizeof(enum myenum),
+                    .enumeration_mapping = (const struct sol_str_table_int64[]){
+                        SOL_STR_TABLE_INT64_ITEM("enum0", enum0),
+                        SOL_STR_TABLE_INT64_ITEM("enum1", enum1),
+                        SOL_STR_TABLE_INT64_ITEM("enum2", enum2),
+                        {}
+                    },
+                },
+            },
+            .expected_essential = "[\"enum0\",\"enum1\",\"enum2\",3]",
+        },
+        {
+            .desc = {
+                SOL_SET_API_VERSION(.api_version = SOL_MEMDESC_API_VERSION, )
+                .size = sizeof(struct sol_vector),
+                .type = SOL_MEMDESC_TYPE_ARRAY,
                 .defcontent.p = &kv_vector,
                 .ops = &SOL_MEMDESC_OPS_VECTOR,
                 .array_item = &(const struct sol_memdesc){
@@ -826,6 +853,7 @@ test_json_serialize_memdesc(void)
     };
     size_t i;
     int32_t *int_items;
+    enum myenum *enum_items;
     struct sol_key_value *kv_items;
 
     int_items = sol_vector_append_n(&int_vector, 10);
@@ -841,6 +869,12 @@ test_json_serialize_memdesc(void)
     kv_items[0].value = "avalue";
     kv_items[1].key = "xkey";
     kv_items[1].value = "xvalue";
+
+    enum_items = sol_vector_append_n(&enum_vector, 4);
+    ASSERT(enum_items);
+    ASSERT_INT_EQ(enum_vector.len, 4);
+    for (i = 0; i < enum_vector.len; i++)
+        enum_items[i] = i;
 
     for (itr = tests; itr->expected_essential != NULL; itr++) {
         void *mem = sol_memdesc_new_with_defaults(&itr->desc);
@@ -872,12 +906,18 @@ test_json_serialize_memdesc(void)
 
     sol_vector_clear(&int_vector);
     sol_vector_clear(&kv_vector);
+    sol_vector_clear(&enum_vector);
 }
 
 DEFINE_TEST(test_json_load_memdesc);
 static void
 test_json_load_memdesc(void)
 {
+    enum myenum {
+        enum0 = 0,
+        enum1,
+        enum2
+    };
     const struct myst {
         int64_t i64;
         char *s;
@@ -891,6 +931,7 @@ test_json_load_memdesc(void)
     };
     struct sol_vector int_vector = SOL_VECTOR_INIT(int32_t);
     struct sol_vector kv_vector = SOL_VECTOR_INIT(struct sol_key_value);
+    struct sol_vector enum_vector = SOL_VECTOR_INIT(enum myenum);
     const struct test {
         const char *input;
         struct sol_memdesc desc;
@@ -1252,6 +1293,44 @@ test_json_load_memdesc(void)
             },
         },
         {
+            .input = "[\"enum0\",\"enum1\",\"enum2\",3]",
+            .desc = {
+                SOL_SET_API_VERSION(.api_version = SOL_MEMDESC_API_VERSION, )
+                .size = sizeof(struct sol_vector),
+                .type = SOL_MEMDESC_TYPE_ARRAY,
+                .ops = &SOL_MEMDESC_OPS_VECTOR,
+                .array_item = &(const struct sol_memdesc){
+                    SOL_SET_API_VERSION(.api_version = SOL_MEMDESC_API_VERSION, )
+                    .type = SOL_MEMDESC_TYPE_ENUMERATION,
+                    .size = sizeof(enum myenum),
+                    .enumeration_mapping = (const struct sol_str_table_int64[]){
+                        SOL_STR_TABLE_INT64_ITEM("enum0", enum0),
+                        SOL_STR_TABLE_INT64_ITEM("enum1", enum1),
+                        SOL_STR_TABLE_INT64_ITEM("enum2", enum2),
+                        {}
+                    },
+                },
+            },
+            .desc_expected = {
+                SOL_SET_API_VERSION(.api_version = SOL_MEMDESC_API_VERSION, )
+                .size = sizeof(struct sol_vector),
+                .type = SOL_MEMDESC_TYPE_ARRAY,
+                .defcontent.p = &enum_vector,
+                .ops = &SOL_MEMDESC_OPS_VECTOR,
+                .array_item = &(const struct sol_memdesc){
+                    SOL_SET_API_VERSION(.api_version = SOL_MEMDESC_API_VERSION, )
+                    .type = SOL_MEMDESC_TYPE_ENUMERATION,
+                    .size = sizeof(enum myenum),
+                    .enumeration_mapping = (const struct sol_str_table_int64[]){
+                        SOL_STR_TABLE_INT64_ITEM("enum0", enum0),
+                        SOL_STR_TABLE_INT64_ITEM("enum1", enum1),
+                        SOL_STR_TABLE_INT64_ITEM("enum2", enum2),
+                        {}
+                    },
+                },
+            },
+        },
+        {
             .input = "[{\"key\":\"akey\",\"value\":\"avalue\"},{\"key\":\"xkey\",\"value\":\"xvalue\"}]",
             .desc = {
                 SOL_SET_API_VERSION(.api_version = SOL_MEMDESC_API_VERSION, )
@@ -1320,6 +1399,7 @@ test_json_load_memdesc(void)
     size_t i;
     int32_t *int_items;
     struct sol_key_value *kv_items;
+    enum myenum *enum_items;
 
     int_items = sol_vector_append_n(&int_vector, 10);
     ASSERT(int_items);
@@ -1334,6 +1414,12 @@ test_json_load_memdesc(void)
     kv_items[0].value = "avalue";
     kv_items[1].key = "xkey";
     kv_items[1].value = "xvalue";
+
+    enum_items = sol_vector_append_n(&enum_vector, 4);
+    ASSERT(enum_items);
+    ASSERT_INT_EQ(enum_vector.len, 4);
+    for (i = 0; i < enum_vector.len; i++)
+        enum_items[i] = i;
 
     for (itr = tests; itr->input != NULL; itr++) {
         void *mem = sol_memdesc_new_with_defaults(&itr->desc);
@@ -1357,6 +1443,7 @@ test_json_load_memdesc(void)
 
     sol_vector_clear(&int_vector);
     sol_vector_clear(&kv_vector);
+    sol_vector_clear(&enum_vector);
 }
 
 DEFINE_TEST(test_json_memdesc_complex);
