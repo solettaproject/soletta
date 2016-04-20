@@ -1324,6 +1324,7 @@ test_serialize(void)
                 },
                 .offset = offsetof(struct myst, u64),
                 .name = "u64",
+                SOL_MEMDESC_SET_DESCRIPTION(.description = "some comment", )
             },
             {
                 .base = {
@@ -1399,7 +1400,11 @@ test_serialize(void)
     };
     const char expected[] = ""
         "{\n"
+#ifdef SOL_MEMDESC_DESCRIPTION
+        "    .u64 = 17452669531780691030 /* some comment */,\n"
+#else
         "    .u64 = 17452669531780691030,\n"
+#endif
         "    .v = {\n"
         "        [0] = {\n"
         "            [0] = {\n"

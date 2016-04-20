@@ -289,15 +289,17 @@ const char *sol_memdesc_type_to_str(enum sol_memdesc_type type) SOL_ATTR_WARN_UN
 #endif
 
 /**
- * @def SOL_MEMDESC_SET_DESCRIPTION(text)
+ * @def SOL_MEMDESC_SET_DESCRIPTION()
  *
  * Helper to set the description member of struct sol_memdesc if that
  * is available (conditional to #SOL_MEMDESC_SET_DESCRIPTION).
+ *
+ * It takes C statements and conditionally uses or eliminates them.
  */
 #ifdef SOL_MEMDESC_DESCRIPTION
-#define SOL_MEMDESC_SET_DESCRIPTION(text) .description = (text)
+#define SOL_MEMDESC_SET_DESCRIPTION(...) __VA_ARGS__
 #else
-#define SOL_MEMDESC_SET_DESCRIPTION(text)
+#define SOL_MEMDESC_SET_DESCRIPTION(...)
 #endif
 
 #ifndef SOL_NO_API_VERSION
@@ -1786,7 +1788,11 @@ struct sol_memdesc_serialize_options {
      * struct sol_memdesc_serialize_options::structure::show_key, then
      * struct sol_memdesc_serialize_options::structure::key::start and
      * struct sol_memdesc_serialize_options::structure::key::end are used around the
-     * struct sol_memdesc::name that is dumped as-is.
+     * struct sol_memdesc::name that is dumped as-is. If SOL_MEMDESC_DESCRIPTION
+     * is enabled, then struct sol_memdesc_serialize_options::structure::show_description
+     * is true, then the description is printed after value surrounded by
+     * struct sol_memdesc_serialize_options::structure::description::start and
+     * struct sol_memdesc_serialize_options::structure::description::end.
      *
      * If multiple members exist, they will be separated with
      * struct sol_memdesc_serialize_options::structure::separator.
@@ -1866,6 +1872,22 @@ struct sol_memdesc_serialize_options {
              */
             const struct sol_str_slice indent;
         } value;
+#ifdef SOL_MEMDESC_DESCRIPTION
+        struct {
+            /**
+             * Used when starting a new structure member description.
+             */
+            const struct sol_str_slice start;
+            /**
+             * Used when finishing structure member description.
+             */
+            const struct sol_str_slice end;
+            /**
+             * Used to indent a new member description.
+             */
+            const struct sol_str_slice indent;
+        } description;
+#endif
         /**
          * Used if multiple members exist.
          */
@@ -1882,6 +1904,12 @@ struct sol_memdesc_serialize_options {
          * non-detail members will.
          */
         bool detailed;
+#ifdef SOL_MEMDESC_DESCRIPTION
+        /**
+         * Controls whenever the description is to be serialized.
+         */
+        bool show_description;
+#endif
     } structure;
     /**
      * @brief options used by serialize_array_item
