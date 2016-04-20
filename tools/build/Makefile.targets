@@ -220,7 +220,7 @@ bindings-nodejs: $(SOL_LIB_OUTPUT)
 	$(Q) mkdir -p $(build_nodejs_bindingsdir)
 	$(Q) cp -a *js package.json $(build_nodejs_bindingsdir)
 	$(Q) mkdir -p $(build_nodejs_bindingsdir)/build
-	$(Q) cp $$(find build -type f -name soletta.node | head -n 1) \
+	$(Q) cp $$(find build -type f -name soletta.node | grep -v 'soletta_sysroot' | head -n 1) \
 		$(build_nodejs_bindingsdir)/build
 	$(Q) mkdir -p $(build_nodejs_bindingsdir)/node_modules
 	$(Q) cp -a ./node_modules/* $(build_nodejs_bindingsdir)/node_modules
@@ -228,7 +228,8 @@ bindings-nodejs: $(SOL_LIB_OUTPUT)
 PHONY += bindings-nodejs
 
 check-bindings-nodejs: bindings-nodejs
-	node $(NODEJS_ROOT)/tests/suite.js --ldPreload="$(LIB_ASAN_PATH)"
+	$(Q) $(NODEJS_NPM) install --ignore-scripts
+	$(Q) $(NODEJS) $(NODEJS_ROOT)/tests/suite.js --ldPreload="$(LIB_ASAN_PATH)"
 PHONY += check-bindings-nodejs
 
 endif #neq($(USE_NODEJS),)
