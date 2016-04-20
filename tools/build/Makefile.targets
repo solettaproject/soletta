@@ -220,7 +220,7 @@ bindings-nodejs: $(SOL_LIB_OUTPUT)
 	$(Q) mkdir -p $(build_nodejs_bindingsdir)
 	$(Q) cp -a *js package.json $(build_nodejs_bindingsdir)
 	$(Q) mkdir -p $(build_nodejs_bindingsdir)/build
-	$(Q) cp $$(find build -type f -name soletta.node | head -n 1) \
+	$(Q) cp $$(find build -type f -name soletta.node | grep obj.target | head -n 1) \
 		$(build_nodejs_bindingsdir)/build
 	$(Q) mkdir -p $(build_nodejs_bindingsdir)/node_modules
 	$(Q) cp -a ./node_modules/* $(build_nodejs_bindingsdir)/node_modules
