@@ -1370,39 +1370,58 @@ server_resource_schedule_update(struct server_resource *resource)
         server_resource_perform_update, resource);
 }
 
-static sol_coap_responsecode_t
-server_handle_update(const struct sol_network_link_addr *cliaddr, const void *data,
-    const struct sol_oic_map_reader *repr_map, struct sol_oic_map_writer *output)
+static int
+server_handle_update(void *data, struct sol_oic_request *request)
 {
+    sol_coap_responsecode_t code;
     struct server_resource *resource = (struct server_resource *)data;
+    struct sol_oic_map_reader *input;
     int r;
 
-    if (!resource->funcs->from_repr_vec)
-        return SOL_COAP_RSPCODE_NOT_IMPLEMENTED;
+    if (!resource->funcs->from_repr_vec) {
+        code = SOL_COAP_RSPCODE_NOT_IMPLEMENTED;
+        goto end;
+    }
 
-    r = resource->funcs->from_repr_vec(resource, repr_map);
+    input = sol_oic_server_request_get_reader(request);
+    r = resource->funcs->from_repr_vec(resource, input);
     if (r > 0) {
         server_resource_schedule_update(resource);
-        return SOL_COAP_RSPCODE_CHANGED;
+        code = SOL_COAP_RSPCODE_CHANGED;
     } else if (r == 0)
-        return SOL_COAP_RSPCODE_OK;
+        code = SOL_COAP_RSPCODE_OK;
     else
-        return SOL_COAP_RSPCODE_PRECONDITION_FAILED;
+        code = SOL_COAP_RSPCODE_PRECONDITION_FAILED;
+
+end:
+    return sol_oic_server_send_response(request, NULL, code);
 }
 
-static sol_coap_responsecode_t
-server_handle_get(const struct sol_network_link_addr *cliaddr, const void *data,
-    const struct sol_oic_map_reader *repr_map, struct sol_oic_map_writer *output)
+static int
+server_handle_get(void *data, struct sol_oic_request *request)
 {
     const struct server_resource *resource = data;
+    struct sol_oic_map_writer *output;
+    struct sol_oic_response *response;
 
     if (!resource->funcs->to_repr_vec)
-        return SOL_COAP_RSPCODE_NOT_IMPLEMENTED;
+        return sol_oic_server_send_response(request, NULL,
+            SOL_COAP_RSPCODE_NOT_IMPLEMENTED);
 
+    response = sol_oic_server_response_new(request);
+    SOL_NULL_CHECK_GOTO(response, error);
+    output = sol_oic_server_response_get_writer(response);
+    SOL_NULL_CHECK_GOTO(output, error);
     if (!resource->funcs->to_repr_vec((void *)resource, output))
-        return SOL_COAP_RSPCODE_INTERNAL_ERROR;
+        goto error;
 
-    return SOL_COAP_RSPCODE_CONTENT;
+    return sol_oic_server_send_response(request, response,
+        SOL_COAP_RSPCODE_CONTENT);
+
+error:
+    sol_oic_server_response_free(response);
+    return sol_oic_server_send_response(request, NULL,
+        SOL_COAP_RSPCODE_INTERNAL_ERROR);
 }
 
 // log_init() implementation happens within oic-gen.c

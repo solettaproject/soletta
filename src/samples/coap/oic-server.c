@@ -77,33 +77,45 @@ set_scrolllock_led(bool on)
     return true;
 }
 
-static sol_coap_responsecode_t
-user_handle_get(const struct sol_network_link_addr *cliaddr, const void *data,
-    const struct sol_oic_map_reader *input, struct sol_oic_map_writer *output)
+static int
+user_handle_get(void *data, struct sol_oic_request *request)
 {
     bool r;
     struct sol_oic_repr_field field;
+    struct sol_oic_response *response = NULL;
+    struct sol_oic_map_writer *output;
 
+    response = sol_oic_server_response_new(request);
+    SOL_NULL_CHECK_GOTO(response, error);
+    output = sol_oic_server_response_get_writer(response);
     field = SOL_OIC_REPR_BOOLEAN("state", get_scrolllock_led());
     r = sol_oic_map_append(output, &field);
-    SOL_EXP_CHECK(r == false, SOL_COAP_RSPCODE_INTERNAL_ERROR);
+    SOL_EXP_CHECK_GOTO(r == false, error);
 
     field = SOL_OIC_REPR_INT("power", 13);
     r = sol_oic_map_append(output, &field);
-    SOL_EXP_CHECK(r == false, SOL_COAP_RSPCODE_INTERNAL_ERROR);
+    SOL_EXP_CHECK_GOTO(r == false, error);
 
-    return SOL_COAP_RSPCODE_CONTENT;
+    return sol_oic_server_send_response(request, response,
+        SOL_COAP_RSPCODE_CONTENT);
+
+error:
+    if (response)
+        sol_oic_server_response_free(response);
+    return sol_oic_server_send_response(request, NULL,
+        SOL_COAP_RSPCODE_INTERNAL_ERROR);
 }
 
-static sol_coap_responsecode_t
-user_handle_put(const struct sol_network_link_addr *cliaddr, const void *data,
-    const struct sol_oic_map_reader *input, struct sol_oic_map_writer *output)
+static int
+user_handle_put(void *data, struct sol_oic_request *request)
 {
-    sol_coap_responsecode_t code;
+    sol_coap_responsecode_t code = SOL_COAP_RSPCODE_BAD_REQUEST;
     enum sol_oic_map_loop_reason reason;
     struct sol_oic_repr_field field;
     struct sol_oic_map_reader iter;
+    struct sol_oic_map_reader *input;
 
+    input = sol_oic_server_request_get_reader(request);
     SOL_OIC_MAP_LOOP(input, &field, &iter, reason) {
         if (!strcmp(field.key, "state") && field.type == SOL_OIC_REPR_TYPE_BOOLEAN) {
             if (set_scrolllock_led(field.v_boolean))
@@ -112,17 +124,18 @@ user_handle_put(const struct sol_network_link_addr *cliaddr, const void *data,
                 code = SOL_COAP_RSPCODE_INTERNAL_ERROR;
 
             sol_oic_repr_field_clear(&field);
-            return code;
+            goto end;
         }
     }
 
-    return SOL_COAP_RSPCODE_BAD_REQUEST;
+end:
+    return sol_oic_server_send_response(request, NULL, code);
 }
 
 static struct sol_oic_server_resource *
 register_light_resource_type(
-    sol_coap_responsecode_t (*handle_get)(const struct sol_network_link_addr *cliaddr, const void *data, const struct sol_oic_map_reader *input, struct sol_oic_map_writer *output),
-    sol_coap_responsecode_t (*handle_put)(const struct sol_network_link_addr *cliaddr, const void *data, const struct sol_oic_map_reader *input, struct sol_oic_map_writer *output),
+    int (*handle_get)(void *data, struct sol_oic_request *request),
+    int (*handle_put)(void *data, struct sol_oic_request *request),
     const char *resource_type)
 {
     /* This function will be auto-generated from the RAML definitions. */

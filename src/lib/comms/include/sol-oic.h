@@ -421,6 +421,24 @@ struct sol_oic_map_reader {
 };
 
 /**
+ * @struct sol_oic_request
+ *
+ * @brief Information about a server request.
+ *
+ * @see sol_oic_server_send_response
+ */
+struct sol_oic_request;
+
+/**
+ * @struct sol_oic_response
+ *
+ * @brief Information about a server response.
+ *
+ * @see sol_oic_server_send_response
+ */
+struct sol_oic_response;
+
+/**
  * @brief Possible reasons a @ref SOL_OIC_MAP_LOOP was terminated.
  */
 enum sol_oic_map_loop_reason {
