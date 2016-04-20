@@ -87,7 +87,7 @@ err_size:
 }
 
 static void
-task_get_metadata_response(void *data, const struct sol_http_client_connection *conn,
+task_get_metadata_response(void *data, struct sol_http_client_connection *conn,
     struct sol_http_response *http_response)
 {
     struct update_http_handle *handle = data;
@@ -173,7 +173,7 @@ err_url:
 }
 
 static void
-task_fetch_response(void *data, const struct sol_http_client_connection *conn,
+task_fetch_response(void *data, struct sol_http_client_connection *conn,
     struct sol_http_response *http_response)
 {
     struct update_http_handle *handle = data;
@@ -204,8 +204,8 @@ task_fetch_response(void *data, const struct sol_http_client_connection *conn,
 }
 
 static ssize_t
-task_fetch_recv(void *data, const struct sol_http_client_connection *conn,
-    struct sol_buffer *buffer)
+task_fetch_recv(void *data, struct sol_http_client_connection *conn,
+    const struct sol_buffer *buffer)
 {
     struct update_http_handle *handle = data;
 

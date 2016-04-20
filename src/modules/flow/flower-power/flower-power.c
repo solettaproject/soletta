@@ -203,7 +203,7 @@ http_get_close(struct sol_flow_node *node, void *data)
 
 static void
 generate_token_cb(void *data,
-    const struct sol_http_client_connection *connection,
+    struct sol_http_client_connection *connection,
     struct sol_http_response *response)
 {
     struct http_get_data *mdata = data;
@@ -516,7 +516,7 @@ sol_flower_power_sensor_send_packet_components(struct sol_flow_node *src,
 }
 
 static void
-http_get_cb(void *data, const struct sol_http_client_connection *connection,
+http_get_cb(void *data, struct sol_http_client_connection *connection,
     struct sol_http_response *response)
 {
     struct http_get_data *mdata = data;
