@@ -1346,11 +1346,19 @@ static bool
 server_resource_perform_update(void *data)
 {
     struct server_resource *resource = data;
+    struct sol_oic_server_response *notification;
 
     SOL_NULL_CHECK(resource->funcs->to_repr_vec, false);
 
-    if (!sol_oic_notify_observers(resource->resource,
-        resource->funcs->to_repr_vec, resource)) {
+    notification = sol_oic_server_create_notification(resource->resource);
+    SOL_NULL_CHECK(notification, false);
+    if (!resource->funcs->to_repr_vec(resource,
+        sol_oic_server_response_get_data(notification))) {
+        sol_oic_server_response_free(notification);
+        return false;
+    }
+
+    if (sol_oic_server_notify_observers(notification) < 0) {
         SOL_WRN("Error while serializing update message");
     } else {
         resource->funcs->inform_flow(resource);
