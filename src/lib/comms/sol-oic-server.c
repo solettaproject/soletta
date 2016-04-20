@@ -50,6 +50,18 @@ struct sol_oic_server {
     int refcnt;
 };
 
+struct sol_oic_server_response {
+    struct sol_coap_packet *pkt;
+    struct sol_oic_map_writer data;
+};
+
+struct sol_oic_server_request {
+    const struct sol_network_link_addr *cliaddr;
+    struct sol_oic_map_reader data;
+    struct sol_coap_server *server;
+    struct sol_coap_packet *pkt;
+};
+
 struct sol_oic_server_resource {
     struct sol_coap_resource *coap;
 
@@ -60,9 +72,7 @@ struct sol_oic_server_resource {
 
     struct {
         struct {
-            sol_coap_responsecode_t (*handle)(const struct sol_network_link_addr *cliaddr,
-                const void *data, const struct sol_oic_map_reader *input,
-                struct sol_oic_map_writer *output);
+            int (*handle)(struct sol_oic_server_request *request, void *data);
         } get, put, post, del;
         const void *data;
     } callback;
@@ -87,21 +97,24 @@ static void sol_oic_server_unref(void);
 
 #define APPEND_KEY_VALUE(info, k, v) \
     do { \
-        ret = sol_oic_map_append(output, &SOL_OIC_REPR_TEXT_STRING(k, \
+        ret = sol_oic_map_append(&response->data, &SOL_OIC_REPR_TEXT_STRING(k, \
             oic_server.info->v.data, oic_server.info->v.len)); \
     } while (0)
 
-static sol_coap_responsecode_t
-_sol_oic_server_d(const struct sol_network_link_addr *cliaddr, const void *data,
-    const struct sol_oic_map_reader *input, struct sol_oic_map_writer *output)
+static int
+_sol_oic_server_d(struct sol_oic_server_request *request, void *data)
 {
     SOL_BUFFER_DECLARE_STATIC(dev_id, 37);
+    struct sol_oic_server_response *response;
     bool ret;
     int r;
 
     r = sol_util_uuid_string_from_bytes(true, true,
         sol_platform_get_machine_id_as_bytes(), &dev_id);
     SOL_INT_CHECK_GOTO(r, < 0, error);
+
+    response = sol_oic_server_create_response(request);
+    SOL_NULL_CHECK_GOTO(response, error);
 
     APPEND_KEY_VALUE(server_info, SOL_OIC_KEY_DEVICE_NAME, device_name);
     SOL_EXP_CHECK_GOTO(!ret, error);
@@ -111,21 +124,27 @@ _sol_oic_server_d(const struct sol_network_link_addr *cliaddr, const void *data,
         data_model_version);
     SOL_EXP_CHECK_GOTO(!ret, error);
 
-    ret = sol_oic_map_append(output, &SOL_OIC_REPR_TEXT_STRING(
+    ret = sol_oic_map_append(&response->data, &SOL_OIC_REPR_TEXT_STRING(
         SOL_OIC_KEY_DEVICE_ID, dev_id.data, dev_id.used));
-    return SOL_COAP_RSPCODE_CONTENT;
+    SOL_EXP_CHECK_GOTO(!ret, error);
+
+    return sol_oic_server_send_response(request, response,
+        SOL_COAP_RSPCODE_CONTENT);
 
 error:
-    return SOL_COAP_RSPCODE_INTERNAL_ERROR;
-
+    return sol_oic_server_send_response(request, NULL,
+        SOL_COAP_RSPCODE_INTERNAL_ERROR);
 }
 
-static sol_coap_responsecode_t
-_sol_oic_server_p(const struct sol_network_link_addr *cliaddr, const void *data,
-    const struct sol_oic_map_reader *input, struct sol_oic_map_writer *output)
+static int
+_sol_oic_server_p(struct sol_oic_server_request *request, void *data)
 {
     const char *os_version;
     bool ret;
+    struct sol_oic_server_response *response;
+
+    response = sol_oic_server_create_response(request);
+    SOL_NULL_CHECK_GOTO(response, error);
 
     APPEND_KEY_VALUE(plat_info, SOL_OIC_KEY_MANUF_NAME, manufacturer_name);
     SOL_EXP_CHECK_GOTO(!ret, error);
@@ -149,21 +168,23 @@ _sol_oic_server_p(const struct sol_network_link_addr *cliaddr, const void *data,
     APPEND_KEY_VALUE(plat_info, SOL_OIC_KEY_SYSTEM_TIME, platform_id);
     SOL_EXP_CHECK_GOTO(!ret, error);
 
-    ret = sol_oic_map_append(output, &SOL_OIC_REPR_TEXT_STRING(
+    ret = sol_oic_map_append(&response->data, &SOL_OIC_REPR_TEXT_STRING(
         SOL_OIC_KEY_SYSTEM_TIME, NULL, 0));
     SOL_EXP_CHECK_GOTO(!ret, error);
 
     os_version = sol_platform_get_os_version();
     if (!os_version)
         os_version = "Unknown";
-    ret = sol_oic_map_append(output, &SOL_OIC_REPR_TEXT_STRING(
+    ret = sol_oic_map_append(&response->data, &SOL_OIC_REPR_TEXT_STRING(
         SOL_OIC_KEY_OS_VER, os_version, strlen(os_version)));
     SOL_EXP_CHECK_GOTO(!ret, error);
 
-    return SOL_COAP_RSPCODE_CONTENT;
+    return sol_oic_server_send_response(request, response,
+        SOL_COAP_RSPCODE_CONTENT);
 
 error:
-    return SOL_COAP_RSPCODE_INTERNAL_ERROR;
+    return sol_oic_server_send_response(request, NULL,
+        SOL_COAP_RSPCODE_INTERNAL_ERROR);
 }
 
 #undef APPEND_KEY_VALUE
@@ -615,52 +636,148 @@ sol_oic_server_unref(void)
 
 static int
 _sol_oic_resource_type_handle(
-    sol_coap_responsecode_t (*handle_fn)(const struct sol_network_link_addr *cliaddr, const void *data,
-    const struct sol_oic_map_reader *input, struct sol_oic_map_writer *output),
+    int (*handle_fn)(struct sol_oic_server_request *request, void *data),
     struct sol_coap_server *server, struct sol_coap_packet *req,
     const struct sol_network_link_addr *cliaddr,
     struct sol_oic_server_resource *res, bool expect_payload)
 {
     struct sol_coap_packet *response;
-    struct sol_oic_map_reader input, *input_ptr = NULL;
-    struct sol_oic_map_writer output;
-    sol_coap_responsecode_t code = SOL_COAP_RSPCODE_INTERNAL_ERROR;
+    struct sol_oic_server_request *request;
+    sol_coap_responsecode_t code;
     CborParser parser;
 
     OIC_SERVER_CHECK(-ENOTCONN);
 
-    response = sol_coap_packet_new(req);
-    if (!response) {
-        SOL_WRN("Could not build response packet.");
-        return -1;
-    }
+    request = calloc(1, sizeof(struct sol_oic_server_request));
+    SOL_NULL_CHECK(request, -ENOMEM);
+
+    request->cliaddr = cliaddr;
+    request->server = server;
+    request->pkt = sol_coap_packet_ref(req);
 
     if (!handle_fn) {
         code = SOL_COAP_RSPCODE_NOT_IMPLEMENTED;
-        goto done;
+        goto error;
     }
 
     if (expect_payload) {
         if (!sol_oic_pkt_has_cbor_content(req)) {
             code = SOL_COAP_RSPCODE_BAD_REQUEST;
-            goto done;
+            goto error;
         }
-        if (sol_oic_packet_cbor_extract_repr_map(req, &parser, (CborValue *)&input) != CborNoError) {
+        if (sol_oic_packet_cbor_extract_repr_map(req, &parser,
+            (CborValue *)&request->data) != CborNoError) {
             code = SOL_COAP_RSPCODE_BAD_REQUEST;
-            goto done;
+            goto error;
         }
-        input_ptr = &input;
-    }
+    } else
+        ((CborValue *)&request->data)->type = CborInvalidType;
 
-    sol_oic_packet_cbor_create(response, &output);
-    code = handle_fn(cliaddr, res->callback.data, input_ptr, &output);
-    if (sol_oic_packet_cbor_close(response, &output) != CborNoError)
-        code = SOL_COAP_RSPCODE_INTERNAL_ERROR;
+    return handle_fn(request, (void *)res->callback.data);
 
-done:
+error:
+    response = sol_coap_packet_new(req);
+    SOL_NULL_CHECK(response, -errno);
     sol_coap_header_set_code(response, code);
+    sol_oic_server_request_free(request);
 
     return sol_coap_send_packet(server, response, cliaddr);
+}
+
+SOL_API void
+sol_oic_server_request_free(struct sol_oic_server_request *request)
+{
+    SOL_NULL_CHECK(request);
+
+    if (request->pkt)
+        sol_coap_packet_unref(request->pkt);
+    free(request);
+}
+
+SOL_API void
+sol_oic_server_response_free(struct sol_oic_server_response *response)
+{
+    SOL_NULL_CHECK(response);
+
+    if (response->pkt)
+        sol_coap_packet_unref(response->pkt);
+    free(response);
+}
+
+SOL_API struct sol_oic_map_writer *
+sol_oic_server_response_get_data(struct sol_oic_server_response *response)
+{
+    SOL_NULL_CHECK(response, NULL);
+
+    return &response->data;
+}
+
+SOL_API struct sol_oic_map_reader *
+sol_oic_server_request_get_data(struct sol_oic_server_request *request)
+{
+    SOL_NULL_CHECK(request, NULL);
+
+    return &request->data;
+}
+
+SOL_API struct sol_oic_server_response *
+sol_oic_server_create_response(struct sol_oic_server_request *request)
+{
+    struct sol_oic_server_response *response;
+
+    SOL_NULL_CHECK(request, NULL);
+
+    response = calloc(1, sizeof(struct sol_oic_server_response));
+    SOL_NULL_CHECK(response, NULL);
+
+    response->pkt = sol_coap_packet_new(request->pkt);
+    SOL_NULL_CHECK_GOTO(response->pkt, error);
+
+    sol_oic_packet_cbor_create(response->pkt, &response->data);
+
+    return response;
+
+error:
+    free(response);
+    return NULL;
+}
+
+SOL_API int
+sol_oic_server_send_response(struct sol_oic_server_request *request, struct sol_oic_server_response *response, sol_coap_responsecode_t code)
+{
+    struct sol_coap_packet *pkt;
+    int r = -EINVAL;
+
+    OIC_SERVER_CHECK(-ENOTCONN);
+    SOL_NULL_CHECK_GOTO(request, error);
+
+    if (response) {
+        if (sol_oic_packet_cbor_close(response->pkt,
+            &response->data) != CborNoError) {
+            r = -EINVAL;
+            goto error;
+        }
+        pkt = response->pkt;
+        free(response);
+    } else
+        pkt = sol_coap_packet_new(request->pkt);
+
+    r = sol_coap_header_set_code(pkt, code);
+    SOL_INT_CHECK_GOTO(r, < 0, error_pkt);
+
+    r = sol_coap_send_packet(request->server, pkt, request->cliaddr);
+    SOL_INT_CHECK(r, < 0, r);
+
+    sol_oic_server_request_free(request);
+    return 0;
+
+error:
+    sol_oic_server_response_free(response);
+    return r;
+
+error_pkt:
+    sol_coap_packet_unref(pkt);
+    return r;
 }
 
 #define DEFINE_RESOURCE_TYPE_CALLBACK_FOR_METHOD(method, expect_payload) \
