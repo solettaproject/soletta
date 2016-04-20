@@ -115,6 +115,14 @@ for ( oneVariable in process.env ) {
 				"sol-spi.h"
 			] );
 			break;
+		case "USE_I2C":
+			sources = sources.concat( [
+				"../src/functions/i2c.cc"
+			] );
+			headers = headers.concat( [
+				"sol-i2c.h"
+			] );
+			break;
 		default:
 			break;
 	}
