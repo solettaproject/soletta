@@ -62,6 +62,32 @@ enum sol_i2c_speed {
 };
 
 /**
+ * @brief Converts a string I2C speed to sol_i2c_speed
+ *
+ * This function converts a string I2C speed to enumeration sol_i2c_speed.
+ *
+ * @see sol_i2c_speed_to_str().
+ *
+ * @param speed Valid values are "10kbps", "100kbps", "400kbps", "1000kbps", "3400kbps".
+ *
+ * @return enumeration sol_i2c_speed.
+ */
+enum sol_i2c_speed sol_i2c_speed_from_str(const char *speed) SOL_ATTR_WARN_UNUSED_RESULT;
+
+/**
+ * @brief Converts sol_i2c_speed to a string name.
+ *
+ * This function converts sol_i2c_speed enumeration to a string I2C speed name.
+ *
+ * @see sol_i2c_speed_from_str().
+ *
+ * @param speed sol_i2c_speed.
+ *
+ * @return String representation of the sol_i2c_speed.
+ */
+const char *sol_i2c_speed_to_str(enum sol_i2c_speed speed) SOL_ATTR_WARN_UNUSED_RESULT;
+
+/**
  * @brief Open an I2C bus.
  *
  * @param bus The I2C bus number to open
