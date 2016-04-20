@@ -319,23 +319,30 @@ struct sol_oic_server_resource *sol_oic_server_add_resource(
 void sol_oic_server_del_resource(struct sol_oic_server_resource *resource);
 
 /**
- * @brief Send notification to all clients in observe list.
+ * @brief Send notification to all observing clients.
  *
- * Send a notification packet with data filled by @a fill_repr_map callback
- * to all clients that have registered in the @a resource as an observer.
+ * Send a notification packet with data filled in @a notification to all
+ * observing clients of the resouce used to create @a notification.
+ * This function always clear and invalidate the @a notification memory.
  *
- * @param resource The target resource
- * @param fill_repr_map Callback to fill notification data. Callback parameters
- *        are @a data, the user's data pointer, @a oic_map_writer, the write
- *        handler to be used with @ref sol_oic_map_append to fill the
- *        notification data
- * @param data Pointer to user's data to be passed to @a fill_repr_map callback
+ * @param notification The notification response created using
+ * sol_oic_server_notification_new() function.
  *
- * @return True on success, false on failure.
+ * @return @c 0 on success or a negative number on errors.
  */
-bool sol_oic_notify_observers(struct sol_oic_server_resource *resource,
-    bool (*fill_repr_map)(void *data, struct sol_oic_map_writer *oic_map_writer),
-    const void *data);
+int sol_oic_server_send_notification_to_observers(struct sol_oic_response *notification);
+
+/**
+ * @brief Create a notification response to send to observing clients of
+ * @a resource.
+ *
+ * @param resource The resource that will be used to create this notification.
+ *
+ * @return A notification response on success or NULL on errors.
+ *
+ * @see sol_oic_server_send_notification_to_observers
+ */
+struct sol_oic_response *sol_oic_server_notification_new(struct sol_oic_server_resource *resource);
 
 /**
  * @brief Send a reponse as a reply to a request.

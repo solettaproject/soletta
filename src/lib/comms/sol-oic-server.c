@@ -55,6 +55,7 @@ struct sol_oic_server {
 struct sol_oic_response {
     struct sol_coap_packet *pkt;
     struct sol_oic_map_writer writer;
+    struct sol_oic_server_resource *resource;
 };
 
 struct sol_oic_request {
@@ -684,16 +685,29 @@ sol_oic_server_response_free(struct sol_oic_response *response)
     sol_ptr_vector_del(&oic_server.responses, i);
 }
 
-SOL_API struct sol_oic_response *
-sol_oic_server_response_new(struct sol_oic_request *request)
+static struct sol_oic_response *
+create_response(void)
 {
     struct sol_oic_response *response;
 
     response = calloc(1, sizeof(struct sol_oic_response));
     SOL_NULL_CHECK(response, NULL);
 
-    if (sol_ptr_vector_append(&oic_server.responses, response) < 0)
-        goto error;
+    if (sol_ptr_vector_append(&oic_server.responses, response) < 0) {
+        free(response);
+        return NULL;
+    }
+
+    return response;
+}
+
+SOL_API struct sol_oic_response *
+sol_oic_server_response_new(struct sol_oic_request *request)
+{
+    struct sol_oic_response *response;
+
+    response = create_response();
+    SOL_NULL_CHECK(response, NULL);
 
     response->pkt = sol_coap_packet_new(request->pkt);
     SOL_NULL_CHECK_GOTO(response->pkt, error);
@@ -1027,57 +1041,74 @@ sol_oic_server_del_resource(struct sol_oic_server_resource *resource)
     sol_oic_server_unref();
 }
 
-static bool
-send_notification_to_server(struct sol_oic_server_resource *resource,
-    struct sol_coap_server *server,
-    bool (*fill_repr_map)(void *data, struct sol_oic_map_writer *oic_map_writer),
-    const void *data)
+static int
+send_notification_to_server(struct sol_oic_response *notification,
+    struct sol_coap_server *server)
 {
-    struct sol_coap_packet *pkt;
-    struct sol_oic_map_writer oic_map_writer;
     uint8_t code = SOL_COAP_RSPCODE_INTERNAL_ERROR;
     CborError err;
     int r;
 
-    pkt = sol_coap_packet_notification_new(oic_server.server, resource->coap);
-    SOL_NULL_CHECK(pkt, false);
-
-    sol_oic_packet_cbor_create(pkt, &oic_map_writer);
-    if (!fill_repr_map((void *)data, &oic_map_writer))
-        goto end;
-    err = sol_oic_packet_cbor_close(pkt, &oic_map_writer);
+    err = sol_oic_packet_cbor_close(notification->pkt, &notification->writer);
     SOL_INT_CHECK_GOTO(err, != CborNoError, end);
 
     code = SOL_COAP_RSPCODE_CONTENT;
 end:
-    r = sol_coap_header_set_code(pkt, code);
-    SOL_INT_CHECK_GOTO(r, < 0, err);
-    r = sol_coap_header_set_type(pkt, SOL_COAP_TYPE_ACK);
-    SOL_INT_CHECK_GOTO(r, < 0, err);
+    r = sol_coap_header_set_code(notification->pkt, code);
+    SOL_INT_CHECK_GOTO(r, < 0, error);
+    r = sol_coap_header_set_type(notification->pkt, SOL_COAP_TYPE_ACK);
+    SOL_INT_CHECK_GOTO(r, < 0, error);
 
-    return !sol_coap_packet_send_notification(oic_server.server, resource->coap, pkt);
+    return sol_coap_packet_send_notification(server,
+        notification->resource->coap, notification->pkt);
 
-err:
-    sol_coap_packet_unref(pkt);
-    return false;
+error:
+    return r;
 }
 
-SOL_API bool
-sol_oic_notify_observers(struct sol_oic_server_resource *resource,
-    bool (*fill_repr_map)(void *data, struct sol_oic_map_writer *oic_map_writer),
-    const void *data)
+SOL_API struct sol_oic_response *
+sol_oic_server_notification_new(struct sol_oic_server_resource *resource)
 {
-    bool sent_server = false;
-    bool sent_dtls_server = false;
+    struct sol_oic_response *notification;
 
-    SOL_NULL_CHECK(resource, false);
-    SOL_NULL_CHECK(fill_repr_map, false);
+    notification = create_response();
+    SOL_NULL_CHECK(notification, NULL);
 
-    OIC_SERVER_CHECK(false);
+    notification->resource = resource;
+    notification->pkt = sol_coap_packet_notification_new(oic_server.server,
+        resource->coap);
+    SOL_NULL_CHECK_GOTO(notification->pkt, error);
+    sol_oic_packet_cbor_create(notification->pkt, &notification->writer);
 
-    sent_server = send_notification_to_server(resource, oic_server.server, fill_repr_map, data);
+    return notification;
+
+error:
+    free(notification);
+    return NULL;
+}
+
+SOL_API int
+sol_oic_server_send_notification_to_observers(struct sol_oic_response *notification)
+{
+    int r = -ENOTCONN;
+
+    SOL_NULL_CHECK(notification, -EINVAL);
+    OIC_SERVER_CHECK_GOTO(error);
+
+    if (!notification->resource) {
+        SOL_WRN("Response is not a notification response.");
+        r = -EINVAL;
+        goto error;
+    }
+
+    r = send_notification_to_server(notification, oic_server.server);
+    SOL_INT_CHECK_GOTO(r, < 0, end);
     if (oic_server.dtls_server)
-        sent_dtls_server = send_notification_to_server(resource, oic_server.dtls_server, fill_repr_map, data);
+        r = send_notification_to_server(notification, oic_server.dtls_server);
 
-    return sent_server || sent_dtls_server;
+end:
+    notification->pkt = NULL;
+error:
+    sol_oic_server_response_free(notification);
+    return r;
 }

@@ -230,14 +230,22 @@ NAN_METHOD(bind_sol_oic_server_del_resource) {
     Nan::SetInternalFieldPointer(jsResourceInfo, 0, 0);
 }
 
-NAN_METHOD(bind_sol_oic_notify_observers) {
+NAN_METHOD(bind_sol_oic_server_send_notification_to_observers) {
     VALIDATE_ARGUMENT_COUNT(info, 2);
     VALIDATE_ARGUMENT_TYPE(info, 0, IsObject);
     VALIDATE_ARGUMENT_TYPE_OR_NULL(info, 1, IsObject);
+    struct sol_oic_response *notification;
+    bool result = true;
     struct ResourceInfo *resourceInfo = (struct ResourceInfo *)
         SolOicServerResource::Resolve(
             Nan::To<Object>(info[0]).ToLocalChecked());
     if (!resourceInfo) {
+        return;
+    }
+
+    notification = sol_oic_server_notification_new(resourceInfo->resource);
+    if (!notification) {
+        info.GetReturnValue().Set(Nan::New(false));
         return;
     }
 
@@ -247,9 +255,15 @@ NAN_METHOD(bind_sol_oic_notify_observers) {
             Nan::To<Object>(info[1]).ToLocalChecked());
     }
 
-    info.GetReturnValue().Set(Nan::New(
-        sol_oic_notify_observers(resourceInfo->resource,
-            (jsPayload ? oic_map_writer_callback : 0), jsPayload)));
+    if (jsPayload) {
+        result = oic_map_writer_callback(jsPayload, sol_oic_server_response_get_writer(notification));
+    }
+
+    if (result)
+        result = sol_oic_server_send_notification_to_observers(notification) == 0;
+    else
+        sol_oic_server_response_free(notification);
+    info.GetReturnValue().Set(Nan::New(result));
 
     if (jsPayload) {
         jsPayload->Reset();
