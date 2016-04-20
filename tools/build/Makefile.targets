@@ -234,3 +234,7 @@ check-bindings-nodejs: bindings-nodejs
 PHONY += check-bindings-nodejs
 
 endif #neq($(USE_NODEJS),)
+
+gen-aliases:
+	$(Q)$(MKDIR) -p $(build_aliasesdir)
+	$(FLOW_NODE_TYPE_ALIAS) --file-name=default --node-description-dir=$(flow-dir) --output-dir=$(build_aliasesdir)
