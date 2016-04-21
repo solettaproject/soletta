@@ -95,10 +95,10 @@ NAN_METHOD(bind_sol_uart_close) {
     sol_uart_close(uart);
     if (callback) {
         delete callback;
-        delete uart_data;
-        Nan::SetInternalFieldPointer(jsUART, 0, 0);
-        hijack_unref();
     }
+    delete uart_data;
+    Nan::SetInternalFieldPointer(jsUART, 0, 0);
+    hijack_unref();
 }
 
 static void sol_uart_write_callback(void *data, struct sol_uart *uart,
@@ -115,6 +115,7 @@ static void sol_uart_write_callback(void *data, struct sol_uart *uart,
         bufObj = Nan::NewBuffer((char *)tx, status).ToLocalChecked();
         buffer = bufObj;
     } else {
+        free(tx);
         buffer = Nan::Null();
     }
 
@@ -186,12 +187,12 @@ NAN_METHOD(bind_sol_uart_baud_rate_to_str) {
     VALIDATE_ARGUMENT_TYPE(info, 0, IsInt32);
 
     const char *idString = sol_uart_baud_rate_to_str(
-        (sol_uart_baud_rate)info[0]->Uint32Value());
+        (sol_uart_baud_rate)info[0]->Int32Value());
 
     if (idString) {
         info.GetReturnValue().Set(Nan::New(idString).ToLocalChecked());
     } else {
-       info.GetReturnValue().Set(Nan::Null());
+        info.GetReturnValue().Set(Nan::Null());
     }
 }
 
@@ -209,12 +210,12 @@ NAN_METHOD(bind_sol_uart_data_bits_to_str) {
     VALIDATE_ARGUMENT_TYPE(info, 0, IsInt32);
 
     const char *idString = sol_uart_data_bits_to_str(
-        (sol_uart_data_bits)info[0]->Uint32Value());
+        (sol_uart_data_bits)info[0]->Int32Value());
 
     if (idString) {
         info.GetReturnValue().Set(Nan::New(idString).ToLocalChecked());
     } else {
-       info.GetReturnValue().Set(Nan::Null());
+        info.GetReturnValue().Set(Nan::Null());
     }
 }
 
@@ -232,12 +233,12 @@ NAN_METHOD(bind_sol_uart_stop_bits_to_str) {
     VALIDATE_ARGUMENT_TYPE(info, 0, IsInt32);
 
     const char *idString = sol_uart_stop_bits_to_str(
-        (sol_uart_stop_bits)info[0]->Uint32Value());
+        (sol_uart_stop_bits)info[0]->Int32Value());
 
     if (idString) {
         info.GetReturnValue().Set(Nan::New(idString).ToLocalChecked());
     } else {
-       info.GetReturnValue().Set(Nan::Null());
+        info.GetReturnValue().Set(Nan::Null());
     }
 }
 
@@ -255,11 +256,11 @@ NAN_METHOD(bind_sol_uart_parity_to_str) {
     VALIDATE_ARGUMENT_TYPE(info, 0, IsInt32);
 
     const char *idString = sol_uart_parity_to_str(
-        (sol_uart_parity)info[0]->Uint32Value());
+        (sol_uart_parity)info[0]->Int32Value());
 
     if (idString) {
         info.GetReturnValue().Set(Nan::New(idString).ToLocalChecked());
     } else {
-       info.GetReturnValue().Set(Nan::Null());
+        info.GetReturnValue().Set(Nan::Null());
     }
 }
