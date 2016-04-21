@@ -84,10 +84,10 @@ struct sol_http_progressive_response;
  * in the specified @a port.
  *
  * With the returned handle it's possible to register paths using
- * @c sol_http_server_register_handler
- * and dirs with @c sol_http_server_add_dir.
+ * @c sol_http_server_register_handler()
+ * and dirs with @c sol_http_server_add_dir().
  *
- * @note Only one instance of sol_http_server is possible per port.
+ * @note Only one instance of @c sol_http_server is possible per port.
  * Try to run a second instance in the
  * same port will result in fail.
  *
@@ -100,14 +100,14 @@ struct sol_http_server *sol_http_server_new(uint16_t port);
 /**
  * @brief Destroy the @a server instance.
  *
- * @param server The value got with @c sol_http_server_new
+ * @param server The value got with @c sol_http_server_new()
  */
 void sol_http_server_del(struct sol_http_server *server);
 
 /**
  * @brief Register a handler for a specific path.
  *
- * @param server The value got with @c sol_http_server_new
+ * @param server The value got with @c sol_http_server_new()
  * @param path The path where the handler will serve, it means, when a request comes in this path the
  * callback set will be called and a response should be sent back
  * @param request_cb The callback for the request received on the specified path
@@ -120,10 +120,10 @@ int sol_http_server_register_handler(struct sol_http_server *server, const char 
     const void *data);
 
 /**
- * @brief Removes a handler registered with @c sol_http_server_register_handler
+ * @brief Removes a handler registered with @c sol_http_server_register_handler()
  *
  * @param server The value got with @c sol_http_server_new
- * @param path The same path given on @c sol_http_server_register_handler
+ * @param path The same path given on @c sol_http_server_register_handler()
  *
  * @return @c 0 on success, error code (always negative) otherwise.
  */
@@ -137,7 +137,7 @@ int sol_http_server_unregister_handler(struct sol_http_server *server, const cha
  * root dirs set. The response will be sent as soon as a file matches
  * with the request.
  *
- * @param server The value got with @c sol_http_server_new
+ * @param server The value got with @c sol_http_server_new()
  * @param basename The base path of the requests where the server will
  * look for files on @c rootdir
  * @param rootdir The dir where the server will look for static files
@@ -147,11 +147,11 @@ int sol_http_server_unregister_handler(struct sol_http_server *server, const cha
 int sol_http_server_add_dir(struct sol_http_server *server, const char *basename, const char *rootdir);
 
 /**
- * @brief Removes a dir registered with @c sol_http_server_add_dir
+ * @brief Removes a dir registered with @c sol_http_server_add_dir()
  *
- * @param server The value got with @c sol_http_server_new
- * @param basename The same basename given on @c sol_http_server_add_dir
- * @param rootdir The same rootdir given on @c sol_http_server_add_dir
+ * @param server The value got with @c sol_http_server_new()
+ * @param basename The same basename given on @c sol_http_server_add_dir()
+ * @param rootdir The same rootdir given on @c sol_http_server_add_dir()
  *
  * @return @c 0 on success, error code (always negative) otherwise.
  */
@@ -162,7 +162,7 @@ int sol_http_server_remove_dir(struct sol_http_server *server, const char *basen
 /**
  * @brief Add a  page for a specific error code
  *
- * @param server The value got with @c sol_http_server_new
+ * @param server The value got with @c sol_http_server_new()
  * @param error The error code which @page_path will be served
  * @param page The path to a html file
  *
@@ -173,11 +173,11 @@ int sol_http_server_set_error_page(struct sol_http_server *server,
 
 /**
  * @brief Removes a default error page registered with
- * @c sol_http_server_add_default_error_page
+ * @c sol_http_server_add_default_error_page()
  *
- * @param server The value got with @c sol_http_server_new
+ * @param server The value got with @c sol_http_server_new()
  * @param error The same error given on
- * @c sol_http_server_add_default_error_page
+ * @c sol_http_server_add_default_error_page()
  *
  * @return @c 0 on success, error code (always negative) otherwise.
  */
@@ -196,8 +196,8 @@ int sol_http_server_remove_error_page(struct sol_http_server *server,
  *
  * @note: This is specific per @a server/@a path.
  *
- * @param server The value got with @c sol_http_server_new
- * @param path The same path given on @c sol_http_server_register_handler
+ * @param server The value got with @c sol_http_server_new()
+ * @param path The same path given on @c sol_http_server_register_handler()
  * @param modified The time it was modified
  *
  * @return @c 0 on success, error code (always negative) otherwise.
@@ -206,12 +206,12 @@ int sol_http_server_set_last_modified(struct sol_http_server *server, const char
 
 /**
  * @brief Send the response to request given in the callback registered on
- * @c sol_http_server_register_handler.
+ * @c sol_http_server_register_handler().
  *
  * After this call, @a request should not be used anymore.
  *
  * @param request The request given on the callback of
- * @c sol_http_server_register_handler
+ * @c sol_http_server_register_handler()
  * @param response The response for the request containing the data
  * and parameters (e.g http headers)
  *
@@ -363,7 +363,7 @@ int sol_http_request_get_client_address(const struct sol_http_request *request,
  * This function changes the default request's buffer size, it is
  * used to store the post data. The default value is 4096 bytes.
  *
- * @param server The handle got with @c sol_http_server_new
+ * @param server The handle got with @c sol_http_server_new()
  * @param buf_size The size of the buffer.
  *
  * @return 0 in success, a negative value otherwise.
@@ -375,12 +375,12 @@ int sol_http_server_set_buffer_size(struct sol_http_server *server, size_t buf_s
 /**
  * @brief Get the request buffer's size.
  *
- * @param server The handle got with @c sol_http_server_new
+ * @param server The handle got with @c sol_http_server_new()
  * @param buf_size Variable to get the buffer's size.
  *
  * @return 0 in success, a negative value otherwise.
  *
- * @see sol_http_server_set_buffer_size
+ * @see sol_http_server_set_buffer_size()
  */
 int sol_http_server_get_buffer_size(struct sol_http_server *server, size_t *buf_size);
 
