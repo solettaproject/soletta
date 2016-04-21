@@ -46,6 +46,9 @@
 SOL_LOG_INTERNAL_DECLARE_STATIC(_log_domain, "i2c");
 
 #include "sol-i2c.h"
+#ifdef USE_PIN_MUX
+#include "sol-pin-mux.h"
+#endif
 #include "sol-macros.h"
 #include "sol-mainloop.h"
 #include "sol-util-internal.h"
@@ -969,7 +972,25 @@ create_device_iter_cb(void *data, const char *dir_path, struct dirent *ent)
     int r;
     struct stat st;
 
+#ifdef USE_PIN_MUX
+    unsigned int i2c_bus;
+    char *end_ptr;
+#endif
+
     if (strstartswith(ent->d_name, "i2c-")) {
+    #ifdef USE_PIN_MUX
+        errno = 0;
+        i2c_bus = strtoul(ent->d_name + strlen("i2c-"), &end_ptr, 0);
+        if (errno || *end_ptr != '\0') {
+            SOL_ERR("Could not get I2C bus number");
+            return false;
+        } else {
+            if (sol_pin_mux_setup_i2c(i2c_bus) < 0) {
+                SOL_WRN("Pin Multiplexer Recipe for i2c bus=%u found, but couldn't be applied.", i2c_bus);
+            }
+        }
+    #endif
+
         r = snprintf(path, sizeof(path), SYSFS_I2C_NEW_DEVICE, dir_path,
             ent->d_name);
         if (r > 0) {
