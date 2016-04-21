@@ -24,3 +24,10 @@ config.log*
 /node_modules/
 /bindings/nodejs/generated/main.cc
 /bindings/nodejs/generated/main.h
+aio.js
+bindings/nodejs/generated/header-files-list
+bindings/nodejs/generated/nodejs-bindings-sources.gyp
+gpio.js
+pwm.js
+spi.js
+uart.js
