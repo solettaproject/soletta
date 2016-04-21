@@ -329,6 +329,7 @@ interface OicServer: EventTarget {
 interface OicRequestEvent : Event {
   readonly attribute OicResourceId source;
   readonly attribute OicResourceId target;
+  readonly attribute Dictionary queryOptions;
 
   Promise<void> sendResponse(optional OicResource? resource);
     // reuses request info (type, requestId, source, target) to construct response,
@@ -344,6 +345,8 @@ interface OicResourceEvent : OicRequestEvent {
   readonly attribute OicResourceInit resource;
 };
 ```
+The ```queryOptions``` dictionary contains resource specific properties and values, usually described in the RAML definition of the resource. It comes from the query portion of the request URI.
+
 
 ### Error handling
 Errors are reported using ```OicError``` objects, which extend [Error](http://www.ecma-international.org/ecma-262/6.0/#sec-error-objects) with OIC specific information.
