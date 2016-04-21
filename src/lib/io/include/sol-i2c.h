@@ -50,7 +50,7 @@ struct sol_i2c_pending; /**< @brief I2C pending operation handle structure */
 /**
  * @brief Enum for I2C bus speed.
  *
- * Must be choosen when opening a bus with sol_i2c_open() and
+ * Must be chosen when opening a bus with sol_i2c_open() and
  * sol_i2c_open_raw().
  */
 enum sol_i2c_speed {

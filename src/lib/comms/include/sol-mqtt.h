@@ -97,7 +97,7 @@ enum sol_mqtt_conn_status {
     SOL_MQTT_DISCONNECTED = -1,
 
     /**
-     * Succesfully conencted to the broker
+     * Successfully connected to the broker
      */
     SOL_MQTT_CONNECTED = 0,
 
@@ -112,7 +112,7 @@ enum sol_mqtt_conn_status {
     SOL_MQTT_ID_REJECTED = 2,
 
     /**
-     * Broker anavailable at provided host
+     * Broker unavailable at provided host
      */
     SOL_MQTT_UNAVAILABLE = 3,
 };
@@ -355,7 +355,7 @@ struct sol_mqtt_config {
  *
  * @param config Configuration and callbacks
  *
- * @return New mqtt object on sucess, NULL otherwise
+ * @return New mqtt object on success, NULL otherwise
  */
 struct sol_mqtt *sol_mqtt_connect(const struct sol_mqtt_config *config);
 

@@ -264,7 +264,7 @@ test_str_slice_to_string(void)
             "whose only purpose is to test if a long slice can yeld to a"
             "correct string. But why not? Maybe allocation problems, however, "
             "are allocations problems something to be concerned at? If we "
-            "have no more memory availble, a slice that can't be coverted "
+            "have no more memory available, a slice that can't be coverted "
             "to raw C string, the infamous array of char, is not application "
             "main concern. I think that it's long enought, but maybe not. "
             "In hindsight, I believed that I've should used some lorem ipsum "

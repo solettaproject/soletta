@@ -66,7 +66,7 @@ struct declared_type {
 
 /* This state is kept during a single parse run, some of its members
  * are then taken to be stored in the main parser struct if the parser
- * was succesful. */
+ * was successful. */
 struct parse_state {
     struct sol_flow_parser *parser;
     struct sol_flow_builder *builder;

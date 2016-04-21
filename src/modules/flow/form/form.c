@@ -2421,7 +2421,7 @@ string_selected_set(struct sol_flow_node *node,
             }
         }
         if (!found) {
-            /* a character not in the charset ocurred, arbitrate
+            /* a character not in the charset occurred, arbitrate
              * charset[0] */
             r = sol_ptr_vector_append(&mdata->chars, mdata->charset);
             SOL_INT_CHECK_GOTO(r, < 0, error);

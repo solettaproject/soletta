@@ -80,7 +80,7 @@ extern "C" {
  * @brief Meta type context
  *
  * This is used when the meta type is being created or its code is being generated.
- * It contains usefull information like the the node name, the parameters for the meta type and
+ * It contains useful information like the the node name, the parameters for the meta type and
  * some helper functions.
  *
  */

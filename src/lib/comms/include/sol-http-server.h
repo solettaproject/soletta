@@ -160,7 +160,7 @@ int sol_http_server_remove_dir(struct sol_http_server *server, const char *basen
 #ifdef FEATURE_FILESYSTEM
 
 /**
- * @breif Add a  page for a specific error code
+ * @brief Add a  page for a specific error code
  *
  * @param server The value got with @c sol_http_server_new
  * @param error The error code which @page_path will be served

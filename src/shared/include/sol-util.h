@@ -399,8 +399,8 @@ int sol_util_uint32_mul(const uint32_t op1, const uint32_t op2, uint32_t *out);
  *                     (e.g. "de305d54-75b4-431b-adb2-eb6b9e546014") or
  *                     without them.
  * @param uuid_buf An initialized buffer to be used to append the generated id.
- *        It will have 36 bytes of lenght if with_hyphens is true or 32 bytes
- *        of lenght if with_hyphens is false.
+ *        It will have 36 bytes of length if with_hyphens is true or 32 bytes
+ *        of length if with_hyphens is false.
  *
  * @return 0 on success, negative error code otherwise.
  */
@@ -412,7 +412,7 @@ int sol_util_uuid_gen(bool uppercase, bool with_hyphens, struct sol_buffer *uuid
  *
  * All upcase/downcase, hyphenated/non-hyphenated cases are included.
  *
- * @param uuid The given UUID formated in a string, with or without hyphens.
+ * @param uuid The given UUID formatted in a string, with or without hyphens.
  *
  * @return @c true if it's valid, @c false otherwise.
  */
@@ -427,8 +427,8 @@ bool sol_util_uuid_str_is_valid(const struct sol_str_slice uuid);
  *                     without them.
  * @param uuid_bytes A 16 byte array containing the UUID in byte format.
  * @param uuid_str n initialized buffer to be used to append the converted uuid.
- *        It will have 36 bytes of lenght if with_hyphens is true or 32 bytes
- *        of lenght if with_hyphens is false.
+ *        It will have 36 bytes of length if with_hyphens is true or 32 bytes
+ *        of length if with_hyphens is false.
  *
  * @return 0 on success, negative error code otherwise.
  */
@@ -749,7 +749,7 @@ double sol_util_strtodn(const char *nptr, char **endptr, ssize_t len, bool use_l
  * @param len use at most this amount of bytes of @a nptr. If -1, assumes
  *        nptr has a trailing NUL and calculate the string length.
  *
- * @param base it's the base of convertion, which must be between 2
+ * @param base it's the base of conversion, which must be between 2
  *        and 36 inclusive, or be the special value 0.
  *        A zero base is taken as 10 (decimal) unless the next character
  *        is '0', in which case it  is  taken as 8 (octal).
@@ -775,7 +775,7 @@ long int sol_util_strtol(const char *nptr, char **endptr, ssize_t len, int base)
  * @param len use at most this amount of bytes of @a nptr. If -1, assumes
  *        nptr has a trailing NUL and calculate the string length.
  *
- * @param base it's the base of convertion, which must be between 2
+ * @param base it's the base of conversion, which must be between 2
  *        and 36 inclusive, or be the special value 0.
  *        A zero base is taken as 10 (decimal) unless the next character
  *        is '0', in which case it  is  taken as 8 (octal).
@@ -1094,7 +1094,7 @@ int sol_util_unescape_quotes(const struct sol_str_slice slice, struct sol_buffer
  * available, otherwise this wrapper will fallback to strftime() - Thus current system's
  * locale will be considered when formatting the time.
  *
- * @param buf The buffer to append the formated time to - It must be already initialzed.
+ * @param buf The buffer to append the formatted time to - It must be already initialzed.
  * @param format The date format - check strftime man page for accepted formats.
  * @param timeptr The broken down time struct.
  * @param use_locale true to use current system locale or false to do not use system's locale.

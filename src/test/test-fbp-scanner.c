@@ -525,7 +525,7 @@ scan_errors(void)
 
         if (*type == SOL_FBP_TOKEN_EOF) {
             SOL_WRN(
-                "Expected ERROR when scanning string '%.*s' but got a succesful scan:\n",
+                "Expected ERROR when scanning string '%.*s' but got a successful scan:\n",
                 SOL_STR_SLICE_PRINT(tests[i]));
             SOL_VECTOR_FOREACH_IDX (&v, type, j) {
                 SOL_WRN("- %s\n", token_names[*type]);

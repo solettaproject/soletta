@@ -45,7 +45,7 @@ SOL_LOG_INTERNAL_DECLARE_STATIC(_log_domain, "flow-metatype-js");
  * The Javascript code must contain an object:
  *
  *     - 'node': This object will be used to declare input and output ports
- *               and its callback functions that will be trigged on the occurence
+ *               and its callback functions that will be trigged on the occurrence
  *               of certain events like input/output ports processes, open/close
  *               processes, so forth and so on.
  *

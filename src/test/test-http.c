@@ -168,7 +168,7 @@ test_split_urls(void)
         SET_PARAMS("foo://user@server.com:123/a/b?p=1&c=2#/a/b", "foo", "user", "", "server.com", "/a/b", "p=1&c=2", "/a/b", 123, 0, true),
         /* Do not check the created url for this one, Altought the created one will be correct it will not match,
            as the create url will be foo://user:@server.com:123/a/b?p=1&c=2#/a/b
-           This behaviour is acceptable, since ':' can be ommited if the password is not provided.
+           This behaviour is acceptable, since ':' can be omitted if the password is not provided.
          */
         SET_PARAMS("foo://user:@server.com:123/a/b?p=1&c=2#/a/b", "foo", "user", "", "server.com", "/a/b", "p=1&c=2", "/a/b", 123, 0, false),
         SET_PARAMS("foo://server.com:123/a/b?p=1&c=2#/a/b", "foo", "", "", "server.com", "/a/b", "p=1&c=2", "/a/b", 123, 0, true),

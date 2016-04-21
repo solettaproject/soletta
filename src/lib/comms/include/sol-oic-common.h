@@ -429,7 +429,7 @@ enum sol_oic_map_loop_reason {
      */
     SOL_OIC_MAP_LOOP_OK = 0,
     /**
-     * @brief Loop was terminated because an error occured. Not all elements
+     * @brief Loop was terminated because an error occurred. Not all elements
      * were visited.
      */
     SOL_OIC_MAP_LOOP_ERROR
@@ -460,7 +460,7 @@ enum sol_oic_map_loop_reason sol_oic_map_loop_init(const struct sol_oic_map_read
  * @param repr The value of next element from @a iterator
  * @param iterator The sol_oic_map_reader iterator initialized by
  *        @ref sol_oic_map_loop_init function.
- * @param reason @c SOL_OIC_MAP_LOOP_ERROR if an error occured.
+ * @param reason @c SOL_OIC_MAP_LOOP_ERROR if an error occurred.
  *        @c SOL_OIC_MAP_LOOP_OK otherwise.
  *
  * @return false if one error occurred or if there is no more elements to read
@@ -475,12 +475,12 @@ bool sol_oic_map_loop_next(struct sol_oic_repr_field *repr, struct sol_oic_map_r
 /**
  * @brief Append an element to @a oic_map_writer
  *
- * @param oic_map_writer The sol_oic_map_writer in wich the element will be
+ * @param oic_map_writer The sol_oic_map_writer in which the element will be
  *        added.
  * @param repr The element
  *
  * @return true if the element was added successfully. False if an error
- *         occured and the element was not added.
+ *         occurred and the element was not added.
  *
  * @see sol_oic_notify_observers()
  * @see sol_oic_client_resource_request()

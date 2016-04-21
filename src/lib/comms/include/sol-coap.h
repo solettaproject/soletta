@@ -853,7 +853,7 @@ int sol_coap_unobserve_server(struct sol_coap_server *server, const struct sol_n
 /**
  * @brief Register a unknown handler callback.
  *
- * Everytime the @a server receives a request for a #sol_coap_resource that was not
+ * Every time the @a server receives a request for a #sol_coap_resource that was not
  * registered with sol_coap_server_register_resource() the @a handler will be called.
  *
  * @param server The server to register the unknown resource handler.

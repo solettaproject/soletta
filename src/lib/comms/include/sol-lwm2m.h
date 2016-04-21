@@ -104,7 +104,7 @@ struct sol_lwm2m_client_object;
  * may not be available for communication all the time, thus
  * the server must wait until it receives a heartbeat from the
  * client until it can send requests. The queue binding mode
- * is usefull, because the client may enter in deep sleep
+ * is useful, because the client may enter in deep sleep
  * and save battery and only wake up in certain times.
  *
  * @note The default binding mode is #SOL_LWM2M_BINDING_MODE_U and is the only one supported right know.
@@ -502,7 +502,7 @@ struct sol_lwm2m_object {
      * @param tlvs An vector of #sol_lwm2m_tlv
      * @return 0 on success or -errno on error.
      * @note Since TLV does not contains a field to express the
-     * data type. It's the user responsability to know which
+     * data type. It's the user responsibility to know which
      * function it should be used to get the content value.
      */
     int (*write_tlv)(void *instance_data, void *user_data,
@@ -772,7 +772,7 @@ int sol_lwm2m_tlv_get_obj_link(struct sol_lwm2m_tlv *tlv, uint16_t *object_id, u
  * @brief Adds a registration monitor.
  *
  * This function register a monitor, making it easier to observe a LWM2M client's life cycle.
- * This means that everytime a LWM2M client is registered, updated, deleted or timedout,
+ * This means that every time a LWM2M client is registered, updated, deleted or timedout,
  * @c sol_lwm2m_server_registration_event_cb will be called.
  *
  * @param server The LWM2M server.
@@ -822,7 +822,7 @@ const struct sol_ptr_vector *sol_lwm2m_server_get_clients(const struct sol_lwm2m
  * @param server The LWM2M server.
  * @param client The LWM2M client to be observed.
  * @param path The path to be observed (Example: /3/0/0).
- * @param sol_lwm2m_server_content_cb A callback to be called when the observed path changes, used to inform a observable/read response. - @c server The LWM2M server; @c client The LWM2M client; @c path The client's path; @c response_code The reponse code; @c content_type The reponse content type; @c content The reponse content; @c data User data.
+ * @param sol_lwm2m_server_content_cb A callback to be called when the observed path changes, used to inform a observable/read response. - @c server The LWM2M server; @c client The LWM2M client; @c path The client's path; @c response_code The response code; @c content_type The response content type; @c content The response content; @c data User data.
  * @param data User data to @c sol_lwm2m_server_content_cb
  * @return 0 on success, -errno on error.
  * @see sol_lwm2m_server_del_observer()
@@ -845,7 +845,7 @@ int sol_lwm2m_server_add_observer(struct sol_lwm2m_server *server,
  * @param server The LWM2M server.
  * @param client The LWM2M client to be unobserved.
  * @param path The path to be unobserved (Example: /3/0/0).
- * @param sol_lwm2m_server_content_cb The previous registered callback. - @c server The LWM2M server; @c client The LWM2M client; @c path The client's path; @ response_code The reponse code; @c content_type The reponse content type; @c content The reponse content; @c data User data.
+ * @param sol_lwm2m_server_content_cb The previous registered callback. - @c server The LWM2M server; @c client The LWM2M client; @c path The client's path; @ response_code The response code; @c content_type The response content type; @c content The response content; @c data User data.
  * @param data User data to @c sol_lwm2m_server_content_cb
  * @return 0 on success, -errno on error.
  *
@@ -953,7 +953,7 @@ int sol_lwm2m_server_create_object_instance(struct sol_lwm2m_server *server,
  * @param server The LWM2M server.
  * @param client The LWM2M client info to be read.
  * @param path The path to be read (Example /3/0/0).
- * @param sol_lwm2m_server_content_cb A callback to be called when the read operation is completed. - @c server The LWM2M server; @c client The LWM2M client; @c path The client's path; @c response_code The reponse code; @c content_type The reponse content type; @c content The reponse content; @c data User data.
+ * @param sol_lwm2m_server_content_cb A callback to be called when the read operation is completed. - @c server The LWM2M server; @c client The LWM2M client; @c path The client's path; @c response_code The response code; @c content_type The response content type; @c content The response content; @c data User data.
  * @param data User data to @c sol_lwm2m_server_content_cb
  * @return 0 on success, -errno on error.
  */
@@ -1050,7 +1050,7 @@ const struct sol_network_link_addr *sol_lwm2m_client_info_get_address(const stru
  * @param client The LWM2M client info.
  * @return A array of #sol_lwm2m_client_object or @c NULL on error.
  * @note One must not add or remove elements from the returned vector.
- * @note Be adviced that it's not recommended to store object
+ * @note Be advised that it's not recommended to store object
  * pointers, because during the client's update method, all
  * the objects are renewed.
  * @see #sol_lwm2m_client_object
@@ -1071,7 +1071,7 @@ int sol_lwm2m_client_object_get_id(const struct sol_lwm2m_client_object *object,
  *
  * @param object The LWM2M object to get the instances.
  * @return An array of uint16_t or @c NULL on error.
- * @note Be adviced that it's not recommended to store object
+ * @note Be advised that it's not recommended to store object
  * instances pointers, because they might be deleted by other LWM2M servers,
  * thus removed from the returned list.
  */

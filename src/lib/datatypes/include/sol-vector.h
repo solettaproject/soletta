@@ -494,7 +494,7 @@ int sol_ptr_vector_insert_at(struct sol_ptr_vector *pv, uint16_t i, const void *
 /**
  * @brief Remove an pointer from the vector.
  *
- * Removes the last occurence of the pointer @c ptr from the vector. To delete all
+ * Removes the last occurrence of the pointer @c ptr from the vector. To delete all
  * use sol_ptr_vector_del_element()
  *
  * @param pv Pointer Vector pointer
@@ -540,7 +540,7 @@ sol_ptr_vector_del(struct sol_ptr_vector *pv, uint16_t i)
  *
  * @return @c 0 on success, error code (always negative) otherwise
  *
- * @remark Time complexity: number of @c elem occurences * vector size
+ * @remark Time complexity: number of @c elem occurrences * vector size
  *
  * @see sol_ptr_vector_del()
  * @see sol_ptr_vector_remove()
@@ -856,8 +856,8 @@ int32_t sol_ptr_vector_match_sorted(const struct sol_ptr_vector *pv, const void 
  *
  * Unlike sol_ptr_vector_find_first_sorted() and
  * sol_ptr_vector_find_last_sorted(), it will do a binary search and
- * return the first occurence of the pointer @a elem. In the case of
- * multiple occurences, it may be an element in the middle of those
+ * return the first occurrence of the pointer @a elem. In the case of
+ * multiple occurrences, it may be an element in the middle of those
  * that would match (@a compare_cb returns 0).
  *
  * @param pv Pointer Vector pointer (already sorted)

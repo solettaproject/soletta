@@ -29,7 +29,7 @@ struct sol_fbp_parser {
     struct sol_fbp_scanner scanner;
 
     /* Stores both the current and the pending token, so we can peek
-    * at the next token without having to calculate it everytime. */
+    * at the next token without having to calculate it every time. */
     struct sol_fbp_token current_token;
     struct sol_fbp_token pending_token;
 

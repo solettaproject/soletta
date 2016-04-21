@@ -112,7 +112,7 @@ struct sol_memmap_entry {
  * @brief Writes buffer contents to storage.
  *
  * Note that as writing operations are asynchronous, to check if it completely
- * succeded, one needs to register a callback that will inform writing result.
+ * succeeded, one needs to register a callback that will inform writing result.
  * A negative status on callback means failure; -ECANCELED for instance, means
  * that another write to the same property took place before this one was
  * completed.
@@ -171,7 +171,7 @@ int sol_memmap_remove_map(const struct sol_memmap_map *map);
  * @param map map to have its timeout changed
  * @param timeout new timeout, in milliseconds.
  *
- * @return true if successfuly set map timeout.
+ * @return true if successfully set map timeout.
  *
  * @note This change will take effect after current active timer expires.
  * Active ones will remain unchanged

@@ -92,7 +92,7 @@ enum sol_buffer_flags {
     /**
      * @brief Securely clear buffer data before finishing. Prefer using this
      * flag combined with SOL_BUFFER_FLAGS_FIXED_CAPACITY, because of resizing
-     * overhead: everytime buffer is resized, new memory is allocated, old
+     * overhead: every time buffer is resized, new memory is allocated, old
      * memory is copied to new destination and old memory is cleared.
      */
     SOL_BUFFER_FLAGS_CLEAR_MEMORY = (1 << 3),
@@ -304,7 +304,7 @@ int sol_buffer_resize(struct sol_buffer *buf, size_t new_size);
  * be able to fit @c bytes.
  *
  * If buffer has null-bytes (ie: null terminated strings), then the
- * resized ammount will include that null byte automatically. See
+ * resized amount will include that null byte automatically. See
  * SOL_BUFFER_FLAGS_NO_NUL_BYTE.
  *
  * @param buf The buffer
@@ -320,7 +320,7 @@ int sol_buffer_expand(struct sol_buffer *buf, size_t bytes);
  * @brief Ensures that @c buf has at least @c min_size.
  *
  * If buffer has null-bytes (ie: null terminated strings), then the
- * resized ammount will include that null byte automatically. See
+ * resized amount will include that null byte automatically. See
  * SOL_BUFFER_FLAGS_NO_NUL_BYTE.
  *
  * It may allocate more than requested to avoid subsequent reallocs,
@@ -822,7 +822,7 @@ sol_buffer_insert_printf(struct sol_buffer *buf, size_t pos, const char *fmt, ..
  * @brief Frees memory that is not in being used by the buffer.
  *
  * If buffer has null-bytes (ie: null terminated strings), then the
- * resized ammount will include that null byte automatically. See
+ * resized amount will include that null byte automatically. See
  * SOL_BUFFER_FLAGS_NO_NUL_BYTE.
  *
  * @param buf The buffer
