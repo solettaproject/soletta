@@ -124,7 +124,7 @@ void *sol_vector_append_n(struct sol_vector *v, uint16_t n);
  * @see sol_vector_get()
  */
 static inline void *
-sol_vector_get_nocheck(const struct sol_vector *v, uint16_t i)
+sol_vector_get_no_check(const struct sol_vector *v, uint16_t i)
 {
     const unsigned char *data;
 
@@ -149,7 +149,7 @@ sol_vector_get(const struct sol_vector *v, uint16_t i)
     if (i >= v->len)
         return NULL;
 
-    return sol_vector_get_nocheck(v, i);
+    return sol_vector_get_no_check(v, i);
 }
 
 /**
@@ -239,7 +239,7 @@ sol_vector_take_data(struct sol_vector *v)
  */
 #define SOL_VECTOR_FOREACH_IDX(vector, itrvar, idx)                      \
     for (idx = 0;                                                       \
-        idx < (vector)->len && (itrvar = (__typeof__(itrvar))sol_vector_get_nocheck((vector), idx), true); \
+        idx < (vector)->len && (itrvar = (__typeof__(itrvar))sol_vector_get_no_check((vector), idx), true); \
         idx++)
 
 /**
@@ -253,7 +253,7 @@ sol_vector_take_data(struct sol_vector *v)
  */
 #define SOL_VECTOR_FOREACH_IDX_UNTIL(vector, itrvar, idx, until) \
     for (idx = 0; \
-        idx < until && (itrvar = (__typeof__(itrvar))sol_vector_get_nocheck((vector), idx), true); \
+        idx < until && (itrvar = (__typeof__(itrvar))sol_vector_get_no_check((vector), idx), true); \
         idx++)
 
 /**
@@ -266,7 +266,7 @@ sol_vector_take_data(struct sol_vector *v)
  */
 #define SOL_VECTOR_FOREACH_REVERSE_IDX(vector, itrvar, idx)              \
     for (idx = (vector)->len - 1;                                       \
-        idx != ((__typeof__(idx)) - 1) && (itrvar = (__typeof__(itrvar))sol_vector_get_nocheck((vector), idx), true); \
+        idx != ((__typeof__(idx)) - 1) && (itrvar = (__typeof__(itrvar))sol_vector_get_no_check((vector), idx), true); \
         idx--)
 /**
  * @}
@@ -374,11 +374,11 @@ int sol_ptr_vector_append(struct sol_ptr_vector *pv, const void *ptr);
  * @see sol_ptr_vector_get()
  */
 static inline void *
-sol_ptr_vector_get_nocheck(const struct sol_ptr_vector *pv, uint16_t i)
+sol_ptr_vector_get_no_check(const struct sol_ptr_vector *pv, uint16_t i)
 {
     void **data;
 
-    data = (void **)sol_vector_get_nocheck(&pv->base, i);
+    data = (void **)sol_vector_get_no_check(&pv->base, i);
     return *data;
 }
 
@@ -398,7 +398,7 @@ sol_ptr_vector_get(const struct sol_ptr_vector *pv, uint16_t i)
     if (i >= pv->base.len)
         return NULL;
 
-    return sol_ptr_vector_get_nocheck(pv, i);
+    return sol_ptr_vector_get_no_check(pv, i);
 }
 
 /**
@@ -643,7 +643,7 @@ sol_ptr_vector_take_data(struct sol_ptr_vector *pv)
 #define SOL_PTR_VECTOR_FOREACH_IDX(vector, itrvar, idx) \
     for (idx = 0; \
         idx < (vector)->base.len && \
-        ((itrvar = (__typeof__(itrvar))sol_ptr_vector_get_nocheck((vector), idx)), true); \
+        ((itrvar = (__typeof__(itrvar))sol_ptr_vector_get_no_check((vector), idx)), true); \
         idx++)
 
 /**
@@ -658,7 +658,7 @@ sol_ptr_vector_take_data(struct sol_ptr_vector *pv)
 #define SOL_PTR_VECTOR_FOREACH_IDX_UNTIL(vector, itrvar, idx, until) \
     for (idx = 0; \
         idx < until && \
-        ((itrvar = (__typeof__(itrvar))sol_ptr_vector_get_nocheck((vector), idx)), true); \
+        ((itrvar = (__typeof__(itrvar))sol_ptr_vector_get_no_check((vector), idx)), true); \
         idx++)
 
 /**
@@ -672,7 +672,7 @@ sol_ptr_vector_take_data(struct sol_ptr_vector *pv)
 #define SOL_PTR_VECTOR_FOREACH_REVERSE_IDX(vector, itrvar, idx) \
     for (idx = (vector)->base.len - 1; \
         idx != ((__typeof__(idx)) - 1) && \
-        (itrvar = (__typeof__(itrvar))sol_ptr_vector_get_nocheck((vector), idx), true); \
+        (itrvar = (__typeof__(itrvar))sol_ptr_vector_get_no_check((vector), idx), true); \
         idx--)
 
 /**
@@ -891,7 +891,7 @@ sol_ptr_vector_find_sorted(const struct sol_ptr_vector *pv, const void *elem, in
         return r;
 
     for (i = r; i < pv->base.len; i++) {
-        const void *other = sol_ptr_vector_get_nocheck(pv, i);
+        const void *other = sol_ptr_vector_get_no_check(pv, i);
 
         if (compare_cb(elem, other) != 0)
             break;
@@ -901,7 +901,7 @@ sol_ptr_vector_find_sorted(const struct sol_ptr_vector *pv, const void *elem, in
     }
 
     for (i = r; i > 0; i--) {
-        const void *other = sol_ptr_vector_get_nocheck(pv, i - 1);
+        const void *other = sol_ptr_vector_get_no_check(pv, i - 1);
 
         if (compare_cb(elem, other) != 0)
             break;
@@ -947,7 +947,7 @@ sol_ptr_vector_find_last_sorted(const struct sol_ptr_vector *pv, const void *ele
         return r;
 
     for (i = r; i < pv->base.len; i++) {
-        const void *other = sol_ptr_vector_get_nocheck(pv, i);
+        const void *other = sol_ptr_vector_get_no_check(pv, i);
 
         if (compare_cb(elem, other) != 0)
             break;
@@ -960,7 +960,7 @@ sol_ptr_vector_find_last_sorted(const struct sol_ptr_vector *pv, const void *ele
         return found_i;
 
     for (i = r; i > 0; i--) {
-        const void *other = sol_ptr_vector_get_nocheck(pv, i - 1);
+        const void *other = sol_ptr_vector_get_no_check(pv, i - 1);
 
         if (compare_cb(elem, other) != 0)
             break;
@@ -1006,7 +1006,7 @@ sol_ptr_vector_find_first_sorted(const struct sol_ptr_vector *pv, const void *el
         return r;
 
     for (i = r;;) {
-        const void *other = sol_ptr_vector_get_nocheck(pv, i);
+        const void *other = sol_ptr_vector_get_no_check(pv, i);
 
         if (compare_cb(elem, other) != 0)
             break;
@@ -1023,7 +1023,7 @@ sol_ptr_vector_find_first_sorted(const struct sol_ptr_vector *pv, const void *el
         return found_i;
 
     for (i = r; i + 1 < pv->base.len; i++) {
-        const void *other = sol_ptr_vector_get_nocheck(pv, i + 1);
+        const void *other = sol_ptr_vector_get_no_check(pv, i + 1);
 
         if (compare_cb(elem, other) != 0)
             break;
