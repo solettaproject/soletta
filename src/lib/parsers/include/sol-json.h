@@ -951,12 +951,12 @@ int sol_json_path_scanner_init(struct sol_json_path_scanner *scanner, struct sol
  *        JSON Path segment.
  * @param end_reason A pointer to the field to be filled with the reason this
  *        function termination. SOL_JSON_LOOP_REASON_INVALID if an error
- *        occured when parsing the JSON Path. SOL_JSON_LOOP_REASON_OK if the
+ *        occurred when parsing the JSON Path. SOL_JSON_LOOP_REASON_OK if the
  *        next segment was updated in @a slice or if there is no more segments
  *        in this JSON Path.
  *
  * @return True if next segment was updated in @a value. False if an error
- *         ocurred or if there is no more segments available.
+ *         occurred or if there is no more segments available.
  */
 bool sol_json_path_get_next_segment(struct sol_json_path_scanner *scanner, struct sol_str_slice *slice, enum sol_json_loop_reason *end_reason) SOL_ATTR_NONNULL(1, 2, 3);
 
@@ -1009,7 +1009,7 @@ sol_json_path_is_array_key(struct sol_str_slice slice)
  *        with the current key being visited.
  * @param end_reason A pointer to the field to be filled with the reason this
  *        macro termination. SOL_JSON_LOOP_REASON_INVALID if an error
- *        occured when parsing the JSON Path. SOL_JSON_LOOP_REASON_OK if
+ *        occurred when parsing the JSON Path. SOL_JSON_LOOP_REASON_OK if
  *        we reached the end of the JSON Path.
  *
  * Usage example:

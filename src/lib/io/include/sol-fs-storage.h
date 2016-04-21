@@ -51,7 +51,7 @@ extern "C" {
  * @brief Writes buffer contents to storage.
  *
  * Note that as writing operations are asynchronous, to check if it completely
- * succeded, one needs to register a callback that will inform writing result.
+ * succeeded, one needs to register a callback that will inform writing result.
  *
  * @param name name of property. It will create a file on filesystem with
  * this name.

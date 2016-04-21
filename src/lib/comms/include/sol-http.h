@@ -643,7 +643,7 @@ sol_http_create_simple_uri_from_str(struct sol_buffer *buf, const char *base_url
  * @c sol_http_params struct.
  *
  * @param query A query to be splitted.
- * @param params Where the query paramters will be stored.
+ * @param params Where the query parameters will be stored.
  *
  * @return 0 on success, negative number on error.
  */
@@ -665,7 +665,7 @@ int sol_http_split_post_field(const char *query, struct sol_http_params *params)
 /**
  * @brief Sort the content type slice based on its priorities
  *
- * For more infomation about how the content type is sorted check: https://www.w3.org/Protocols/rfc2616/rfc2616-sec14.html#sec14.1
+ * For more information about how the content type is sorted check: https://www.w3.org/Protocols/rfc2616/rfc2616-sec14.html#sec14.1
  *
  * @param content_type A content type slice. Example: @c "text/html, application/json;q=0.5"
  * @param priorities An array to store the content type prioriries - It will be initialized by this function.

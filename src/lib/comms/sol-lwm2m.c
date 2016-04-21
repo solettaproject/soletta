@@ -272,7 +272,7 @@ send_ack_if_needed(struct sol_coap_server *coap, struct sol_coap_packet *msg,
         ack = sol_coap_packet_new(msg);
         SOL_NULL_CHECK(ack);
         if (sol_coap_send_packet(coap, ack, cliaddr) < 0)
-            SOL_WRN("Could not send the reponse ACK");
+            SOL_WRN("Could not send the response ACK");
     }
 }
 

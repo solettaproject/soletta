@@ -41,7 +41,7 @@ struct update_get_hash_handle;
  * @param hash hash to compare with file hash
  * @param hash_algorithm algorithm of hash to be used
  * @param cb callback that will be called to inform check result. If status < 0,
- * hash check failed. If status == 0, hash has been validate successfuly.
+ * hash check failed. If status == 0, hash has been validate successfully.
  *
  * @return handle of operation if could start checking. NULL otherwise
  */

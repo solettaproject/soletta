@@ -1602,7 +1602,7 @@ on_can_read(void *data, struct sol_socket *s)
         return true;
     }
 
-    SOL_DBG("pkt received and parsed sucessfully");
+    SOL_DBG("pkt received and parsed successfully");
     sol_coap_packet_debug(pkt);
 
     err = respond_packet(server, pkt, &cliaddr);

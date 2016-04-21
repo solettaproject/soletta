@@ -663,7 +663,7 @@ _load_json_from_dirs(const char *file, char **full_path, struct sol_file_reader 
         if (*file_reader) {
             config_file_contents = sol_file_reader_get_all(*file_reader);
 
-            /* We can't close the file_reader on sucess because then the slice would
+            /* We can't close the file_reader on success because then the slice would
              * also be killed, so we postpone it till later. */
             if (config_file_contents.len != 0) {
                 int r;

@@ -127,7 +127,7 @@ void sol_bus_close(void);
 /**
  * Creates a new #sol_bus_client instance.
  *
- * Most of the other operations depend on the existance of a remote client.
+ * Most of the other operations depend on the existence of a remote client.
  *
  * @param bus Connection to a D-Bus bus (system, session or private)
  * @param service Name of the service to be monitored, per the D-Bus specification,

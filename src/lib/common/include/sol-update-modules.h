@@ -93,8 +93,8 @@ struct sol_update {
     /**
      * @brief Function called when module is loaded.
      *
-     * An oportunity to do setup tasks, like checking if an update completed
-     * successfuly.
+     * An opportunity to do setup tasks, like checking if an update completed
+     * successfully.
      *
      * Must return 0 on success, and a negative number on failure.
      */

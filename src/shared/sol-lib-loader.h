@@ -31,8 +31,8 @@
 
 struct sol_lib_loader;
 
-/* The parameter 'check_func' is called everytime a symbol was
- * sucessfully loaded to decide whether it is valid or not. It can be
+/* The parameter 'check_func' is called every time a symbol was
+ * successfully loaded to decide whether it is valid or not. It can be
  * used to check versioning and perform initialization. */
 struct sol_lib_loader *sol_lib_loader_new(
     const char *dir,
