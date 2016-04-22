@@ -32,6 +32,7 @@ exports.open = function( init ) {
         var pull = init.pull ? init.pull : "none";
         var active_low = init.activeLow ? init.activeLow : false;
         var poll = init.poll ? init.poll : 1000;
+        var gpio;
 
         if ( direction == "in" ) {
             config = {
@@ -56,9 +57,14 @@ exports.open = function( init ) {
             }
         }
 
-        gpiopin = GPIOPin( soletta.sol_gpio_open( pin, config ) );
-        callback_data.push( gpiopin );
-        fulfill( gpiopin );
+        gpio = soletta.sol_gpio_open( pin, config );
+        if ( gpio ) {
+            gpiopin = GPIOPin( gpio );
+            callback_data.push( gpiopin );
+            fulfill( gpiopin );
+        } else {
+            reject( new Error( "Could not open GPIO device" ) );
+        }
     });
 
 }

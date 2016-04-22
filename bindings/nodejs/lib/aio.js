@@ -23,16 +23,23 @@ var soletta = require( 'bindings' )( 'soletta' ),
 exports.open = function( init ) {
 	return new Promise( function( fulfill, reject ) {
 		var precision = 12;
+		var aio;
 
 		if (init.precision)
 			precision = init.precision;
 
 		if (init.name && init.name != "") {
-			fulfill( AIOPin( soletta.sol_aio_open_by_label( init.name, precision ) ) );
+			aio = soletta.sol_aio_open_by_label( init.name, precision );
 		} else if (init.raw) {
-			fulfill( AIOPin( soletta.sol_aio_open_raw( init.device, init.pin, precision ) ) );
+			aio = soletta.sol_aio_open_raw( init.device, init.pin, precision );
 		} else {
-			fulfill( AIOPin( soletta.sol_aio_open( init.device, init.pin, precision ) ) );
+			aio = soletta.sol_aio_open( init.device, init.pin, precision );
+		}
+
+		if ( aio ) {
+			fulfill( AIOPin( aio ) );
+		} else {
+			reject( new Error( "Could not open AIO device" ) );
 		}
 	});
 
