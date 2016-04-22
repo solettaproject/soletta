@@ -33,6 +33,10 @@ st.on_value("NO_API_VERSION_NEEDED", "y", "#define SOL_NO_API_VERSION 1", "")
 }}
 
 {{
+st.on_value("MEMDESC_DESCRIPTION", "y", "#define SOL_MEMDESC_DESCRIPTION 1", "")
+}}
+
+{{
 st.on_value("MODULES", "y", "#define SOL_DYNAMIC_MODULES 1", "")
 }}
 
