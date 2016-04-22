@@ -26,6 +26,7 @@ exports.open = function( init ) {
         var enabled = ( typeof init.enabled === 'undefined' ) ? false : init.enabled;
         var alignment = init.alignment ? init.alignment : "left";
         var polarity = init.polarity ? init.polarity : "normal";
+        var pwm;
 
         config = {
             period_ns: init.period,
@@ -36,13 +37,20 @@ exports.open = function( init ) {
         }
 
         if ( typeof init.name === 'string' && init.name !== "" ) {
-            fulfill( PWMPin( soletta.sol_pwm_open_by_label( init.name, config ) ) );
+            pwm = soletta.sol_pwm_open_by_label( init.name, config );
         } else {
             if ( raw )
-                fulfill( PWMPin( soletta.sol_pwm_open_raw( init.device, init.channel, config ) ) );
+                pwm = soletta.sol_pwm_open_raw( init.device, init.channel, config );
             else
-                fulfill( PWMPin( soletta.sol_pwm_open( init.device, init.channel, config ) ) );
+                pwm = soletta.sol_pwm_open( init.device, init.channel, config );
         }
+
+        if ( pwm ) {
+            fulfill( PWMPin( pwm ) );
+        } else {
+            reject( new Error( "Could not open PWM device" ) );
+        }
+
     });
 }
 
