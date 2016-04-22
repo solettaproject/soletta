@@ -25,6 +25,7 @@ exports.open = function( init ) {
         var spiMode =  init.mode ? init.mode : "mode0";
         var chipSelect =  init.chipSelect ? init.chipSelect : 0;
         var bitsPerWord =  init.bitsPerWord ? init.bitsPerWord : 8;
+        var spi;
 
         config = {
             chip_select: chipSelect,
@@ -32,7 +33,13 @@ exports.open = function( init ) {
             frequency: init.frequency,
             bits_per_word: bitsPerWord,
         }
-        fulfill( SPIBus( soletta.sol_spi_open( init.bus, config ) ) );
+
+        spi = soletta.sol_spi_open( init.bus, config );
+        if ( spi ) {
+            fulfill( SPIBus( spi ) );
+        } else {
+            reject( new Error( "Could not open SPI device" ) );
+        }
     });
 }
 
