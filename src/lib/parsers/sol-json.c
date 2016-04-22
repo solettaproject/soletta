@@ -801,11 +801,12 @@ sol_json_token_get_unescaped_string(const struct sol_json_token *token, struct s
     int8_t unicode_len;
 
     SOL_NULL_CHECK(buffer, -EINVAL);
-    sol_buffer_init_flags(buffer, NULL, 0, SOL_BUFFER_FLAGS_NO_NUL_BYTE);
 
     SOL_NULL_CHECK(token, -EINVAL);
     SOL_NULL_CHECK(token->start, -EINVAL);
     SOL_NULL_CHECK(token->end, -EINVAL);
+
+    sol_buffer_init_flags(buffer, NULL, 0, SOL_BUFFER_FLAGS_NO_NUL_BYTE);
 
     if (*token->start != '"' || *(token->end - 1) != '"')
         goto invalid_json_string;
@@ -853,23 +854,28 @@ sol_json_token_get_unescaped_string(const struct sol_json_token *token, struct s
                     r = sol_util_base16_decode(&n1, 1,
                         SOL_STR_SLICE_STR(p + 1, 2),
                         SOL_DECODE_BOTH);
-                    SOL_INT_CHECK(r, != 1, r);
+                    SOL_INT_CHECK_GOTO(r, != 1, error);
                     r = sol_util_base16_decode(&n2, 1,
                         SOL_STR_SLICE_STR(p + 3, 2),
                         SOL_DECODE_BOTH);
-                    SOL_INT_CHECK(r, != 1, r);
-                    if (buffer->used > SIZE_MAX - MAX_BYTES_UNICODE)
+                    SOL_INT_CHECK_GOTO(r, != 1, error);
+                    if (buffer->used > SIZE_MAX - MAX_BYTES_UNICODE) {
+                        sol_buffer_fini(buffer);
                         return -EOVERFLOW;
+                    }
 
                     r = sol_buffer_ensure(buffer,
                         buffer->used + MAX_BYTES_UNICODE);
-                    SOL_INT_CHECK(r, < 0, r);
+                    SOL_INT_CHECK_GOTO(r, < 0, error);
                     buffer_end = sol_buffer_at_end(buffer);
-                    SOL_NULL_CHECK(buffer_end, -EINVAL);
+                    r = -EINVAL;
+                    SOL_NULL_CHECK_GOTO(buffer_end, error);
                     unicode_len = sol_util_utf8_from_unicode_code(buffer_end,
                         MAX_BYTES_UNICODE, n1 << 8 | n2);
-                    if (unicode_len < 0)
+                    if (unicode_len < 0) {
+                        sol_buffer_fini(buffer);
                         return unicode_len;
+                    }
                     buffer->used += unicode_len;
 
                     start += 4;
@@ -904,6 +910,7 @@ error:
     return r;
 
 invalid_json_string:
+    sol_buffer_fini(buffer);
     SOL_WRN("Invalid JSON string: %.*s", (int)sol_json_token_get_size(token),
         (char *)token->start);
     return -EINVAL;
