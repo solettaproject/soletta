@@ -165,7 +165,7 @@ interface OicResource: EventTarget {
   readonly attribute OicResourceRepresentation properties;
   readonly attribute sequence<OicResourceId> links;  // for resource hierarchies
 
-  attribute EventHandler<OicResourceUpdateEvent> onupdate;
+  attribute EventHandler<OicResourceUpdateEvent> onchange;
   attribute EventHandler ondelete;  // simple event
 };
 
@@ -175,9 +175,9 @@ interface OicResourceUpdateEvent: Event {
 ```
 The ```OicResource``` objects can be created only by ```findResources()```.
 
-Adding the first event listener to ```onupdate``` should send an observation request.
+Adding the first event listener to ```onchange``` should send an observation request.
 
-Removing the last event listener from ```onupdate``` should send an observation cancellation request.
+Removing the last event listener from ```onchange``` should send an observation cancellation request.
 
 An ```OicResourceUpdateEvent``` contains a partial dictionary which describes the changed properties of the resource. Implementations should fire this event only if at least ```id``` and one more property are specified.
 
@@ -313,7 +313,7 @@ interface OicServer: EventTarget {
   attribute EventHandler<OicRequestEvent> onunobserverequest;
   attribute EventHandler<OicRequestEvent> onretrieverequest;
   attribute EventHandler<OicRequestEvent> ondeleterequest;
-  attribute EventHandler<OicResourceEvent>  onupdaterequest;
+  attribute EventHandler<OicResourceEvent>  onchangerequest;
   attribute EventHandler<OicResourceEvent>  oncreaterequest;
 
   // update notification could be done automatically in most cases,
