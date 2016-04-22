@@ -801,11 +801,12 @@ sol_json_token_get_unescaped_string(const struct sol_json_token *token, struct s
     int8_t unicode_len;
 
     SOL_NULL_CHECK(buffer, -EINVAL);
-    sol_buffer_init_flags(buffer, NULL, 0, SOL_BUFFER_FLAGS_NO_NUL_BYTE);
 
     SOL_NULL_CHECK(token, -EINVAL);
     SOL_NULL_CHECK(token->start, -EINVAL);
     SOL_NULL_CHECK(token->end, -EINVAL);
+
+    sol_buffer_init_flags(buffer, NULL, 0, SOL_BUFFER_FLAGS_NO_NUL_BYTE);
 
     if (*token->start != '"' || *(token->end - 1) != '"')
         goto invalid_json_string;
@@ -904,6 +905,7 @@ error:
     return r;
 
 invalid_json_string:
+    sol_buffer_fini(buffer);
     SOL_WRN("Invalid JSON string: %.*s", (int)sol_json_token_get_size(token),
         (char *)token->start);
     return -EINVAL;
