@@ -27,23 +27,31 @@ This API enables writing the applications that implement resources and business 
 
 OIC high level Web API design notes
 -----------------------------------
-The API design starts minimal, solves the use cases relevant to JS developers, and gets expanded on demand.
+This API uses [Promises](http://www.ecma-international.org/ecma-262/6.0/#sec-promise-objects).
 
+### Device
 Code using this API is deployed to a device, which has one or more resources. In this version of the API it is assumed that the execution context of the code is separated for each device.
 
 Therefore the **API entry point** is an object that exposes the local device functionality, and can be requested with a ```require``` statement which invokes the constructor. When the object is garbage collected, the implementations should clean up native state.
 
 **Device identification** is UUID. Each device has an associated address + port.
 
-When a device is constructed, the implementation should announce its presence.
+### Device discovery
+**Device discovery** uses endpoint discovery: multicast request "GET /oic/res" to "All CoAP nodes" (```224.0.1.187``` for IPv4 and ```FF0X::FD``` for IPv6, port 5683). The response lists devices and their resources (at least URI, resource type, interfaces, and media types). Since this is basically a resource discovery, it is merged with resource discovery.
+
+### Presence
+When a device is constructed, the implementation should announce its presence (together with the resources it contains).
+
 Adding an event listener to the 'devicefound' event should turn on presence observing, i.e. the API implementation should make a request to watch presence notifications, and fire a 'devicefound' event when a presence notification is received.
 
+### Resource
 **Resource identification** is URL path, relative to a given device. A URL composed of the ```oic``` scheme, the device ID as host and the resource path can also be used for identifying a resource: ```oic://<deviceID>/<resourcePath>```. However, this specification uses the device ID and resource ID separately.
 
 On each device there are special resources, implementing device discovery, resource discovery, platform discovery, etc. Platform needs to be discoverable on a resource with a fixed URI ```/oic/p```, device on ```/oic/d``` and resources on ```/oic/res```. This API encapsulates these special resources and the hardcoded/fixed URIs by explicit function names and parameters.
 
-**Device discovery** uses endpoint discovery: multicast request "GET /oic/res" to "All CoAP nodes" (```224.0.1.187``` for IPv4 and ```FF0X::FD``` for IPv6, port 5683). The response lists devices and their resources (at least URI, resource type, interfaces, and media types). Since this is basically a resource discovery, it is merged with resource discovery.
+Resource representation properties shall not be created and deleted one by one. Only a full resource can be created and deleted.
 
+### Resource discovery
 **Resource discovery** is based on the existence of resources (directories) set up for discovery. It can be achieved in 3 ways:
 - direct discovery through peer inquiry (unicast or multicast)
 - indirect discovery based on a 3rd party directory (a server for resource discovery)
@@ -51,15 +59,24 @@ On each device there are special resources, implementing device discovery, resou
 
 Implementations should encapsulate the resource discovery type, and should map the DiscoveryOptions values to the best suited protocol request(s).
 
-In this API the OIC request (query) options and header options are also encapsulated. When they convey functionality, they are exposed through explicit properties and parameters.
-
+### Notifications
 Implementations should support automatic notifications for changed resources that have observers. However, a "manual" notify API is also exposed on the OicServer interface, for experimental purpose.
+
+When adding the first event listener to ```onchange``` on a resource, implementations should set the observe flag on all subsequent retrieve protocol requests.
+
+When removing the last event listener from ```onchange``` on a resource, implementations should clear that flag on all subsequent retrieve protocol requests.
+
+### Error handling
+The error names map to [DOMError](https://heycam.github.io/webidl/#idl-DOMException-error-names). The following error names may be used when rejecting Promises: ```NotSupportedError```, ```SecurityError```, ```TimeoutError```, ```NotFoundError```, ```NoModificationAllowedError```, ```InvalidModificationError```, ```TypeMismatchError```, ```InvalidStateError```, ```InvalidAccessError```, ```InvalidNodeTypeError```, ```NotReadableError```, ```IndexSizeError```, ```DataCloneError```.
+
+When a method in this API cannot be implemented for lack of support, reject the method with ```NotSupportedError```.
+
+When a method in this API cannot be invoked for security reasons (e.g. lack of permission), reject the method with ```SecurityError```.
+
+When an attempt is made to access (read, write, update) a resource representation property that does not exist, the method should be rejected with ```NotFoundError``` if the property is missing, an ```InvalidAccessError``` if the operation is not supported, or ```TypeMismatchError``` if the type or value is wrong.
 
 Web IDL of the JavaScript API
 -----------------------------
-
-This API uses [Promises](http://www.ecma-international.org/ecma-262/6.0/#sec-promise-objects).
-
 ### OIC Stack
 The API entry point is the local OIC stack executed on an OIC device. Multiple devices may be run on a given hardware platform, each having different network address, UUID and resources.
 
@@ -356,8 +373,6 @@ interface OicError: Error {
   readonly attribute OicResourceInit? resource;
 };
 ```
-The error names map to [DOMError](https://heycam.github.io/webidl/#idl-DOMException-error-names). The following error names may be used when rejecting Promises: ```NotSupportedError```, ```SecurityError```, ```TimeoutError```, ```NotFoundError```, ```NoModificationAllowedError```, ```InvalidModificationError```, ```TypeMismatchError```, ```InvalidStateError```, ```InvalidAccessError```, ```InvalidNodeTypeError```, ```NotReadableError```, ```IndexSizeError```, ```DataCloneError```.
-
 The following error event is used for protocol errors:
 ```javascript
 interface OicErrorEvent: Event {
