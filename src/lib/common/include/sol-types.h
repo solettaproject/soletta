@@ -94,6 +94,20 @@ extern "C" {
 #define SOL_TYPE_CHECK(type, value) \
     _SOL_TYPE_CHECK(type, __dummy_ ## __COUNTER__, (value))
 
+#ifndef SSIZE_MAX
+/**
+ * @brief Maximum value of a ssize variable.
+ */
+#define SSIZE_MAX LONG_MAX
+#endif
+
+#ifndef SSIZE_MIN
+/**
+ * @brief Minimum value of a ssize variable.
+ */
+#define SSIZE_MIN LONG_MIN
+#endif
+
 /**
  * @}
  */

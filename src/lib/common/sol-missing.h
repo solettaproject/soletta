@@ -151,14 +151,6 @@ err:
 #define I2C_RDRW_IOCTL_MAX_MSGS 42
 #endif
 
-#ifndef SSIZE_MAX
-#define SSIZE_MAX LONG_MAX
-#endif
-
-#ifndef SSIZE_MIN
-#define SSIZE_MIN LONG_MIN
-#endif
-
 #ifdef __cplusplus
 }
 #endif
