@@ -273,6 +273,14 @@
       ]
     },
     {
+      "dependency": "qmsi",
+      "type": "ccode",
+      "headers": [
+        "<qm_version.h>"
+      ],
+      "fragment": "#if QM_VER_API_UINT < 10001\n#error \"Unsupported QMSI version\"\n#endif"
+    },
+    {
       "dependency": "zephyr_micro",
       "type": "ccode",
       "fragment": "#ifndef CONFIG_MICROKERNEL\n#error \"Microkernel not supported\"\n#endif\n"
