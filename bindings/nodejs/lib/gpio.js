@@ -30,12 +30,15 @@ exports.open = function( init ) {
         var direction = init.direction ? init.direction : "out";
         var edge = init.edge ? init.edge : "any";
         var pull = init.pull ? init.pull : "none";
+        var active_low = init.activeLow ? init.activeLow : false;
+        var poll = init.poll ? init.poll : 1000;
+        var gpio;
 
         if ( direction == "in" ) {
             config = {
                 dir: soletta.sol_gpio_direction_from_str( direction ),
-                active_low: init.activeLow,
-                poll_timeout: init.poll,
+                active_low: active_low,
+                poll_timeout: poll,
                 drive_mode: soletta.sol_gpio_drive_from_str( pull ),
                 trigger_mode: soletta.sol_gpio_edge_from_str( edge ),
                 callback: function( value ) {
@@ -49,14 +52,19 @@ exports.open = function( init ) {
         } else {
             config = {
                 dir: soletta.sol_gpio_direction_from_str( direction ),
-                active_low: init.activeLow,
+                active_low: active_low,
                 drive_mode: soletta.sol_gpio_drive_from_str( pull ),
             }
         }
 
-        gpiopin = GPIOPin( soletta.sol_gpio_open( pin, config ) );
-        callback_data.push( gpiopin );
-        fulfill( gpiopin );
+        gpio = soletta.sol_gpio_open( pin, config );
+        if ( gpio ) {
+            gpiopin = GPIOPin( gpio );
+            callback_data.push( gpiopin );
+            fulfill( gpiopin );
+        } else {
+            reject( new Error( "Could not open GPIO device" ) );
+        }
     });
 
 }

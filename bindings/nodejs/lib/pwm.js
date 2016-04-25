@@ -26,6 +26,7 @@ exports.open = function( init ) {
         var enabled = ( typeof init.enabled === 'undefined' ) ? false : init.enabled;
         var alignment = init.alignment ? init.alignment : "left";
         var polarity = init.polarity ? init.polarity : "normal";
+        var pwm;
 
         config = {
             period_ns: init.period,
@@ -43,6 +44,13 @@ exports.open = function( init ) {
             else
                 fulfill( PWMPin( soletta.sol_pwm_open( init.device, init.channel, config ) ) );
         }
+
+        if ( pwm ) {
+            fullfill( PWMPin( pwm ) );
+        } else {
+            reject( new Error( "Could not open PWM device" ) );
+        }
+
     });
 }
 
