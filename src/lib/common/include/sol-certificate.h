@@ -18,6 +18,8 @@
 
 #pragma once
 
+#include <sol-types.h>
+
 #ifdef __cplusplus
 extern "C" {
 #endif
@@ -71,6 +73,15 @@ void sol_cert_unref(struct sol_cert *cert);
  * @return sol_cert object on success, NULL otherwise
  */
 const char *sol_cert_get_filename(const struct sol_cert *cert);
+
+/**
+ * @brief Get the certificate contents
+ *
+ * @param cert Certificate object.
+ *
+ * @return the contents of the certificate @a cert on success, NULL otherwise
+ */
+struct sol_blob *sol_cert_get_contents(const struct sol_cert *cert);
 
 /**
  * @}
