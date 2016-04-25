@@ -18,6 +18,7 @@
 
 #pragma once
 
+#include <sol-certificate.h>
 #include <sol-http.h>
 #include <sol-network.h>
 #include <time.h>
@@ -94,8 +95,33 @@ struct sol_http_progressive_response;
  * @param port The port where the server will bind.
  *
  * @return a handle to the server on success, otherwise @c NULL is returned.
+ *
+ * @see sol_http_server_new()
  */
 struct sol_http_server *sol_http_server_new(uint16_t port);
+
+/**
+ * @brief Creates a HTTPS server, binding on all interfaces
+ * in the specified @a port.
+ *
+ * With the returned handle it's possible to register paths using
+ * @c sol_http_server_register_handler()
+ * and dirs with @c sol_http_server_add_dir().
+ *
+ * @note Only one instance of sol_http_server is possible per port.
+ * Try to run a second instance in the
+ * same port will result in fail.
+ *
+ * @param port The port where the server will bind.
+ * @param cert The certificate that should be used to crypto the data.
+ * @param key The key of @a cert.
+ *
+ * @return a handle to the server on success, otherwise @c NULL is returned.
+ *
+ * @see sol_http_server_new()
+ */
+struct sol_http_server *sol_http_server_secure_new(uint16_t port,
+    const struct sol_cert *cert, const struct sol_cert *key);
 
 /**
  * @brief Destroy the @a server instance.

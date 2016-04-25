@@ -1014,8 +1014,9 @@ notify_connection_finished_cb(void *data, struct MHD_Connection *connection,
     free_request(request);
 }
 
-SOL_API struct sol_http_server *
-sol_http_server_new(uint16_t port)
+static struct sol_http_server *
+sol_http_server_new_full(uint16_t port, const struct sol_cert *cert,
+    const struct sol_cert *key)
 {
     static const enum sol_fd_flags fd_flags =
         SOL_FD_FLAGS_IN | SOL_FD_FLAGS_OUT | SOL_FD_FLAGS_ERR |
@@ -1035,12 +1036,28 @@ sol_http_server_new(uint16_t port)
 
     server->buf_size = SOL_HTTP_REQUEST_BUFFER_SIZE;
 
-    server->daemon = MHD_start_daemon(MHD_USE_SUSPEND_RESUME,
-        port, NULL, NULL,
-        http_server_handler, server,
-        MHD_OPTION_NOTIFY_CONNECTION, notify_connection_cb, server,
-        MHD_OPTION_NOTIFY_COMPLETED, notify_connection_finished_cb, server,
-        MHD_OPTION_END);
+    if (cert && key) {
+        struct sol_blob *cert_contents, *key_contents;
+        cert_contents = sol_cert_get_contents(cert);
+        key_contents = sol_cert_get_contents(key);
+        server->daemon = MHD_start_daemon(MHD_USE_SUSPEND_RESUME | MHD_USE_SSL,
+                port, NULL, NULL,
+                http_server_handler, server,
+                MHD_OPTION_NOTIFY_CONNECTION, notify_connection_cb, server,
+                MHD_OPTION_NOTIFY_COMPLETED, notify_connection_finished_cb, server,
+                MHD_OPTION_HTTPS_MEM_KEY, (char *)key_contents->mem,
+                MHD_OPTION_HTTPS_MEM_CERT, (char *)cert_contents->mem,
+                MHD_OPTION_END);
+        sol_blob_unref(cert_contents);
+        sol_blob_unref(key_contents);
+    } else {
+        server->daemon = MHD_start_daemon(MHD_USE_SUSPEND_RESUME,
+                port, NULL, NULL,
+                http_server_handler, server,
+                MHD_OPTION_NOTIFY_CONNECTION, notify_connection_cb, server,
+                MHD_OPTION_NOTIFY_COMPLETED, notify_connection_finished_cb, server,
+                MHD_OPTION_END);
+    }
     SOL_NULL_CHECK_GOTO(server->daemon, err_daemon);
 
     info = MHD_get_daemon_info(server->daemon, MHD_DAEMON_INFO_LISTEN_FD);
@@ -1064,6 +1081,19 @@ err_daemon:
     sol_ptr_vector_clear(&server->requests);
     free(server);
     return NULL;
+}
+
+SOL_API struct sol_http_server *
+sol_http_server_new(uint16_t port)
+{
+    return sol_http_server_new_full(port, NULL, NULL);
+}
+
+SOL_API struct sol_http_server *
+sol_http_server_secure_new(uint16_t port,
+    const struct sol_cert *cert, const struct sol_cert *key)
+{
+    return sol_http_server_new_full(port, cert, key);
 }
 
 SOL_API void
