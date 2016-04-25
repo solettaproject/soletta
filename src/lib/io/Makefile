@@ -42,6 +42,8 @@ obj-io-gpio-$(PLATFORM_LINUX) += \
     sol-gpio-impl-linux.o
 obj-io-gpio-$(PLATFORM_ZEPHYR) += \
     sol-gpio-impl-zephyr.o
+obj-io-gpio-$(PLATFORM_CONTIKI_QMSI) += \
+    sol-gpio-impl-contiki-qmsi.o
 
 obj-io-pwm-$(USE_PWM) := \
     sol-pwm-common.o

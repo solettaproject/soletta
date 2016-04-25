@@ -3,3 +3,4 @@ config CONTIKI
     select FEATURE_FLOW
     select FEATURE_NETWORK
     select FEATURE_COAP
+    select FEATURE_HW_GPIO if HAVE_QMSI
