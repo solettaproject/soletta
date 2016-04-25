@@ -27,7 +27,9 @@ config.log*
 aio.js
 bindings/nodejs/generated/header-files-list
 bindings/nodejs/generated/nodejs-bindings-sources.gyp
+bindings/nodejs/tests/results.json
 gpio.js
 pwm.js
 spi.js
 uart.js
+i2c.js
