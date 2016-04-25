@@ -45,8 +45,10 @@ exports.open = function( init ) {
         }
 
         var uart = soletta.sol_uart_open( init.port, config );
-        if ( !uart )
+        if ( !uart ) {
+            reject( new Error( "Could not open SPI device" ) );
             return;
+        }
         connection = UARTConnection( uart );
         callback_data.push( connection );
         fulfill( connection );
