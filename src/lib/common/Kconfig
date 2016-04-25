@@ -32,6 +32,9 @@ config DETECT_BOARD_NAME
 config PLATFORM_LINUX
 	bool
 
+config PLATFORM_CONTIKI_QMSI
+	bool
+
 choice
 	prompt "Target platform"
 	default PLATFORM_SYSTEMD if LINUX && HAVE_SYSTEMD
@@ -127,6 +130,7 @@ config PLATFORM_RIOTOS
 config PLATFORM_CONTIKI
 	bool "contiki"
 	depends on CONTIKI
+	select PLATFORM_CONTIKI_QMSI if HAVE_QMSI
 	help
             This platform is to be used with Contiki Small OS.
 
