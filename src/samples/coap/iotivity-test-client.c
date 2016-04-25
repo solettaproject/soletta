@@ -207,7 +207,7 @@ check_post_request(sol_coap_responsecode_t response_code, struct sol_oic_client 
 }
 
 static bool
-post_fill_repr_map(void *data, struct sol_oic_map_writer *repr_map)
+post_fill_repr_map(struct sol_oic_map_writer *repr_map)
 {
     int ret;
 
@@ -301,6 +301,7 @@ print_response(sol_coap_responsecode_t response_code, struct sol_oic_client *cli
     struct sol_oic_map_reader iterator;
     struct Context *ctx = data;
     struct sol_buffer buf = SOL_BUFFER_INIT_EMPTY;
+    struct sol_oic_request *request;
 
     SOL_BUFFER_DECLARE_STATIC(addr, SOL_INET_ADDR_STRLEN);
 
@@ -324,8 +325,9 @@ print_response(sol_coap_responsecode_t response_code, struct sol_oic_client *cli
 
     if (ctx->test_number == TEST_NON_CONFIRMABLE_DELETE ||
         ctx->test_number == TEST_CONFIRMABLE_DELETE) {
-        sol_oic_client_resource_request(cli, ctx->res, SOL_COAP_METHOD_GET,
-            NULL, NULL, check_delete_request, NULL);
+        request = sol_oic_client_request_new(SOL_COAP_METHOD_GET, ctx->res);
+        sol_oic_client_request(cli, request, check_delete_request,
+            NULL);
         return;
     }
 
@@ -381,15 +383,20 @@ print_response(sol_coap_responsecode_t response_code, struct sol_oic_client *cli
     }
 
     if (ctx->test_number == TEST_NON_CONFIRMABLE_PUT) {
-        sol_oic_client_resource_request(cli, ctx->res, SOL_COAP_METHOD_GET,
-            NULL, NULL, check_put_request, NULL);
+        request = sol_oic_client_request_new(SOL_COAP_METHOD_GET, ctx->res);
+        if (!request)
+            goto error;
+        sol_oic_client_request(cli, request, check_put_request, NULL);
     } else if (ctx->test_number == TEST_NON_CONFIRMABLE_POST ||
         ctx->test_number == TEST_CONFIRMABLE_POST) {
-        sol_oic_client_resource_request(cli, ctx->res, SOL_COAP_METHOD_GET,
-            NULL, NULL, check_post_request, NULL);
+        request = sol_oic_client_request_new(SOL_COAP_METHOD_GET, ctx->res);
+        if (!request)
+            goto error;
+        sol_oic_client_request(cli, request, check_post_request, NULL);
     } else if (map_reader)
         sol_quit();
     else {
+error:
         SOL_WRN("Invalid response: empty payload.");
         sol_quit_with_code(EXIT_FAILURE);
     }
@@ -445,7 +452,7 @@ platform_info_cb(struct sol_oic_client *cli, const struct sol_oic_platform_infor
 }
 
 static bool
-put_fill_repr_map(void *data, struct sol_oic_map_writer *repr_map)
+put_fill_repr_map(struct sol_oic_map_writer *repr_map)
 {
     int ret;
 
@@ -468,8 +475,9 @@ found_resource(struct sol_oic_client *cli, struct sol_oic_resource *res, void *d
     const char *method_str = "GET";
     sol_coap_method_t method = SOL_COAP_METHOD_GET;
 
-    bool (*fill_repr_map)(void *data, struct sol_oic_map_writer *repr_map) = NULL;
+    bool (*fill_repr_map)(struct sol_oic_map_writer *repr_map) = NULL;
     struct sol_str_slice href;
+    struct sol_oic_request *request;
 
     if (!res)
         return false;
@@ -557,12 +565,14 @@ found_resource(struct sol_oic_client *cli, struct sol_oic_resource *res, void *d
             sol_oic_client_resource_set_observable_non_confirmable(cli, res,
                 resource_notify, data, true);
     } else {
-        if (non_confirmable)
-            sol_oic_client_resource_non_confirmable_request(cli, res, method,
-                fill_repr_map, NULL, print_response, data);
-        else
-            sol_oic_client_resource_request(cli, res, method, fill_repr_map,
-                NULL, print_response, data);
+        if (non_confirmable) {
+            request = sol_oic_client_request_new(method, res);
+        } else {
+            request = sol_oic_client_non_confirmable_request_new(method, res);
+        }
+        if (fill_repr_map)
+            fill_repr_map(sol_oic_client_request_get_writer(request));
+        sol_oic_client_request(cli, request, print_response, data);
     }
 
     if (ctx->test_number == TEST_NON_CONFIRMABLE_INVALID_GET)

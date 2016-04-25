@@ -388,7 +388,8 @@ struct sol_oic_map_writer *sol_oic_server_response_get_writer(struct sol_oic_res
  *
  * @param request The request to retrieve the reader.
  *
- * @return The packet reader from this request.
+ * @return The packet reader from this request or @c NULL if the informed
+ *         request is not a server request.
  */
 struct sol_oic_map_reader *sol_oic_server_request_get_reader(struct sol_oic_request *request);
 

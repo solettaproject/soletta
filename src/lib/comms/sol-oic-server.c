@@ -35,10 +35,18 @@
 
 #include "sol-oic-cbor.h"
 #include "sol-oic.h"
+#include "sol-oic-common.h"
 #include "sol-oic-server.h"
 #include "sol-oic-security.h"
 
 SOL_LOG_INTERNAL_DECLARE(_sol_oic_server_log_domain, "oic-server");
+
+struct sol_oic_server_request {
+    struct sol_oic_request base;
+    const struct sol_network_link_addr *cliaddr;
+    struct sol_oic_map_reader reader;
+    struct sol_coap_server *server;
+};
 
 struct sol_oic_server {
     struct sol_coap_server *server;
@@ -56,13 +64,6 @@ struct sol_oic_response {
     struct sol_coap_packet *pkt;
     struct sol_oic_map_writer writer;
     struct sol_oic_server_resource *resource;
-};
-
-struct sol_oic_request {
-    struct sol_coap_packet *pkt;
-    const struct sol_network_link_addr *cliaddr;
-    struct sol_oic_map_reader reader;
-    struct sol_coap_server *server;
 };
 
 struct sol_oic_server_resource {
@@ -650,7 +651,7 @@ sol_oic_server_unref(void)
 }
 
 static void
-request_free(struct sol_oic_request *request)
+server_request_free(struct sol_oic_server_request *request)
 {
     int32_t i;
 
@@ -660,10 +661,7 @@ request_free(struct sol_oic_request *request)
     i = sol_ptr_vector_find_last(&oic_server.requests, request);
     SOL_INT_CHECK(i, < 0);
 
-    if (request->pkt)
-        sol_coap_packet_unref(request->pkt);
-    free(request);
-
+    oic_request_free((struct sol_oic_request *)request);
     sol_ptr_vector_del(&oic_server.requests, i);
 }
 
@@ -722,11 +720,11 @@ error:
 }
 
 static struct sol_oic_request *
-oic_request_new(const struct sol_network_link_addr *cliaddr, struct sol_coap_server *server, struct sol_coap_packet *pkt)
+server_request_new(const struct sol_network_link_addr *cliaddr, struct sol_coap_server *server, struct sol_coap_packet *pkt)
 {
-    struct sol_oic_request *request;
+    struct sol_oic_server_request *request;
 
-    request = calloc(1, sizeof(struct sol_oic_request));
+    request = calloc(1, sizeof(struct sol_oic_server_request));
     SOL_NULL_CHECK(request, NULL);
 
     if (sol_ptr_vector_append(&oic_server.requests, request) < 0) {
@@ -735,9 +733,10 @@ oic_request_new(const struct sol_network_link_addr *cliaddr, struct sol_coap_ser
     }
     request->cliaddr = cliaddr;
     request->server = server;
-    request->pkt = sol_coap_packet_ref(pkt);
+    request->base.pkt = sol_coap_packet_ref(pkt);
+    request->base.is_server_request = true;
 
-    return request;
+    return (struct sol_oic_request *)request;
 }
 
 static int
@@ -748,7 +747,7 @@ _sol_oic_resource_type_handle(
     struct sol_oic_server_resource *res, bool expect_payload)
 {
     struct sol_coap_packet *response_pkt = NULL;
-    struct sol_oic_request *request = NULL;
+    struct sol_oic_server_request *request = NULL;
     sol_coap_responsecode_t code = SOL_COAP_RSPCODE_INTERNAL_ERROR;
     CborParser parser;
     int r;
@@ -760,7 +759,8 @@ _sol_oic_resource_type_handle(
         goto error;
     }
 
-    request = oic_request_new(cliaddr, server, req);
+    request = (struct sol_oic_server_request *)
+        server_request_new(cliaddr, server, req);
     SOL_NULL_CHECK_GOTO(request, error);
 
     if (expect_payload) {
@@ -776,13 +776,13 @@ _sol_oic_resource_type_handle(
     } else
         ((CborValue *)&request->reader)->type = CborInvalidType;
 
-    r = handle_fn((void *)res->callback.data, request);
+    r = handle_fn((void *)res->callback.data, (struct sol_oic_request *)request);
     if (r < 0)
-        request_free(request);
+        server_request_free(request);
     return r;
 
 error:
-    request_free(request);
+    server_request_free(request);
 
     response_pkt = sol_coap_packet_new(req);
     SOL_NULL_CHECK(response_pkt, -errno);
@@ -803,13 +803,19 @@ sol_oic_server_request_get_reader(struct sol_oic_request *request)
 {
     SOL_NULL_CHECK(request, NULL);
 
-    return &request->reader;
+    if (!request->is_server_request) {
+        SOL_WRN("Request packet is not a request created by oic server");
+        return NULL;
+    }
+
+    return &((struct sol_oic_server_request *)request)->reader;
 }
 
 SOL_API int
 sol_oic_server_send_response(struct sol_oic_request *request, struct sol_oic_response *response, sol_coap_responsecode_t code)
 {
     struct sol_coap_packet *pkt;
+    struct sol_oic_server_request *req = (struct sol_oic_server_request *)request;
     int r = -EINVAL;
 
     SOL_NULL_CHECK_GOTO(request, end);
@@ -828,18 +834,18 @@ sol_oic_server_send_response(struct sol_oic_request *request, struct sol_oic_res
     r = sol_coap_header_set_code(pkt, code);
     SOL_INT_CHECK_GOTO(r, < 0, error_pkt);
 
-    r = sol_coap_send_packet(request->server, pkt, request->cliaddr);
+    r = sol_coap_send_packet(req->server, pkt, req->cliaddr);
     goto end;
 
 error_pkt:
     sol_coap_packet_unref(pkt);
 end:
-    request_free(request);
+    server_request_free(req);
     sol_oic_server_response_free(response);
     return r;
 
 error_server:
-    request_free(request);
+    server_request_free(request);
     sol_oic_server_response_free(response);
     return -ENOTCONN;
 }
