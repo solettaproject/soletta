@@ -1531,12 +1531,12 @@ sol_memdesc_set_as_int64(const struct sol_memdesc *desc, void *memory, int64_t v
         *(uint64_t *)memory = value;
         return 0;
     case SOL_MEMDESC_TYPE_ULONG:
-        if (value < 0 || value > ULONG_MAX)
+        if (value < 0 || (uint64_t)value > ULONG_MAX)
             return -EOVERFLOW;
         *(unsigned long *)memory = value;
         return 0;
     case SOL_MEMDESC_TYPE_SIZE:
-        if (value < 0 || value > SIZE_MAX)
+        if (value < 0 || (uint64_t)value > SIZE_MAX)
             return -EOVERFLOW;
         *(size_t *)memory = value;
         return 0;
