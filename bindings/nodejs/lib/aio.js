@@ -28,7 +28,7 @@ exports.open = function( init ) {
 		if (init.precision)
 			precision = init.precision;
 
-		if (init.name && init.name != "") {
+		if ( typeof init.name === "string" && init.name !== "" ) {
 			aio = soletta.sol_aio_open_by_label( init.name, precision );
 		} else if (init.raw) {
 			aio = soletta.sol_aio_open_raw( init.device, init.pin, precision );
@@ -60,23 +60,20 @@ _.extend( AIOPin.prototype, {
 			this._pending = soletta.sol_aio_get_value( this._pin, function( value ) {
 				fulfill( value );
 			});
+			if (!this._pending)
+				reject( new Error( "Failed to read the value from AIO device" ) );
+
 		}, this ) );
 	},
 
 	close: function() {
-		return new Promise( _.bind( function( fulfill, reject ) {
-			soletta.sol_aio_close( this._pin);
-			this._pending = null;
-			fulfill();
-		}, this ) );
+		soletta.sol_aio_close( this._pin);
+		this._pending = null;
 	},
 
 	abort: function() {
-		return new Promise( _.bind( function( fulfill, reject ) {
-			soletta.sol_aio_pending_cancel( this._pin, _this._pending );
-			this._pending = null;
-			fulfill();
-		}, this ) );
+		soletta.sol_aio_pending_cancel( this._pin, this._pending );
+		this._pending = null;
 	}
 });
 

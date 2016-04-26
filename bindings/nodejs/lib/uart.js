@@ -87,9 +87,7 @@ _.extend( UARTConnection.prototype, {
     },
 
     close: function() {
-        return new Promise( _.bind( function( fulfill, reject ) {
-            fulfill( soletta.sol_uart_close( this._connection) );
-        }, this ) );
+        soletta.sol_uart_close( this._connection);
     },
 
     addEventListener: UARTConnection.prototype.addListener,
@@ -101,8 +99,7 @@ _.extend( UARTConnection.prototype, {
         if ( typeof this[ "on" + event ] === "function" ) {
             this[ "on" + event ]( request );
         }
-    },
-
+    }
 });
 
 exports.UARTConnection = UARTConnection;

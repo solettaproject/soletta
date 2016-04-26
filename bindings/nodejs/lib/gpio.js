@@ -83,14 +83,21 @@ _.extend( GPIOPin.prototype, {
 
     read: function() {
         return new Promise( _.bind( function( fulfill, reject ) {
-
-            fulfill( soletta.sol_gpio_read( this._pin ) );
+            var returnValue = soletta.sol_gpio_read( this._pin );
+            if ( returnValue >= 0 )
+                fulfill(returnValue);
+            else
+                reject( new Error( "Failed to read the value from GPIO device" ) );
         }, this ) );
     },
 
     write: function( value ) {
         return new Promise( _.bind( function( fulfill, reject ) {
-            fulfill( soletta.sol_gpio_write( this._pin, value ) );
+            var returnValue = soletta.sol_gpio_write( this._pin, value );
+            if ( returnValue )
+                fulfill();
+            else
+                reject( new Error( "Failed to write on GPIO device" ) );
         }, this ) );
     },
 
