@@ -64,7 +64,15 @@ git submodules:
 
 To make sure all these projects are fetched and correct versions
 are checked out, just run:
-
+    
+    if  (building from downloaded "soletta-master.zip" file)
+    extract soletta-master.zip
+    cd soletta-master
+    git init 
+    make thirdparty-update
+ 
+    else (if cloned using git clone https://github.com/solettaproject/soletta.git)
+    cd soletta
     make thirdparty-update
 
 It requires Internet access.
