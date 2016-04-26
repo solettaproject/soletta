@@ -1,0 +1,6 @@
+config TOOL_GPIO
+    bool "sol-gpio"
+    depends on USE_GPIO
+    default y
+    help
+        Command line tool to manipulate GPIO
