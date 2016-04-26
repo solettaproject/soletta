@@ -5,6 +5,11 @@ obj-networking-$(NETWORK) := \
     sol-comms.o \
     sol-socket.o
 
+obj-networking-$(CONNMAN) += \
+    sol-netctl-impl-connman.o
+obj-networking-$(CONNMAN)-extra-cflags += $(SYSTEMD_CFLAGS)
+obj-networking-$(CONNMAN)-extra-ldflags += $(SYSTEMD_LDFLAGS)
+
 obj-dtls-$(DTLS) += \
     sol-socket-dtls-impl-tinydtls.o \
     $(TINYDTLS_SRC_PATH)/aes/rijndael.o \
@@ -131,6 +136,9 @@ headers-$(NETWORK) += \
 
 headers-$(COAP) += \
     include/sol-coap.h
+
+headers-$(CONNMAN) += \
+    include/sol-netctl.h
 
 headers-$(OIC) += \
     include/sol-oic-common.h \

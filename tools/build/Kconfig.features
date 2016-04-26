@@ -19,6 +19,9 @@ config FEATURE_NETWORK
 config FEATURE_COAP
     bool
 
+config FEATURE_CONNMAN
+    bool
+
 config FEATURE_HTTP_CLIENT
     bool
 
