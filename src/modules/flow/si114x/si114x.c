@@ -3,31 +3,17 @@
  *
  * Copyright (C) 2015 Intel Corporation. All rights reserved.
  *
- * Redistribution and use in source and binary forms, with or without
- * modification, are permitted provided that the following conditions
- * are met:
+ * Licensed under the Apache License, Version 2.0 (the "License");
+ * you may not use this file except in compliance with the License.
+ * You may obtain a copy of the License at
  *
- *   * Redistributions of source code must retain the above copyright
- *     notice, this list of conditions and the following disclaimer.
- *   * Redistributions in binary form must reproduce the above copyright
- *     notice, this list of conditions and the following disclaimer in
- *     the documentation and/or other materials provided with the
- *     distribution.
- *   * Neither the name of Intel Corporation nor the names of its
- *     contributors may be used to endorse or promote products derived
- *     from this software without specific prior written permission.
+ *     http://www.apache.org/licenses/LICENSE-2.0
  *
- * THIS SOFTWARE IS PROVIDED BY THE COPYRIGHT HOLDERS AND CONTRIBUTORS
- * "AS IS" AND ANY EXPRESS OR IMPLIED WARRANTIES, INCLUDING, BUT NOT
- * LIMITED TO, THE IMPLIED WARRANTIES OF MERCHANTABILITY AND FITNESS FOR
- * A PARTICULAR PURPOSE ARE DISCLAIMED. IN NO EVENT SHALL THE COPYRIGHT
- * OWNER OR CONTRIBUTORS BE LIABLE FOR ANY DIRECT, INDIRECT, INCIDENTAL,
- * SPECIAL, EXEMPLARY, OR CONSEQUENTIAL DAMAGES (INCLUDING, BUT NOT
- * LIMITED TO, PROCUREMENT OF SUBSTITUTE GOODS OR SERVICES; LOSS OF USE,
- * DATA, OR PROFITS; OR BUSINESS INTERRUPTION) HOWEVER CAUSED AND ON ANY
- * THEORY OF LIABILITY, WHETHER IN CONTRACT, STRICT LIABILITY, OR TORT
- * (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE
- * OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
+ * Unless required by applicable law or agreed to in writing, software
+ * distributed under the License is distributed on an "AS IS" BASIS,
+ * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+ * See the License for the specific language governing permissions and
+ * limitations under the License.
  */
 
 #include <errno.h>
@@ -38,7 +24,7 @@
 #include <string.h>
 #include <stdbool.h>
 
-#include "si114x-gen.h"
+#include "sol-flow/si114x.h"
 #include "sol-flow.h"
 #include "sol-mainloop.h"
 #include "sol-util.h"
@@ -170,13 +156,14 @@ enum SI114X_CHLIST_BITS {
 };
 
 struct si114x_data {
-    struct sol_i2c *context;
-    struct sol_timeout *timer;
-    bool fully_initialized;
-    unsigned int init_step;
-    int pendent_calls;
-    uint16_t read_data;
     struct sol_flow_node *node;
+    struct sol_timeout *timer;
+    struct sol_i2c *context;
+    struct sol_i2c_pending *i2c_pending;
+    int pending_calls;
+    unsigned int init_step;
+    uint16_t read_data;
+    bool fully_initialized;
 };
 
 #define SI114X_I2C_BUS 0
@@ -220,34 +207,50 @@ busy_bus_callback(void *data)
 {
     struct si114x_data *mdata = data;
 
+    mdata->timer = NULL;
     setup_device(mdata, mdata->context, 0, 0, 1);
+
     return false;
 }
 
 void
-setup_device(void *cb_data, struct sol_i2c *i2c,  uint8_t reg, uint8_t *data, ssize_t status)
+setup_device(void *cb_data, struct sol_i2c *i2c, uint8_t reg, uint8_t *data, ssize_t status)
 {
     struct si114x_data *mdata = cb_data;
+
+    mdata->i2c_pending = NULL;
 
     if (status < 0) {
         SOL_WRN("Couldn't open the si114x hardware for usage, please check the pinage.");
         return;
     }
 
-    data = data; /* silence warning */
+    if (mdata->init_step >= SOL_UTIL_ARRAY_SIZE(initialization_data)) {
 
-    if (mdata->init_step >= ARRAY_SIZE(initialization_data)) {
-        while (mdata->pendent_calls) {
-            si114x_process(mdata->node, mdata, SOL_FLOW_NODE_TYPE_LIGHT_SENSOR_SI114X__IN__TICK, 0, 0);
-            mdata->pendent_calls--;
+        mdata->fully_initialized = true;
+
+        while (mdata->pending_calls) {
+            si114x_process(mdata->node, mdata,
+                SOL_FLOW_NODE_TYPE_LIGHT_SENSOR_SI114X__IN__TICK, 0, 0);
+            mdata->pending_calls--;
         }
         return;
     }
+
     if (!sol_i2c_busy(i2c)) {
-        sol_i2c_write_register(i2c, initialization_data[mdata->init_step].reg, &initialization_data[mdata->init_step].value, 1, &setup_device, cb_data);
+        mdata->i2c_pending = sol_i2c_write_register(i2c,
+            initialization_data[mdata->init_step].reg,
+            &initialization_data[mdata->init_step].value, 1,
+            setup_device, cb_data);
+
+        if (!mdata->i2c_pending) {
+            sol_flow_send_error_packet(mdata->node, EIO,
+                "Couldn't write to device, check your UV reader (si114x)");
+        }
+
         mdata->init_step++;
     } else {
-        sol_timeout_add(0, busy_bus_callback, mdata);
+        mdata->timer = sol_timeout_add(0, busy_bus_callback, mdata);
     }
 }
 
@@ -255,23 +258,25 @@ static int
 si114x_open(struct sol_flow_node *node, void *data, const struct sol_flow_node_options *options)
 {
     struct si114x_data *mdata = data;
-    struct sol_flow_node_type_light_sensor_si114x_options *opts;
+    struct sol_flow_node_type_light_sensor_si114x_options *opts =
+        (struct sol_flow_node_type_light_sensor_si114x_options *)options;
 
-    SOL_FLOW_NODE_OPTIONS_SUB_API_CHECK(options, SOL_FLOW_NODE_TYPE_LIGHT_SENSOR_SI114X_OPTIONS_API_VERSION, -EINVAL);
+    SOL_FLOW_NODE_OPTIONS_SUB_API_CHECK(opts,
+        SOL_FLOW_NODE_TYPE_LIGHT_SENSOR_SI114X_OPTIONS_API_VERSION, -EINVAL);
 
     mdata->fully_initialized = false;
-    opts = (struct sol_flow_node_type_light_sensor_si114x_options *)options;
 
-    mdata->context = sol_i2c_open(opts->bus.val, opts->speed.val);
+    mdata->context = sol_i2c_open(opts->bus, opts->speed);
     if (!mdata->context) {
         SOL_WRN("Couldn't open the si114x hardware for usage, please check the pinage.");
         return -EIO;
     }
-    mdata->pendent_calls = 0;
+    mdata->pending_calls = 0;
     mdata->node = node;
     mdata->init_step = 0;
 
     setup_device(mdata, mdata->context, 0, 0, 1);
+
     return 0;
 }
 
@@ -280,8 +285,14 @@ si114x_close(struct sol_flow_node *node, void *data)
 {
     struct si114x_data *mdata = data;
 
-    sol_timeout_del(mdata->timer);
-    mdata->timer = NULL;
+    if (mdata->timer) {
+        sol_timeout_del(mdata->timer);
+        mdata->timer = NULL;
+    }
+
+    if (mdata->i2c_pending)
+        sol_i2c_pending_cancel(mdata->context, mdata->i2c_pending);
+
     sol_i2c_close(mdata->context);
 }
 
@@ -295,7 +306,8 @@ read_callback(void *cb_data, struct sol_i2c *i2c, uint8_t reg, uint8_t *data, ss
         SOL_WRN("Couldn't read from device, check your UV reader (si114x)");
     } else {
         double value = (double)mdata->read_data / 100.0;
-        sol_flow_send_drange_value_packet(mdata->node, SOL_FLOW_NODE_TYPE_LIGHT_SENSOR_SI114X__OUT__OUT,  value);
+        sol_flow_send_drange_value_packet(mdata->node,
+            SOL_FLOW_NODE_TYPE_LIGHT_SENSOR_SI114X__OUT__OUT,  value);
     }
 }
 
@@ -304,14 +316,20 @@ do_processing(void *data)
 {
     struct si114x_data *mdata = data;
 
-    if (!sol_i2c_busy(mdata->context)) {
-        if (!sol_i2c_read_register(mdata->context, REG_AUX_UVINDEX0, (uint8_t *)&mdata->read_data, 2, &read_callback, mdata)) {
-            sol_flow_send_error_packet(mdata->node, EIO, "Couldn't read from device, check your UV reader (si114x)");
-            SOL_WRN("Couldn't read from device, check your UV reader (si114x)");
-        }
-    } else {
-        sol_timeout_add(0, &do_processing, mdata);
+    if (sol_i2c_busy(mdata->context)) {
+        mdata->timer = sol_timeout_add(0, &do_processing, mdata);
+        return false;
     }
+
+    mdata->i2c_pending = sol_i2c_read_register(mdata->context,
+        REG_AUX_UVINDEX0, (uint8_t *)&mdata->read_data, 2,
+        &read_callback, mdata);
+
+    if (!mdata->i2c_pending) {
+        sol_flow_send_error_packet(mdata->node, EIO,
+            "Couldn't read from device, check your UV reader (si114x)");
+    }
+
     return false;
 }
 
@@ -322,7 +340,7 @@ si114x_process(struct sol_flow_node *node, void *data, uint16_t port, uint16_t c
     struct si114x_data *mdata = data;
 
     if (!mdata->fully_initialized) {
-        mdata->pendent_calls++;
+        mdata->pending_calls++;
         return 0;
     }
 
