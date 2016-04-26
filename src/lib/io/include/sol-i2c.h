@@ -385,6 +385,68 @@ int sol_i2c_create_device(const char *address, const char *dev_name, unsigned in
  * @}
  */
 
+/**
+ * @ingroup I2C
+ *
+ * @brief I²C operation dispatcher.
+ *
+ * @{
+ */
+
+/**
+ * @brief These routines are used manipulate groups of I2C operations to slave devices under Soletta.
+ */
+
+/**
+ * @brief Enum for the dispatcher operation type.
+ *
+ * If a given operation in the set to either read or write a data.
+ */
+enum sol_i2c_op_type {
+    SOL_I2C_READ,
+    SOL_I2C_WRITE
+};
+
+/**
+ * @brief Structure to describe an operation that should be executed by the I2C Dispatcher.
+ *
+ * Each operation is intended to read/write a single byte on the slave device.
+ */
+struct sol_i2c_op {
+    enum sol_i2c_op_type type; /**< @brief I2C Operation type. */
+    uint8_t reg; /**< @brief I2C register in the slave device */
+    uint8_t value; /**< @brief Operation data */
+};
+
+struct sol_i2c_op_set_pending; /**< @brief I2C Dispatcher pending operation set handle structure */
+
+/**
+ * @brief Add an operation set in the dispatcher's queue of a given I2C bus.
+ *
+ * It adds an operation set scheduling it for execution by the dispatcher handling i2c opeations
+ * at bus @a i2c.
+ *
+ * @param i2c The i2c bus handle
+ * @param addr The slave device address
+ * @param set Operation set to be added
+ * @param cb Callback to be called after the operation set is executed
+ * @param cb_data Callback context data
+ * @param delay Time, in milliseconds, to wait between two consecutive operations of this set
+ */
+struct sol_i2c_op_set_pending *sol_i2c_dispatcher_add_op_set(struct sol_i2c *i2c, uint8_t addr, struct sol_vector *set, void (*cb)(void *cb_data, ssize_t status), void *cb_data, uint32_t delay);
+
+/**
+ * @brief Cancel the execution of the pending operation set.
+ *
+ * @param i2c The I2C bus handle
+ * @param pending The operation set pending handle
+ */
+void sol_i2c_dispatcher_remove_op_set(struct sol_i2c *i2c, struct sol_i2c_op_set_pending *pending);
+
+/**
+ * @}
+ */
+
 #ifdef __cplusplus
 }
 #endif
