@@ -183,6 +183,28 @@ extern "C" {
 struct sol_oic_server_resource;
 
 /**
+ * @struct sol_oic_server_request
+ *
+ * @brief Information about a server request.
+ *
+ * @see sol_oic_server_create_response
+ * @see sol_oic_server_send_response
+ * @see sol_oic_server_request_free
+ */
+struct sol_oic_server_request;
+
+/**
+ * @struct sol_oic_server_response
+ *
+ * @brief Information about a server response.
+ *
+ * @see sol_oic_server_create_response
+ * @see sol_oic_server_send_response
+ * @see sol_oic_server_request_free
+ */
+struct sol_oic_server_response;
+
+/**
  * @struct sol_oic_resource_type
  *
  * @brief structure defining the type of a resource.
@@ -215,59 +237,66 @@ struct sol_oic_resource_type {
     struct sol_str_slice path;
 
     struct {
-        sol_coap_responsecode_t (*handle)(const struct sol_network_link_addr *cliaddr,
-            const void *data, const struct sol_oic_map_reader *input, struct sol_oic_map_writer *output);
+        int (*handle)(struct sol_oic_server_request *request, void *data);
     }
     /**
      * @brief Callback handle to GET requests
      *
-     * @param cliaddr The client address.
+     * @param request Information about this request. To be used to create and
+     *        send a response. Memory must be freed using
+     *        sol_oic_server_request_free if not sending a response.
      * @param data The user's data pointer.
-     * @param input Always NULL because GET requests shouldn't cointain payload
-     *        data. Parameter kept for compatibility reasons.
-     * @param output Handler to write data to response packet using, for
-     *        example, @ref sol_oic_map_append().
      *
-     * @return The coap response code of this request.
+     * @return @c 0 on success or a negative number on errors.
+     *
+     * @see sol_oic_server_create_response
+     * @see sol_oic_server_send_response
+     * @see sol_oic_server_request_free
      */
     get,
     /**
      * @brief Callback handle to PUT requests
      *
-     * @param cliaddr The client address.
+     * @param request Information about this request. To be used to create and
+     *        send a response. Memory must be freed using
+     *        sol_oic_server_request_free if not sending a response.
      * @param data The user's data pointer.
-     * @param input Handler to read request packet data using, for example,
-     *        @ref SOL_OIC_MAP_LOOP() macro.
-     * @param output Handler to write data to response packet using, for
-     *        example, @ref sol_oic_map_append().
      *
-     * @return The coap response code of this request.
+     * @return @c 0 on success or a negative number on errors.
+     *
+     * @see sol_oic_server_create_response
+     * @see sol_oic_server_send_response
+     * @see sol_oic_server_request_free
      */
         put,
     /**
      * @brief Callback handle to POST requests
      *
-     * @param cliaddr The client address.
+     * @param request Information about this request. To be used to create and
+     *        send a response. Memory must be freed using
+     *        sol_oic_server_request_free if not sending a response.
      * @param data The user's data pointer.
-     * @param input Handler to read request packet data using, for example,
-     *        @ref SOL_OIC_MAP_LOOP() macro.
-     * @param output Handler to write data to response packet using, for
-     *        example, @ref sol_oic_map_append().
      *
-     * @return The coap response code of this request.
+     * @return @c 0 on success or a negative number on errors.
+     *
+     * @see sol_oic_server_create_response
+     * @see sol_oic_server_send_response
+     * @see sol_oic_server_request_free
      */
         post,
     /**
      * @brief Callback handle to DELETE requests
      *
-     * @param cliaddr The client address.
+     * @param request Information about this request. To be used to create and
+     *        send a response. Memory must be freed using
+     *        sol_oic_server_request_free if not sending a response.
      * @param data The user's data pointer.
-     * @param input Always NULL because DELETE requests shouldn't cointain
-     *        payload data. Parameter kept for compatibility reasons.
-     * @param output Handler to write data to response packet using, for
-     *        example, @ref sol_oic_map_append().
      *
-     * @return The coap response code of this request.
+     * @return @c 0 on success or a negative number on errors.
+     *
+     * @see sol_oic_server_create_response
+     * @see sol_oic_server_send_response
+     * @see sol_oic_server_request_free
      */
         del;
 };
@@ -306,21 +335,80 @@ void sol_oic_server_del_resource(struct sol_oic_server_resource *resource);
 /**
  * @brief Send notification to all clients in observe list.
  *
- * Send a notification packet with data filled by @a fill_repr_map callback
- * to all clients that have registered in the @a resource as an observer.
+ * Send a notification packet with data filled in @a notification to all
+ * observing clients of the resouce used to create @a notification.
  *
- * @param resource The target resource
- * @param fill_repr_map Callback to fill notification data. Callback parameters
- *        are @a data, the user's data pointer, @a oic_map_writer, the write
- *        handler to be used with @ref sol_oic_map_append to fill the
- *        notification data
- * @param data Pointer to user's data to be passed to @a fill_repr_map callback
+ * @param notification The notification response created using
+ * sol_oic_server_create_notification() function.
  *
- * @return True on success, false on failure.
+ * @return @c 0 on success or a negative number on errors.
  */
-bool sol_oic_notify_observers(struct sol_oic_server_resource *resource,
-    bool (*fill_repr_map)(void *data, struct sol_oic_map_writer *oic_map_writer),
-    const void *data);
+int sol_oic_server_notify_observers(struct sol_oic_server_response *notification);
+
+/**
+ * @brief Create a notification response to send to observing clients of
+ * @a resource.
+ *
+ * @param resource The resource that will be used to create this notification.
+ *
+ * @return A notification response on success or NULL on errors.
+ *
+ * @see sol_oic_server_notify_observers
+ */
+struct sol_oic_server_response *sol_oic_server_create_notification(struct sol_oic_server_resource *resource);
+
+/**
+ * @brief Release memory from a request.
+ *
+ * @param request A pointer to the request to be released.
+ */
+void sol_oic_server_request_free(struct sol_oic_server_request *request);
+
+/**
+ * @brief Release memory from a response.
+ *
+ * @param response A pointer to the response to be released.
+ */
+void sol_oic_server_response_free(struct sol_oic_server_response *response);
+
+/**
+ * @brief Create a response to a oic server request.
+ *
+ * @param request The request that the created response will be used to reply.
+ *
+ * @return On success a new reponse element. @c NULL on errors.
+ */
+struct sol_oic_server_response *sol_oic_server_create_response(struct sol_oic_server_request *request);
+
+/**
+ * @brief Send a reponse as a reply to a request.
+ *
+ * @param request The request that created this response.
+ * @param response The response to be sent. If @c NULL, an empty response will
+ *        be sent.
+ * @param code The CoAP code to be used in response.
+ *
+ * @return @c 0 on success or a negative number on errors.
+ */
+int sol_oic_server_send_response(struct sol_oic_server_request *request, struct sol_oic_server_response *response, sol_coap_responsecode_t code);
+
+/**
+ * @brief Get the packet data from a response.
+ *
+ * @param response The response to retrieve the data.
+ *
+ * @return The packet data from this response.
+ */
+struct sol_oic_map_writer *sol_oic_server_response_get_data(struct sol_oic_server_response *response);
+
+/**
+ * @brief Get the packet data from a request.
+ *
+ * @param request The request to retrieve the data.
+ *
+ * @return The packet data from this request.
+ */
+struct sol_oic_map_reader *sol_oic_server_request_get_data(struct sol_oic_server_request *request);
 
 /**
  * @}

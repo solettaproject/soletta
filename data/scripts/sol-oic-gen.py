@@ -1198,8 +1198,8 @@ found_resource(struct sol_oic_client *oic_cli, struct sol_oic_resource *oic_res,
     SOL_INF("Found resource matching device_id");
     resource->resource = sol_oic_resource_ref(oic_res);
 
-    if (!sol_oic_client_resource_set_observable(oic_cli, resource->resource,
-        state_changed, resource, true)) {
+    if (sol_oic_client_resource_set_observable(oic_cli, resource->resource,
+        state_changed, resource, true) < 0) {
         SOL_WRN("Could not observe resource as requested, will try again");
     }
 
@@ -1346,11 +1346,19 @@ static bool
 server_resource_perform_update(void *data)
 {
     struct server_resource *resource = data;
+    struct sol_oic_server_response *notification;
 
     SOL_NULL_CHECK(resource->funcs->to_repr_vec, false);
 
-    if (!sol_oic_notify_observers(resource->resource,
-        resource->funcs->to_repr_vec, resource)) {
+    notification = sol_oic_server_create_notification(resource->resource);
+    SOL_NULL_CHECK(notification, false);
+    if (!resource->funcs->to_repr_vec(resource,
+        sol_oic_server_response_get_data(notification))) {
+        sol_oic_server_response_free(notification);
+        return false;
+    }
+
+    if (sol_oic_server_notify_observers(notification) < 0) {
         SOL_WRN("Error while serializing update message");
     } else {
         resource->funcs->inform_flow(resource);
@@ -1370,39 +1378,57 @@ server_resource_schedule_update(struct server_resource *resource)
         server_resource_perform_update, resource);
 }
 
-static sol_coap_responsecode_t
-server_handle_update(const struct sol_network_link_addr *cliaddr, const void *data,
-    const struct sol_oic_map_reader *repr_map, struct sol_oic_map_writer *output)
+static int
+server_handle_update(struct sol_oic_server_request *request, void *data)
 {
+    sol_coap_responsecode_t code;
     struct server_resource *resource = (struct server_resource *)data;
+    struct sol_oic_map_reader *input;
     int r;
 
-    if (!resource->funcs->from_repr_vec)
-        return SOL_COAP_RSPCODE_NOT_IMPLEMENTED;
+    if (!resource->funcs->from_repr_vec) {
+        code = SOL_COAP_RSPCODE_NOT_IMPLEMENTED;
+        goto end;
+    }
 
-    r = resource->funcs->from_repr_vec(resource, repr_map);
+    input = sol_oic_server_request_get_data(request);
+    r = resource->funcs->from_repr_vec(resource, input);
     if (r > 0) {
         server_resource_schedule_update(resource);
-        return SOL_COAP_RSPCODE_CHANGED;
+        code = SOL_COAP_RSPCODE_CHANGED;
     } else if (r == 0)
-        return SOL_COAP_RSPCODE_OK;
+        code = SOL_COAP_RSPCODE_OK;
     else
-        return SOL_COAP_RSPCODE_PRECONDITION_FAILED;
+        code = SOL_COAP_RSPCODE_PRECONDITION_FAILED;
+
+end:
+    return sol_oic_server_send_response(request, NULL, code);
 }
 
-static sol_coap_responsecode_t
-server_handle_get(const struct sol_network_link_addr *cliaddr, const void *data,
-    const struct sol_oic_map_reader *repr_map, struct sol_oic_map_writer *output)
+static int
+server_handle_get(struct sol_oic_server_request *request, void *data)
 {
     const struct server_resource *resource = data;
+    struct sol_oic_server_response *response;
+    struct sol_oic_map_writer *output;
 
     if (!resource->funcs->to_repr_vec)
-        return SOL_COAP_RSPCODE_NOT_IMPLEMENTED;
+        return sol_oic_server_send_response(request, NULL,
+            SOL_COAP_RSPCODE_NOT_IMPLEMENTED);
 
+    response = sol_oic_server_create_response(request);
+    SOL_NULL_CHECK_GOTO(response, error);
+    output = sol_oic_server_response_get_data(response);
     if (!resource->funcs->to_repr_vec((void *)resource, output))
-        return SOL_COAP_RSPCODE_INTERNAL_ERROR;
+        goto error;
 
-    return SOL_COAP_RSPCODE_CONTENT;
+    return sol_oic_server_send_response(request, response,
+        SOL_COAP_RSPCODE_CONTENT);
+
+error:
+    sol_oic_server_response_free(response);
+    return sol_oic_server_send_response(request, NULL,
+        SOL_COAP_RSPCODE_INTERNAL_ERROR);
 }
 
 // log_init() implementation happens within oic-gen.c
@@ -1482,8 +1508,8 @@ client_connect(struct client_resource *resource, const char *device_id)
         sol_timeout_del(resource->find_timeout);
 
     if (resource->resource) {
-        if (!sol_oic_client_resource_set_observable(resource->client,
-            resource->resource, NULL, NULL, false)) {
+        if (sol_oic_client_resource_set_observable(resource->client,
+            resource->resource, NULL, NULL, false) < 0) {
             SOL_WRN("Could not unobserve resource");
         }
 
@@ -1541,9 +1567,8 @@ client_resource_close(struct client_resource *resource)
         sol_timeout_del(resource->update_schedule_timeout);
 
     if (resource->resource) {
-        bool r = sol_oic_client_resource_set_observable(resource->client, resource->resource,
-            NULL, NULL, false);
-        if (!r)
+        if (sol_oic_client_resource_set_observable(resource->client,
+            resource->resource, NULL, NULL, false) < 0)
             SOL_WRN("Could not unobserve resource");
 
         sol_oic_resource_unref(resource->resource);
@@ -1566,13 +1591,21 @@ static bool
 client_resource_perform_update(void *data)
 {
     struct client_resource *resource = data;
+    struct sol_oic_client_request *request;
     int r;
 
     SOL_NULL_CHECK_GOTO(resource->resource, disable_timeout);
     SOL_NULL_CHECK_GOTO(resource->funcs->to_repr_vec, disable_timeout);
 
-    r = sol_oic_client_resource_request(resource->client, resource->resource,
-        SOL_COAP_METHOD_PUT, resource->funcs->to_repr_vec, resource,
+    request = sol_oic_client_create_request(SOL_COAP_METHOD_PUT, resource->resource);
+    if (!request ||
+        !resource->funcs->to_repr_vec(resource,
+        sol_oic_client_request_get_data(request))) {
+        SOL_WRN("Failed to create request. Will try again");
+        return true;
+    }
+
+    r = sol_oic_client_resource_request(resource->client, request,
         client_resource_update_ack, data);
     if (r < 0) {
         SOL_WRN("Could not send update request to resource, will try again");

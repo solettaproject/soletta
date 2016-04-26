@@ -82,24 +82,16 @@ static bool request_setup(Local<Object> jsClient, Local<Object> jsResource,
 }
 
 static Local<Value> do_request(
-    bool (*cAPI)(
-        struct sol_oic_client *,
-        struct sol_oic_resource *,
-        sol_coap_method_t,
-        bool (*)(void *data, struct sol_oic_map_writer *repr_map),
-        void *,
-        void(*)(
-            sol_coap_responsecode_t,
-            struct sol_oic_client *,
-            const struct sol_network_link_addr *,
-            const struct sol_oic_map_reader *,
-            void *data),
-        const void *),
+    struct sol_oic_client_request *(*create_request_cAPI)(
+        sol_coap_method_t method,
+        struct sol_oic_resource *res),
     Local<Object> jsClient, Local<Object> jsResource, sol_coap_method_t method,
     Local<Value> jsPayload, Local<Function> jsCallback) {
     Nan::Persistent<Object> *persistentPayload = 0;
     struct sol_oic_client *client = 0;
     struct sol_oic_resource *resource = 0;
+    struct sol_oic_client_request *oic_request;
+    bool result = false;
 
     if (!request_setup(jsClient, jsResource, &client, &resource)) {
         return Nan::Undefined();
@@ -120,8 +112,13 @@ static Local<Value> do_request(
         }
     }
 
-    bool result = cAPI(client, resource, method, oic_map_writer_callback,
-        persistentPayload, requestAnswered, request);
+    oic_request = create_request_cAPI(method, resource);
+    if (oic_request &&
+        oic_map_writer_callback(persistentPayload,
+        sol_oic_client_request_get_data(oic_request))) {
+        result = sol_oic_client_resource_request(client, oic_request,
+            requestAnswered, request) == 0;
+    }
 
     if (persistentPayload) {
         persistentPayload->Reset();
@@ -151,14 +148,14 @@ static Local<Value> do_request(
     } while(0)
 
 NAN_METHOD(bind_sol_oic_client_resource_request) {
-    DO_REQUEST(info, sol_oic_client_resource_request);
+    DO_REQUEST(info, sol_oic_client_create_request);
 }
 
 NAN_METHOD(bind_sol_oic_client_resource_non_confirmable_request) {
-    DO_REQUEST(info, sol_oic_client_resource_non_confirmable_request);
+    DO_REQUEST(info, sol_oic_client_create_non_confirmable_request);
 }
 
-typedef bool (*ObserveAPI)(
+typedef int (*ObserveAPI)(
     struct sol_oic_client *client,
     struct sol_oic_resource *res,
     void(*callback)(
@@ -233,7 +230,7 @@ Local<Value> do_observe(ObserveAPI cAPI, Local<Object> jsClient,
         return Nan::Undefined();
     }
 
-    if (!cAPI(client, resource, requestAnswered, observation, true)) {
+    if (cAPI(client, resource, requestAnswered, observation, true) < 0) {
         delete observation;
         return Nan::Undefined();
     }
@@ -279,8 +276,8 @@ NAN_METHOD(bind_sol_oic_client_resource_unobserve) {
         return;
     }
 
-    bool result = observation->cAPI(client, resource, requestAnswered,
-        observation, false);
+    bool result = (observation->cAPI(client, resource, requestAnswered,
+        observation, false) == 0);
     if (result) {
         Nan::SetInternalFieldPointer(jsObservation, 0, 0);
         delete observation;
