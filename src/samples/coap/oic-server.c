@@ -53,7 +53,7 @@ get_scrolllock_led(void)
     return value & LED_SCR;
 }
 
-static int
+static bool
 set_scrolllock_led(bool on)
 {
     char old;
@@ -61,20 +61,20 @@ set_scrolllock_led(bool on)
     if (console_fd < 0) {
         printf("setting LED to %s\n", on ? "true" : "false");
         led_state = on;
-        return 0;
+        return true;
     }
 
     if (ioctl(console_fd, KDGETLED, (char *)&old)) {
         perror("Could not get led state");
-        return -1;
+        return false;
     }
 
     if (ioctl(console_fd, KDSETLED, on ? (old | LED_SCR) : (old & ~LED_SCR))) {
         perror("Could not set led state");
-        return -1;
+        return false;
     }
 
-    return 0;
+    return true;
 }
 
 static sol_coap_responsecode_t
