@@ -3,7 +3,7 @@
   "name": "si114x",
   "meta": {
     "author": "Intel Corporation",
-    "license": "BSD 3-Clause",
+    "license": "Apache-2.0",
     "version": "1"
   },
   "types": [
@@ -39,7 +39,7 @@
       "in_ports": [
         {
           "data_type": "any",
-          "description": "Signal the s2p chip that a read must be performed",
+          "description": "Signal the chip that a read must be performed",
           "methods": {
             "process": "si114x_process"
           },
