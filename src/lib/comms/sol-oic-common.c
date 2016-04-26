@@ -46,8 +46,8 @@ sol_oic_map_loop_init(const struct sol_oic_map_reader *map, struct sol_oic_map_r
     return SOL_OIC_MAP_LOOP_OK;
 }
 
-static void
-repr_field_free(struct sol_oic_repr_field *field)
+SOL_API void
+sol_oic_repr_field_clear(struct sol_oic_repr_field *field)
 {
     if (field->type == SOL_OIC_REPR_TYPE_TEXT_STRING ||
         field->type == SOL_OIC_REPR_TYPE_BYTE_STRING)
@@ -64,7 +64,7 @@ sol_oic_map_loop_next(struct sol_oic_repr_field *repr, struct sol_oic_map_reader
     SOL_NULL_CHECK_GOTO(repr, err);
     SOL_NULL_CHECK_GOTO(iterator, err);
 
-    repr_field_free(repr);
+    sol_oic_repr_field_clear(repr);
     if (cbor_value_at_end((CborValue *)iterator))
         return false;
 

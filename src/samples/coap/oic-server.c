@@ -99,6 +99,7 @@ static sol_coap_responsecode_t
 user_handle_put(const struct sol_network_link_addr *cliaddr, const void *data,
     const struct sol_oic_map_reader *input, struct sol_oic_map_writer *output)
 {
+    sol_coap_responsecode_t code;
     enum sol_oic_map_loop_reason reason;
     struct sol_oic_repr_field field;
     struct sol_oic_map_reader iter;
@@ -106,9 +107,12 @@ user_handle_put(const struct sol_network_link_addr *cliaddr, const void *data,
     SOL_OIC_MAP_LOOP(input, &field, &iter, reason) {
         if (!strcmp(field.key, "state") && field.type == SOL_OIC_REPR_TYPE_BOOLEAN) {
             if (set_scrolllock_led(field.v_boolean))
-                return SOL_COAP_RSPCODE_OK;
+                code = SOL_COAP_RSPCODE_OK;
+            else
+                code = SOL_COAP_RSPCODE_INTERNAL_ERROR;
 
-            return SOL_COAP_RSPCODE_INTERNAL_ERROR;
+            sol_oic_repr_field_clear(&field);
+            return code;
         }
     }
 

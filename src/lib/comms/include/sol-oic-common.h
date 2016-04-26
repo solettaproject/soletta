@@ -517,6 +517,15 @@ bool sol_oic_map_set_type(struct sol_oic_map_writer *oic_map_writer, enum sol_oi
 bool sol_oic_map_get_type(struct sol_oic_map_writer *oic_map_writer, enum sol_oic_map_type *type);
 
 /**
+ * @brief Release memory from field.
+ *
+ * Release any memory that is hold by field, but not free @a field variable.
+ *
+ * @param field the field to be cleared.
+ */
+void sol_oic_repr_field_clear(struct sol_oic_repr_field *field);
+
+/**
  * @def SOL_OIC_MAP_LOOP(map_, current_, iterator_, end_reason_)
  *
  * @brief Macro to be used to loop through all elements from a
@@ -545,6 +554,9 @@ bool sol_oic_map_get_type(struct sol_oic_map_writer *oic_map_writer, enum sol_oi
  * if (end_reason != SOL_OIC_MAP_LOOP_OK)
  *     // Error handling
  * @endcode
+ *
+ * @note: If you add a break or a return statement in SOL_OIC_MAP_LOOP, it is
+ * necessary to release the @a current_ memory using sol_oic_repr_field_clear().
  *
  * @see sol_oic_map_reader
  * @see sol_oic_map_loop_init
