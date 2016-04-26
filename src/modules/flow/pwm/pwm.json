@@ -28,6 +28,14 @@
     "process": "pwm_process_duty_cycle"
    },
    "name": "DUTY_CYCLE"
+  },
+  {
+   "data_type": "int",
+   "description": "Duty cycle. Value is calculated by mapping the value, its maximum and minimum values, to the range [0, period].",
+   "methods": {
+    "process": "pwm_process_duty_cycle_percent"
+   },
+   "name": "DUTY_CYCLE_PERCENT"
   }
  ],
  "methods": {

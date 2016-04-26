@@ -23,6 +23,7 @@
 #include "sol-pwm.h"
 #include "sol-util-internal.h"
 
+#include <limits.h>
 #include <stdio.h>
 #include <stdlib.h>
 
@@ -75,6 +76,45 @@ pwm_process_duty_cycle(struct sol_flow_node *node, void *data, uint16_t port, ui
     return 0;
 }
 
+static uint32_t
+map_irange_to_period(struct sol_irange val, int32_t period)
+{
+    int64_t result;
+
+    if (val.max == val.min) {
+        SOL_WRN("Max and min values for PWM duty cycle percentage are the same");
+        return UINT32_MAX;
+    }
+
+    result = (val.val - val.min) * period / (val.max - val.min);
+    SOL_INT_CHECK(result, < 0, 0);
+
+    return (uint32_t)result;
+}
+
+static int
+pwm_process_duty_cycle_percent(struct sol_flow_node *node, void *data, uint16_t port, uint16_t conn_id, const struct sol_flow_packet *packet)
+{
+    struct sol_irange value;
+    struct pwm_data *mdata = data;
+    int32_t period;
+    uint32_t duty_cycle;
+    int r;
+
+    r = sol_flow_packet_get_irange(packet, &value);
+    SOL_INT_CHECK(r, < 0, r);
+
+    period = sol_pwm_get_period(mdata->pwm);
+    SOL_INT_CHECK(period, < 0, period);
+
+    duty_cycle = map_irange_to_period(value, period);
+    SOL_INT_CHECK(duty_cycle, == UINT32_MAX, -EINVAL);
+
+    if (!sol_pwm_set_duty_cycle(mdata->pwm, duty_cycle))
+        return -EIO;
+
+    return 0;
+}
 
 static int
 pwm_open(struct sol_flow_node *node, void *data, const struct sol_flow_node_options *options)
