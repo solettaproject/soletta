@@ -852,7 +852,7 @@ vector_ops_resize_array(const struct sol_memdesc *array, void *memory, size_t le
                 void *itmem;
                 int r;
 
-                itmem = sol_vector_get_nocheck(v, idx);
+                itmem = sol_vector_get_no_check(v, idx);
                 r = sol_memdesc_init_defaults(array->array_item, itmem);
                 if (r < 0) {
                     sol_vector_del_range(v, idx, len - idx);
@@ -869,7 +869,7 @@ vector_ops_resize_array(const struct sol_memdesc *array, void *memory, size_t le
             for (idx = len; idx < oldlen; idx++) {
                 void *itmem;
 
-                itmem = sol_vector_get_nocheck(v, idx);
+                itmem = sol_vector_get_no_check(v, idx);
                 sol_memdesc_free_content(array->array_item, itmem);
             }
         }

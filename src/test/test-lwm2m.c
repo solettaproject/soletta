@@ -453,7 +453,7 @@ observe_res_cb(void *data,
     r = sol_lwm2m_parse_tlv(content, &tlvs);
     ASSERT(r == 0);
     ASSERT(tlvs.len == 1);
-    tlv = sol_vector_get_nocheck(&tlvs, 0);
+    tlv = sol_vector_get_no_check(&tlvs, 0);
     r = sol_lwm2m_tlv_get_int(tlv, &v);
     ASSERT(r == 0);
 

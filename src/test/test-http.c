@@ -94,12 +94,12 @@ test_http_content_type_priority(void)
 
         for (j = 0; j < test[i].priorities_len; j++) {
             size_t k;
-            struct sol_http_content_type_priority *pri = sol_vector_get_nocheck(&array, j);
+            struct sol_http_content_type_priority *pri = sol_vector_get_no_check(&array, j);
             ASSERT(sol_str_slice_eq(pri->content_type, test[i].result[j].content_type));
             ASSERT(sol_util_double_equal(pri->qvalue, test[i].result[j].qvalue));
             ASSERT_INT_EQ(test[i].result[j].tokens_size, pri->tokens.len);
             for (k = 0; k < test[i].result[j].tokens_size; k++) {
-                struct sol_str_slice *token = sol_vector_get_nocheck(&pri->tokens, k);
+                struct sol_str_slice *token = sol_vector_get_no_check(&pri->tokens, k);
                 ASSERT(sol_str_slice_str_eq(*token, test[i].result[j].tokens[k]));
             }
         }

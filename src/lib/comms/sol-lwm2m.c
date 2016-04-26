@@ -3616,7 +3616,7 @@ register_with_server(struct sol_lwm2m_client *client,
         conn_ctx->lifetime);
     r = sol_coap_send_packet_with_reply(client->coap_server,
         pkt,
-        sol_vector_get_nocheck(&conn_ctx->server_addr_list,
+        sol_vector_get_no_check(&conn_ctx->server_addr_list,
         conn_ctx->addr_list_idx),
         is_update ? update_reply : register_reply, conn_ctx);
     sol_buffer_fini(&query);
@@ -3810,7 +3810,7 @@ send_client_delete_request(struct sol_lwm2m_client *client,
     if (!conn_ctx->location) {
         r = sol_coap_cancel_send_packet(client->coap_server,
             conn_ctx->pending_pkt,
-            sol_vector_get_nocheck(&conn_ctx->server_addr_list,
+            sol_vector_get_no_check(&conn_ctx->server_addr_list,
             conn_ctx->addr_list_idx));
         sol_coap_packet_unref(conn_ctx->pending_pkt);
         conn_ctx->pending_pkt = NULL;
@@ -3829,7 +3829,7 @@ send_client_delete_request(struct sol_lwm2m_client *client,
     SOL_INT_CHECK_GOTO(r, < 0, err_exit);
 
     return sol_coap_send_packet(client->coap_server, pkt,
-        sol_vector_get_nocheck(&conn_ctx->server_addr_list,
+        sol_vector_get_no_check(&conn_ctx->server_addr_list,
         conn_ctx->addr_list_idx));
 
 err_exit:

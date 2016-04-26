@@ -407,7 +407,7 @@ common_response_cb(void *data, struct sol_http_request *request)
             r = sol_http_parse_content_type_priorities(param->value.key_value.value, &priorities);
             SOL_INT_CHECK_GOTO(r, < 0, end);
             if (priorities.len > 0)
-                prefered_content_type = sol_vector_get_nocheck(&priorities, 0);
+                prefered_content_type = sol_vector_get_no_check(&priorities, 0);
             break;
         }
     }
