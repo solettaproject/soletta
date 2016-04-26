@@ -75,10 +75,8 @@ _.extend( SPIBus.prototype, {
     },
 
     close: function() {
-        return new Promise( _.bind( function( fulfill, reject ) {
-            fulfill( soletta.sol_spi_close( this._bus ) );
-        }, this ) );
-    },
+        soletta.sol_spi_close( this._bus );
+    }
 });
 
 exports.SPIBus = SPIBus;

@@ -65,27 +65,37 @@ _.extend(PWMPin.prototype, {
 
     setEnabled: function( value ) {
         return new Promise( _.bind( function( fulfill, reject ) {
-            fulfill( soletta.sol_pwm_set_enabled( this._pin, value) );
+            var returnValue = soletta.sol_pwm_set_enabled( this._pin, value);
+            if ( returnValue )
+                fulfill();
+            else
+                reject( new Error( "Failed to enable PWM pin" ) );
         }, this ) );
     },
 
     setDutyCycle: function( value ) {
         return new Promise( _.bind( function( fulfill, reject ) {
-            fulfill( soletta.sol_pwm_set_duty_cycle( this._pin, value ) );
+            var returnValue = soletta.sol_pwm_set_duty_cycle( this._pin, value );
+            if ( returnValue )
+                fulfill();
+            else
+                reject( new Error( "Failed to set PWM duty cycle" ) );
         }, this ) );
     },
 
     setPeriod: function( value ) {
         return new Promise( _.bind( function( fulfill, reject ) {
-            fulfill( soletta.sol_pwm_set_period( this._pin, value ) );
+            var returnValue = soletta.sol_pwm_set_period( this._pin, value );
+            if ( returnValue )
+                fulfill();
+            else
+                reject( new Error( "Failed to set PWM period" ) );
         }, this ) );
     },
 
     close: function() {
-        return new Promise( _.bind( function( fulfill, reject ) {
-            fulfill( soletta.sol_pwm_close( this._pin) );
-        }, this ) );
-    },
+       soletta.sol_pwm_close( this._pin);
+    }
 });
 
 exports.PWMPin = PWMPin;
