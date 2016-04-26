@@ -1145,7 +1145,7 @@ sol_iio_device_start_buffer(struct sol_iio_device *device)
     return true;
 }
 
-static bool
+static int
 resolve_name_path_cb(void *data, const char *dir_path, struct dirent *ent)
 {
     struct resolve_name_path_data *result = data;
@@ -1161,14 +1161,14 @@ resolve_name_path_cb(void *data, const char *dir_path, struct dirent *ent)
                 if (streq(name, result->name)) {
                     result->id = atoi(ent->d_name + strlen("iio:device"));
                     free(name);
-                    return true;
+                    return SOL_UTIL_ITERATE_DIR_STOP;
                 }
                 free(name);
             }
         }
     }
 
-    return false;
+    return SOL_UTIL_ITERATE_DIR_CONTINUE;
 }
 
 static int
@@ -1181,7 +1181,7 @@ resolve_name_path(const char *name)
     return data.id;
 }
 
-static bool
+static int
 resolve_absolute_path_cb(void *data, const char *dir_path, struct dirent *ent)
 {
     struct resolve_absolute_path_data *result = data;
@@ -1193,12 +1193,12 @@ resolve_absolute_path_cb(void *data, const char *dir_path, struct dirent *ent)
         if (realpath(path, real_path)) {
             if (strstartswith(real_path, result->path)) {
                 result->id = atoi(ent->d_name + strlen("iio:device"));
-                return true;
+                return SOL_UTIL_ITERATE_DIR_STOP;
             }
         }
     }
 
-    return false;
+    return SOL_UTIL_ITERATE_DIR_CONTINUE;
 }
 
 static int

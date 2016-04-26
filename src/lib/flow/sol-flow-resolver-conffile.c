@@ -93,7 +93,7 @@ resolver_conffile_clear_data(void)
     sol_vector_clear(&resolver_conffile_dlopens);
 }
 
-const char MODULE_NAME_SEPARATOR = '/';
+static const char MODULE_NAME_SEPARATOR = '/';
 
 static struct sol_str_slice
 get_module_for_type(const char *type)

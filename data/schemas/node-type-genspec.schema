@@ -391,7 +391,13 @@
           "uniqueItems": true,
           "items": { "$ref": "#/definitions/out_port" }
         },
-        "options": { "$ref": "#/definitions/options" }
+        "options": { "$ref": "#/definitions/options" },
+        "aliases": {
+          "type": "array",
+          "minItems": 1,
+          "uniqueItems": true,
+          "items": { "type": "string" }
+        }
       },
       "required": [ "name", "category", "description" ],
       "additionalProperties": false
@@ -417,6 +423,12 @@
           "minItems": 1,
           "uniqueItems": true,
           "items": { "$ref": "#/definitions/node" }
+        },
+        "aliases": {
+          "type": "array",
+          "minItems": 1,
+          "uniqueItems": true,
+          "items": { "type": "string" }
         }
       },
       "required": [ "$schema", "name", "meta", "types" ],

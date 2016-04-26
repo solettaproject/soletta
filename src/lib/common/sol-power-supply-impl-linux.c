@@ -181,7 +181,7 @@ _get_enum_prop(const char *name, enum sol_power_supply_prop prop,
     return 0;
 }
 
-static bool
+static int
 _list_supplies_cb(void *data, const char *dir_path, struct dirent *ent)
 {
     struct list_data *ldata = data;
@@ -189,29 +189,25 @@ _list_supplies_cb(void *data, const char *dir_path, struct dirent *ent)
     char *name;
     int r;
 
-    if ((!strcmp(ent->d_name, ".")) || (!strcmp(ent->d_name, ".."))) {
-        return false;
-    }
-
     if (ldata->check_type) {
         r = sol_power_supply_get_type(ent->d_name, &type);
-        SOL_INT_CHECK(r, < 0, false);
+        SOL_INT_CHECK(r, < 0, r);
 
         if (type != ldata->type)
-            return false;
+            return SOL_UTIL_ITERATE_DIR_CONTINUE;
     }
 
     name = strdup(ent->d_name);
-    SOL_NULL_CHECK(name, false);
+    SOL_NULL_CHECK(name, -ENOMEM);
 
     r = sol_ptr_vector_append(ldata->list, name);
     if (r < 0) {
         SOL_WRN("Failed to append supply to list %s", name);
         free(name);
-        return false;
+        return r;
     }
 
-    return false;
+    return SOL_UTIL_ITERATE_DIR_CONTINUE;
 }
 
 static int

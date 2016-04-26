@@ -194,7 +194,7 @@ _json_open_doc(const char *path, struct sol_json_scanner *scanner)
     return raw_file;
 }
 
-static bool
+static int
 _append_file_path(void *data, const char *dir_path, struct dirent *ent)
 {
     int r;
@@ -203,19 +203,20 @@ _append_file_path(void *data, const char *dir_path, struct dirent *ent)
     struct sol_ptr_vector *list = data;
 
     if (ent->d_type != DT_REG && ent->d_type != DT_LNK) //It won't be recursive
-        return false;
+        return SOL_UTIL_ITERATE_DIR_CONTINUE;
 
     name_len = strlen(ent->d_name);
     suffix_len = strlen(".json");
     if (suffix_len > name_len || strcmp(ent->d_name + name_len - suffix_len, ".json"))
-        return false;
+        return SOL_UTIL_ITERATE_DIR_CONTINUE;
 
     r = asprintf(&file_path, "%s%s", dir_path, ent->d_name);
-    SOL_INT_CHECK(r, < 0, true); // return 'true' to stop the loop in case of error
+    SOL_INT_CHECK(r, < 0, -ENOMEM);
 
-    sol_ptr_vector_insert_sorted(list, file_path, (int (*)(const void *, const void *))strcmp);
+    r = sol_ptr_vector_insert_sorted(list, file_path, (int (*)(const void *, const void *))strcmp);
+    SOL_INT_CHECK(r, < 0, r);
 
-    return false;
+    return SOL_UTIL_ITERATE_DIR_CONTINUE;
 }
 
 static char *
