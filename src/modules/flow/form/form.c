@@ -2601,6 +2601,7 @@ struct string_formatted_chunk {
     } state;
 };
 
+#ifdef PYTHON_FORMATTING
 static int
 string_formatted_format_do(struct sol_flow_node *node)
 {
@@ -2760,7 +2761,9 @@ err:
 
     return r;
 }
+#endif
 
+#ifdef PYTHON_FORMATTING
 static bool
 string_formatted_timeout(void *data)
 {
@@ -2801,6 +2804,7 @@ string_formatted_format(struct sol_flow_node *node)
 
     return 0;
 }
+#endif
 
 static void
 string_formatted_close(struct sol_flow_node *node, void *data)
@@ -2831,6 +2835,7 @@ strtod_no_locale(const char *nptr, char **endptr)
     return sol_util_strtodn(nptr, endptr, -1, false);
 }
 
+#ifdef PYTHON_FORMATTING
 static double
 midpoint(double min, double max)
 {
@@ -2939,12 +2944,16 @@ error:
         mdata->value, value, sol_util_strerrora(-r));
     return r;
 }
+#endif
 
 static int
 string_formatted_open(struct sol_flow_node *node,
     void *data,
     const struct sol_flow_node_options *options)
 {
+#ifndef PYTHON_FORMATTING
+    return 0;
+#else
     int r;
     const char *ptr;
     bool numeric_field_present = false;
@@ -3241,6 +3250,7 @@ numeric_loop:
 value_err:
     string_formatted_close(node, mdata);
     return r;
+#endif
 }
 
 static int
@@ -3250,6 +3260,7 @@ string_formatted_up_set(struct sol_flow_node *node,
     uint16_t conn_id,
     const struct sol_flow_packet *packet)
 {
+#ifdef PYTHON_FORMATTING
     struct string_formatted_data *mdata = data;
     struct string_formatted_chunk *chunk;
 
@@ -3305,6 +3316,12 @@ string_formatted_up_set(struct sol_flow_node *node,
 
     string_formatted_force_imediate_format(mdata, true);
     return string_formatted_format(node);
+#else
+    sol_flow_send_error_packet(node, ENOTSUP, "The string-formatted node"
+        " won't work on this Soletta build -- Python-like formatting "
+        "capability was disabled");
+    return -EINVAL;
+#endif
 }
 
 static int
@@ -3314,6 +3331,7 @@ string_formatted_down_set(struct sol_flow_node *node,
     uint16_t conn_id,
     const struct sol_flow_packet *packet)
 {
+#ifdef PYTHON_FORMATTING
     struct string_formatted_data *mdata = data;
     struct string_formatted_chunk *chunk;
 
@@ -3369,6 +3387,12 @@ string_formatted_down_set(struct sol_flow_node *node,
 
     string_formatted_force_imediate_format(mdata, true);
     return string_formatted_format(node);
+#else
+    sol_flow_send_error_packet(node, ENOTSUP, "The string-formatted node"
+        " won't work on this Soletta build -- Python-like formatting "
+        "capability was disabled");
+    return -EINVAL;
+#endif
 }
 
 static int
@@ -3378,6 +3402,7 @@ string_formatted_next_set(struct sol_flow_node *node,
     uint16_t conn_id,
     const struct sol_flow_packet *packet)
 {
+#ifdef PYTHON_FORMATTING
     struct string_formatted_data *mdata = data;
     size_t cursor_pos = mdata->cursor, l = mdata->chunks.len;
     bool found = false;
@@ -3405,6 +3430,12 @@ string_formatted_next_set(struct sol_flow_node *node,
 
     string_formatted_force_imediate_format(mdata, true);
     return string_formatted_format(node);
+#else
+    sol_flow_send_error_packet(node, ENOTSUP, "The string-formatted node"
+        " won't work on this Soletta build -- Python-like formatting "
+        "capability was disabled");
+    return -EINVAL;
+#endif
 }
 
 static int
@@ -3414,6 +3445,7 @@ string_formatted_previous_set(struct sol_flow_node *node,
     uint16_t conn_id,
     const struct sol_flow_packet *packet)
 {
+#ifdef PYTHON_FORMATTING
     struct string_formatted_data *mdata = data;
     size_t cursor_pos = mdata->cursor;
     bool found = false;
@@ -3444,6 +3476,12 @@ string_formatted_previous_set(struct sol_flow_node *node,
 
     string_formatted_force_imediate_format(mdata, true);
     return string_formatted_format(node);
+#else
+    sol_flow_send_error_packet(node, ENOTSUP, "The string-formatted node"
+        " won't work on this Soletta build -- Python-like formatting "
+        "capability was disabled");
+    return -EINVAL;
+#endif
 }
 
 static int
@@ -3453,6 +3491,7 @@ string_formatted_select_set(struct sol_flow_node *node,
     uint16_t conn_id,
     const struct sol_flow_packet *packet)
 {
+#ifdef PYTHON_FORMATTING
     struct string_formatted_data *mdata = data;
     int r;
 
@@ -3471,6 +3510,12 @@ string_formatted_select_set(struct sol_flow_node *node,
     return sol_flow_send_string_slice_packet(node,
         SOL_FLOW_NODE_TYPE_FORM_INT__OUT__SELECTED,
         sol_buffer_get_slice(&mdata->formatted_value));
+#else
+    sol_flow_send_error_packet(node, ENOTSUP, "The string-formatted node"
+        " won't work on this Soletta build -- Python-like formatting "
+        "capability was disabled");
+    return -EINVAL;
+#endif
 }
 
 static int
@@ -3480,6 +3525,7 @@ string_formatted_selected_set(struct sol_flow_node *node,
     uint16_t conn_id,
     const struct sol_flow_packet *packet)
 {
+#ifdef PYTHON_FORMATTING
     struct string_formatted_data *mdata = data;
     const char *value;
     int r;
@@ -3498,6 +3544,12 @@ string_formatted_selected_set(struct sol_flow_node *node,
     mdata->blink_on = true;
 
     return string_formatted_format(node);
+#else
+    sol_flow_send_error_packet(node, ENOTSUP, "The string-formatted node"
+        " won't work on this Soletta build -- Python-like formatting "
+        "capability was disabled");
+    return -EINVAL;
+#endif
 }
 
 static int
@@ -3507,6 +3559,7 @@ string_formatted_enabled_set(struct sol_flow_node *node,
     uint16_t conn_id,
     const struct sol_flow_packet *packet)
 {
+#ifdef PYTHON_FORMATTING
     struct string_formatted_data *mdata = data;
     bool value;
     int r;
@@ -3517,6 +3570,12 @@ string_formatted_enabled_set(struct sol_flow_node *node,
     mdata->enabled = value;
 
     return 0;
+#else
+    sol_flow_send_error_packet(node, ENOTSUP, "The string-formatted node"
+        " won't work on this Soletta build -- Python-like formatting "
+        "capability was disabled");
+    return -EINVAL;
+#endif
 }
 
 #include "form-gen.c"
