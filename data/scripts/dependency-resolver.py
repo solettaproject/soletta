@@ -27,6 +27,7 @@ import socket
 import subprocess
 import sys
 import tempfile
+import shlex
 from shutil import which, move
 
 default_compiler = "gcc"
@@ -540,7 +541,7 @@ if __name__ == "__main__":
 
     args = parser.parse_args()
 
-    if args.compiler != default_compiler and not which(args.compiler.split()[0]):
+    if args.compiler != default_compiler and not which(shlex.split(args.compiler)[0]):
         print("ERROR: Invalid --compiler argument, no such file: %s" % args.compiler)
         exit(1)
 
