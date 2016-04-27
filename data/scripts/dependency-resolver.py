@@ -540,7 +540,7 @@ if __name__ == "__main__":
 
     args = parser.parse_args()
 
-    if args.compiler != default_compiler and not which(args.compiler):
+    if args.compiler != default_compiler and not which(args.compiler.split()[0]):
         print("ERROR: Invalid --compiler argument, no such file: %s" % args.compiler)
         exit(1)
 
