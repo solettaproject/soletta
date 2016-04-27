@@ -132,7 +132,8 @@ obj-bluetooth-$(BLUETOOTH) += \
 	sol-bluetooth.o
 
 obj-bluetooth-$(BLUETOOTH_BLUEZ) += \
-	sol-bluetooth-impl-bluez.o
+	sol-bluetooth-impl-bluez.o \
+	sol-gatt-impl-bluez.o
 
 obj-bluetooth-$(BLUETOOTH_NONE) += \
 	sol-bluetooth-impl-none.o \
