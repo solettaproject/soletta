@@ -1,6 +1,9 @@
 obj-$(NETWORK) += networking.mod \
     dtls.mod
 
+obj-$(BLUETOOTH) += \
+    bluetooth.mod
+
 obj-networking-$(NETWORK) := \
     sol-comms.o \
     sol-socket.o
@@ -125,12 +128,24 @@ obj-networking-$(MAVLINK)-extra-cflags += \
 obj-networking-$(LWM2M) += \
 	sol-lwm2m.o
 
+obj-bluetooth-$(BLUETOOTH) += \
+	sol-bluetooth.o
+
+obj-bluetooth-$(BLUETOOTH_BLUEZ) += \
+	sol-bluetooth-impl-bluez.o
+
+obj-bluetooth-$(BLUETOOTH_NONE) += \
+	sol-bluetooth-impl-none.o
+
 headers-$(NETWORK) += \
     include/sol-network.h \
     include/sol-socket.h
 
 headers-$(COAP) += \
     include/sol-coap.h
+
+headers-$(BLUETOOTH) += \
+    include/sol-bluetooth.h
 
 headers-$(OIC) += \
     include/sol-oic-common.h \

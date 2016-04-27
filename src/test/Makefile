@@ -95,3 +95,9 @@ test-test-certificate-$(TEST_CERTIFICATE) := test.c test-certificate.c
 
 test-$(TEST_LWM2M) += test-lwm2m
 test-test-lwm2m-$(TEST_LWM2M) := test.c test-lwm2m.c
+
+test-$(TEST_NETWORK) += test-network
+test-test-network-$(TEST_NETWORK) := test.c test-network.c
+
+test-$(TEST_BLUETOOTH) += test-bluetooth
+test-test-bluetooth-$(TEST_BLUETOOTH) := test.c test-bluetooth.c

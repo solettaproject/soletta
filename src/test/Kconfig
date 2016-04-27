@@ -132,3 +132,13 @@ config TEST_LWM2M
        bool "lwm2m"
        depends on COAP && LWM2M
        default y
+
+config TEST_NETWORK
+       bool "network"
+       depends on NETWORK && BLUETOOTH
+       default y
+
+config TEST_BLUETOOTH
+       bool "bluetooth"
+       depends on NETWORK && BLUETOOTH
+       default y

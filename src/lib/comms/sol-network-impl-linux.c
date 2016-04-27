@@ -75,6 +75,78 @@ struct sol_network {
 
 static struct sol_network *network = NULL;
 
+static struct sol_network_link_addr *
+bluetooth_addr_from_str(struct sol_network_link_addr *addr, const char *str)
+{
+    int i;
+    uint8_t *ba = addr->addr.bt_addr;
+    const char *ptr;
+    char *endptr = NULL;
+
+    /* FIXME */
+    addr->family = SOL_NETWORK_FAMILY_BLUETOOTH;
+    addr->addr.bt_type = SOL_NETWORK_BT_ADDR_BASIC_RATE;
+
+    ptr = str;
+
+    for (i = 0; i < 6; i++) {
+        ba[i] = strtoul(ptr, &endptr, 16);
+        ptr = endptr + 1;
+        endptr = NULL;
+    }
+
+    return addr;
+}
+
+static bool
+is_bluetooth_addr_str(const char *str)
+{
+    const char *p = str;
+
+    while (*str) {
+        if (!isxdigit(*str++))
+            return false;
+
+        if (!isxdigit(*str++))
+            return false;
+
+        if (*str == 0)
+            break;
+
+        if (*str++ != ':')
+            return false;
+    }
+
+    return (str - p) == 17;
+}
+
+static const char *
+bluetooth_addr_to_str(const struct sol_network_link_addr *addr,
+    struct sol_buffer *buffer)
+{
+    const uint8_t *ba = addr->addr.bt_addr;
+    int r;
+
+    r = sol_buffer_append_printf(buffer, "%2.2X:%2.2X:%2.2X:%2.2X:%2.2X:%2.2X",
+        ba[0], ba[1], ba[2], ba[3], ba[4], ba[5]);
+    SOL_INT_CHECK(r, < 0, NULL);
+
+    return buffer->data;
+}
+
+static inline bool
+is_bluetooth_family(int family)
+{
+    switch (family) {
+    case SOL_NETWORK_FAMILY_BLUETOOTH:
+    case SOL_NETWORK_FAMILY_BLUETOOTH_RFCOMM:
+    case SOL_NETWORK_FAMILY_BLUETOOTH_L2CAP:
+        return true;
+    }
+
+    return false;
+}
+
 SOL_API const char *
 sol_network_link_addr_to_str(const struct sol_network_link_addr *addr,
     struct sol_buffer *buf)
@@ -83,6 +155,9 @@ sol_network_link_addr_to_str(const struct sol_network_link_addr *addr,
 
     SOL_NULL_CHECK(addr, NULL);
     SOL_NULL_CHECK(buf, NULL);
+
+    if (is_bluetooth_family(addr->family))
+        return bluetooth_addr_to_str(addr, buf);
 
     while (1) {
         int err;
@@ -107,6 +182,9 @@ sol_network_link_addr_from_str(struct sol_network_link_addr *addr, const char *b
 {
     SOL_NULL_CHECK(addr, NULL);
     SOL_NULL_CHECK(buf, NULL);
+
+    if (is_bluetooth_addr_str(buf))
+        return bluetooth_addr_from_str(addr, buf);
 
     if (inet_pton(sol_network_sol_to_af(addr->family), buf, &addr->addr) != 1)
         return NULL;
