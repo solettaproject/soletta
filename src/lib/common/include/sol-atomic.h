@@ -1,33 +1,19 @@
 /*
  * This file is part of the Soletta Project
  *
- * Copyright (C) 2016 Intel Corporation. All rights reserved.
+ * Copyright (C) 2015 Intel Corporation. All rights reserved.
  *
- * Redistribution and use in source and binary forms, with or without
- * modification, are permitted provided that the following conditions
- * are met:
+ * Licensed under the Apache License, Version 2.0 (the "License");
+ * you may not use this file except in compliance with the License.
+ * You may obtain a copy of the License at
  *
- *   * Redistributions of source code must retain the above copyright
- *     notice, this list of conditions and the following disclaimer.
- *   * Redistributions in binary form must reproduce the above copyright
- *     notice, this list of conditions and the following disclaimer in
- *     the documentation and/or other materials provided with the
- *     distribution.
- *   * Neither the name of Intel Corporation nor the names of its
- *     contributors may be used to endorse or promote products derived
- *     from this software without specific prior written permission.
+ *     http://www.apache.org/licenses/LICENSE-2.0
  *
- * THIS SOFTWARE IS PROVIDED BY THE COPYRIGHT HOLDERS AND CONTRIBUTORS
- * "AS IS" AND ANY EXPRESS OR IMPLIED WARRANTIES, INCLUDING, BUT NOT
- * LIMITED TO, THE IMPLIED WARRANTIES OF MERCHANTABILITY AND FITNESS FOR
- * A PARTICULAR PURPOSE ARE DISCLAIMED. IN NO EVENT SHALL THE COPYRIGHT
- * OWNER OR CONTRIBUTORS BE LIABLE FOR ANY DIRECT, INDIRECT, INCIDENTAL,
- * SPECIAL, EXEMPLARY, OR CONSEQUENTIAL DAMAGES (INCLUDING, BUT NOT
- * LIMITED TO, PROCUREMENT OF SUBSTITUTE GOODS OR SERVICES; LOSS OF USE,
- * DATA, OR PROFITS; OR BUSINESS INTERRUPTION) HOWEVER CAUSED AND ON ANY
- * THEORY OF LIABILITY, WHETHER IN CONTRACT, STRICT LIABILITY, OR TORT
- * (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE
- * OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
+ * Unless required by applicable law or agreed to in writing, software
+ * distributed under the License is distributed on an "AS IS" BASIS,
+ * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+ * See the License for the specific language governing permissions and
+ * limitations under the License.
  */
 
 #pragma once
@@ -49,7 +35,7 @@
  */
 
 /**
- * @def SOL_ATOMIC_FLAG_INT
+ * @def SOL_ATOMIC_FLAG_INIT
  * Used to initialize a sol_atommic_flag statically.
  */
 
@@ -89,12 +75,18 @@
  */
 
 /**
- * @fn bool sol_atomic_test_and_set(atomic_flag *flag, int memory_order)
+ * @def sol_atomic_test_and_set
+ *
+ * bool sol_atomic_test_and_set(atomic_flag *flag, int memory_order)
+ *
  * Returns the previous value state of @p flag and marks it as set, using memory order @p memory_order.
  */
 
 /**
- * @fn void sol_atomic_clear(atomic_flag *flag, int memory_order)
+ * @def sol_atomic_clear
+ *
+ * void sol_atomic_clear(atomic_flag *flag, int memory_order)
+ *
  * Clears the state in the flag @p flag using memory order @p memory_order.
  */
 
@@ -119,36 +111,56 @@
  */
 
 /**
- * @fn void sol_atomic_store(atomic *object, type value, int memory_order)
+ * @def sol_atomic_store
+ *
+ * void sol_atomic_store(atomic *object, type value, int memory_order)
+ *
  * Stores value @p value at @p object, using the memory order @p memory_order.
  */
 
 /**
- * @fn value sol_atomic_load(atomic *object, int memory_order)
- * Loads a value from @p object using memory order @p memory_order and returns it.
+ * @def sol_atomic_load
+ *
+ * value sol_atomic_load(atomic *object, int memory_order)
+ *
+ * Loads a value from @p object using memory order @p memory_order
+ * and returns it.
  */
 
 /**
- * @fn value sol_atomic_exchange(atomic *object, value new_value, int memory_order)
- * Atomically replaces the value stored at @p object with new_value, using memory order
- * @p memory_order, and returns the old value.
+ * @def sol_atomic_exchange
+ *
+ * value sol_atomic_exchange(atomic *object, value new_value, int memory_order)
+ *
+ * Atomically replaces the value stored at @p object with new_value,
+ * using memory order @p memory_order, and returns the old value.
  */
 
 /**
- * @fn bool sol_atomic_compare_exchange(atomic *object, value *expected, value desired, int memory_order_success, int memory_order_failure)
- * Executes an atomic compare-and-swap operation at @p object: if the value stored
- * there is @p expected, then this function replaces it with @p desired, using memory
+ * @def sol_atomic_compare_exchange
+ *
+ * bool sol_atomic_compare_exchange(atomic *object, value *expected, value desired, int memory_order_success, int memory_order_failure)
+ *
+ * Executes an atomic compare-and-swap operation at @p object: if the value
+ * stored there is @p expected, then this function replaces it
+ * with @p desired, using memory
  * order @p memory_order_success and returns @c true. If the value at @p object
- * is not @p desired, then this function loads the current value into @p expected using
+ * is not @p desired, then this function loads the current value into
+ * @p expected using
  * memory order @p memory_order_failure and returns @c false.
  *
- * This function is equivalent to C11's strong compare_exchange and its requirements on
+ * This function is equivalent to C11's strong compare_exchange and
+ * its requirements on
  * the memory ordering arguments apply here too.
  */
 
 /**
- * @fn value sol_atomic_fetch_add(atomic *object, value addend, int memory_order)
- * Atomically adds @p added to @p object and returns the new value, using memory order @p memory_order.
+ * @def sol_atomic_fetch_add
+ *
+ * value sol_atomic_fetch_add(atomic *object, value addend, int memory_order)
+ *
+ * Atomically adds @p added to @p object and returns the new value,
+ * using memory order @p memory_order.
  */
 
 #if (defined(__STDC_VERSION__) && __STDC_VERSION__ > 201112L) \
@@ -171,6 +183,7 @@
 #define SOL_ATOMIC_SEQ_CST memory_order_seq_cst
 
 /* Types */
+typedef atomic_flag sol_atomic_flag;
 typedef atomic_int sol_atomic_int;
 typedef atomic_uint sol_atomic_uint;
 typedef atomic_size_t sol_atomic_size_t;
@@ -183,7 +196,7 @@ typedef atomic_uintptr_t sol_atomic_uintptr_t;
 #define sol_atomic_load             atomic_load_explicit
 #define sol_atomic_exchange         atomic_exchange_explicit
 #define sol_atomic_compare_exchange atomic_compare_exchange_strong_explicit
-#define sol_fetch_add               atomic_fetch_add_explicit
+#define sol_atomic_fetch_add        atomic_fetch_add_explicit
 
 #elif (defined(__GNUC__) && !defined(__clang__) && (__GNUC__ * 100 + __GNUC_MINOR__ > 406))
 /* GCC 4.6 has intrinsics that allow us to implement the atomic API */
