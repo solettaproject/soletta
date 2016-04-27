@@ -1,0 +1,16 @@
+config FLOW_NODE_TYPE_FORMAT
+	tristate "Node type: format"
+	default m
+	help
+                The format family of nodes aggregates those nodes that
+                make use of Python string-formatting code. We have the
+                converter nodes, converting some packet types to
+                string packets, namely float-to-string-format and
+                int-to-string-format. They possess Python-like string
+                formatting capabilities, as in
+                https://docs.python.org/3/library/stdtypes.html#str.format.
+                Those are meant to be used in place of their siblings
+                on the converter family of nodes, when there is more
+                processing power and ROM space. There's also the
+                string-formatted-form node, that provides a form to
+                control the formation/edition of a string.

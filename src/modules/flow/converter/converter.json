@@ -848,7 +848,7 @@
     },
     {
       "category": "converter",
-      "description": "Receives a float packet and converts it to a string one.",
+      "description": "Receives a float packet and converts it to a string one. By its options, one is able to form a POSIX printf-like format string, besides entering literal prefix/suffix for that. The format string itself will be composed by flags, field width, precision and conversion specifiers given by options. The user is responsible for forming a valid string format at the end, but Soletta will prevent bad usage by not allowing '*', 'n', 'm' and such, while validing input.",
       "in_ports": [
         {
           "data_type": "float",
@@ -868,9 +868,39 @@
         "members": [
           {
             "data_type": "string",
-            "default": "{val:f}",
-            "description": "Format string to be used in the conversion. The syntax is the same as Python's string.format() -- https://docs.python.org/3/library/stdtypes.html#str.format --, except that we got no format recursion, no '!' conversions, and the attribute names must be one of the integer fields (val, min, max, step). Numbered fields will get to them in this order. Naturally, there is no field attribute nor field index dereferencing either.",
-            "name": "format_spec"
+            "default": "",
+            "description": "Prefix to compose the final format string. It may not contain '%' characters, except in pairs.",
+            "name": "format_prefix"
+          },
+          {
+            "data_type": "string",
+            "default": "",
+            "description": "Suffix to compose the final format string. It may not contain '%' characters, except in pairs.",
+            "name": "format_suffix"
+          },
+          {
+            "data_type": "string",
+            "default": "",
+            "description": "Flags to compose the final format string (combination of '#', '0', '-', ' ' and '+' characters).",
+            "name": "format_flags"
+          },
+          {
+            "data_type": "string",
+            "default": "",
+            "description": "Field width specification to compose the final format string (combination of numeric characters and '-'), no '*' allowed.",
+            "name": "format_field_width"
+          },
+          {
+            "data_type": "string",
+            "default": "",
+            "description": "Precision specification to compose the final format string (combination of numeric characters preceded by '.'), no '*' allowed.",
+            "name": "format_precision"
+          },
+          {
+            "data_type": "string",
+            "default": "f",
+            "description": "Conversion specification to compose the final format string (one of 'e', 'E', 'f', 'F', 'g', 'G', 'a' or 'A')",
+            "name": "format_conversion_specifier"
           }
         ],
         "version": 1
@@ -1556,7 +1586,7 @@
     },
     {
       "category": "converter",
-      "description": "Receives an int packet and converts it to a string one.",
+      "description": "Receives an integer packet and converts it to a string one. By its options, one is able to form a POSIX printf-like format string, besides entering literal prefix/suffix for that. The format string itself will be composed by flags, field width, precision and conversion specifiers given by options. The user is responsible for forming a valid string format at the end, but Soletta will prevent bad usage by not allowing '*', 'n', 'm' and such, while validing input.",
       "in_ports": [
         {
           "data_type": "int",
@@ -1576,9 +1606,39 @@
         "members": [
           {
             "data_type": "string",
-            "default": "{val:d}",
-            "description": "Format string to be used in the conversion. The syntax is the same as Python's string.format() -- https://docs.python.org/3/library/stdtypes.html#str.format --, except that we got no format recursion, no '!' conversions, and the attribute names must be one of the integer fields (val, min, max, step). Numbered fields will get to them in this order. Naturally, there is no field attribute nor field index dereferencing either.",
-            "name": "format_spec"
+            "default": "",
+            "description": "Prefix to compose the final format string. It may not contain '%' characters, except in pairs.",
+            "name": "format_prefix"
+          },
+          {
+            "data_type": "string",
+            "default": "",
+            "description": "Suffix to compose the final format string. It may not contain '%' characters, except in pairs.",
+            "name": "format_suffix"
+          },
+          {
+            "data_type": "string",
+            "default": "",
+            "description": "Flags to compose the final format string (combination of '#', '0', '-', ' ' and '+' characters)",
+            "name": "format_flags"
+          },
+          {
+            "data_type": "string",
+            "default": "",
+            "description": "Field width specification to compose the final format string (combination of numeric characters and '-'), no '*' allowed.",
+            "name": "format_field_width"
+          },
+          {
+            "data_type": "string",
+            "default": "",
+            "description": "Precision specification to compose the final format string (combination of numeric characters preceded by '.'), no '*' allowed.",
+            "name": "format_precision"
+          },
+          {
+            "data_type": "string",
+            "default": "f",
+            "description": "Conversion specification to compose the final format string (one of 'd', 'i', 'o', 'u', 'x', 'X' or 'c')",
+            "name": "format_conversion_specifier"
           }
         ],
         "version": 1
