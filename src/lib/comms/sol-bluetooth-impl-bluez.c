@@ -23,22 +23,11 @@
 #include <sol-network.h>
 #include <sol-bluetooth.h>
 #include <sol-util-internal.h>
+#include <sol-mainloop.h>
+#include <sol-monitors.h>
+#include <sol-gatt.h>
 
-struct sol_bt_conn {
-    struct device_info *d;
-    bool (*on_connect)(void *user_data, struct sol_bt_conn *conn);
-    void (*on_disconnect)(void *user_data, struct sol_bt_conn *conn);
-    void (*on_error)(void *user_data, int error);
-    const void *user_data;
-    sd_bus_slot *slot;
-    int ref;
-};
-
-struct device_info {
-    char *path;
-    uint64_t mask;
-    struct sol_bt_device_info info;
-};
+#include "sol-bluetooth-impl-bluez.h"
 
 struct sol_bt_scan_pending {
     sd_bus_slot *slot;
@@ -51,24 +40,6 @@ struct sol_bt_session {
     const void *user_data;
 };
 
-enum adapter_state {
-    ADAPTER_STATE_UNKNOWN,
-    ADAPTER_STATE_OFF,
-    ADAPTER_STATE_ON,
-};
-
-static struct context {
-    sd_bus *system_bus;
-    struct sol_bus_client *bluez;
-    char *adapter_path;
-    struct sol_ptr_vector devices;
-    struct sol_ptr_vector sessions;
-    struct sol_ptr_vector scans;
-    struct sol_ptr_vector conns;
-    enum adapter_state original_state;
-    enum adapter_state current_state;
-} context;
-
 enum {
     ADAPTER_PROPERTY_POWERED = 0,
 };
@@ -80,7 +51,56 @@ enum {
     DEVICE_PROPERTY_CONNECTED,
     DEVICE_PROPERTY_UUIDS,
     DEVICE_PROPERTY_RSSI,
+    DEVICE_PROPERTY_SERVICES_RESOLVED,
 };
+
+enum {
+    SERVICE_PROPERTY_UUID = 0,
+    SERVICE_PROPERTY_PRIMARY,
+    SERVICE_PROPERTY_DEVICE,
+};
+
+enum {
+    CHR_PROPERTY_UUID = 0,
+    CHR_PROPERTY_VALUE,
+    CHR_PROPERTY_FLAGS,
+};
+
+enum {
+    DESC_PROPERTY_UUID = 0,
+    DESC_PROPERTY_VALUE,
+    DESC_PROPERTY_FLAGS,
+};
+
+struct subscription {
+    struct sol_monitors_entry base;
+    const struct sol_gatt_attr *attr;
+    struct sol_bt_conn *conn;
+    sd_bus_slot *slot;
+};
+
+static struct context context;
+
+static void
+subscription_cleanup(const struct sol_monitors *monitors,
+    const struct sol_monitors_entry *entry)
+{
+    struct subscription *sub = (struct subscription *)entry;
+
+    sub->slot = sd_bus_slot_unref(sub->slot);
+
+    if (sub->conn)
+        sol_bt_conn_unref(sub->conn);
+}
+
+struct sol_monitors subscriptions =
+    SOL_MONITORS_INIT_CUSTOM(struct subscription, subscription_cleanup);
+
+struct context *
+bluetooth_get_context(void)
+{
+    return &context;
+}
 
 static bool
 adapter_property_powered_set(void *data, const char *path, sd_bus_message *m)
@@ -247,15 +267,28 @@ error_map:
     ctx->adapter_path = NULL;
 }
 
+static void
+destroy_attr(struct sol_gatt_attr *attr)
+{
+    free(attr->_priv);
+    free(attr);
+}
 
 static void
 destroy_device(struct device_info *device)
 {
     struct sol_bt_device_info *info;
+    struct sol_gatt_attr *attr;
+    uint16_t i;
 
     info = &device->info;
     free(info->name);
     sol_vector_clear(&info->uuids);
+
+    SOL_PTR_VECTOR_FOREACH_IDX (&device->attrs, attr, i) {
+        destroy_attr(attr);
+    }
+    sol_ptr_vector_clear(&device->attrs);
 
     free(device->path);
     free(device);
@@ -371,6 +404,22 @@ skip:
     return false;
 }
 
+static struct sol_gatt_attr *
+find_attr(const struct device_info *d, const char *path)
+{
+    struct sol_gatt_attr *attr;
+    uint16_t idx;
+
+    SOL_PTR_VECTOR_FOREACH_IDX (&d->attrs, attr, idx) {
+        if (!streq(attr->_priv, path))
+            continue;
+
+        return attr;
+    }
+
+    return NULL;
+}
+
 static bool
 device_property_connected_set(void *data, const char *path, sd_bus_message *m)
 {
@@ -389,6 +438,8 @@ device_property_connected_set(void *data, const char *path, sd_bus_message *m)
     SOL_INT_CHECK_GOTO(r, < 0, skip);
 
     info->connected = connected;
+    if (connected == true)
+        info->in_range = true;
 
     return true;
 
@@ -472,6 +523,33 @@ skip:
     return false;
 }
 
+static bool
+device_property_services_resolved_set(void *data, const char *path, sd_bus_message *m)
+{
+    struct context *ctx = data;
+    struct device_info *d;
+    bool resolved;
+    int r;
+
+    d = find_device_by_path(ctx, path);
+    SOL_NULL_CHECK_GOTO(d, skip);
+
+    r = sd_bus_message_read_basic(m, 'b', &resolved);
+    SOL_INT_CHECK_GOTO(r, < 0, skip);
+
+    r = d->resolved != resolved;
+
+    d->resolved = resolved;
+
+    return r;
+
+skip:
+    r = sd_bus_message_skip(m, "b");
+    SOL_INT_CHECK(r, < 0, false);
+
+    return false;
+}
+
 static const struct sol_bus_properties device_properties[] = {
     [DEVICE_PROPERTY_ADDRESS] = {
         .member = "Address",
@@ -497,17 +575,121 @@ static const struct sol_bus_properties device_properties[] = {
         .member = "RSSI",
         .set = device_property_rssi_set,
     },
+    [DEVICE_PROPERTY_SERVICES_RESOLVED] = {
+        .member = "ServicesResolved",
+        .set = device_property_services_resolved_set,
+    },
+    { NULL, NULL }
+};
+
+static bool
+attr_property_uuid_set(void *data, const char *path, sd_bus_message *m)
+{
+    struct sol_gatt_attr *attr = data;
+    const char *str;
+    int r;
+
+    r = sd_bus_message_read_basic(m, 's', &str);
+    SOL_INT_CHECK_GOTO(r, < 0, skip);
+
+    r = sol_bt_uuid_from_str(&attr->uuid, sol_str_slice_from_str(str));
+    SOL_INT_CHECK_GOTO(r, < 0, skip);
+
+    return false;
+
+skip:
+    r = sd_bus_message_skip(m, "s");
+    SOL_INT_CHECK(r, < 0, false);
+
+    return false;
+}
+
+static const struct sol_bus_properties service_properties[] = {
+    [SERVICE_PROPERTY_UUID] = {
+        .member = "UUID",
+        .set = attr_property_uuid_set,
+    },
+    { NULL, NULL }
+};
+
+static bool
+attr_property_value_set(void *data, const char *path, sd_bus_message *m)
+{
+    const struct sol_gatt_attr *attr = data;
+    struct subscription *sub;
+    struct sol_buffer buf;
+    const void *buf_data;
+    size_t len;
+    uint16_t idx;
+    int r;
+
+    r = sd_bus_message_read_array(m, 'y', &buf_data, &len);
+    SOL_INT_CHECK_GOTO(r, < 0, skip);
+
+    sol_buffer_init_flags(&buf, (void *)buf_data, len,
+        SOL_BUFFER_FLAGS_MEMORY_NOT_OWNED | SOL_BUFFER_FLAGS_NO_NUL_BYTE);
+    buf.used = len;
+
+    SOL_MONITORS_WALK (&subscriptions, sub, idx) {
+        if (sub->attr != attr)
+            continue;
+
+        if (!(((bool (*)(void *, const struct sol_gatt_attr *, const struct sol_buffer *))
+            sub->base.cb)((void *)sub->base.data, attr, &buf)))
+            sol_monitors_del(&subscriptions, idx);
+    }
+
+    return false;
+
+skip:
+    r = sd_bus_message_skip(m, "ay");
+    SOL_INT_CHECK(r, < 0, false);
+
+    return false;
+}
+
+static bool
+attr_property_flags_set(void *data, const char *path, sd_bus_message *m)
+{
+    struct sol_gatt_attr *attr = data;
+
+    attr->flags = dbus_string_array_to_flags(attr->type, m);
+
+    return false;
+}
+
+static const struct sol_bus_properties attr_properties[] = {
+    [CHR_PROPERTY_UUID] = {
+        .member = "UUID",
+        .set = attr_property_uuid_set,
+    },
+    [CHR_PROPERTY_VALUE] = {
+        .member = "Value",
+        .set = attr_property_value_set,
+    },
+    [CHR_PROPERTY_FLAGS] = {
+        .member = "Flags",
+        .set = attr_property_flags_set,
+    },
     { NULL, NULL }
 };
 
 static void
 destroy_conn(struct sol_bt_conn *conn)
 {
+    struct subscription *sub;
+    uint16_t idx;
+
     if (conn->on_disconnect)
         conn->on_disconnect((void *)conn->user_data, conn);
 
     if (conn->slot)
         sd_bus_slot_unref(conn->slot);
+
+    SOL_MONITORS_WALK (&subscriptions, sub, idx) {
+        if (sub->conn == conn)
+            sol_monitors_del(&subscriptions, idx);
+    }
 
     free(conn);
 }
@@ -532,12 +714,61 @@ trigger_bt_conn(struct context *ctx, struct device_info *d, bool connected)
     }
 }
 
+void
+destroy_pending_discovery(struct pending_discovery *disc)
+{
+    sol_bt_conn_unref(disc->conn);
+    free(disc);
+}
+
+void
+trigger_gatt_discover(struct pending_discovery *disc)
+{
+    const struct sol_gatt_attr *attr, *parent = disc->parent;
+    const struct device_info *d = disc->conn->d;
+    const struct sol_bt_uuid *uuid = disc->uuid;
+    enum sol_gatt_attr_type type = disc->type;
+    bool found = false, finished = false;
+    uint16_t idx;
+
+    SOL_PTR_VECTOR_FOREACH_IDX (&d->attrs, attr, idx) {
+        if (parent && !found) {
+            if (attr != parent)
+                continue;
+
+            found = true;
+        }
+
+        if (found && attr != parent)
+            if (attr->type == parent->type)
+                break;
+
+        if (type != SOL_GATT_ATTR_TYPE_INVALID && attr->type != type)
+            continue;
+
+        if (uuid && !sol_bt_uuid_equal(&attr->uuid, uuid))
+            continue;
+
+        if (!disc->func((void *)disc->user_data, disc->conn, attr)) {
+            /* The user terminated the discover procedure. */
+            finished = true;
+            break;
+        }
+    }
+
+    /* we may want to inform the user that there are no more attributes. */
+    if (!finished)
+        disc->func((void *)disc->user_data, disc->conn, NULL);
+}
+
 static void
 device_property_changed(void *data, const char *path, uint64_t mask)
 {
     struct context *ctx = data;
     struct device_info *d;
     struct sol_bt_device_info *info;
+    struct pending_discovery *disc;
+    uint16_t idx;
 
     d = find_device_by_path(ctx, path);
     SOL_NULL_CHECK(d);
@@ -549,6 +780,14 @@ device_property_changed(void *data, const char *path, uint64_t mask)
     /* If the device changed connection state */
     if (mask & (1 << DEVICE_PROPERTY_CONNECTED))
         trigger_bt_conn(ctx, d, info->connected);
+
+    if (info->connected && d->resolved) {
+        SOL_PTR_VECTOR_FOREACH_REVERSE_IDX (&d->pending_discoveries, disc, idx) {
+            trigger_gatt_discover(disc);
+            destroy_pending_discovery(disc);
+            sol_ptr_vector_del(&d->pending_discoveries, idx);
+        }
+    }
 
     notify_scan_device(ctx, d);
 }
@@ -569,6 +808,9 @@ device_appeared(void *data, const char *path)
     SOL_NULL_CHECK(d);
 
     info = &d->info;
+
+    sol_ptr_vector_init(&d->attrs);
+    sol_ptr_vector_init(&d->pending_discoveries);
 
     sol_vector_init(&info->uuids, sizeof(struct sol_bt_uuid));
     d->path = strdup(path);
@@ -597,10 +839,17 @@ device_removed(void *data, const char *path)
     struct context *ctx = data;
     struct sol_bt_conn *conn;
     struct device_info *d;
+    struct pending_discovery *disc;
     uint16_t idx;
 
     d = find_device_by_path(ctx, path);
     SOL_NULL_CHECK(d);
+
+    SOL_PTR_VECTOR_FOREACH_IDX (&d->pending_discoveries, disc, idx) {
+        disc->func((void *)disc->user_data, NULL, NULL);
+        destroy_pending_discovery(disc);
+    }
+    sol_ptr_vector_clear(&d->pending_discoveries);
 
     /* Also remove the connections that this device may have still. */
     SOL_PTR_VECTOR_FOREACH_REVERSE_IDX (&ctx->conns, conn, idx) {
@@ -616,6 +865,272 @@ device_removed(void *data, const char *path)
     sol_ptr_vector_remove(&ctx->devices, d);
 }
 
+static struct device_info *
+match_device_by_prefix(struct context *ctx, const char *path)
+{
+    struct device_info *d;
+    uint16_t i;
+
+    SOL_PTR_VECTOR_FOREACH_IDX (&ctx->devices, d, i) {
+        if (strstartswith(path, d->path))
+            return d;
+    }
+    return NULL;
+}
+
+static void
+service_property_changed(void *data, const char *path, uint64_t mask)
+{
+
+}
+
+static int
+remote_attr_read_reply(sd_bus_message *m, void *userdata, sd_bus_error *ret_error)
+{
+    struct sol_gatt_pending *op = userdata;
+    struct sol_buffer buf = SOL_BUFFER_INIT_EMPTY;
+    const void *data = NULL;
+    size_t len = 0;
+    int r;
+
+    op->slot = sd_bus_slot_unref(op->slot);
+
+    if (sol_bus_log_callback(m, userdata, ret_error)) {
+        r = -EINVAL;
+        goto done;
+    }
+
+    r = sd_bus_message_read_array(m, 'y', &data, &len);
+    SOL_INT_CHECK_GOTO(r, < 0, done);
+
+    sol_buffer_init_flags(&buf, (void *)data, len,
+        SOL_BUFFER_FLAGS_MEMORY_NOT_OWNED | SOL_BUFFER_FLAGS_NO_NUL_BYTE);
+    buf.used = len;
+
+done:
+    sol_gatt_pending_reply(op, r, &buf);
+
+    return r;
+}
+
+static int
+remote_attr_read(struct sol_gatt_pending *op,
+    uint16_t offset)
+{
+    struct context *ctx = bluetooth_get_context();
+    sd_bus *bus = sol_bus_client_get_bus(ctx->bluez);
+    const char *service = sol_bus_client_get_service(ctx->bluez);
+    const struct sol_gatt_attr *attr = op->attr;
+    const char *interface, *path = attr->_priv;
+    int r;
+
+    if (attr->type == SOL_GATT_ATTR_TYPE_DESCRIPTOR)
+        interface = "org.bluez.GattDescriptor1";
+    else
+        interface = "org.bluez.GattCharacteristic1";
+
+    r = sd_bus_call_method_async(bus, &op->slot, service, path,
+        interface, "ReadValue", remote_attr_read_reply, op, NULL);
+    SOL_INT_CHECK(r, < 0, r);
+
+    return 0;
+}
+
+static int
+remote_attr_write_reply(sd_bus_message *m, void *userdata, sd_bus_error *ret_error)
+{
+    struct sol_gatt_pending *op = userdata;
+    int r = 0;
+
+    op->slot = sd_bus_slot_unref(op->slot);
+
+    if (sol_bus_log_callback(m, userdata, ret_error))
+        r = -EINVAL;
+
+    sol_gatt_pending_reply(op, r, NULL);
+
+    return r;
+}
+
+static int
+remote_attr_write(struct sol_gatt_pending *op,
+    struct sol_buffer *buf,
+    uint16_t offset)
+{
+    struct context *ctx = bluetooth_get_context();
+    sd_bus *bus = sol_bus_client_get_bus(ctx->bluez);
+    const char *service = sol_bus_client_get_service(ctx->bluez);
+    const struct sol_gatt_attr *attr = op->attr;
+    const char *interface, *path = attr->_priv;
+    sd_bus_message *m;
+    int r;
+
+    if (attr->type == SOL_GATT_ATTR_TYPE_DESCRIPTOR)
+        interface = "org.bluez.GattDescriptor1";
+    else
+        interface = "org.bluez.GattCharacteristic1";
+
+    r = sd_bus_message_new_method_call(bus, &m, service, path,
+        interface, "WriteValue");
+    SOL_INT_CHECK_GOTO(r, < 0, done);
+
+    r = sd_bus_message_append_array(m, 'y', buf->data, buf->used);
+    SOL_INT_CHECK_GOTO(r, < 0, done);
+
+    r = sd_bus_call_async(bus, &op->slot, m, remote_attr_write_reply, op, 0);
+    SOL_INT_CHECK_GOTO(r, < 0, done);
+
+done:
+    sd_bus_message_unref(m);
+
+    return r;
+}
+
+static struct sol_gatt_attr *
+new_attr(enum sol_gatt_attr_type type, const char *path)
+{
+    struct sol_gatt_attr *attr;
+
+    attr = calloc(1, sizeof(*attr));
+    SOL_NULL_CHECK(attr, NULL);
+
+    attr->type = type;
+    attr->read = remote_attr_read;
+    attr->write = remote_attr_write;
+
+    attr->_priv = strdup(path);
+    SOL_NULL_CHECK_GOTO(attr->_priv, error_dup);
+
+    return attr;
+
+error_dup:
+    free(attr);
+    return NULL;
+}
+
+static void
+service_appeared(void *data, const char *path)
+{
+    struct context *ctx = data;
+    struct device_info *d;
+    struct sol_gatt_attr *attr;
+    int r;
+
+    d = match_device_by_prefix(ctx, path);
+    SOL_NULL_CHECK(d);
+
+    attr = new_attr(SOL_GATT_ATTR_TYPE_SERVICE, path);
+    SOL_NULL_CHECK(attr);
+
+    r = sol_ptr_vector_append(&d->attrs, attr);
+    SOL_INT_CHECK_GOTO(r, < 0, error_append);
+
+    r = sol_bus_map_cached_properties(ctx->bluez, path,
+        "org.bluez.GattService1",
+        service_properties,
+        service_property_changed, attr);
+    SOL_INT_CHECK_GOTO(r, < 0, error_map);
+
+    return;
+
+error_map:
+    sol_ptr_vector_del_last(&d->attrs);
+
+error_append:
+    destroy_attr(attr);
+}
+
+static void
+attr_property_changed(void *data, const char *path, uint64_t mask)
+{
+
+}
+
+static void
+chr_appeared(void *data, const char *path)
+{
+    struct context *ctx = data;
+    struct device_info *d;
+    struct sol_gatt_attr *attr;
+    int r;
+
+    d = match_device_by_prefix(ctx, path);
+    SOL_NULL_CHECK(d);
+
+    attr = new_attr(SOL_GATT_ATTR_TYPE_CHARACTERISTIC, path);
+    SOL_NULL_CHECK(attr);
+
+    r = sol_ptr_vector_append(&d->attrs, attr);
+    SOL_INT_CHECK_GOTO(r, < 0, error_append);
+
+    r = sol_bus_map_cached_properties(ctx->bluez, path,
+        "org.bluez.GattCharacteristic1",
+        attr_properties,
+        attr_property_changed, attr);
+    SOL_INT_CHECK_GOTO(r, < 0, error_map);
+
+    return;
+
+error_map:
+    sol_ptr_vector_del_last(&d->attrs);
+
+error_append:
+    destroy_attr(attr);
+}
+
+static void
+attr_removed(void *data, const char *path)
+{
+    struct context *ctx = data;
+    struct device_info *d;
+    struct sol_gatt_attr *attr;
+    int r;
+
+    d = match_device_by_prefix(ctx, path);
+    SOL_NULL_CHECK(d);
+
+    attr = find_attr(d, path);
+    SOL_NULL_CHECK(attr);
+
+    r = sol_bus_unmap_cached_properties(ctx->bluez, attr_properties, attr);
+    SOL_INT_CHECK(r, < 0);
+
+    sol_ptr_vector_remove(&d->attrs, attr);
+    destroy_attr(attr);
+}
+
+static void
+desc_appeared(void *data, const char *path)
+{
+    struct context *ctx = data;
+    struct device_info *d;
+    struct sol_gatt_attr *attr;
+    int r;
+
+    d = match_device_by_prefix(ctx, path);
+    SOL_NULL_CHECK(d);
+
+    attr = new_attr(SOL_GATT_ATTR_TYPE_DESCRIPTOR, path);
+    SOL_NULL_CHECK(attr);
+
+    r = sol_ptr_vector_append(&d->attrs, attr);
+    SOL_INT_CHECK_GOTO(r, < 0, error_append);
+
+    r = sol_bus_map_cached_properties(ctx->bluez, path,
+        "org.bluez.GattDescriptor1",
+        attr_properties,
+        attr_property_changed, attr);
+    SOL_INT_CHECK_GOTO(r, < 0, error_map);
+
+    return;
+
+error_map:
+    sol_ptr_vector_del_last(&d->attrs);
+
+error_append:
+    destroy_attr(attr);
+}
+
 static const struct sol_bus_interfaces interfaces[] = {
     { .name = "org.bluez.Adapter1",
       .appeared = adapter_appeared,
@@ -623,6 +1138,15 @@ static const struct sol_bus_interfaces interfaces[] = {
     { .name = "org.bluez.Device1",
       .appeared = device_appeared,
       .removed = device_removed },
+    { .name = "org.bluez.GattService1",
+      .appeared = service_appeared,
+      .removed = attr_removed },
+    { .name = "org.bluez.GattCharacteristic1",
+      .appeared = chr_appeared,
+      .removed = attr_removed },
+    { .name = "org.bluez.GattDescriptor1",
+      .appeared = desc_appeared,
+      .removed = attr_removed },
     { NULL }
 };
 
@@ -639,6 +1163,8 @@ sol_bt_conn_ref(struct sol_bt_conn *conn)
 SOL_API void
 sol_bt_conn_unref(struct sol_bt_conn *conn)
 {
+    struct context *ctx;
+
     if (!conn)
         return;
 
@@ -647,6 +1173,9 @@ sol_bt_conn_unref(struct sol_bt_conn *conn)
     if (conn->ref > 0)
         return;
 
+    ctx = bluetooth_get_context();
+
+    sol_ptr_vector_remove(&ctx->conns, conn);
     destroy_conn(conn);
 }
 
@@ -690,6 +1219,8 @@ bluez_service_disconnected(void *data)
     ctx->original_state = ADAPTER_STATE_UNKNOWN;
     ctx->current_state = ADAPTER_STATE_UNKNOWN;
 
+    sol_monitors_clear(&subscriptions);
+
     sol_bus_remove_interfaces_watch(ctx->bluez, interfaces, ctx);
 
     SOL_PTR_VECTOR_FOREACH_IDX (&ctx->scans, p, idx)
@@ -709,6 +1240,8 @@ bluez_service_disconnected(void *data)
         free(s);
     }
     sol_ptr_vector_clear(&ctx->sessions);
+
+    clear_applications();
 
     free(ctx->adapter_path);
     ctx->adapter_path = NULL;
@@ -767,13 +1300,16 @@ connect_reply(sd_bus_message *reply, void *userdata, sd_bus_error *ret_error)
 {
     struct context *ctx = &context;
     struct sol_bt_conn *conn = userdata;
-    int err;
+    int err, r;
 
     conn->slot = sd_bus_slot_unref(conn->slot);
 
-    sol_bus_log_callback(reply, userdata, ret_error);
+    r = sol_bus_log_callback(reply, userdata, ret_error);
 
     err = sd_bus_error_get_errno(ret_error);
+
+    if (!err)
+        err = r;
 
     if (err) {
         conn->on_error((void *)conn->user_data, err);
@@ -789,6 +1325,19 @@ connect_reply(sd_bus_message *reply, void *userdata, sd_bus_error *ret_error)
 
     return 0;
 }
+
+static bool
+already_connected(void *data)
+{
+    struct context *ctx = &context;
+    struct sol_bt_conn *conn = data;
+    struct device_info *d = conn->d;
+
+    trigger_bt_conn(ctx, d, true);
+
+    return false;
+}
+
 SOL_API struct sol_bt_conn *
 sol_bt_connect(const struct sol_network_link_addr *addr,
     bool (*on_connect)(void *user_data, struct sol_bt_conn *conn),
@@ -824,6 +1373,11 @@ sol_bt_connect(const struct sol_network_link_addr *addr,
 
     r = sol_ptr_vector_append(&ctx->conns, conn);
     SOL_INT_CHECK_GOTO(r, < 0, error_append);
+
+    if (d->info.connected) {
+        sol_timeout_add(0, already_connected, conn);
+        return conn;
+    }
 
     r = sd_bus_call_method_async(bus, &conn->slot, service, d->path,
         "org.bluez.Device1", "Connect", connect_reply, conn, NULL);
@@ -1011,6 +1565,7 @@ sol_bt_stop_scan(struct sol_bt_scan_pending *scan)
     r = sol_ptr_vector_remove(&ctx->scans, scan);
     SOL_INT_CHECK(r, < 0, -ENOENT);
 
+    scan->slot = sd_bus_slot_unref(scan->slot);
     free(scan);
 
     if (sol_ptr_vector_get_len(&ctx->scans) > 0)
@@ -1024,4 +1579,117 @@ sol_bt_stop_scan(struct sol_bt_scan_pending *scan)
     SOL_INT_CHECK(r, < 0, r);
 
     return 0;
+}
+
+static uint16_t
+find_subscription_by_attr(const struct sol_gatt_attr *attr)
+{
+    struct subscription *sub;
+    uint16_t idx;
+
+    SOL_MONITORS_WALK (&subscriptions, sub, idx) {
+        if (sub->attr == attr) {
+            return idx;
+        }
+    }
+
+    return UINT16_MAX;
+}
+
+static int
+start_notify_reply(sd_bus_message *reply, void *userdata, sd_bus_error *ret_error)
+{
+    const struct sol_gatt_attr *attr = userdata;
+    struct subscription *sub;
+    uint16_t idx;
+
+    SOL_MONITORS_WALK (&subscriptions, sub, idx) {
+        if (sub->attr == attr)
+            sub->slot = sd_bus_slot_unref(sub->slot);
+    }
+
+    return sol_bus_log_callback(reply, userdata, ret_error);
+}
+
+SOL_API int
+sol_gatt_subscribe(struct sol_bt_conn *conn, const struct sol_gatt_attr *attr,
+    bool (*cb)(void *user_data, const struct sol_gatt_attr *attr,
+    const struct sol_buffer *buffer),
+    const void *user_data)
+{
+    struct context *ctx = &context;
+    sd_bus *bus = sol_bus_client_get_bus(ctx->bluez);
+    const char *service = sol_bus_client_get_service(ctx->bluez);
+    struct subscription *sub;
+    int r;
+    uint16_t idx;
+
+    SOL_NULL_CHECK(attr, -EINVAL);
+    SOL_NULL_CHECK(cb, -EINVAL);
+    SOL_NULL_CHECK(conn, -EINVAL);
+    SOL_INT_CHECK(attr->type, != SOL_GATT_ATTR_TYPE_CHARACTERISTIC, -EINVAL);
+
+    if (!(attr->flags & (SOL_GATT_CHR_FLAGS_NOTIFY | SOL_GATT_CHR_FLAGS_INDICATE))) {
+        SOL_WRN("Attribute doesn't support Notifications/Indications");
+        return -EINVAL;
+    }
+
+    idx = find_subscription_by_attr(attr);
+
+    sub = sol_monitors_append(&subscriptions, (sol_monitors_cb_t)cb, user_data);
+    SOL_NULL_CHECK(sub, -ENOMEM);
+
+    sub->conn = sol_bt_conn_ref(conn);
+    sub->attr = attr;
+
+    /* There's another subscription for this attribute. */
+    if (idx != UINT16_MAX)
+        return 0;
+
+    r = sd_bus_call_method_async(bus, &sub->slot, service, attr->_priv,
+        "org.bluez.GattCharacteristic1", "StartNotify", start_notify_reply, (void *)attr, NULL);
+    SOL_INT_CHECK_GOTO(r, < 0, error);
+
+    return 0;
+
+error:
+    sol_monitors_del(&subscriptions, idx);
+
+    return r;
+}
+
+SOL_API int
+sol_gatt_unsubscribe(bool (*cb)(void *user_data, const struct sol_gatt_attr *attr,
+    const struct sol_buffer *buffer),
+    const void *user_data)
+{
+    struct context *ctx = &context;
+    sd_bus *bus = sol_bus_client_get_bus(ctx->bluez);
+    const char *service = sol_bus_client_get_service(ctx->bluez);
+    const struct sol_gatt_attr *attr;
+    struct subscription *sub;
+    int r;
+
+    r = sol_monitors_find(&subscriptions, (sol_monitors_cb_t)cb, user_data);
+    SOL_INT_CHECK(r, < 0, r);
+
+    sub = sol_monitors_get(&subscriptions, r);
+
+    sub->slot = sd_bus_slot_unref(sub->slot);
+
+    attr = sub->attr;
+
+    r = sol_monitors_del(&subscriptions, r);
+    SOL_INT_CHECK(r, < 0, r);
+
+    r = find_subscription_by_attr(attr);
+
+    if (r == UINT16_MAX)
+        return 0;
+
+    r = sd_bus_call_method_async(bus, NULL, service, attr->_priv,
+        "org.bluez.GattCharacteristic1", "StopNotify", sol_bus_log_callback, NULL, NULL);
+    SOL_INT_CHECK(r, < 0, r);
+
+    return r;
 }
