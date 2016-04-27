@@ -22,7 +22,7 @@ var _ = require( "lodash" );
 var async = require( "async" );
 var soletta = require( require( "path" )
 	.join( require( "bindings" ).getRoot( __filename ), "lowlevel" ) );
-var testUtils = require( "./assert-to-console" );
+var testUtils = require( "../assert-to-console" );
 var payload = require( "./payload" );
 var uuid = process.argv[ 2 ];
 var observationCount = 0;

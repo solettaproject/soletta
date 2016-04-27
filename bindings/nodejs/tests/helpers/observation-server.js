@@ -21,7 +21,7 @@ module.exports = function( setObservable ) {
 var _ = require( "lodash" );
 var soletta = require( require( "path" )
 	.join( require( "bindings" ).getRoot( __filename ), "lowlevel" ) );
-var testUtils = require( "./assert-to-console" );
+var testUtils = require( "../assert-to-console" );
 var payload = require( "./payload" );
 var uuid = process.argv[ 2 ];
 var observationCount = 0;
@@ -62,7 +62,7 @@ if ( !setObservable ) {
 	}, 200 );
 }
 
-process.on( "exit", function() {
+process.on( "SIGINT", function() {
 	soletta.sol_oic_server_del_resource( theResource );
 } );
 

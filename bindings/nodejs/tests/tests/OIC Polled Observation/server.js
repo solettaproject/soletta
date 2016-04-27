@@ -16,4 +16,4 @@
  * limitations under the License.
  */
 
-require( "../../observation-server" )( false );
+require( "../../helpers/observation-server" )( false );
