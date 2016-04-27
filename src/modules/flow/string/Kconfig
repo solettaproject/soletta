@@ -30,14 +30,14 @@ config FLOW_NODE_TYPE_STRING
 		build Soletta with ICU, so that the full UTF-8 set of
 		characters is properly handled by the string nodes.
 
-# This is the solely user of ICU. If gets wider use, move up in the
+# This is the sole user of ICU. If it gets wider use, move it up in the
 # hierarchy.
 config USE_ICU
 	bool "Use ICU library"
 	depends on HAVE_ICU && FLOW_NODE_TYPE_STRING
 	default y
 
-# This is the solely user of LIBPCRE. If gets wider use, move up in
+# This is the sole user of LIBPCRE. If it gets wider use, move it up in
 # the hierarchy.
 config USE_LIBPCRE
 	bool "Use LIBPCRE library"

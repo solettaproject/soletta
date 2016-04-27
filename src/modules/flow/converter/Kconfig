@@ -1,3 +1,20 @@
 config FLOW_NODE_TYPE_CONVERTER
 	tristate "Node type: converter"
 	default y
+	help
+		The converter family of nodes will convert Soletta
+		packets from one type to another (e.g. boolean to
+		byte). Some of them will do more fancy things, like
+		splitting a byte into (boolean) individual bits.
+		Others will compose a final packet from others, like
+		assembling four bytes into a final integer. You'll
+		also find a node that splits an error packet in other
+		two—its integer code and its string message. There are
+		also the nodes dealing with JSON data (e.g. one that
+		gets a string packet and outputs a JSON array packet,
+		if the string is valid). Finally, there are some nodes
+		converting some packet types to string packets,
+		namely float-to-string and int-to-string. These last
+		two have sibling nodes doing a more elaborate string
+		formatting output, but they belong in another flow
+		module: py-formatting.
