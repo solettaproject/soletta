@@ -220,13 +220,9 @@ unix_socket_client_new(const void *data, const char *socket_path, void (*data_re
 
 #ifndef SOCK_CLOEXEC
     /* We need to set the socket to FD_CLOEXEC and non-blocking mode */
-    n = fcntl(client->sock, F_GETFD);
-    if (n >= 0)
-        n = fcntl(client->sock, F_SETFD, n | FD_CLOEXEC);
-    if (n >= 0)
-        n = sol_util_fd_set_flag(client->sock, O_NONBLOCK);
-    if (n < 0) {
-        SOL_WRN("Failed to set the socket to FD_CLOEXEC or O_NONBLOCK, %s", sol_util_strerrora(errno));
+    if (!sol_fd_add_flags(client->sock, FD_CLOEXEC | O_NONBLOCK)) {
+        SOL_WRN("Failed to set the socket to FD_CLOEXEC or O_NONBLOCK, %s",
+            sol_util_strerrora(errno));
         goto sock_err;
     }
 #endif
