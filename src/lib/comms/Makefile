@@ -135,7 +135,8 @@ obj-bluetooth-$(BLUETOOTH_BLUEZ) += \
 	sol-bluetooth-impl-bluez.o
 
 obj-bluetooth-$(BLUETOOTH_NONE) += \
-	sol-bluetooth-impl-none.o
+	sol-bluetooth-impl-none.o \
+	sol-gatt-impl-none.o
 
 headers-$(NETWORK) += \
     include/sol-network.h \
@@ -145,7 +146,8 @@ headers-$(COAP) += \
     include/sol-coap.h
 
 headers-$(BLUETOOTH) += \
-    include/sol-bluetooth.h
+    include/sol-bluetooth.h \
+    include/sol-gatt.h
 
 headers-$(OIC) += \
     include/sol-oic-common.h \
