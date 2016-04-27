@@ -37,6 +37,7 @@ enum MainloopState {
 
 static enum MainloopState mainloopState = MAINLOOP_RELEASED;
 static uv_idle_t uv_idle;
+static uv_prepare_t uv_token_handle;
 static struct sol_mainloop_source *uv_loop_source = NULL;
 static struct sol_fd *uv_loop_fd = NULL;
 
@@ -110,6 +111,12 @@ uv_loop_fd_changed(void *data, int fd, uint32_t active_flags)
     return true;
 }
 
+void
+uv_token_callback(uv_prepare_t *handle)
+{
+    SOL_DBG("Entering");
+}
+
 int
 hijack_main_loop()
 {
@@ -125,18 +132,29 @@ hijack_main_loop()
     uv_loop = uv_default_loop();
 
     // The actual hijacking starts here, inspired by node-gtk. The plan:
-    // 1. Attach a source to the soletta main loop which will run the uv main
-    //    loop in a non-blocking fashion.
+    // 1. uv has two ways of letting us know that it needs to run its loop. One
+    //    is that its backend timeout is >= 0, and the other is a file
+    //    descriptor which can become readable/writable/errored. So, attach a
+    //    source to the soletta main loop which will run the uv main loop in
+    //    a non-blocking fashion. Also attach a file descriptor watch via which
+    //    uv can signal that it needs to run an iteration.
     // 2. Attach an idler to the uv main loop and call sol_run() from it when
     //    it first runs. This interrupts the uv main loop, because sol_run()
-    //    doesn't return but, since we've already added the above source to the
-    //    soletta main loop in the first step, the source will end up running
-    //    one non-blocking iteration of the uv main loop which, in turn, will
-    //    recursively call the idler we added. At that point, the ilder can
-    //    remove itself from the uv main loop. After that, only the soletta
-    //    main loop runs, but it runs an iteration of the uv main loop in a
-    //    non-blocking fashion whenever the uv main loop signals to the
-    //    soletta main loop via the attached source.
+    //    doesn't return but, since we've already added the above sources to
+    //    the soletta main loop in the first step, the source or the file
+    //    descriptor watch will end up running one non-blocking iteration of
+    //    the uv main loop which, in turn, will recursively call the idler we
+    //    added. At that point, the idler can remove itself from the uv main
+    //    loop. After that, only the soletta main loop runs, but it runs an
+    //    iteration of the uv main loop in a non-blocking fashion whenever the
+    //    uv main loop signals to the soletta main loop via the attached
+    //    source or the attached file descriptor watch.
+    // 3. Attach a token handle to the uv main loop which represents all
+    //    soletta open handles. This is necessary because the uv main loop
+    //    would otherwise quit when it runs out of its own handles. We remove
+    //    this token handle when we release the uv main loop so that if, at
+    //    that point, it has no more handles, it is free to cause the node.js
+    //    process to quit.
 
     // We allocate the various needed structures only once. After that, we
     // reuse them. We never free them, even if we release the uv main loop.
@@ -157,7 +175,18 @@ hijack_main_loop()
         }
     }
 
+    returnValue = uv_prepare_init(uv_loop, &uv_token_handle);
+    if (returnValue) {
+        return returnValue;
+    }
+
     returnValue = uv_idle_init(uv_loop, &uv_idle);
+    if (returnValue) {
+        return returnValue;
+    }
+
+    SOL_DBG("Starting token handle");
+    returnValue = uv_prepare_start(&uv_token_handle, uv_token_callback);
     if (returnValue) {
         return returnValue;
     }
@@ -180,6 +209,12 @@ release_main_loop()
     SOL_DBG("Entering with state %s", RESOLVE_MAINLOOP_STATE(mainloopState));
     if (mainloopState == MAINLOOP_RELEASED ||
         mainloopState == MAINLOOP_RELEASING_STARTED) {
+        return returnValue;
+    }
+
+    SOL_DBG("Stopping token handle");
+    returnValue = uv_prepare_stop(&uv_token_handle);
+    if (returnValue) {
         return returnValue;
     }
 

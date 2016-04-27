@@ -39,6 +39,6 @@ theResource = soletta.sol_oic_server_add_resource( {
 
 console.log( JSON.stringify( { ready: true } ) );
 
-process.on( "exit", function() {
+process.on( "SIGINT", function() {
 	soletta.sol_oic_server_del_resource( theResource );
 } );
