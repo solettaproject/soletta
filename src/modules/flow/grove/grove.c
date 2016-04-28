@@ -20,14 +20,20 @@
 #include <math.h>
 
 #include "sol-flow/grove.h"
-#include "sol-flow/aio.h"
 
 #include "sol-flow-internal.h"
 #include "sol-flow-static.h"
-#include "sol-i2c.h"
 #include "sol-mainloop.h"
 #include "sol-util-internal.h"
 #include "sol-vector.h"
+
+#ifdef USE_I2C
+#include "sol-i2c.h"
+#endif
+
+#ifdef FLOW_NODE_TYPE_AIO
+
+#include "sol-flow/aio.h"
 
 // ################################ Rotary sensor nodes
 
@@ -457,6 +463,10 @@ temperature_init_type(void)
 {
     grove_temperature_sensor_new_type(&SOL_FLOW_NODE_TYPE_GROVE_TEMPERATURE_SENSOR);
 }
+
+#endif
+
+#ifdef USE_I2C
 
 // ################################ LCD nodes
 
@@ -1588,3 +1598,5 @@ lcd_char_open(struct sol_flow_node *node,
 #undef LCD_MODE_SET_AUTO_SCROLL
 
 #include "grove-gen.c"
+
+#endif
