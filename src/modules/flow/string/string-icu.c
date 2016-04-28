@@ -24,7 +24,6 @@
 
 #include "string-common.h"
 #include "string-icu.h"
-#include "string-regexp.h"
 #include "string-uuid.h"
 
 //ret_icu_str must be freed after usage

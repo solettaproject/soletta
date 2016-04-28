@@ -19,16 +19,29 @@
 #include <ctype.h>
 #include <errno.h>
 
-#ifdef USE_LIBPCRE
 #include <pcre.h>
-#endif
 
-#include "sol-flow/string.h"
+#include "sol-flow/regexp.h"
 #include "sol-flow-internal.h"
 
-#include "string-regexp.h"
+struct string_regexp_search_data {
+    struct sol_flow_node *node;
+    struct sol_vector substrings;
+    size_t max_regexp_search;
+    char *string;
+    char *regexp;
+    int index;
+};
 
-#ifdef USE_LIBPCRE
+struct string_regexp_replace_data {
+    struct sol_flow_node *node;
+    char *orig_string;
+    char *regexp;
+    char *to_regexp;
+    int32_t max_regexp_replace;
+    bool forward_on_no_match;
+};
+
 static int
 pcre_compile_do(struct sol_flow_node *node,
     const char *regexp,
@@ -162,7 +175,7 @@ calculate_regexp_substrings(struct string_regexp_search_data *mdata,
     mdata->substrings = string_regexp_search_and_split(mdata);
 
     return sol_flow_send_irange_value_packet(node,
-        SOL_FLOW_NODE_TYPE_STRING_REGEXP_SEARCH__OUT__LENGTH,
+        SOL_FLOW_NODE_TYPE_REGEXP_SEARCH__OUT__LENGTH,
         mdata->substrings.len);
 }
 
@@ -185,7 +198,7 @@ send_regexp_substring(struct string_regexp_search_data *mdata)
     sub_slice = sol_vector_get(&mdata->substrings, mdata->index);
 
     return sol_flow_send_string_slice_packet(mdata->node,
-        SOL_FLOW_NODE_TYPE_STRING_REGEXP_SEARCH__OUT__OUT, *sub_slice);
+        SOL_FLOW_NODE_TYPE_REGEXP_SEARCH__OUT__OUT, *sub_slice);
 }
 
 static int
@@ -331,20 +344,18 @@ err:
     return r;
 }
 
-#endif
-
-int
+static int
 string_regexp_search_open(struct sol_flow_node *node,
     void *data,
     const struct sol_flow_node_options *options)
 {
     struct string_regexp_search_data *mdata = data;
-    const struct sol_flow_node_type_string_regexp_search_options *opts;
+    const struct sol_flow_node_type_regexp_search_options *opts;
 
     SOL_FLOW_NODE_OPTIONS_SUB_API_CHECK
-        (options, SOL_FLOW_NODE_TYPE_STRING_REGEXP_SEARCH_OPTIONS_API_VERSION,
+        (options, SOL_FLOW_NODE_TYPE_REGEXP_SEARCH_OPTIONS_API_VERSION,
         -EINVAL);
-    opts = (const struct sol_flow_node_type_string_regexp_search_options *)options;
+    opts = (const struct sol_flow_node_type_regexp_search_options *)options;
 
     if (opts->index < 0) {
         SOL_WRN("Index (%" PRId32 ") must be a non-negative value",
@@ -372,7 +383,7 @@ string_regexp_search_open(struct sol_flow_node *node,
     return 0;
 }
 
-void
+static void
 string_regexp_search_close(struct sol_flow_node *node, void *data)
 {
     struct string_regexp_search_data *mdata = data;
@@ -382,14 +393,13 @@ string_regexp_search_close(struct sol_flow_node *node, void *data)
     free(mdata->regexp);
 }
 
-int
+static int
 string_regexp_search(struct sol_flow_node *node,
     void *data,
     uint16_t port,
     uint16_t conn_id,
     const struct sol_flow_packet *packet)
 {
-#ifdef USE_LIBPCRE
     struct string_regexp_search_data *mdata = data;
     const char *in_value;
     int r;
@@ -408,22 +418,15 @@ string_regexp_search(struct sol_flow_node *node,
     SOL_INT_CHECK(r, < 0, r);
 
     return send_regexp_substring(mdata);
-#else
-    sol_flow_send_error_packet(node, ENOTSUP, "The string/regexp-search"
-        " can't work on this Soletta build -- libpcre dependency is needed "
-        "in order for this node to work");
-    return -EINVAL;
-#endif
 }
 
-int
+static int
 set_string_regexp_pattern(struct sol_flow_node *node,
     void *data,
     uint16_t port,
     uint16_t conn_id,
     const struct sol_flow_packet *packet)
 {
-#ifdef USE_LIBPCRE
     struct string_regexp_search_data *mdata = data;
     const char *in_value;
     int r;
@@ -443,22 +446,15 @@ set_string_regexp_pattern(struct sol_flow_node *node,
     SOL_INT_CHECK(r, < 0, r);
 
     return send_regexp_substring(mdata);
-#else
-    sol_flow_send_error_packet(node, ENOTSUP, "The string/regexp-search"
-        " can't work on this Soletta build -- libpcre dependency is needed "
-        "in order for this node to work");
-    return -EINVAL;
-#endif
 }
 
-int
+static int
 set_string_regexp_index(struct sol_flow_node *node,
     void *data,
     uint16_t port,
     uint16_t conn_id,
     const struct sol_flow_packet *packet)
 {
-#ifdef USE_LIBPCRE
     struct string_regexp_search_data *mdata = data;
     int32_t in_value;
     int r;
@@ -473,22 +469,15 @@ set_string_regexp_index(struct sol_flow_node *node,
     mdata->index = in_value;
 
     return send_regexp_substring(mdata);
-#else
-    sol_flow_send_error_packet(node, ENOTSUP, "The string/regexp-search"
-        " can't work on this Soletta build -- libpcre dependency is needed "
-        "in order for this node to work");
-    return -EINVAL;
-#endif
 }
 
-int
+static int
 set_string_regexp_max_match(struct sol_flow_node *node,
     void *data,
     uint16_t port,
     uint16_t conn_id,
     const struct sol_flow_packet *packet)
 {
-#ifdef USE_LIBPCRE
     struct string_regexp_search_data *mdata = data;
     int32_t in_value;
     int r;
@@ -507,26 +496,20 @@ set_string_regexp_max_match(struct sol_flow_node *node,
     SOL_INT_CHECK(r, < 0, r);
 
     return send_regexp_substring(mdata);
-#else
-    sol_flow_send_error_packet(node, ENOTSUP, "The string/regexp-search"
-        " can't work on this Soletta build -- libpcre dependency is needed "
-        "in order for this node to work");
-    return -EINVAL;
-#endif
 }
 
-int
+static int
 string_regexp_replace_open(struct sol_flow_node *node,
     void *data,
     const struct sol_flow_node_options *options)
 {
     struct string_regexp_replace_data *mdata = data;
-    const struct sol_flow_node_type_string_regexp_replace_options *opts;
+    const struct sol_flow_node_type_regexp_replace_options *opts;
 
     SOL_FLOW_NODE_OPTIONS_SUB_API_CHECK
-        (options, SOL_FLOW_NODE_TYPE_STRING_REGEXP_REPLACE_OPTIONS_API_VERSION,
+        (options, SOL_FLOW_NODE_TYPE_REGEXP_REPLACE_OPTIONS_API_VERSION,
         -EINVAL);
-    opts = (const struct sol_flow_node_type_string_regexp_replace_options *)options;
+    opts = (const struct sol_flow_node_type_regexp_replace_options *)options;
 
     mdata->node = node;
     mdata->forward_on_no_match = opts->forward_on_no_match;
@@ -552,7 +535,7 @@ string_regexp_replace_open(struct sol_flow_node *node,
     return 0;
 }
 
-void
+static void
 string_regexp_replace_close(struct sol_flow_node *node, void *data)
 {
     struct string_regexp_replace_data *mdata = data;
@@ -562,14 +545,13 @@ string_regexp_replace_close(struct sol_flow_node *node, void *data)
     free(mdata->to_regexp);
 }
 
-int
+static int
 string_regexp_replace(struct sol_flow_node *node,
     void *data,
     uint16_t port,
     uint16_t conn_id,
     const struct sol_flow_packet *packet)
 {
-#ifdef USE_LIBPCRE
     struct string_regexp_replace_data *mdata = data;
     struct sol_buffer repl_buf, final_buf = { 0 };
     size_t pos = 0, str_len, count;
@@ -658,7 +640,7 @@ end:
     *(char *)sol_buffer_at(&final_buf, final_buf.used) = '\0';
 
     r = sol_flow_send_string_slice_packet(mdata->node,
-        SOL_FLOW_NODE_TYPE_STRING_REGEXP_REPLACE__OUT__OUT,
+        SOL_FLOW_NODE_TYPE_REGEXP_REPLACE__OUT__OUT,
         sol_buffer_get_slice(&final_buf));
 
 err:
@@ -672,17 +654,15 @@ forward:
     sol_buffer_fini(&final_buf);
 
     return sol_flow_send_string_packet(mdata->node,
-        SOL_FLOW_NODE_TYPE_STRING_REGEXP_REPLACE__OUT__OUT,
+        SOL_FLOW_NODE_TYPE_REGEXP_REPLACE__OUT__OUT,
         mdata->orig_string);
-#else
     sol_flow_send_error_packet(node, ENOTSUP, "The string/regexp-search"
         " can't work on this Soletta build -- libpcre dependency is needed "
         "in order for this node to work");
     return -EINVAL;
-#endif
 }
 
-int
+static int
 set_string_regexp_replace_pattern(struct sol_flow_node *node,
     void *data,
     uint16_t port,
@@ -692,7 +672,7 @@ set_string_regexp_replace_pattern(struct sol_flow_node *node,
     return 0;
 }
 
-int
+static int
 set_string_regexp_replace_to(struct sol_flow_node *node,
     void *data,
     uint16_t port,
@@ -702,7 +682,7 @@ set_string_regexp_replace_to(struct sol_flow_node *node,
     return 0;
 }
 
-int
+static int
 set_string_regexp_replace_max_match(struct sol_flow_node *node,
     void *data,
     uint16_t port,
@@ -711,3 +691,5 @@ set_string_regexp_replace_max_match(struct sol_flow_node *node,
 {
     return 0;
 }
+
+#include "regexp-gen.c"
