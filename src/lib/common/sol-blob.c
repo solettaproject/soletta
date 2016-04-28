@@ -32,7 +32,7 @@ SOL_LOG_INTERNAL_DECLARE_STATIC(_sol_blob_log_domain, "blob");
     if (!(blob)->type->api_version) {               \
         SOL_WRN("" # blob                            \
             "(%p)->type->api_version(%hu) != "   \
-            "SOL_BLOB_TYPE_API_VERSION(%hu)",     \
+            "SOL_BLOB_TYPE_API_VERSION(%u)",     \
             (blob), (blob)->type->api_version,   \
             SOL_BLOB_TYPE_API_VERSION);           \
         return __VA_ARGS__;                         \

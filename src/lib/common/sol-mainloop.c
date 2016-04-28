@@ -370,7 +370,7 @@ sol_mainloop_add_source(const struct sol_mainloop_source_type *type, const void 
 #ifndef SOL_NO_API_VERSION
     if (type->api_version != SOL_MAINLOOP_SOURCE_TYPE_API_VERSION) {
         SOL_WRN("type(%p)->api_version(%hu) != "
-            "SOL_MAINLOOP_SOURCE_TYPE_API_VERSION(%hu)",
+            "SOL_MAINLOOP_SOURCE_TYPE_API_VERSION(%u)",
             type, type->api_version,
             SOL_MAINLOOP_SOURCE_TYPE_API_VERSION);
         return NULL;
@@ -411,7 +411,7 @@ sol_mainloop_set_implementation(const struct sol_mainloop_implementation *impl)
 #ifndef SOL_NO_API_VERSION
     if (impl->api_version != SOL_MAINLOOP_IMPLEMENTATION_API_VERSION) {
         SOL_WRN("impl(%p)->api_version(%hu) != "
-            "SOL_MAINLOOP_IMPLEMENTATION_API_VERSION(%hu)",
+            "SOL_MAINLOOP_IMPLEMENTATION_API_VERSION(%u)",
             impl, impl->api_version,
             SOL_MAINLOOP_IMPLEMENTATION_API_VERSION);
         return false;

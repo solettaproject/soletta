@@ -759,7 +759,7 @@ setup_conn_specs(struct flow_static_type *type)
         if (spec->src < prev->src || ((spec->src == prev->src) && (spec->src_port < prev->src_port))) {
             SOL_WRN("Connection specification is not ordered: "
                 "src=%hu (previous: %hu), "
-                "src_port=%hu (previous: %hu)",
+                "src_port=%hu (previous: %u)",
                 spec->src, prev->src,
                 spec->src_port,
                 (spec->src == prev->src) ? prev->src_port : 0);

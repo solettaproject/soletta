@@ -186,7 +186,7 @@ extern const struct sol_flow_node_options sol_flow_node_options_empty;
         SOL_NULL_CHECK(options, __VA_ARGS__);                            \
         if (((const struct sol_flow_node_options *)options)->sub_api != (expected)) { \
             SOL_WRN("" # options "(%p)->sub_api(%hu) != "                \
-                "" # expected "(%hu)",                               \
+                "" # expected "(%u)",                                \
                 (options),                                           \
                 ((const struct sol_flow_node_options *)options)->sub_api, \
                 (expected));                                         \
@@ -199,7 +199,7 @@ extern const struct sol_flow_node_options sol_flow_node_options_empty;
         SOL_NULL_CHECK(options, __VA_ARGS__);                            \
         if (((const struct sol_flow_node_options *)options)->api_version != (expected)) { \
             SOL_WRN("Invalid " # options " %p API version(%hu), "        \
-                "expected " # expected "(%hu)",                      \
+                "expected " # expected "(%u)",                       \
                 (options),                                           \
                 ((const struct sol_flow_node_options *)options)->api_version, \
                 (expected));                                         \
@@ -212,7 +212,7 @@ extern const struct sol_flow_node_options sol_flow_node_options_empty;
         SOL_NULL_CHECK(description, __VA_ARGS__);                        \
         if (((const struct sol_flow_node_type_description *)description)->api_version != (expected)) { \
             SOL_WRN("Invalid " # description " %p API version(%lu), "    \
-                "expected " # expected "(%hu)",                      \
+                "expected " # expected "(%u)",                       \
                 (description),                                       \
                 ((const struct sol_flow_node_type_description *)description)->api_version, \
                 (expected));                                         \
@@ -225,7 +225,7 @@ extern const struct sol_flow_node_options sol_flow_node_options_empty;
         SOL_NULL_CHECK(type, __VA_ARGS__);                                 \
         if (((const struct sol_flow_node_type *)type)->api_version != (expected)) { \
             SOL_WRN("Invalid " # type " %p API version(%hu), "             \
-                "expected " # expected "(%hu)",                        \
+                "expected " # expected "(%u)",                         \
                 (type),                                                \
                 ((const struct sol_flow_node_type *)type)->api_version, \
                 (expected));                                           \
@@ -238,7 +238,7 @@ extern const struct sol_flow_node_options sol_flow_node_options_empty;
         SOL_NULL_CHECK(out, __VA_ARGS__);                                  \
         if (((const struct sol_flow_port_type_out *)out)->api_version != (expected)) { \
             SOL_WRN("Invalid " # out " %p API version(%hu), "              \
-                "expected " # expected "(%hu)",                        \
+                "expected " # expected "(%u)",                         \
                 (out),                                                 \
                 ((const struct sol_flow_port_type_out *)out)->api_version, \
                 (expected));                                           \
@@ -251,7 +251,7 @@ extern const struct sol_flow_node_options sol_flow_node_options_empty;
         SOL_NULL_CHECK(in, __VA_ARGS__);                                    \
         if (((const struct sol_flow_port_type_in *)in)->api_version != (expected)) { \
             SOL_WRN("Invalid " # in " %p API version(%hu), "                \
-                "expected " # expected "(%hu)",                         \
+                "expected " # expected "(%u)",                          \
                 (in),                                                   \
                 ((const struct sol_flow_port_type_in *)in)->api_version, \
                 (expected));                                            \
