@@ -113,6 +113,22 @@ sol_update_shutdown(void)
 }
 #endif
 
+#ifdef USE_IPM
+extern int sol_ipm_init(void);
+extern void sol_ipm_shutdown(void);
+#else
+static inline int
+sol_ipm_init(void)
+{
+    return 0;
+}
+
+static inline void
+sol_ipm_shutdown()
+{
+}
+#endif
+
 static const struct sol_mainloop_implementation _sol_mainloop_implementation_default = {
     SOL_SET_API_VERSION(.api_version = SOL_MAINLOOP_IMPLEMENTATION_API_VERSION, )
     .init = sol_mainloop_impl_init,
@@ -198,12 +214,18 @@ sol_init(void)
     if (r < 0)
         goto update_error;
 
+    r = sol_ipm_init();
+    if (r < 0)
+        goto ipm_error;
+
     SOL_DBG("Soletta %s on %s-%s initialized",
         sol_platform_get_sw_version(), BASE_OS,
         sol_platform_get_os_version());
 
     return 0;
 
+ipm_error:
+    sol_update_shutdown();
 update_error:
     sol_comms_shutdown();
 comms_error:
@@ -279,6 +301,8 @@ sol_shutdown(void)
         return;
 
     SOL_DBG("shutdown");
+    sol_ipm_shutdown();
+    sol_update_shutdown();
     sol_comms_shutdown();
     sol_flow_shutdown();
     sol_crypto_shutdown();
@@ -287,7 +311,6 @@ sol_shutdown(void)
     sol_platform_shutdown();
     mainloop_impl->shutdown();
     sol_modules_clear_cache();
-    sol_update_shutdown();
 
     sol_log_shutdown();
 }
