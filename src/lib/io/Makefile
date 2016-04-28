@@ -22,6 +22,9 @@ obj-$(USE_IIO) += \
 obj-$(USE_STORAGE) += \
     io-storage.mod
 
+obj-$(USE_IPM) += \
+    io-ipm.mod
+
 obj-io-aio-$(USE_AIO) := \
     sol-aio-common.o
 obj-io-aio-$(PLATFORM_RIOTOS) += \
@@ -86,6 +89,9 @@ obj-io-storage-$(USE_EFIVARS) += \
 obj-io-storage-$(USE_MEMMAP) += \
     sol-memmap-storage.o
 
+obj-io-ipm-$(USE_IPM) += \
+    sol-ipm.o
+
 headers-$(USE_AIO) += \
     include/sol-aio.h
 headers-$(USE_GPIO) += \
@@ -108,3 +114,6 @@ headers-$(USE_EFIVARS) += \
     include/sol-efivarfs-storage.h
 headers-$(USE_MEMMAP) += \
     include/sol-memmap-storage.h
+
+headers-$(USE_IPM) += \
+    include/sol-ipm.h
