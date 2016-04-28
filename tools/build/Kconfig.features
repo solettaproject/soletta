@@ -46,6 +46,9 @@ config FEATURE_HW_SPI
 config FEATURE_HW_I2C
     bool
 
+config FEATURE_HW_IPM
+    bool
+
 config FEATURE_FLOW
     bool
 
