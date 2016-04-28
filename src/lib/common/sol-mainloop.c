@@ -76,6 +76,10 @@ extern void sol_comms_shutdown(void);
 extern int sol_update_init(void);
 extern void sol_update_shutdown(void);
 #endif
+#ifdef USE_UPDATE
+extern int sol_ipm_init(void);
+extern void sol_ipm_shutdown(void);
+#endif
 
 static const struct sol_mainloop_implementation _sol_mainloop_implementation_default = {
     SOL_SET_API_VERSION(.api_version = SOL_MAINLOOP_IMPLEMENTATION_API_VERSION, )
@@ -168,16 +172,27 @@ sol_init(void)
         goto update_error;
 #endif
 
+#ifdef USE_IPM
+    r = sol_ipm_init();
+    if (r < 0)
+        goto ipm_error;
+#endif
+
     SOL_DBG("Soletta %s on %s-%s initialized",
         sol_platform_get_sw_version(), BASE_OS,
         sol_platform_get_os_version());
 
     return 0;
 
+#ifdef USE_IPM
+ipm_error:
+#endif
 #ifdef USE_UPDATE
+    sol_update_shutdown();
 update_error:
 #endif
 #ifdef NETWORK
+    sol_comms_shutdown();
 comms_error:
 #endif
 #ifdef FLOW_SUPPORT

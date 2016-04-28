@@ -81,3 +81,12 @@ config USE_MEMMAP
         Users must provide a mapping - for instance, using a JSON
         file - that will be used to define where on memory
         entries will be saved. Examples of memory are NVRAM or EEPROM.
+
+config USE_IPM
+    bool "Inter-processor messaging"
+    depends on ZEPHYR
+    default y
+    help
+        Provide API to Inter-processor messaging. Some platforms
+        have more than one processor - this API provides communication
+        among them.
