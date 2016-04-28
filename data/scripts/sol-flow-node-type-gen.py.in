@@ -1110,6 +1110,11 @@ def generate_description_entry(descriptions, data):
                              "author",
                              "license",
                              "version"))
+    if "aliases" in data:
+        aliases = []
+        entry["aliases"] = aliases
+        for alias in data["aliases"]:
+            aliases.append(alias)
 
     if "options" in data:
         options = {"required": False}
