@@ -20,7 +20,7 @@
 
 #include "tinycbor/cbor.h"
 #include "sol-coap.h"
-#include "sol-oic-common.h"
+#include "sol-oic.h"
 #include "sol-vector.h"
 
 CborError sol_oic_packet_cbor_extract_repr_map(struct sol_coap_packet *pkt, CborParser *parser, CborValue *repr_map);

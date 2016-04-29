@@ -16,7 +16,7 @@
  * limitations under the License.
  */
 
-#include "sol-oic-common.h"
+#include "sol-oic.h"
 #include "sol-oic-cbor.h"
 #include "sol-log.h"
 #include <assert.h>

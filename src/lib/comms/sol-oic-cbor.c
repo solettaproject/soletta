@@ -18,7 +18,7 @@
 
 #include "sol-log.h"
 #include "sol-oic-cbor.h"
-#include "sol-oic-common.h"
+#include "sol-oic.h"
 
 #define TYPICAL_OIC_PAYLOAD_SZ (64)
 

@@ -34,7 +34,7 @@
 #include "sol-vector.h"
 
 #include "sol-oic-cbor.h"
-#include "sol-oic-common.h"
+#include "sol-oic.h"
 #include "sol-oic-server.h"
 #include "sol-oic-security.h"
 

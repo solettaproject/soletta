@@ -151,7 +151,7 @@ headers-$(BLUETOOTH) += \
     include/sol-gatt.h
 
 headers-$(OIC) += \
-    include/sol-oic-common.h \
+    include/sol-oic.h \
     include/sol-oic-client.h \
     include/sol-oic-server.h
 
