@@ -78,7 +78,7 @@ struct find_resource_ctx {
 
 struct server_info_ctx {
     struct sol_oic_client *client;
-    void (*cb)(struct sol_oic_client *cli, const struct sol_oic_platform_information *info, void *data);
+    void (*cb)(struct sol_oic_client *cli, const struct sol_oic_platform_info *info, void *data);
     const void *data;
     int64_t token;
 };
@@ -207,7 +207,7 @@ sol_oic_resource_unref(struct sol_oic_resource *r)
 
     r->refcnt--;
     if (!r->refcnt) {
-        free((char *)r->href.data);
+        free((char *)r->path.data);
         free((char *)r->device_id.data);
 
         clear_vector_list(&r->types, r->types_data);
@@ -218,7 +218,7 @@ sol_oic_resource_unref(struct sol_oic_resource *r)
 }
 
 static bool
-_parse_platform_info_payload(struct sol_oic_platform_information *info,
+_parse_platform_info_payload(struct sol_oic_platform_info *info,
     uint8_t *payload, uint16_t payload_len)
 {
     CborParser parser;
@@ -299,7 +299,7 @@ extract_device_id(CborValue *map, struct sol_buffer *device_id)
 }
 
 static bool
-_parse_server_info_payload(struct sol_oic_server_information *info,
+_parse_server_info_payload(struct sol_oic_device_info *info,
     uint8_t *payload, uint16_t payload_len)
 {
     CborParser parser;
@@ -347,7 +347,7 @@ _platform_info_reply_cb(struct sol_coap_server *server,
     struct sol_coap_packet *req, const struct sol_network_link_addr *addr,
     void *data)
 {
-    struct sol_oic_platform_information info = { 0 };
+    struct sol_oic_platform_info info = { 0 };
     struct server_info_ctx *ctx = data;
     struct sol_buffer *buf;
     size_t offset;
@@ -373,7 +373,7 @@ _platform_info_reply_cb(struct sol_coap_server *server,
 
     if (_parse_platform_info_payload(&info, sol_buffer_at(buf, offset),
         buf->used - offset)) {
-        SOL_SET_API_VERSION(info.api_version = SOL_OIC_PLATFORM_INFORMATION_API_VERSION; )
+        SOL_SET_API_VERSION(info.api_version = SOL_OIC_PLATFORM_INFO_API_VERSION; )
         ctx->cb(ctx->client, &info, (void *)ctx->data);
     } else {
         SOL_WRN("Could not parse payload");
@@ -408,7 +408,7 @@ _server_info_reply_cb(struct sol_coap_server *server,
     struct server_info_ctx *ctx = data;
     struct sol_buffer *buf;
     size_t offset;
-    struct sol_oic_server_information info = { 0 };
+    struct sol_oic_device_info info = { 0 };
 
     if (!ctx->cb) {
         SOL_WRN("No user callback provided");
@@ -433,11 +433,11 @@ _server_info_reply_cb(struct sol_coap_server *server,
     if (_parse_server_info_payload(&info, sol_buffer_at(buf, offset),
         buf->used - offset)) {
         void (*cb)(struct sol_oic_client *cli,
-            const struct sol_oic_server_information *info, void *data);
+            const struct sol_oic_device_info *info, void *data);
 
-        SOL_SET_API_VERSION(info.api_version = SOL_OIC_SERVER_INFORMATION_API_VERSION; )
+        SOL_SET_API_VERSION(info.api_version = SOL_OIC_DEVICE_INFO_API_VERSION; )
         cb = (void (*)(struct sol_oic_client *cli,
-            const struct sol_oic_server_information *info, void *data))ctx->cb;
+            const struct sol_oic_device_info *info, void *data))ctx->cb;
         cb(ctx->client, &info, (void *)ctx->data);
     } else {
         SOL_WRN("Could not parse payload");
@@ -464,7 +464,7 @@ client_get_info(struct sol_oic_client *client,
     const char *device_uri,
     bool (*reply_cb)(struct sol_coap_server *server, struct sol_coap_packet *req, const struct sol_network_link_addr *addr, void *data),
     void (*info_received_cb)(struct sol_oic_client *cli,
-    const struct sol_oic_platform_information *info, void *data),
+    const struct sol_oic_platform_info *info, void *data),
     const void *data)
 {
     struct server_info_ctx *ctx;
@@ -509,7 +509,7 @@ SOL_API bool
 sol_oic_client_get_platform_info(struct sol_oic_client *client,
     struct sol_oic_resource *resource,
     void (*info_received_cb)(struct sol_oic_client *cli,
-    const struct sol_oic_platform_information *info, void *data),
+    const struct sol_oic_platform_info *info, void *data),
     const void *data)
 {
     struct sol_network_link_addr addr;
@@ -529,7 +529,7 @@ SOL_API bool
 sol_oic_client_get_platform_info_by_addr(struct sol_oic_client *client,
     struct sol_network_link_addr *addr,
     void (*info_received_cb)(struct sol_oic_client *cli,
-    const struct sol_oic_platform_information *info, void *data),
+    const struct sol_oic_platform_info *info, void *data),
     const void *data)
 {
     SOL_LOG_INTERNAL_INIT_ONCE;
@@ -545,14 +545,14 @@ SOL_API bool
 sol_oic_client_get_server_info(struct sol_oic_client *client,
     struct sol_oic_resource *resource,
     void (*info_received_cb)(struct sol_oic_client *cli,
-    const struct sol_oic_server_information *info, void *data),
+    const struct sol_oic_device_info *info, void *data),
     const void *data)
 {
     struct sol_network_link_addr addr;
     struct sol_coap_server *server;
 
     void (*cb)(struct sol_oic_client *cli,
-        const struct sol_oic_platform_information *info, void *data);
+        const struct sol_oic_platform_info *info, void *data);
 
     SOL_LOG_INTERNAL_INIT_ONCE;
 
@@ -560,7 +560,7 @@ sol_oic_client_get_server_info(struct sol_oic_client *client,
     OIC_RESOURCE_CHECK_API(resource, false);
 
     cb = (void (*)(struct sol_oic_client *cli,
-        const struct sol_oic_platform_information *info, void *data))
+        const struct sol_oic_platform_info *info, void *data))
         info_received_cb;
     server = _best_server_for_resource(client, resource,  &addr);
     return client_get_info(client, server, &addr, SOL_OIC_DEVICE_PATH,
@@ -571,11 +571,11 @@ SOL_API bool
 sol_oic_client_get_server_info_by_addr(struct sol_oic_client *client,
     struct sol_network_link_addr *addr,
     void (*info_received_cb)(struct sol_oic_client *cli,
-    const struct sol_oic_server_information *info, void *data),
+    const struct sol_oic_device_info *info, void *data),
     const void *data)
 {
     void (*cb)(struct sol_oic_client *cli,
-        const struct sol_oic_platform_information *info, void *data);
+        const struct sol_oic_platform_info *info, void *data);
 
     SOL_LOG_INTERNAL_INIT_ONCE;
 
@@ -583,7 +583,7 @@ sol_oic_client_get_server_info_by_addr(struct sol_oic_client *client,
     SOL_NULL_CHECK(addr, false);
 
     cb = (void (*)(struct sol_oic_client *cli,
-        const struct sol_oic_platform_information *info, void *data))
+        const struct sol_oic_platform_info *info, void *data))
         info_received_cb;
     return client_get_info(client, client->server, addr, SOL_OIC_DEVICE_PATH,
         _server_info_reply_cb, cb, data);
@@ -607,7 +607,7 @@ _new_resource(void)
 
     SOL_NULL_CHECK(res, NULL);
 
-    res->href = SOL_STR_SLICE_STR(NULL, 0);
+    res->path = SOL_STR_SLICE_STR(NULL, 0);
     res->device_id = SOL_STR_SLICE_STR(NULL, 0);
     sol_vector_init(&res->types, sizeof(struct sol_str_slice));
     res->types_data = NULL;
@@ -619,7 +619,7 @@ _new_resource(void)
 
     res->observable = false;
     res->secure = false;
-    res->is_observing = false;
+    res->is_observed = false;
 
     res->refcnt = 1;
 
@@ -699,7 +699,7 @@ _iterate_over_resource_reply_payload(struct sol_coap_packet *req,
             SOL_NULL_CHECK_GOTO(res, error);
 
             if (!sol_cbor_map_get_str_value(&resources_array, SOL_OIC_KEY_HREF,
-                &res->href))
+                &res->path))
                 goto error;
 
             if (!extract_list_from_map(&resources_array,
@@ -1007,7 +1007,7 @@ static struct sol_oic_request *
 request_new(sol_coap_method_t method, sol_coap_msgtype_t type, struct sol_oic_resource *res, bool is_observe)
 {
     struct sol_oic_client_request *request;
-    char *href;
+    char *path;
 
     if (type != SOL_COAP_TYPE_CON && type != SOL_COAP_TYPE_NONCON) {
         SOL_WRN("Only SOL_COAP_TYPE_CON and SOL_COAP_TYPE_NONCON requests are"
@@ -1035,9 +1035,9 @@ request_new(sol_coap_method_t method, sol_coap_msgtype_t type, struct sol_oic_re
     } else
         request->cb = _one_shot_resource_request_cb;
 
-    href = strndupa(res->href.data, res->href.len);
-    if (sol_coap_packet_add_uri_path_option(request->base.pkt, href) < 0) {
-        SOL_WRN("Invalid URI: %s", href);
+    path = strndupa(res->path.data, res->path.len);
+    if (sol_coap_packet_add_uri_path_option(request->base.pkt, path) < 0) {
+        SOL_WRN("Invalid URI: %s", path);
         goto error;
     }
 
@@ -1181,13 +1181,13 @@ client_resource_set_observable(struct sol_oic_client *client, struct sol_oic_res
     OIC_RESOURCE_CHECK_API(res, -EINVAL);
 
     if (observe) {
-        if (res->is_observing)
+        if (res->is_observed)
             return -EINVAL;
 
         if (!res->observable) {
-            res->is_observing = _observe_with_polling(client, res, callback,
+            res->is_observed = _observe_with_polling(client, res, callback,
                 data);
-            r = res->is_observing ? 0 : -ECOMM;
+            r = res->is_observed ? 0 : -ECOMM;
         } else {
             struct sol_oic_request *request;
 
@@ -1197,23 +1197,23 @@ client_resource_set_observable(struct sol_oic_client *client, struct sol_oic_res
             SOL_NULL_CHECK(request, -ENOMEM);
 
             r = _resource_request((struct sol_oic_client_request *)request, client, callback, data);
-            res->is_observing = (r == 0);
+            res->is_observed = (r == 0);
         }
         return r;
     }
 
-    if (!res->is_observing) {
+    if (!res->is_observed) {
         SOL_WRN("Attempting to stop observing resource without ever being "
             "observed");
         return -EINVAL;
     }
 
     if (res->observe.timeout)
-        res->is_observing = !_stop_observing_with_polling(res);
+        res->is_observed = !_stop_observing_with_polling(res);
     else if (res->observable)
-        res->is_observing = (_resource_request_unobserve(client, res) == 0);
+        res->is_observed = (_resource_request_unobserve(client, res) == 0);
 
-    return res->is_observing ? -ECOMM : 0;
+    return res->is_observed ? -ECOMM : 0;
 }
 
 SOL_API int

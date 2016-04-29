@@ -166,7 +166,7 @@ startup()
 #ifdef OIC
     float f = 2.3f;
     struct sol_oic_map_reader map = { 0, 0, 0, 0, 0, 0 };
-    enum sol_oic_map_loop_reason end_reason;
+    enum sol_oic_map_loop_status end_status;
     struct sol_oic_map_reader iterator = { 0, 0, 0, 0, 0, 0 };
     struct sol_oic_repr_field rep_field1 = SOL_OIC_REPR_UINT("1", 2);
     struct sol_oic_repr_field rep_field2 = SOL_OIC_REPR_INT("2", -2);
@@ -178,7 +178,7 @@ startup()
     struct sol_oic_repr_field rep_field9 = SOL_OIC_REPR_FLOAT("9", 2.3);
     struct sol_oic_repr_field rep_field10 = SOL_OIC_REPR_DOUBLE("10", 2.3);
     struct sol_oic_repr_field rep_field11 = SOL_OIC_REPR_FIELD("131231", SOL_OIC_REPR_TYPE_UINT, .v_uint = 123);
-    SOL_OIC_MAP_LOOP(&map, &rep_field1, &iterator, end_reason);
+    SOL_OIC_MAP_LOOP(&map, &rep_field1, &iterator, end_status);
 #endif
 
 #ifdef HTTP

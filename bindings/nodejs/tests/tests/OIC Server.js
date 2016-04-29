@@ -24,7 +24,7 @@ var anError = {};
 
 console.log( JSON.stringify( { assertionCount: 3 } ) );
 
-theResource = soletta.sol_oic_server_add_resource( {
+theResource = soletta.sol_oic_server_register_resource( {
 		path: "/a/" + process.argv[ 2 ],
 		resource_type: "core.light",
 		interface: "oic.if.baseline"
@@ -32,11 +32,11 @@ theResource = soletta.sol_oic_server_add_resource( {
 	soletta.sol_oic_resource_flag.SOL_OIC_FLAG_ACTIVE |
 	soletta.sol_oic_resource_flag.SOL_OIC_FLAG_DISCOVERABLE );
 
-testUtils.assert( "ok", !!theResource, "sol_oic_server_add_resource() is successful" );
+testUtils.assert( "ok", !!theResource, "sol_oic_server_register_resource() is successful" );
 
-soletta.sol_oic_server_del_resource( theResource );
+soletta.sol_oic_server_unregister_resource( theResource );
 try {
-	soletta.sol_oic_server_del_resource( theResource );
+	soletta.sol_oic_server_unregister_resource( theResource );
 } catch( theError ) {
 	anError = theError;
 }

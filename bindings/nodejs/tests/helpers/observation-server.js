@@ -30,7 +30,7 @@ var theInterval;
 
 console.log( JSON.stringify( { assertionCount: 0 } ) );
 
-theResource = soletta.sol_oic_server_add_resource( _.extend( {
+theResource = soletta.sol_oic_server_register_resource( _.extend( {
 		interface: "oic.if.baseline",
 		resource_type: "core.light",
 		path: "/a/" + uuid,
@@ -63,7 +63,7 @@ if ( !setObservable ) {
 }
 
 process.on( "SIGINT", function() {
-	soletta.sol_oic_server_del_resource( theResource );
+	soletta.sol_oic_server_unregister_resource( theResource );
 } );
 
 };

@@ -430,7 +430,7 @@ def generate_object_from_repr_vec_fn_common_c(name, props):
     const struct sol_oic_map_reader *repr_vec, uint32_t decode_mask)
 {
     struct sol_oic_repr_field field;
-    enum sol_oic_map_loop_reason end_reason;
+    enum sol_oic_map_loop_status end_status;
     struct sol_oic_map_reader iterator;
     struct %(struct_name)s fields = {
 %(fields_init)s
@@ -438,10 +438,10 @@ def generate_object_from_repr_vec_fn_common_c(name, props):
     bool updated = false;
     int ret = 0;
 
-    SOL_OIC_MAP_LOOP(repr_vec, &field, &iterator, end_reason) {
+    SOL_OIC_MAP_LOOP(repr_vec, &field, &iterator, end_status) {
 %(fields)s
     }
-    if (end_reason != SOL_OIC_MAP_LOOP_OK)
+    if (end_status != SOL_OIC_MAP_LOOP_OK)
         goto out;
 
 %(update_state)s
@@ -1478,7 +1478,7 @@ server_resource_init(struct server_resource *resource, struct sol_flow_node *nod
         .post = { .handle = server_handle_update },
     };
 
-    resource->resource = sol_oic_server_add_resource(&resource->type,
+    resource->resource = sol_oic_server_register_resource(&resource->type,
         resource, SOL_OIC_FLAG_DISCOVERABLE | SOL_OIC_FLAG_OBSERVABLE | SOL_OIC_FLAG_ACTIVE);
     if (resource->resource)
         return 0;
@@ -1491,7 +1491,7 @@ server_resource_close(struct server_resource *resource)
 {
     if (resource->update_schedule_timeout)
         sol_timeout_del(resource->update_schedule_timeout);
-    sol_oic_server_del_resource(resource->resource);
+    sol_oic_server_unregister_resource(resource->resource);
 }
 
 static unsigned int

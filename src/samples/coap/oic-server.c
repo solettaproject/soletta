@@ -110,7 +110,7 @@ static int
 user_handle_put(void *data, struct sol_oic_request *request)
 {
     sol_coap_responsecode_t code = SOL_COAP_RSPCODE_BAD_REQUEST;
-    enum sol_oic_map_loop_reason reason;
+    enum sol_oic_map_loop_status reason;
     struct sol_oic_repr_field field;
     struct sol_oic_map_reader iter;
     struct sol_oic_map_reader *input;
@@ -152,7 +152,7 @@ register_light_resource_type(
         }
     };
 
-    return sol_oic_server_add_resource(&rt, NULL,
+    return sol_oic_server_register_resource(&rt, NULL,
         SOL_OIC_FLAG_DISCOVERABLE | SOL_OIC_FLAG_OBSERVABLE | SOL_OIC_FLAG_ACTIVE);
 }
 
@@ -189,7 +189,7 @@ main(int argc, char *argv[])
 
     sol_run();
 
-    sol_oic_server_del_resource(res);
+    sol_oic_server_unregister_resource(res);
 
     if (console_fd >= 0 && ioctl(console_fd, KDSETLED, old_led_state)) {
         SOL_ERR("Could not return the leds to the old state");

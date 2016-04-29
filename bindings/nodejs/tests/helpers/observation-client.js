@@ -44,7 +44,7 @@ async.series( [
 				if ( !resource ) {
 					callback( new Error( messagePrefix + "Resource not found" ) );
 				}
-				if ( resource && resource.href === "/a/" + uuid ) {
+				if ( resource && resource.path === "/a/" + uuid ) {
 					testUtils.assert( "ok", true, messagePrefix + "Resource found" );
 					theResource = resource;
 					callback();
