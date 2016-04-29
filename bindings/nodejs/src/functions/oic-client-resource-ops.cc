@@ -44,10 +44,10 @@ public:
     bool isOneShot;
 };
 
-static void requestAnswered(sol_coap_responsecode_t code,
+static void requestAnswered(void *data, sol_coap_responsecode_t code,
     struct sol_oic_client *client,
     const struct sol_network_link_addr *address,
-    const struct sol_oic_map_reader *response, void *data) {
+    const struct sol_oic_map_reader *response) {
     Nan::HandleScope scope;
     OicClientRequest *request = (OicClientRequest *)data;
     Local<Value> arguments[4] = {
@@ -159,11 +159,11 @@ typedef int (*ObserveAPI)(
     struct sol_oic_client *client,
     struct sol_oic_resource *res,
     void(*callback)(
+        void *data,
         sol_coap_responsecode_t response_code,
         struct sol_oic_client *cli,
         const struct sol_network_link_addr *addr,
-        const struct sol_oic_map_reader *repr_map,
-        void *data),
+        const struct sol_oic_map_reader *repr_map),
     const void *data,
     bool observe);
 

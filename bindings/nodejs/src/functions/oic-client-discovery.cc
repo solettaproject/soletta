@@ -26,8 +26,8 @@
 
 using namespace v8;
 
-static bool resourceFound(struct sol_oic_client *client,
-    struct sol_oic_resource *resource, void *data) {
+static bool resourceFound(void *data, struct sol_oic_client *client,
+    struct sol_oic_resource *resource) {
     Nan::HandleScope scope;
 
     // If Soletta tells us there are no more resources, we detach this callback

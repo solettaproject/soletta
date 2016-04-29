@@ -24,7 +24,7 @@
 #include "sol-oic-client.h"
 
 static void
-got_get_response(sol_coap_responsecode_t response_code, struct sol_oic_client *cli, const struct sol_network_link_addr *srv_addr, const struct sol_oic_map_reader *map_reader, void *data)
+got_get_response(void *data, sol_coap_responsecode_t response_code, struct sol_oic_client *cli, const struct sol_network_link_addr *srv_addr, const struct sol_oic_map_reader *map_reader)
 {
     struct sol_oic_repr_field field;
     enum sol_oic_map_loop_status end_status;
@@ -87,7 +87,7 @@ got_get_response(sol_coap_responsecode_t response_code, struct sol_oic_client *c
 }
 
 static bool
-found_resource(struct sol_oic_client *cli, struct sol_oic_resource *res, void *data)
+found_resource(void *data, struct sol_oic_client *cli, struct sol_oic_resource *res)
 {
     static const char digits[] = "0123456789abcdef";
     struct sol_str_slice *slice;

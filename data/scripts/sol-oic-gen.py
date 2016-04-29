@@ -1154,8 +1154,8 @@ client_resource_implements_type(struct sol_oic_resource *oic_res, const char *re
 }
 
 static void
-state_changed(sol_coap_responsecode_t response_code, struct sol_oic_client *oic_cli, const struct sol_network_link_addr *cliaddr,
-    const struct sol_oic_map_reader *repr_vec, void *data)
+state_changed(void *data, sol_coap_responsecode_t response_code, struct sol_oic_client *oic_cli, const struct sol_network_link_addr *cliaddr,
+    const struct sol_oic_map_reader *repr_vec)
 {
     struct client_resource *resource = data;
 
@@ -1186,7 +1186,7 @@ state_changed(sol_coap_responsecode_t response_code, struct sol_oic_client *oic_
 }
 
 static bool
-found_resource(struct sol_oic_client *oic_cli, struct sol_oic_resource *oic_res, void *data)
+found_resource(void *data, struct sol_oic_client *oic_cli, struct sol_oic_resource *oic_res)
 {
     struct client_resource *resource = data;
     int r;
@@ -1298,7 +1298,7 @@ binary_to_hex_ascii(const char *binary, char *ascii)
 }
 
 static bool
-scan_callback(struct sol_oic_client *oic_cli, struct sol_oic_resource *oic_res, void *data)
+scan_callback(void *data, struct sol_oic_client *oic_cli, struct sol_oic_resource *oic_res)
 {
     struct client_resource *resource = data;
     char ascii[DEVICE_ID_LEN * 2 + 1];
@@ -1604,8 +1604,8 @@ client_resource_close(struct client_resource *resource)
 }
 
 static void
-client_resource_update_ack(sol_coap_responsecode_t response_code, struct sol_oic_client *cli, const struct sol_network_link_addr *addr,
-    const struct sol_oic_map_reader *repr_vec, void *data)
+client_resource_update_ack(void *data, sol_coap_responsecode_t response_code, struct sol_oic_client *cli, const struct sol_network_link_addr *addr,
+    const struct sol_oic_map_reader *repr_vec)
 {
     struct client_resource *resource = data;
 

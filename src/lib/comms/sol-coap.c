@@ -95,8 +95,8 @@ struct resource_observer {
 struct pending_reply {
     struct sol_coap_server *server;
     struct sol_timeout *timeout;
-    bool (*cb)(struct sol_coap_server *server, struct sol_coap_packet *req,
-        const struct sol_network_link_addr *cliaddr, void *data);
+    bool (*cb)(void *data, struct sol_coap_server *server, struct sol_coap_packet *req,
+        const struct sol_network_link_addr *cliaddr);
     const void *data;
     char *path;
     bool observing;
@@ -437,10 +437,10 @@ error:
 
 static int(*find_resource_cb(const struct sol_coap_packet *req,
     const struct sol_coap_resource *resource)) (
-    struct sol_coap_server *server,
+    void *data, struct sol_coap_server *server,
     const struct sol_coap_resource *resource,
     struct sol_coap_packet *req,
-    const struct sol_network_link_addr *cliaddr, void *data){
+    const struct sol_network_link_addr *cliaddr){
     uint8_t opcode;
 
     SOL_NULL_CHECK(resource, NULL);
@@ -643,7 +643,7 @@ pending_timeout_cb(void *data)
     struct pending_reply *reply = data;
     struct sol_coap_server *server = reply->server;
 
-    if (reply->cb(server, NULL, NULL, (void *)reply->data))
+    if (reply->cb((void *)reply->data, server, NULL, NULL))
         return true;
 
     sol_ptr_vector_remove(&server->pending, reply);
@@ -847,9 +847,8 @@ enqueue_packet(struct sol_coap_server *server, struct sol_coap_packet *pkt,
 SOL_API int
 sol_coap_send_packet_with_reply(struct sol_coap_server *server, struct sol_coap_packet *pkt,
     const struct sol_network_link_addr *cliaddr,
-    bool (*reply_cb)(struct sol_coap_server *server,
-    struct sol_coap_packet *req, const struct sol_network_link_addr *cliaddr,
-    void *data), const void *data)
+    bool (*reply_cb)(void *data, struct sol_coap_server *server,
+    struct sol_coap_packet *req, const struct sol_network_link_addr *cliaddr), const void *data)
 {
     struct pending_reply *reply = NULL;
     struct sol_str_slice option = {};
@@ -1197,9 +1196,9 @@ sol_coap_find_options(const struct sol_coap_packet *pkt, uint16_t code,
 }
 
 static int
-well_known_get(struct sol_coap_server *server,
+well_known_get(void *data, struct sol_coap_server *server,
     const struct sol_coap_resource *resource, struct sol_coap_packet *req,
-    const struct sol_network_link_addr *cliaddr, void *data)
+    const struct sol_network_link_addr *cliaddr)
 {
     struct resource_context *c;
     struct sol_coap_packet *resp;
@@ -1472,11 +1471,10 @@ static int
 respond_packet(struct sol_coap_server *server, struct sol_coap_packet *req,
     const struct sol_network_link_addr *cliaddr)
 {
-    int (*cb)(struct sol_coap_server *server,
+    int (*cb)(void *data, struct sol_coap_server *server,
         const struct sol_coap_resource *resource,
         struct sol_coap_packet *req,
-        const struct sol_network_link_addr *cliaddr,
-        void *data);
+        const struct sol_network_link_addr *cliaddr);
     struct pending_reply *reply;
     struct resource_context *c;
     int observe, r = 0;
@@ -1500,7 +1498,7 @@ respond_packet(struct sol_coap_server *server, struct sol_coap_packet *req,
             if (!match_reply(reply, req))
                 continue;
 
-            if (!reply->cb(server, req, cliaddr, (void *)reply->data)) {
+            if (!reply->cb((void *)reply->data, server, req, cliaddr)) {
                 sol_ptr_vector_del(&server->pending, i);
                 if (reply->observing) {
                     r = send_unobserve_packet(server, cliaddr, reply->path,
@@ -1553,7 +1551,7 @@ respond_packet(struct sol_coap_server *server, struct sol_coap_packet *req,
     /* /.well-known/core well known resource */
     cb = find_resource_cb(req, &well_known);
     if (cb)
-        return cb(server, &well_known, req, cliaddr, NULL);
+        return cb(NULL, server, &well_known, req, cliaddr);
 
     SOL_VECTOR_FOREACH_IDX (&server->contexts, c, i) {
         const struct sol_coap_resource *resource = c->resource;
@@ -1565,7 +1563,7 @@ respond_packet(struct sol_coap_server *server, struct sol_coap_packet *req,
         if (observe >= 0)
             register_observer(c, req, cliaddr, observe);
 
-        return cb(server, resource, req, cliaddr, (void *)c->data);
+        return cb((void *)c->data, server, resource, req, cliaddr);
     }
 
     if (server->unknown_handler)
@@ -1663,7 +1661,7 @@ sol_coap_server_destroy(struct sol_coap_server *server)
 
     SOL_PTR_VECTOR_FOREACH_REVERSE_IDX (&server->pending, reply, i) {
         sol_ptr_vector_del(&server->pending, i);
-        reply->cb(server, NULL, NULL, (void *)reply->data);
+        reply->cb((void *)reply->data, server, NULL, NULL);
         pending_reply_free(reply);
     }
 
@@ -1996,7 +1994,7 @@ sol_coap_unobserve_server(struct sol_coap_server *server, const struct sol_netwo
         if (!match_observe_reply(reply, token, tkl))
             continue;
 
-        reply->cb(server, NULL, NULL, (void *)reply->data);
+        reply->cb((void *)reply->data, server, NULL, NULL);
         sol_ptr_vector_del(&server->pending, i);
 
         r = send_unobserve_packet(server, cliaddr, reply->path, token, tkl);
