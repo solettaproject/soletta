@@ -39,6 +39,12 @@
 #include "sol-oic-server.h"
 #include "sol-oic-security.h"
 
+#define STR(s) #s
+#define TO_STRING(s) STR(s)
+
+#define OIC_DATA_MODEL_VERSION "Unknown"
+#define OIC_SPEC_VERSION ""
+
 SOL_LOG_INTERNAL_DECLARE(_sol_oic_server_log_domain, "oic-server");
 
 struct sol_oic_server_request {
@@ -464,14 +470,14 @@ static struct sol_oic_platform_info *
 init_static_plat_info(void)
 {
     struct sol_oic_platform_info plat_info = {
-        .manufacturer_name = SOL_STR_SLICE_LITERAL(OIC_MANUFACTURER_NAME),
-        .manufacturer_url = SOL_STR_SLICE_LITERAL(OIC_MANUFACTURER_URL),
-        .model_number = SOL_STR_SLICE_LITERAL(OIC_MODEL_NUMBER),
-        .manufacture_date = SOL_STR_SLICE_LITERAL(OIC_MANUFACTURE_DATE),
-        .platform_version = SOL_STR_SLICE_LITERAL(OIC_PLATFORM_VERSION),
-        .hardware_version = SOL_STR_SLICE_LITERAL(OIC_HARDWARE_VERSION),
-        .firmware_version = SOL_STR_SLICE_LITERAL(OIC_FIRMWARE_VERSION),
-        .support_url = SOL_STR_SLICE_LITERAL(OIC_SUPPORT_URL),
+        .manufacturer_name = SOL_STR_SLICE_LITERAL(TO_STRING(OIC_MANUFACTURER_NAME)),
+        .manufacturer_url = SOL_STR_SLICE_LITERAL(TO_STRING(OIC_MANUFACTURER_URL)),
+        .model_number = SOL_STR_SLICE_LITERAL(TO_STRING(OIC_MODEL_NUMBER)),
+        .manufacture_date = SOL_STR_SLICE_LITERAL(TO_STRING(OIC_MANUFACTURE_DATE)),
+        .platform_version = SOL_STR_SLICE_LITERAL(TO_STRING(OIC_PLATFORM_VERSION)),
+        .hardware_version = SOL_STR_SLICE_LITERAL(TO_STRING(OIC_HARDWARE_VERSION)),
+        .firmware_version = SOL_STR_SLICE_LITERAL(TO_STRING(OIC_FIRMWARE_VERSION)),
+        .support_url = SOL_STR_SLICE_LITERAL(TO_STRING(OIC_SUPPORT_URL)),
     };
     struct sol_oic_platform_info *info;
 
@@ -485,9 +491,9 @@ static struct sol_oic_device_info *
 init_static_server_info(void)
 {
     struct sol_oic_device_info server_info = {
-        .device_name = SOL_STR_SLICE_LITERAL(OIC_DEVICE_NAME),
-        .spec_version = SOL_STR_SLICE_LITERAL(OIC_SPEC_VERSION),
-        .data_model_version = SOL_STR_SLICE_LITERAL(OIC_DATA_MODEL_VERSION),
+        .device_name = SOL_STR_SLICE_LITERAL(TO_STRING(OIC_DEVICE_NAME)),
+        .spec_version = SOL_STR_SLICE_LITERAL(TO_STRING(OIC_SPEC_VERSION)),
+        .data_model_version = SOL_STR_SLICE_LITERAL(TO_STRING(OIC_DATA_MODEL_VERSION)),
     };
     struct sol_oic_device_info *info;
 
