@@ -89,7 +89,7 @@ found_resource_print(struct sol_oic_client *cli, struct sol_oic_resource *res, v
 
     if (!res) {
         if (!resource_found) {
-            SOL_WRN("No resource found");
+            printf("No resource found\n");
             sol_quit_with_code(EXIT_FAILURE);
         } else
             sol_quit();
@@ -97,34 +97,34 @@ found_resource_print(struct sol_oic_client *cli, struct sol_oic_resource *res, v
     }
 
     if (res->device_id.len < DEVICE_ID_LEN) {
-        SOL_WRN("Invalid device id");
+        printf("Invalid device id\n");
         return false;
     }
 
     if (!sol_network_link_addr_to_str(&res->addr, &addr)) {
-        SOL_WRN("Could not convert network address to string");
+        printf("Could not convert network address to string\n");
         return false;
     }
 
     resource_found = true;
-    SOL_DBG("Found resource: coap://%.*s%.*s", SOL_STR_SLICE_PRINT(sol_buffer_get_slice(&addr)),
+    printf("Found resource: coap://%.*s%.*s\n", SOL_STR_SLICE_PRINT(sol_buffer_get_slice(&addr)),
         SOL_STR_SLICE_PRINT(res->href));
 
-    SOL_DBG("Flags:");
-    SOL_DBG(" - observable: %s", res->observable ? "yes" : "no");
-    SOL_DBG(" - secure: %s", res->secure ? "yes" : "no");
+    printf("Flags:\n");
+    printf(" - observable: %s\n", res->observable ? "yes" : "no");
+    printf(" - secure: %s\n", res->secure ? "yes" : "no");
 
     device_id_decode(res->device_id.data, device_id);
-    SOL_DBG("Device ID: %.*s", DEVICE_ID_LEN * 2, device_id);
+    printf("Device ID: %.*s\n", DEVICE_ID_LEN * 2, device_id);
 
-    SOL_DBG("Resource types:");
+    printf("Resource types:\n");
     SOL_VECTOR_FOREACH_IDX (&res->types, slice, idx)
-        SOL_DBG("\t\t%.*s", SOL_STR_SLICE_PRINT(*slice));
+        printf("\t\t%.*s\n", SOL_STR_SLICE_PRINT(*slice));
 
-    SOL_DBG("Resource interfaces:");
+    printf("Resource interfaces:\n");
     SOL_VECTOR_FOREACH_IDX (&res->interfaces, slice, idx)
-        SOL_DBG("\t\t%.*s", SOL_STR_SLICE_PRINT(*slice));
-    SOL_DBG(" ");
+        printf("\t\t%.*s\n", SOL_STR_SLICE_PRINT(*slice));
+    printf("\n");
 
     return true;
 }
@@ -160,7 +160,7 @@ check_delete_request(sol_coap_responsecode_t response_code, struct sol_oic_clien
     if (response_code == SOL_COAP_RSPCODE_NOT_FOUND)
         sol_quit();
     else {
-        SOL_WRN("DELETE request failed");
+        printf("DELETE request failed\n");
         sol_quit_with_code(EXIT_FAILURE);
     }
 }
@@ -173,15 +173,15 @@ check_put_request(sol_coap_responsecode_t response_code, struct sol_oic_client *
 
     if (!cliaddr || !map_reader ||
         response_code >= SOL_COAP_RSPCODE_BAD_REQUEST) {
-        SOL_WRN("Invalid GET response after a PUT");
+        printf("Invalid GET response after a PUT\n");
     }
 
     fill_info(map_reader, &state, &power);
     if (power == PUT_REQUEST_POWER && state == true) {
-        SOL_DBG("PUT request successful");
+        printf("PUT request successful\n");
         sol_quit();
     } else {
-        SOL_DBG("PUT request failed");
+        printf("PUT request failed\n");
         sol_quit_with_code(EXIT_FAILURE);
     }
 }
@@ -193,15 +193,15 @@ check_post_request(sol_coap_responsecode_t response_code, struct sol_oic_client 
 
     if (!cliaddr || !map_reader ||
         response_code >= SOL_COAP_RSPCODE_BAD_REQUEST) {
-        SOL_WRN("Invalid GET response after a PUT");
+        printf("Invalid GET response after a PUT\n");
     }
 
     fill_info(map_reader, NULL, &power);
     if (power == POST_REQUEST_POWER) {
-        SOL_DBG("POST request successful");
+        printf("POST request successful\n");
         sol_quit();
     } else {
-        SOL_DBG("POST request failed");
+        printf("POST request failed\n");
         sol_quit_with_code(EXIT_FAILURE);
     }
 }
@@ -252,24 +252,24 @@ resource_notify(sol_coap_responsecode_t response_code, struct sol_oic_client *cl
     SOL_BUFFER_DECLARE_STATIC(addr, SOL_INET_ADDR_STRLEN);
 
     if (!cliaddr) {
-        SOL_WRN("Timeout reached");
+        printf("Timeout reached\n");
         sol_quit_with_code(EXIT_FAILURE);
         return;
     }
 
     if (!sol_network_link_addr_to_str(cliaddr, &addr)) {
-        SOL_WRN("Could not convert network address to string");
+        printf("Could not convert network address to string\n");
         sol_quit_with_code(EXIT_FAILURE);
         return;
     }
 
     if (!check_response_code(response_code, ctx->test_number)) {
-        SOL_WRN("Invalid response");
+        printf("Invalid response\n");
         sol_quit_with_code(EXIT_FAILURE);
         return;
     }
 
-    SOL_WRN("Received successful notification packet from: %.*s", SOL_STR_SLICE_PRINT(sol_buffer_get_slice(&addr)));
+    printf("Received successful notification packet from: %.*s\n", SOL_STR_SLICE_PRINT(sol_buffer_get_slice(&addr)));
     if (notify_count++ >= 5)
         sol_quit();
 }
@@ -306,19 +306,19 @@ print_response(sol_coap_responsecode_t response_code, struct sol_oic_client *cli
     SOL_BUFFER_DECLARE_STATIC(addr, SOL_INET_ADDR_STRLEN);
 
     if (!cliaddr) {
-        SOL_WRN("Timeout reached");
+        printf("Timeout reached\n");
         sol_quit_with_code(EXIT_FAILURE);
         return;
     }
 
     if (!sol_network_link_addr_to_str(cliaddr, &addr)) {
-        SOL_WRN("Could not convert network address to string");
+        printf("Could not convert network address to string\n");
         sol_quit_with_code(EXIT_FAILURE);
         return;
     }
 
     if (!check_response_code(response_code, ctx->test_number)) {
-        SOL_WRN("Invalid response");
+        printf("Invalid response\n");
         sol_quit_with_code(EXIT_FAILURE);
         return;
     }
@@ -332,54 +332,54 @@ print_response(sol_coap_responsecode_t response_code, struct sol_oic_client *cli
     }
 
     if (map_reader) {
-        SOL_DBG("Dumping payload received from addr %.*s {", SOL_STR_SLICE_PRINT(sol_buffer_get_slice(&addr)));
+        printf("Dumping payload received from addr %.*s {\n", SOL_STR_SLICE_PRINT(sol_buffer_get_slice(&addr)));
         SOL_OIC_MAP_LOOP(map_reader, &field, &iterator, end_reason) {
 
             switch (field.type) {
             case SOL_OIC_REPR_TYPE_UINT:
-                SOL_DBG("\tkey: '%s', value: uint(%" PRIu64 ")", field.key,
+                printf("\tkey: '%s', value: uint(%" PRIu64 ")\n", field.key,
                     field.v_uint);
                 break;
             case SOL_OIC_REPR_TYPE_INT:
-                SOL_DBG("\tkey: '%s', value: int(%" PRIi64 ")", field.key,
+                printf("\tkey: '%s', value: int(%" PRIi64 ")\n", field.key,
                     field.v_int);
                 break;
             case SOL_OIC_REPR_TYPE_SIMPLE:
-                SOL_DBG("\tkey: '%s', value: simple(%d)", field.key,
+                printf("\tkey: '%s', value: simple(%d)\n", field.key,
                     field.v_simple);
                 break;
             case SOL_OIC_REPR_TYPE_TEXT_STRING:
-                SOL_DBG("\tkey: '%s', value: str(%.*s)", field.key,
+                printf("\tkey: '%s', value: str(%.*s)\n", field.key,
                     (int)field.v_slice.len, field.v_slice.data);
                 break;
             case SOL_OIC_REPR_TYPE_BYTE_STRING:
                 dump_byte_string(&buf, field.v_slice);
-                SOL_DBG("\tkey: '%s', value: bytestr{%.*s}", field.key,
+                printf("\tkey: '%s', value: bytestr{%.*s}\n", field.key,
                     SOL_STR_SLICE_PRINT(sol_buffer_get_slice(&buf)));
 
                 sol_buffer_fini(&buf);
                 break;
             case SOL_OIC_REPR_TYPE_HALF_FLOAT:
-                SOL_DBG("\tkey: '%s', value: hfloat(%p)", field.key,
+                printf("\tkey: '%s', value: hfloat(%p)\n", field.key,
                     field.v_voidptr);
                 break;
             case SOL_OIC_REPR_TYPE_FLOAT:
-                SOL_DBG("\tkey: '%s', value: float(%f)", field.key,
+                printf("\tkey: '%s', value: float(%f)\n", field.key,
                     field.v_float);
                 break;
             case SOL_OIC_REPR_TYPE_DOUBLE:
-                SOL_DBG("\tkey: '%s', value: float(%g)", field.key,
+                printf("\tkey: '%s', value: float(%g)\n", field.key,
                     field.v_double);
                 break;
             case SOL_OIC_REPR_TYPE_BOOLEAN:
-                SOL_DBG("\tkey: '%s', value: boolean(%s)", field.key,
+                printf("\tkey: '%s', value: boolean(%s)\n", field.key,
                     field.v_boolean ? "true" : "false");
                 break;
             default:
-                SOL_DBG("\tkey: '%s', value: unknown(%d)", field.key, field.type);
+                printf("\tkey: '%s', value: unknown(%d)\n", field.key, field.type);
             }
         }
-        SOL_DBG("}\n");
+        printf("}\n\n");
     }
 
     if (ctx->test_number == TEST_NON_CONFIRMABLE_PUT) {
@@ -397,7 +397,7 @@ print_response(sol_coap_responsecode_t response_code, struct sol_oic_client *cli
         sol_quit();
     else {
 error:
-        SOL_WRN("Invalid response: empty payload.");
+        printf("Invalid response: empty payload.\n");
         sol_quit_with_code(EXIT_FAILURE);
     }
 }
@@ -408,17 +408,17 @@ server_info_cb(struct sol_oic_client *cli, const struct sol_oic_server_informati
     char device_id[DEVICE_ID_LEN * 2];
 
     if (info == NULL) {
-        SOL_WRN("No device found.");
+        printf("No device found.\n");
         sol_quit_with_code(EXIT_FAILURE);
         return;
     }
 
     device_id_decode(info->device_id.data, device_id);
-    SOL_DBG("Found Device:");
-    SOL_DBG(" - Device ID: %.*s", DEVICE_ID_LEN * 2, device_id);
-    SOL_DBG(" - Device name: %.*s", SOL_STR_SLICE_PRINT(info->device_name));
-    SOL_DBG(" - Spec version: %.*s", SOL_STR_SLICE_PRINT(info->spec_version));
-    SOL_DBG(" - Data model version: %.*s",
+    printf("Found Device:\n");
+    printf(" - Device ID: %.*s\n", DEVICE_ID_LEN * 2, device_id);
+    printf(" - Device name: %.*s\n", SOL_STR_SLICE_PRINT(info->device_name));
+    printf(" - Spec version: %.*s\n", SOL_STR_SLICE_PRINT(info->spec_version));
+    printf(" - Data model version: %.*s\n",
         SOL_STR_SLICE_PRINT(info->data_model_version));
     sol_quit();
 }
@@ -427,27 +427,27 @@ static void
 platform_info_cb(struct sol_oic_client *cli, const struct sol_oic_platform_information *info, void *data)
 {
     if (info == NULL) {
-        SOL_WRN("No platform found.");
+        printf("No platform found.\n");
         sol_quit_with_code(EXIT_FAILURE);
         return;
     }
 
-    SOL_DBG("Found Platform:");
-    SOL_DBG(" - Platform ID: %.*s", SOL_STR_SLICE_PRINT(info->platform_id));
-    SOL_DBG(" - Manufacturer name: %.*s",
+    printf("Found Platform:\n");
+    printf(" - Platform ID: %.*s\n", SOL_STR_SLICE_PRINT(info->platform_id));
+    printf(" - Manufacturer name: %.*s\n",
         SOL_STR_SLICE_PRINT(info->manufacturer_name));
-    SOL_DBG(" - Manufacturer URL: %.*s",
+    printf(" - Manufacturer URL: %.*s\n",
         SOL_STR_SLICE_PRINT(info->manufacturer_url));
-    SOL_DBG(" - Model Number: %.*s", SOL_STR_SLICE_PRINT(info->model_number));
-    SOL_DBG(" - Manufacturer date: %.*s",
+    printf(" - Model Number: %.*s\n", SOL_STR_SLICE_PRINT(info->model_number));
+    printf(" - Manufacturer date: %.*s\n",
         SOL_STR_SLICE_PRINT(info->manufacture_date));
-    SOL_DBG(" - Plafform version: %.*s",
+    printf(" - Plafform version: %.*s\n",
         SOL_STR_SLICE_PRINT(info->platform_version));
-    SOL_DBG(" - Hardware version: %.*s",
+    printf(" - Hardware version: %.*s\n",
         SOL_STR_SLICE_PRINT(info->hardware_version));
-    SOL_DBG(" - Firmware version: %.*s",
+    printf(" - Firmware version: %.*s\n",
         SOL_STR_SLICE_PRINT(info->firmware_version));
-    SOL_DBG(" - Support URL: %.*s", SOL_STR_SLICE_PRINT(info->support_url));
+    printf(" - Support URL: %.*s\n", SOL_STR_SLICE_PRINT(info->support_url));
     sol_quit();
 }
 
@@ -484,8 +484,8 @@ found_resource(struct sol_oic_client *cli, struct sol_oic_resource *res, void *d
 
 #ifndef SOL_NO_API_VERSION
     if (SOL_UNLIKELY(res->api_version != SOL_OIC_RESOURCE_API_VERSION)) {
-        SOL_WRN("Couldn't add resource_type with "
-            "version '%u'. Expected version '%u'.",
+        printf("Couldn't add resource_type with "
+            "version '%u'. Expected version '%u'.\n",
             res->api_version, SOL_OIC_RESOURCE_API_VERSION);
         return NULL;
     }
@@ -549,11 +549,11 @@ found_resource(struct sol_oic_client *cli, struct sol_oic_resource *res, void *d
         break;
 
     default:
-        SOL_WRN("Invalid test");
+        printf("Invalid test\n");
         goto error;
     }
 
-    SOL_DBG("Issuing %sconfirmable %s on resource %.*s",
+    printf("Issuing %sconfirmable %s on resource %.*s\n",
         non_confirmable ? "non-" : "", method_str,
         SOL_STR_SLICE_PRINT(res->href));
 
@@ -588,29 +588,29 @@ error:
 static void
 usage(void)
 {
-    SOL_INF("iotivity-test-client uses same test numbers used in occlient "
-        "sample from iotivity.");
-    SOL_INF("Usage : iotivity-test-client <1..20>");
-    SOL_INF("1  :  Just discover resources.");
-    SOL_INF("2  :  Non-confirmable GET Request");
-    SOL_INF("3  :  Unsupported");
-    SOL_INF("4  :  Non-confirmable PUT Requests");
-    SOL_INF("5  :  Non-confirmable POST Requests");
-    SOL_INF("6  :  Non-confirmable DELETE Requests");
-    SOL_INF("7  :  Non-confirmable OBSERVE Requests");
-    SOL_INF("8  :  Non-confirmable GET Request for an unavailable resource");
-    SOL_INF("9  :  Confirmable GET Request");
-    SOL_INF("10 :  Confirmable POST Request");
-    SOL_INF("11 :  Confirmable DELETE Requests");
-    SOL_INF("12 :  Confirmable OBSERVE Requests");
-    SOL_INF("13 :  Unsupported");
-    SOL_INF("14 :  Unsupported");
-    SOL_INF("15 :  Unsupported");
-    SOL_INF("16 :  Unsupported");
-    SOL_INF("17 :  Unsupported");
-    SOL_INF("18 :  Unsupported");
-    SOL_INF("19 :  Discover Platforms");
-    SOL_INF("20 :  Discover Devices");
+    printf("iotivity-test-client uses same test numbers used in occlient "
+        "sample from iotivity.\n");
+    printf("Usage : iotivity-test-client <1..20>\n");
+    printf("1  :  Just discover resources.\n");
+    printf("2  :  Non-confirmable GET Request\n");
+    printf("3  :  Unsupported\n");
+    printf("4  :  Non-confirmable PUT Requests\n");
+    printf("5  :  Non-confirmable POST Requests\n");
+    printf("6  :  Non-confirmable DELETE Requests\n");
+    printf("7  :  Non-confirmable OBSERVE Requests\n");
+    printf("8  :  Non-confirmable GET Request for an unavailable resource\n");
+    printf("9  :  Confirmable GET Request\n");
+    printf("10 :  Confirmable POST Request\n");
+    printf("11 :  Confirmable DELETE Requests\n");
+    printf("12 :  Confirmable OBSERVE Requests\n");
+    printf("13 :  Unsupported\n");
+    printf("14 :  Unsupported\n");
+    printf("15 :  Unsupported\n");
+    printf("16 :  Unsupported\n");
+    printf("17 :  Unsupported\n");
+    printf("18 :  Unsupported\n");
+    printf("19 :  Discover Platforms\n");
+    printf("20 :  Discover Devices\n");
 }
 
 int
@@ -647,7 +647,7 @@ main(int argc, char *argv[])
         interface_type = argv[3];
 
     if (!sol_network_link_addr_from_str(&cliaddr, "224.0.1.187")) {
-        SOL_WRN("could not convert multicast ip address to sockaddr_in");
+        printf("could not convert multicast ip address to sockaddr_in\n");
         return 1;
     }
 
@@ -671,7 +671,7 @@ main(int argc, char *argv[])
         break;
 
     default:
-        SOL_WRN("Unsupported test.");
+        printf("Unsupported test.\n");
         return 0;
     }
 
