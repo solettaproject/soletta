@@ -49,11 +49,10 @@ extern "C" {
  * @ref sol_oic_client_get_platform_info() and @ref
  * sol_oic_client_get_platform_info_by_addr
  */
-struct sol_oic_platform_information {
+struct sol_oic_platform_info {
 #ifndef SOL_NO_API_VERSION
-#define SOL_OIC_PLATFORM_INFORMATION_API_VERSION (1)
+#define SOL_OIC_PLATFORM_INFO_API_VERSION (1)
     uint16_t api_version; /**< @brief API version */
-    int : 0; /**< @brief Unused. Save possible hole for a future field */
 #endif
 
     /* All fields are required by the spec.  Some of the fields are
@@ -115,7 +114,7 @@ struct sol_oic_platform_information {
  *
  * Multiple flags can be set, just connect them using the | operator.
  *
- * @see sol_oic_server_add_resource()
+ * @see sol_oic_server_register_resource()
  */
 enum sol_oic_resource_flag {
     /**
@@ -167,11 +166,10 @@ enum sol_oic_resource_flag {
  * @ref sol_oic_client_get_server_info() and @ref
  * sol_oic_client_get_server_info_by_addr
  */
-struct sol_oic_server_information {
+struct sol_oic_device_info {
 #ifndef SOL_NO_API_VERSION
-#define SOL_OIC_SERVER_INFORMATION_API_VERSION (1)
+#define SOL_OIC_DEVICE_INFO_API_VERSION (1)
     uint16_t api_version; /**< @brief API version */
-    int : 0; /**< @brief Unused. Save possible hole for a future field */
 #endif
 
     /**
@@ -408,6 +406,13 @@ enum sol_oic_map_type {
  * This structure is used in callback parameters so users can read fields from
  * an oic packet using @ref SOL_OIC_MAP_LOOP.
  *
+ * @param parser Internal Pointer. Not to be used.
+ * @param ptr Internal Pointer. Not to be used.
+ * @param remaining Internal information. Not to be used.
+ * @param extra Internal information. Not to be used.
+ * @param type Internal information. Not to be used.
+ * @param flags Internal information. Not to be used.
+ *
  * @note Fields from this structure are not expected to be accessed by clients.
  * @see SOL_OIC_MAP_LOOP.
  */
@@ -441,7 +446,7 @@ struct sol_oic_response;
 /**
  * @brief Possible reasons a @ref SOL_OIC_MAP_LOOP was terminated.
  */
-enum sol_oic_map_loop_reason {
+enum sol_oic_map_loop_status {
     /**
      * @brief Success termination. Everything was OK.
      */
@@ -470,7 +475,7 @@ enum sol_oic_map_loop_reason {
  *
  * @see sol_oic_map_reader
  */
-enum sol_oic_map_loop_reason sol_oic_map_loop_init(const struct sol_oic_map_reader *map, struct sol_oic_map_reader *iterator, struct sol_oic_repr_field *repr);
+enum sol_oic_map_loop_status sol_oic_map_loop_init(const struct sol_oic_map_reader *map, struct sol_oic_map_reader *iterator, struct sol_oic_repr_field *repr);
 
 /**
  * @brief Get the next element from @a iterator.
@@ -488,7 +493,7 @@ enum sol_oic_map_loop_reason sol_oic_map_loop_init(const struct sol_oic_map_read
  *
  * @see sol_oic_map_reader
  */
-bool sol_oic_map_loop_next(struct sol_oic_repr_field *repr, struct sol_oic_map_reader *iterator, enum sol_oic_map_loop_reason *reason);
+bool sol_oic_map_loop_next(struct sol_oic_repr_field *repr, struct sol_oic_map_reader *iterator, enum sol_oic_map_loop_status *reason);
 
 /**
  * @brief Append an element to @a oic_map_writer
@@ -554,14 +559,14 @@ void sol_oic_repr_field_clear(struct sol_oic_repr_field *field);
  *        the current element data.
  * @param iterator_ A pointer to a struct sol_oic_map_reader to be used as an
  *        iterator
- * @param end_reason_ A pointer to a enum sol_oic_map_loop_reason to be filled
+ * @param end_reason_ A pointer to a enum sol_oic_map_loop_status to be filled
  *        with the reason this loop has terminated.
  *
  * Example to read data from a struct sol_oic_map_reader using this macro:
  * @code
  *
  * struct sol_oic_repr_field field;
- * enum sol_oic_map_loop_reason end_reason;
+ * enum sol_oic_map_loop_status end_reason;
  * struct sol_oic_map_reader iterator;
  *
  * SOL_OIC_MAP_LOOP(map_reader, &field, &iterator, end_reason) {

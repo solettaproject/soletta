@@ -33,7 +33,7 @@ Local<Value> js_sol_oic_map_reader(
     Local<Object> returnValue = Nan::New<Object>();
 
     struct sol_oic_repr_field field;
-    enum sol_oic_map_loop_reason end_reason;
+    enum sol_oic_map_loop_status end_reason;
     struct sol_oic_map_reader iterator = {0, 0, 0, 0, 0, 0};
     SOL_OIC_MAP_LOOP(representation, &field, &iterator, end_reason) {
         Local<Value> jsValue;

@@ -62,7 +62,7 @@ struct sol_oic_resource {
     /**
      * @brief The path pointing at this resource.
      */
-    struct sol_str_slice href;
+    struct sol_str_slice path;
     /**
      * @brief The Device ID as UUID 16-byte array.
      */
@@ -109,7 +109,7 @@ struct sol_oic_resource {
      * It is expected that clients that are observing a resource receives
      * notifications when resource state changes.
      */
-    bool is_observing : 1;
+    bool is_observed : 1;
 };
 
 /**
@@ -181,7 +181,7 @@ bool sol_oic_client_find_resource(struct sol_oic_client *client,
  * @brief Retrieve platform information.
  *
  * Sends a packet to @a resource's server asking for platform information
- * defined at @ref sol_oic_platform_information.
+ * defined at @ref sol_oic_platform_info.
  *
  * When a response is received, the function @a info_received_cb will be
  * called, with @a info parameter filled with the information received, or
@@ -195,7 +195,7 @@ bool sol_oic_client_find_resource(struct sol_oic_client *client,
  * @param resource The resource that is going to receive the request.
  * @param info_received_cb Callback to be called when response is received or
  *        when timeout is reached. Parameter cli is the sol_oic_client used to
- *        perform the request, info is the @ref sol_oic_platform_information
+ *        perform the request, info is the @ref sol_oic_platform_info
  *        structure with server info data, data is a pointer to user's data
  *        parameter.
  * @param data A pointer to user's data.
@@ -205,14 +205,14 @@ bool sol_oic_client_find_resource(struct sol_oic_client *client,
 bool sol_oic_client_get_platform_info(struct sol_oic_client *client,
     struct sol_oic_resource *resource,
     void (*info_received_cb)(struct sol_oic_client *cli,
-    const struct sol_oic_platform_information *info, void *data),
+    const struct sol_oic_platform_info *info, void *data),
     const void *data);
 
 /**
  * @brief Retrieve platform information from @a addr.
  *
  * Sends a packet to server identified by @a addr asking for platform
- * information defined at @ref sol_oic_platform_information.
+ * information defined at @ref sol_oic_platform_info.
  *
  * When a response is received, the function @a info_received_cb will be
  * called, with @a info parameter filled with the information received, or
@@ -227,7 +227,7 @@ bool sol_oic_client_get_platform_info(struct sol_oic_client *client,
  *        information.
  * @param info_received_cb Callback to be called when response is received or
  *        when timeout is reached. Parameter cli is the sol_oic_client used to
- *        perform the request, info is the @ref sol_oic_platform_information
+ *        perform the request, info is the @ref sol_oic_platform_info
  *        structure with server info data, data is a pointer to user's data
  *        parameter.
  * @param data A pointer to user's data.
@@ -237,14 +237,14 @@ bool sol_oic_client_get_platform_info(struct sol_oic_client *client,
 bool sol_oic_client_get_platform_info_by_addr(struct sol_oic_client *client,
     struct sol_network_link_addr *addr,
     void (*info_received_cb)(struct sol_oic_client *cli,
-    const struct sol_oic_platform_information *info, void *data),
+    const struct sol_oic_platform_info *info, void *data),
     const void *data);
 
 /**
  * @brief Retrieve server information.
  *
  * Sends a packet to @a resource's server asking for server information
- * defined at @ref sol_oic_server_information.
+ * defined at @ref sol_oic_device_info.
  *
  * When a response is received, the function @a info_received_cb will be
  * called, with @a info parameter filled with the information received, or
@@ -258,7 +258,7 @@ bool sol_oic_client_get_platform_info_by_addr(struct sol_oic_client *client,
  * @param resource The resource that is going to receive the request.
  * @param info_received_cb Callback to be called when response is received or
  *        when timeout is reached. Parameter cli is the sol_oic_client used to
- *        perform the request, info is the @ref sol_oic_server_information
+ *        perform the request, info is the @ref sol_oic_device_info
  *        structure with server info data, data is a pointer to user's data
  *        parameter.
  * @param data A pointer to user's data.
@@ -268,14 +268,14 @@ bool sol_oic_client_get_platform_info_by_addr(struct sol_oic_client *client,
 bool sol_oic_client_get_server_info(struct sol_oic_client *client,
     struct sol_oic_resource *resource,
     void (*info_received_cb)(struct sol_oic_client *cli,
-    const struct sol_oic_server_information *info, void *data),
+    const struct sol_oic_device_info *info, void *data),
     const void *data);
 
 /**
  * @brief Retrieve server information from @a addr.
  *
  * Sends a packet to server identified by @a addr asking for server
- * information defined at @ref sol_oic_server_information.
+ * information defined at @ref sol_oic_device_info.
  *
  * When a response is received, the function @a info_received_cb will be
  * called, with @a info parameter filled with the information received, or
@@ -290,7 +290,7 @@ bool sol_oic_client_get_server_info(struct sol_oic_client *client,
  *        information.
  * @param info_received_cb Callback to be called when response is received or
  *        when timeout is reached. Parameter cli is the sol_oic_client used to
- *        perform the request, info is the @ref sol_oic_server_information
+ *        perform the request, info is the @ref sol_oic_device_info
  *        structure with server info data, data is a pointer to user's data
  *        parameter.
  * @param data A pointer to user's data.
@@ -300,7 +300,7 @@ bool sol_oic_client_get_server_info(struct sol_oic_client *client,
 bool sol_oic_client_get_server_info_by_addr(struct sol_oic_client *client,
     struct sol_network_link_addr *addr,
     void (*info_received_cb)(struct sol_oic_client *cli,
-    const struct sol_oic_server_information *info, void *data),
+    const struct sol_oic_device_info *info, void *data),
     const void *data);
 
 /**

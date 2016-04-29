@@ -108,7 +108,7 @@ found_resource_print(struct sol_oic_client *cli, struct sol_oic_resource *res, v
 
     resource_found = true;
     SOL_WRN("Found resource: coap://%.*s%.*s", SOL_STR_SLICE_PRINT(sol_buffer_get_slice(&addr)),
-        SOL_STR_SLICE_PRINT(res->href));
+        SOL_STR_SLICE_PRINT(res->path));
 
     SOL_WRN("Flags:");
     SOL_WRN(" - observable: %s", res->observable ? "yes" : "no");
@@ -133,7 +133,7 @@ static void
 fill_info(const struct sol_oic_map_reader *map_reader, bool *state, int32_t *power)
 {
     struct sol_oic_repr_field field;
-    enum sol_oic_map_loop_reason end_reason;
+    enum sol_oic_map_loop_status end_reason;
     struct sol_oic_map_reader iterator;
 
     SOL_OIC_MAP_LOOP(map_reader, &field, &iterator, end_reason) {
@@ -297,7 +297,7 @@ print_response(sol_coap_responsecode_t response_code, struct sol_oic_client *cli
     const struct sol_oic_map_reader *map_reader, void *data)
 {
     struct sol_oic_repr_field field;
-    enum sol_oic_map_loop_reason end_reason;
+    enum sol_oic_map_loop_status end_reason;
     struct sol_oic_map_reader iterator;
     struct Context *ctx = data;
     struct sol_buffer buf = SOL_BUFFER_INIT_EMPTY;
@@ -403,7 +403,7 @@ error:
 }
 
 static void
-server_info_cb(struct sol_oic_client *cli, const struct sol_oic_server_information *info, void *data)
+server_info_cb(struct sol_oic_client *cli, const struct sol_oic_device_info *info, void *data)
 {
     char device_id[DEVICE_ID_LEN * 2];
 
@@ -424,7 +424,7 @@ server_info_cb(struct sol_oic_client *cli, const struct sol_oic_server_informati
 }
 
 static void
-platform_info_cb(struct sol_oic_client *cli, const struct sol_oic_platform_information *info, void *data)
+platform_info_cb(struct sol_oic_client *cli, const struct sol_oic_platform_info *info, void *data)
 {
     if (info == NULL) {
         SOL_WRN("No platform found.");
@@ -476,7 +476,7 @@ found_resource(struct sol_oic_client *cli, struct sol_oic_resource *res, void *d
     sol_coap_method_t method = SOL_COAP_METHOD_GET;
 
     bool (*fill_repr_map)(struct sol_oic_map_writer *repr_map) = NULL;
-    struct sol_str_slice href;
+    struct sol_str_slice path;
     struct sol_oic_request *request;
 
     if (!res)
@@ -529,8 +529,8 @@ found_resource(struct sol_oic_client *cli, struct sol_oic_resource *res, void *d
     case TEST_NON_CONFIRMABLE_INVALID_GET:
         non_confirmable = true;
         method_str = "invalid GET";
-        href = res->href;
-        res->href = sol_str_slice_from_str("/SomeUnknownResource");
+        path = res->path;
+        res->path = sol_str_slice_from_str("/SomeUnknownResource");
         break;
     case TEST_CONFIRMABLE_GET:
         break;
@@ -555,7 +555,7 @@ found_resource(struct sol_oic_client *cli, struct sol_oic_resource *res, void *d
 
     SOL_WRN("Issuing %sconfirmable %s on resource %.*s",
         non_confirmable ? "non-" : "", method_str,
-        SOL_STR_SLICE_PRINT(res->href));
+        SOL_STR_SLICE_PRINT(res->path));
 
     if (observe) {
         if (non_confirmable)
@@ -576,7 +576,7 @@ found_resource(struct sol_oic_client *cli, struct sol_oic_resource *res, void *d
     }
 
     if (ctx->test_number == TEST_NON_CONFIRMABLE_INVALID_GET)
-        res->href = href;
+        res->path = path;
 
     return false;
 
@@ -588,29 +588,29 @@ error:
 static void
 usage(void)
 {
-    SOL_INF("iotivity-test-client uses same test numbers used in occlient "
+    SOL_WRN("iotivity-test-client uses same test numbers used in occlient "
         "sample from iotivity.");
-    SOL_INF("Usage : iotivity-test-client <1..20>");
-    SOL_INF("1  :  Just discover resources.");
-    SOL_INF("2  :  Non-confirmable GET Request");
-    SOL_INF("3  :  Unsupported");
-    SOL_INF("4  :  Non-confirmable PUT Requests");
-    SOL_INF("5  :  Non-confirmable POST Requests");
-    SOL_INF("6  :  Non-confirmable DELETE Requests");
-    SOL_INF("7  :  Non-confirmable OBSERVE Requests");
-    SOL_INF("8  :  Non-confirmable GET Request for an unavailable resource");
-    SOL_INF("9  :  Confirmable GET Request");
-    SOL_INF("10 :  Confirmable POST Request");
-    SOL_INF("11 :  Confirmable DELETE Requests");
-    SOL_INF("12 :  Confirmable OBSERVE Requests");
-    SOL_INF("13 :  Unsupported");
-    SOL_INF("14 :  Unsupported");
-    SOL_INF("15 :  Unsupported");
-    SOL_INF("16 :  Unsupported");
-    SOL_INF("17 :  Unsupported");
-    SOL_INF("18 :  Unsupported");
-    SOL_INF("19 :  Discover Platforms");
-    SOL_INF("20 :  Discover Devices");
+    SOL_WRN("Usage : iotivity-test-client <1..20>");
+    SOL_WRN("1  :  Just discover resources.");
+    SOL_WRN("2  :  Non-confirmable GET Request");
+    SOL_WRN("3  :  Unsupported");
+    SOL_WRN("4  :  Non-confirmable PUT Requests");
+    SOL_WRN("5  :  Non-confirmable POST Requests");
+    SOL_WRN("6  :  Non-confirmable DELETE Requests");
+    SOL_WRN("7  :  Non-confirmable OBSERVE Requests");
+    SOL_WRN("8  :  Non-confirmable GET Request for an unavailable resource");
+    SOL_WRN("9  :  Confirmable GET Request");
+    SOL_WRN("10 :  Confirmable POST Request");
+    SOL_WRN("11 :  Confirmable DELETE Requests");
+    SOL_WRN("12 :  Confirmable OBSERVE Requests");
+    SOL_WRN("13 :  Unsupported");
+    SOL_WRN("14 :  Unsupported");
+    SOL_WRN("15 :  Unsupported");
+    SOL_WRN("16 :  Unsupported");
+    SOL_WRN("17 :  Unsupported");
+    SOL_WRN("18 :  Unsupported");
+    SOL_WRN("19 :  Discover Platforms");
+    SOL_WRN("20 :  Discover Devices");
 }
 
 int

@@ -166,7 +166,7 @@ startup()
 #ifdef OIC
     float f = 2.3f;
     struct sol_oic_map_reader map = { 0, 0, 0, 0, 0, 0 };
-    enum sol_oic_map_loop_reason end_reason;
+    enum sol_oic_map_loop_status end_reason;
     struct sol_oic_map_reader iterator = { 0, 0, 0, 0, 0, 0 };
     struct sol_oic_repr_field rep_field1 = SOL_OIC_REPR_UINT("1", 2);
     struct sol_oic_repr_field rep_field2 = SOL_OIC_REPR_INT("2", -2);

@@ -52,8 +52,8 @@ struct sol_oic_server {
     struct sol_coap_server *server;
     struct sol_coap_server *dtls_server;
     struct sol_ptr_vector resources;
-    struct sol_oic_platform_information *plat_info;
-    struct sol_oic_server_information *server_info;
+    struct sol_oic_platform_info *plat_info;
+    struct sol_oic_device_info *server_info;
     struct sol_oic_security *security;
     struct sol_ptr_vector requests;
     struct sol_ptr_vector responses;
@@ -84,8 +84,8 @@ struct sol_oic_server_resource {
 
 static struct sol_oic_server oic_server;
 void sol_oic_server_shutdown(void);
-static struct sol_oic_server_resource *sol_oic_server_add_resource_internal(const struct sol_oic_resource_type *rt, const void *handler_data, enum sol_oic_resource_flag flags);
-static void sol_oic_server_del_resource_internal(struct sol_oic_server_resource *resource);
+static struct sol_oic_server_resource *sol_oic_server_register_resource_internal(const struct sol_oic_resource_type *rt, const void *handler_data, enum sol_oic_resource_flag flags);
+static void sol_oic_server_unregister_resource_internal(struct sol_oic_server_resource *resource);
 static void sol_oic_server_unref(void);
 
 #define OIC_SERVER_CHECK(ret) \
@@ -460,10 +460,10 @@ static const struct sol_coap_resource oic_res_coap_resource = {
     .flags = SOL_COAP_FLAGS_NONE
 };
 
-static struct sol_oic_platform_information *
+static struct sol_oic_platform_info *
 init_static_plat_info(void)
 {
-    struct sol_oic_platform_information plat_info = {
+    struct sol_oic_platform_info plat_info = {
         .manufacturer_name = SOL_STR_SLICE_LITERAL(OIC_MANUFACTURER_NAME),
         .manufacturer_url = SOL_STR_SLICE_LITERAL(OIC_MANUFACTURER_URL),
         .model_number = SOL_STR_SLICE_LITERAL(OIC_MODEL_NUMBER),
@@ -473,7 +473,7 @@ init_static_plat_info(void)
         .firmware_version = SOL_STR_SLICE_LITERAL(OIC_FIRMWARE_VERSION),
         .support_url = SOL_STR_SLICE_LITERAL(OIC_SUPPORT_URL),
     };
-    struct sol_oic_platform_information *info;
+    struct sol_oic_platform_info *info;
 
     info = sol_util_memdup(&plat_info, sizeof(*info));
     SOL_NULL_CHECK(info, NULL);
@@ -481,15 +481,15 @@ init_static_plat_info(void)
     return info;
 }
 
-static struct sol_oic_server_information *
+static struct sol_oic_device_info *
 init_static_server_info(void)
 {
-    struct sol_oic_server_information server_info = {
+    struct sol_oic_device_info server_info = {
         .device_name = SOL_STR_SLICE_LITERAL(OIC_DEVICE_NAME),
         .spec_version = SOL_STR_SLICE_LITERAL(OIC_SPEC_VERSION),
         .data_model_version = SOL_STR_SLICE_LITERAL(OIC_DATA_MODEL_VERSION),
     };
-    struct sol_oic_server_information *info;
+    struct sol_oic_device_info *info;
 
     server_info.device_id =
         SOL_STR_SLICE_STR((const char *)sol_platform_get_machine_id_as_bytes(), 16);
@@ -516,8 +516,8 @@ oic_dtls_server_init(void)
 static int
 sol_oic_server_ref(void)
 {
-    struct sol_oic_platform_information *plat_info = NULL;
-    struct sol_oic_server_information *server_info = NULL;
+    struct sol_oic_platform_info *plat_info = NULL;
+    struct sol_oic_device_info *server_info = NULL;
     struct sol_oic_server_resource *res;
     struct sol_network_link_addr servaddr = { .family = SOL_NETWORK_FAMILY_INET6,
                                               .port = OIC_COAP_SERVER_UDP_PORT };
@@ -570,11 +570,11 @@ sol_oic_server_ref(void)
 
     oic_server.refcnt++;
 
-    res = sol_oic_server_add_resource_internal(&oic_d_resource_type, NULL,
+    res = sol_oic_server_register_resource_internal(&oic_d_resource_type, NULL,
         SOL_OIC_FLAG_DISCOVERABLE | SOL_OIC_FLAG_ACTIVE);
     SOL_NULL_CHECK_GOTO(res, error_shutdown);
 
-    res = sol_oic_server_add_resource_internal(&oic_p_resource_type, NULL,
+    res = sol_oic_server_register_resource_internal(&oic_p_resource_type, NULL,
         SOL_OIC_FLAG_DISCOVERABLE | SOL_OIC_FLAG_ACTIVE);
     SOL_NULL_CHECK_GOTO(res, error_shutdown);
 
@@ -602,7 +602,7 @@ sol_oic_server_shutdown_internal(void)
         sol_oic_server_security_del(oic_server.security);
 
     SOL_PTR_VECTOR_FOREACH_REVERSE_IDX (&oic_server.resources, res, idx)
-        sol_oic_server_del_resource_internal(res);
+        sol_oic_server_unregister_resource_internal(res);
 
     if (oic_server.dtls_server)
         sol_coap_server_unref(oic_server.dtls_server);
@@ -920,7 +920,7 @@ create_endpoint(void)
 }
 
 struct sol_oic_server_resource *
-sol_oic_server_add_resource_internal(const struct sol_oic_resource_type *rt,
+sol_oic_server_register_resource_internal(const struct sol_oic_resource_type *rt,
     const void *handler_data, enum sol_oic_resource_flag flags)
 {
     struct sol_oic_server_resource *res;
@@ -982,7 +982,7 @@ remove_res:
 }
 
 SOL_API struct sol_oic_server_resource *
-sol_oic_server_add_resource(const struct sol_oic_resource_type *rt,
+sol_oic_server_register_resource(const struct sol_oic_resource_type *rt,
     const void *handler_data, enum sol_oic_resource_flag flags)
 {
     int r;
@@ -1000,11 +1000,11 @@ sol_oic_server_add_resource(const struct sol_oic_resource_type *rt,
     }
 #endif
 
-    return sol_oic_server_add_resource_internal(rt, handler_data, flags);
+    return sol_oic_server_register_resource_internal(rt, handler_data, flags);
 }
 
 static void
-sol_oic_server_del_resource_internal(struct sol_oic_server_resource *resource)
+sol_oic_server_unregister_resource_internal(struct sol_oic_server_resource *resource)
 {
     sol_coap_server_unregister_resource(oic_server.server, resource->coap);
     if (oic_server.dtls_server)
@@ -1021,12 +1021,12 @@ sol_oic_server_del_resource_internal(struct sol_oic_server_resource *resource)
 }
 
 SOL_API void
-sol_oic_server_del_resource(struct sol_oic_server_resource *resource)
+sol_oic_server_unregister_resource(struct sol_oic_server_resource *resource)
 {
     OIC_SERVER_CHECK();
     SOL_NULL_CHECK(resource);
 
-    sol_oic_server_del_resource_internal(resource);
+    sol_oic_server_unregister_resource_internal(resource);
     sol_oic_server_unref();
 }
 

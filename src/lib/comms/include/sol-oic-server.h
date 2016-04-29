@@ -48,7 +48,7 @@ extern "C" {
  * To override this just define OIC_PLATFORM_ID before including this
  * header.
  *
- * @see sol_oic_platform_information
+ * @see sol_oic_platform_info
  */
 #define OIC_PLATFORM_ID "Unknown"
 #endif
@@ -60,7 +60,7 @@ extern "C" {
  * To override this just define OIC_MANUFACTURER_NAME before including this
  * header.
  *
- * @see sol_oic_platform_information
+ * @see sol_oic_platform_info
  */
 #define OIC_MANUFACTURER_NAME "Soletta"
 #endif
@@ -71,7 +71,7 @@ extern "C" {
  * To override this just define OIC_MANUFACTURER_URL before including this
  * header.
  *
- * @see sol_oic_platform_information
+ * @see sol_oic_platform_info
  */
 #define OIC_MANUFACTURER_URL "https://soletta-project.org"
 #endif
@@ -82,7 +82,7 @@ extern "C" {
  * To override this just define OIC_MODEL_NUMBER before including this
  * header.
  *
- * @see sol_oic_platform_information
+ * @see sol_oic_platform_info
  */
 #define OIC_MODEL_NUMBER "Unknown"
 #endif
@@ -93,7 +93,7 @@ extern "C" {
  * To override this just define OIC_MANUFACTURE_DATE before including this
  * header.
  *
- * @see sol_oic_platform_information
+ * @see sol_oic_platform_info
  */
 #define OIC_MANUFACTURE_DATE "2015-01-01"
 #endif
@@ -104,7 +104,7 @@ extern "C" {
  * To override this just define OIC_PLATFORM_VERSION before including this
  * header.
  *
- * @see sol_oic_platform_information
+ * @see sol_oic_platform_info
  */
 #define OIC_PLATFORM_VERSION "Unknown"
 #endif
@@ -115,7 +115,7 @@ extern "C" {
  * To override this just define OIC_HARDWARE_VERSION before including this
  * header.
  *
- * @see sol_oic_platform_information
+ * @see sol_oic_platform_info
  */
 #define OIC_HARDWARE_VERSION "Unknown"
 #endif
@@ -126,7 +126,7 @@ extern "C" {
  * To override this just define OIC_FIRMWARE_VERSION before including this
  * header.
  *
- * @see sol_oic_platform_information
+ * @see sol_oic_platform_info
  */
 #define OIC_FIRMWARE_VERSION "Unknown"
 #endif
@@ -137,7 +137,7 @@ extern "C" {
  * To override this just define OIC_SUPPORT_URL before including this
  * header.
  *
- * @see sol_oic_platform_information
+ * @see sol_oic_platform_info
  */
 #define OIC_SUPPORT_URL "Unknown"
 #endif
@@ -148,7 +148,7 @@ extern "C" {
  * To override this just define OIC_DEVICE_NAME before including this
  * header.
  *
- * @see sol_oic_server_information
+ * @see sol_oic_device_info
  */
 #define OIC_DEVICE_NAME "Unknown"
 #endif
@@ -159,7 +159,7 @@ extern "C" {
  * To override this just define OIC_SPEC_VERSION before including this
  * header.
  *
- * @see sol_oic_server_information
+ * @see sol_oic_device_info
  */
 #define OIC_SPEC_VERSION ""
 #endif
@@ -170,7 +170,7 @@ extern "C" {
  * To override this just define OIC_DATA_MODEL_VERSION before including this
  * header.
  *
- * @see sol_oic_server_information
+ * @see sol_oic_device_info
  */
 #define OIC_DATA_MODEL_VERSION "Unknown"
 #endif
@@ -187,7 +187,7 @@ struct sol_oic_server_resource;
  *
  * @brief structure defining the type of a resource.
  *
- * @see sol_oic_server_add_resource
+ * @see sol_oic_server_register_resource
  */
 struct sol_oic_resource_type {
 #ifndef SOL_NO_API_VERSION
@@ -300,23 +300,23 @@ struct sol_oic_resource_type {
  *
  * @return On success, a pointer to the new resource created. On errors, NULL.
  *
- * @see sol_oic_server_del_resource
+ * @see sol_oic_server_unregister_resource
  */
-struct sol_oic_server_resource *sol_oic_server_add_resource(
+struct sol_oic_server_resource *sol_oic_server_register_resource(
     const struct sol_oic_resource_type *rt, const void *handler_data,
     enum sol_oic_resource_flag flags);
 
 /**
  * @brief Delete a resource from the oic-server.
  *
- * Remove a resource created using @ref sol_oic_server_add_resource from the
+ * Remove a resource created using @ref sol_oic_server_register_resource from the
  * oic-server
  *
  * @param resource The resource to be removed from server.
  *
- * @see sol_oic_server_add_resource
+ * @see sol_oic_server_register_resource
  */
-void sol_oic_server_del_resource(struct sol_oic_server_resource *resource);
+void sol_oic_server_unregister_resource(struct sol_oic_server_resource *resource);
 
 /**
  * @brief Send notification to all observing clients.

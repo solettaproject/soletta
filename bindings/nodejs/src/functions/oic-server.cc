@@ -182,7 +182,7 @@ resource_type_failed:
     return false;
 }
 
-NAN_METHOD(bind_sol_oic_server_add_resource) {
+NAN_METHOD(bind_sol_oic_server_register_resource) {
     VALIDATE_ARGUMENT_COUNT(info, 2);
     VALIDATE_ARGUMENT_TYPE(info, 0, IsObject);
     VALIDATE_ARGUMENT_TYPE(info, 1, IsUint32);
@@ -201,7 +201,7 @@ NAN_METHOD(bind_sol_oic_server_add_resource) {
         return;
     }
 
-    resource = sol_oic_server_add_resource(&resourceType, resourceInfo,
+    resource = sol_oic_server_register_resource(&resourceType, resourceInfo,
         (enum sol_oic_resource_flag)(Nan::To<uint32_t>(info[1]).FromJust()));
     resourceInfo->resource = resource;
 
@@ -216,7 +216,7 @@ NAN_METHOD(bind_sol_oic_server_add_resource) {
     }
 }
 
-NAN_METHOD(bind_sol_oic_server_del_resource) {
+NAN_METHOD(bind_sol_oic_server_unregister_resource) {
     VALIDATE_ARGUMENT_COUNT(info, 1);
     VALIDATE_ARGUMENT_TYPE(info, 0, IsObject);
     Local<Object> jsResourceInfo = Nan::To<Object>(info[0]).ToLocalChecked();
@@ -225,7 +225,7 @@ NAN_METHOD(bind_sol_oic_server_del_resource) {
     if (!resourceInfo) {
         return;
     }
-    sol_oic_server_del_resource(resourceInfo->resource);
+    sol_oic_server_unregister_resource(resourceInfo->resource);
     delete resourceInfo;
     Nan::SetInternalFieldPointer(jsResourceInfo, 0, 0);
 }

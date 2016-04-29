@@ -51,7 +51,7 @@ async.series( [
 		soletta.sol_oic_client_find_resource( client, destination, "", "",
 			function( client, resource ) {
 				discoveryCallbackCount++;
-				if ( resource && resource.href === "/a/" + process.argv[ 2 ] ) {
+				if ( resource && resource.path === "/a/" + process.argv[ 2 ] ) {
 					theResource = resource;
 				}
 				if ( !resource ) {

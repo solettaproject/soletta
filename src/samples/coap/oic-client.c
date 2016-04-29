@@ -27,7 +27,7 @@ static void
 got_get_response(sol_coap_responsecode_t response_code, struct sol_oic_client *cli, const struct sol_network_link_addr *srv_addr, const struct sol_oic_map_reader *map_reader, void *data)
 {
     struct sol_oic_repr_field field;
-    enum sol_oic_map_loop_reason end_reason;
+    enum sol_oic_map_loop_status end_reason;
     struct sol_oic_map_reader iterator;
 
     SOL_BUFFER_DECLARE_STATIC(addr, SOL_INET_ADDR_STRLEN);
@@ -114,7 +114,7 @@ found_resource(struct sol_oic_client *cli, struct sol_oic_resource *res, void *d
     }
 
     printf("Found resource: coap://%.*s%.*s\n", SOL_STR_SLICE_PRINT(sol_buffer_get_slice(&addr)),
-        SOL_STR_SLICE_PRINT(res->href));
+        SOL_STR_SLICE_PRINT(res->path));
 
     printf("Flags:\n"
         " - observable: %s\n"
@@ -138,7 +138,7 @@ found_resource(struct sol_oic_client *cli, struct sol_oic_resource *res, void *d
     SOL_VECTOR_FOREACH_IDX (&res->interfaces, slice, idx)
         printf("\t\t%.*s\n", SOL_STR_SLICE_PRINT(*slice));
 
-    printf("Issuing GET %.*s on resource...\n", SOL_STR_SLICE_PRINT(res->href));
+    printf("Issuing GET %.*s on resource...\n", SOL_STR_SLICE_PRINT(res->path));
     request = sol_oic_client_request_new(SOL_COAP_METHOD_GET, res);
     if (!request)
         return false;
