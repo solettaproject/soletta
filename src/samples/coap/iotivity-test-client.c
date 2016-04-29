@@ -107,24 +107,24 @@ found_resource_print(struct sol_oic_client *cli, struct sol_oic_resource *res, v
     }
 
     resource_found = true;
-    SOL_DBG("Found resource: coap://%.*s%.*s", SOL_STR_SLICE_PRINT(sol_buffer_get_slice(&addr)),
+    SOL_WRN("Found resource: coap://%.*s%.*s", SOL_STR_SLICE_PRINT(sol_buffer_get_slice(&addr)),
         SOL_STR_SLICE_PRINT(res->href));
 
-    SOL_DBG("Flags:");
-    SOL_DBG(" - observable: %s", res->observable ? "yes" : "no");
-    SOL_DBG(" - secure: %s", res->secure ? "yes" : "no");
+    SOL_WRN("Flags:");
+    SOL_WRN(" - observable: %s", res->observable ? "yes" : "no");
+    SOL_WRN(" - secure: %s", res->secure ? "yes" : "no");
 
     device_id_decode(res->device_id.data, device_id);
-    SOL_DBG("Device ID: %.*s", DEVICE_ID_LEN * 2, device_id);
+    SOL_WRN("Device ID: %.*s", DEVICE_ID_LEN * 2, device_id);
 
-    SOL_DBG("Resource types:");
+    SOL_WRN("Resource types:");
     SOL_VECTOR_FOREACH_IDX (&res->types, slice, idx)
-        SOL_DBG("\t\t%.*s", SOL_STR_SLICE_PRINT(*slice));
+        SOL_WRN("\t\t%.*s", SOL_STR_SLICE_PRINT(*slice));
 
-    SOL_DBG("Resource interfaces:");
+    SOL_WRN("Resource interfaces:");
     SOL_VECTOR_FOREACH_IDX (&res->interfaces, slice, idx)
-        SOL_DBG("\t\t%.*s", SOL_STR_SLICE_PRINT(*slice));
-    SOL_DBG(" ");
+        SOL_WRN("\t\t%.*s", SOL_STR_SLICE_PRINT(*slice));
+    SOL_WRN(" ");
 
     return true;
 }
@@ -178,10 +178,10 @@ check_put_request(sol_coap_responsecode_t response_code, struct sol_oic_client *
 
     fill_info(map_reader, &state, &power);
     if (power == PUT_REQUEST_POWER && state == true) {
-        SOL_DBG("PUT request successful");
+        SOL_WRN("PUT request successful");
         sol_quit();
     } else {
-        SOL_DBG("PUT request failed");
+        SOL_WRN("PUT request failed");
         sol_quit_with_code(EXIT_FAILURE);
     }
 }
@@ -198,10 +198,10 @@ check_post_request(sol_coap_responsecode_t response_code, struct sol_oic_client 
 
     fill_info(map_reader, NULL, &power);
     if (power == POST_REQUEST_POWER) {
-        SOL_DBG("POST request successful");
+        SOL_WRN("POST request successful");
         sol_quit();
     } else {
-        SOL_DBG("POST request failed");
+        SOL_WRN("POST request failed");
         sol_quit_with_code(EXIT_FAILURE);
     }
 }
@@ -332,54 +332,54 @@ print_response(sol_coap_responsecode_t response_code, struct sol_oic_client *cli
     }
 
     if (map_reader) {
-        SOL_DBG("Dumping payload received from addr %.*s {", SOL_STR_SLICE_PRINT(sol_buffer_get_slice(&addr)));
+        SOL_WRN("Dumping payload received from addr %.*s {", SOL_STR_SLICE_PRINT(sol_buffer_get_slice(&addr)));
         SOL_OIC_MAP_LOOP(map_reader, &field, &iterator, end_reason) {
 
             switch (field.type) {
             case SOL_OIC_REPR_TYPE_UINT:
-                SOL_DBG("\tkey: '%s', value: uint(%" PRIu64 ")", field.key,
+                SOL_WRN("\tkey: '%s', value: uint(%" PRIu64 ")", field.key,
                     field.v_uint);
                 break;
             case SOL_OIC_REPR_TYPE_INT:
-                SOL_DBG("\tkey: '%s', value: int(%" PRIi64 ")", field.key,
+                SOL_WRN("\tkey: '%s', value: int(%" PRIi64 ")", field.key,
                     field.v_int);
                 break;
             case SOL_OIC_REPR_TYPE_SIMPLE:
-                SOL_DBG("\tkey: '%s', value: simple(%d)", field.key,
+                SOL_WRN("\tkey: '%s', value: simple(%d)", field.key,
                     field.v_simple);
                 break;
             case SOL_OIC_REPR_TYPE_TEXT_STRING:
-                SOL_DBG("\tkey: '%s', value: str(%.*s)", field.key,
+                SOL_WRN("\tkey: '%s', value: str(%.*s)", field.key,
                     (int)field.v_slice.len, field.v_slice.data);
                 break;
             case SOL_OIC_REPR_TYPE_BYTE_STRING:
                 dump_byte_string(&buf, field.v_slice);
-                SOL_DBG("\tkey: '%s', value: bytestr{%.*s}", field.key,
+                SOL_WRN("\tkey: '%s', value: bytestr{%.*s}", field.key,
                     SOL_STR_SLICE_PRINT(sol_buffer_get_slice(&buf)));
 
                 sol_buffer_fini(&buf);
                 break;
             case SOL_OIC_REPR_TYPE_HALF_FLOAT:
-                SOL_DBG("\tkey: '%s', value: hfloat(%p)", field.key,
+                SOL_WRN("\tkey: '%s', value: hfloat(%p)", field.key,
                     field.v_voidptr);
                 break;
             case SOL_OIC_REPR_TYPE_FLOAT:
-                SOL_DBG("\tkey: '%s', value: float(%f)", field.key,
+                SOL_WRN("\tkey: '%s', value: float(%f)", field.key,
                     field.v_float);
                 break;
             case SOL_OIC_REPR_TYPE_DOUBLE:
-                SOL_DBG("\tkey: '%s', value: float(%g)", field.key,
+                SOL_WRN("\tkey: '%s', value: float(%g)", field.key,
                     field.v_double);
                 break;
             case SOL_OIC_REPR_TYPE_BOOLEAN:
-                SOL_DBG("\tkey: '%s', value: boolean(%s)", field.key,
+                SOL_WRN("\tkey: '%s', value: boolean(%s)", field.key,
                     field.v_boolean ? "true" : "false");
                 break;
             default:
-                SOL_DBG("\tkey: '%s', value: unknown(%d)", field.key, field.type);
+                SOL_WRN("\tkey: '%s', value: unknown(%d)", field.key, field.type);
             }
         }
-        SOL_DBG("}\n");
+        SOL_WRN("}\n");
     }
 
     if (ctx->test_number == TEST_NON_CONFIRMABLE_PUT) {
@@ -414,11 +414,11 @@ server_info_cb(struct sol_oic_client *cli, const struct sol_oic_server_informati
     }
 
     device_id_decode(info->device_id.data, device_id);
-    SOL_DBG("Found Device:");
-    SOL_DBG(" - Device ID: %.*s", DEVICE_ID_LEN * 2, device_id);
-    SOL_DBG(" - Device name: %.*s", SOL_STR_SLICE_PRINT(info->device_name));
-    SOL_DBG(" - Spec version: %.*s", SOL_STR_SLICE_PRINT(info->spec_version));
-    SOL_DBG(" - Data model version: %.*s",
+    SOL_WRN("Found Device:");
+    SOL_WRN(" - Device ID: %.*s", DEVICE_ID_LEN * 2, device_id);
+    SOL_WRN(" - Device name: %.*s", SOL_STR_SLICE_PRINT(info->device_name));
+    SOL_WRN(" - Spec version: %.*s", SOL_STR_SLICE_PRINT(info->spec_version));
+    SOL_WRN(" - Data model version: %.*s",
         SOL_STR_SLICE_PRINT(info->data_model_version));
     sol_quit();
 }
@@ -432,22 +432,22 @@ platform_info_cb(struct sol_oic_client *cli, const struct sol_oic_platform_infor
         return;
     }
 
-    SOL_DBG("Found Platform:");
-    SOL_DBG(" - Platform ID: %.*s", SOL_STR_SLICE_PRINT(info->platform_id));
-    SOL_DBG(" - Manufacturer name: %.*s",
+    SOL_WRN("Found Platform:");
+    SOL_WRN(" - Platform ID: %.*s", SOL_STR_SLICE_PRINT(info->platform_id));
+    SOL_WRN(" - Manufacturer name: %.*s",
         SOL_STR_SLICE_PRINT(info->manufacturer_name));
-    SOL_DBG(" - Manufacturer URL: %.*s",
+    SOL_WRN(" - Manufacturer URL: %.*s",
         SOL_STR_SLICE_PRINT(info->manufacturer_url));
-    SOL_DBG(" - Model Number: %.*s", SOL_STR_SLICE_PRINT(info->model_number));
-    SOL_DBG(" - Manufacturer date: %.*s",
+    SOL_WRN(" - Model Number: %.*s", SOL_STR_SLICE_PRINT(info->model_number));
+    SOL_WRN(" - Manufacturer date: %.*s",
         SOL_STR_SLICE_PRINT(info->manufacture_date));
-    SOL_DBG(" - Plafform version: %.*s",
+    SOL_WRN(" - Plafform version: %.*s",
         SOL_STR_SLICE_PRINT(info->platform_version));
-    SOL_DBG(" - Hardware version: %.*s",
+    SOL_WRN(" - Hardware version: %.*s",
         SOL_STR_SLICE_PRINT(info->hardware_version));
-    SOL_DBG(" - Firmware version: %.*s",
+    SOL_WRN(" - Firmware version: %.*s",
         SOL_STR_SLICE_PRINT(info->firmware_version));
-    SOL_DBG(" - Support URL: %.*s", SOL_STR_SLICE_PRINT(info->support_url));
+    SOL_WRN(" - Support URL: %.*s", SOL_STR_SLICE_PRINT(info->support_url));
     sol_quit();
 }
 
@@ -553,7 +553,7 @@ found_resource(struct sol_oic_client *cli, struct sol_oic_resource *res, void *d
         goto error;
     }
 
-    SOL_DBG("Issuing %sconfirmable %s on resource %.*s",
+    SOL_WRN("Issuing %sconfirmable %s on resource %.*s",
         non_confirmable ? "non-" : "", method_str,
         SOL_STR_SLICE_PRINT(res->href));
 
