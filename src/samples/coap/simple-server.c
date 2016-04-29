@@ -121,9 +121,9 @@ light_resource_to_rep(const struct sol_coap_resource *resource,
 }
 
 static int
-light_method_put(struct sol_coap_server *server,
+light_method_put(void *data, struct sol_coap_server *server,
     const struct sol_coap_resource *resource, struct sol_coap_packet *req,
-    const struct sol_network_link_addr *cliaddr, void *data)
+    const struct sol_network_link_addr *cliaddr)
 {
     sol_coap_responsecode_t code = SOL_COAP_RSPCODE_CONTENT;
     struct sol_coap_packet *resp;
@@ -196,9 +196,9 @@ err:
 }
 
 static int
-light_method_get(struct sol_coap_server *server,
+light_method_get(void *data, struct sol_coap_server *server,
     const struct sol_coap_resource *resource, struct sol_coap_packet *req,
-    const struct sol_network_link_addr *cliaddr, void *data)
+    const struct sol_network_link_addr *cliaddr)
 {
     struct sol_coap_packet *resp;
     struct sol_buffer *buf;

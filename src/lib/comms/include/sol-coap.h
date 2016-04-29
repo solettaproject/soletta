@@ -268,67 +268,67 @@ struct sol_coap_resource {
     /**
      * @brief GET request.
      *
+     * @param data User data pointer provided to sol_coap_server_register_resource().
      * @param server The server through which the request was made.
      * @param resource The resource the request mas made on.
      * @param req Packet containing the request data. It's not safe to keep a
      *            reference to it after this function returns.
      * @param cliaddr The source address of the request.
-     * @param data User data pointer provided to sol_coap_server_register_resource().
      *
      * @return 0 on success, -errno on failure.
      */
-    int (*get)(struct sol_coap_server *server,
+    int (*get)(void *data, struct sol_coap_server *server,
         const struct sol_coap_resource *resource,
         struct sol_coap_packet *req,
-        const struct sol_network_link_addr *cliaddr, void *data);
+        const struct sol_network_link_addr *cliaddr);
     /**
      * @brief POST request.
      *
+     * @param data User data pointer provided to sol_coap_server_register_resource().
      * @param server The server through which the request was made.
      * @param resource The resource the request mas made on.
      * @param req Packet containing the request data. It's not safe to keep a
      *            reference to it after this function returns.
      * @param cliaddr The source address of the request.
-     * @param data User data pointer provided to sol_coap_server_register_resource().
      *
      * @return 0 on success, -errno on failure.
      */
-    int (*post)(struct sol_coap_server *server,
+    int (*post)(void *data, struct sol_coap_server *server,
         const struct sol_coap_resource *resource,
         struct sol_coap_packet *req,
-        const struct sol_network_link_addr *cliaddr, void *data);
+        const struct sol_network_link_addr *cliaddr);
     /**
      * @brief PUT request.
      *
+     * @param data User data pointer provided to sol_coap_server_register_resource().
      * @param server The server through which the request was made.
      * @param resource The resource the request mas made on.
      * @param req Packet containing the request data. It's not safe to keep a
      *            reference to it after this function returns.
      * @param cliaddr The source address of the request.
-     * @param data User data pointer provided to sol_coap_server_register_resource().
      *
      * @return 0 on success, -errno on failure.
      */
-    int (*put)(struct sol_coap_server *server,
+    int (*put)(void *data, struct sol_coap_server *server,
         const struct sol_coap_resource *resource,
         struct sol_coap_packet *req,
-        const struct sol_network_link_addr *cliaddr, void *data);
+        const struct sol_network_link_addr *cliaddr);
     /**
      * @brief DELETE request.
      *
+     * @param data User data pointer provided to sol_coap_server_register_resource().
      * @param server The server through which the request was made.
      * @param resource The resource the request mas made on.
      * @param req Packet containing the request data. It's not safe to keep a
      *            reference to it after this function returns.
      * @param cliaddr The source address of the request.
-     * @param data User data pointer provided to sol_coap_server_register_resource().
      *
      * @return 0 on success, -errno on failure.
      */
-    int (*del)(struct sol_coap_server *server,
+    int (*del)(void *data, struct sol_coap_server *server,
         const struct sol_coap_resource *resource,
         struct sol_coap_packet *req,
-        const struct sol_network_link_addr *cliaddr, void *data);
+        const struct sol_network_link_addr *cliaddr);
     /**
      * @brief Bitwise OR-ed flags from #sol_coap_flags, if any is necessary.
      */
@@ -734,9 +734,8 @@ int sol_coap_send_packet(struct sol_coap_server *server, struct sol_coap_packet 
  */
 int sol_coap_send_packet_with_reply(struct sol_coap_server *server, struct sol_coap_packet *pkt,
     const struct sol_network_link_addr *cliaddr,
-    bool (*reply_cb)(struct sol_coap_server *server,
-    struct sol_coap_packet *req, const struct sol_network_link_addr *cliaddr,
-    void *data), const void *data);
+    bool (*reply_cb)(void *data, struct sol_coap_server *server,
+    struct sol_coap_packet *req, const struct sol_network_link_addr *cliaddr), const void *data);
 
 /**
  * @brief Sends the notification packet to all registered observers.

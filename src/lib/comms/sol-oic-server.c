@@ -364,9 +364,9 @@ error:
 
 #define QUERY_LEN 2
 static int
-_sol_oic_server_res(struct sol_coap_server *server,
+_sol_oic_server_res(void *data, struct sol_coap_server *server,
     const struct sol_coap_resource *resource, struct sol_coap_packet *req,
-    const struct sol_network_link_addr *cliaddr, void *data)
+    const struct sol_network_link_addr *cliaddr)
 {
     SOL_BUFFER_DECLARE_STATIC(dev_id, 37);
     const uint8_t format_cbor = SOL_COAP_CONTENTTYPE_APPLICATION_CBOR;
@@ -841,9 +841,9 @@ end:
 
 #define DEFINE_RESOURCE_TYPE_CALLBACK_FOR_METHOD(method, expect_payload) \
     static int \
-    _sol_oic_resource_type_ ## method(struct sol_coap_server *server, \
+    _sol_oic_resource_type_ ## method(void *data, struct sol_coap_server *server, \
     const struct sol_coap_resource *resource, struct sol_coap_packet *req, \
-    const struct sol_network_link_addr *cliaddr, void *data) \
+    const struct sol_network_link_addr *cliaddr) \
     { \
         struct sol_oic_server_resource *res = data; \
         return _sol_oic_resource_type_handle(res->callback.method.handle, \

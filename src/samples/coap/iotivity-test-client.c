@@ -62,7 +62,7 @@ struct Context {
     struct sol_oic_resource *res;
 };
 
-static bool found_resource(struct sol_oic_client *cli, struct sol_oic_resource *res, void *data);
+static bool found_resource(void *data, struct sol_oic_client *cli, struct sol_oic_resource *res);
 
 static void
 device_id_decode(const char *device_id_encoded, char *device_id)
@@ -78,7 +78,7 @@ device_id_decode(const char *device_id_encoded, char *device_id)
 }
 
 static bool
-found_resource_print(struct sol_oic_client *cli, struct sol_oic_resource *res, void *data)
+found_resource_print(void *data, struct sol_oic_client *cli, struct sol_oic_resource *res)
 {
     struct sol_str_slice *slice;
     uint16_t idx;
@@ -155,7 +155,7 @@ fill_info(const struct sol_oic_map_reader *map_reader, bool *state, int32_t *pow
 }
 
 static void
-check_delete_request(sol_coap_responsecode_t response_code, struct sol_oic_client *cli, const struct sol_network_link_addr *cliaddr, const struct sol_oic_map_reader *map_reader, void *data)
+check_delete_request(void *data, sol_coap_responsecode_t response_code, struct sol_oic_client *cli, const struct sol_network_link_addr *cliaddr, const struct sol_oic_map_reader *map_reader)
 {
     if (response_code == SOL_COAP_RSPCODE_NOT_FOUND)
         sol_quit();
@@ -166,7 +166,7 @@ check_delete_request(sol_coap_responsecode_t response_code, struct sol_oic_clien
 }
 
 static void
-check_put_request(sol_coap_responsecode_t response_code, struct sol_oic_client *cli, const struct sol_network_link_addr *cliaddr, const struct sol_oic_map_reader *map_reader, void *data)
+check_put_request(void *data, sol_coap_responsecode_t response_code, struct sol_oic_client *cli, const struct sol_network_link_addr *cliaddr, const struct sol_oic_map_reader *map_reader)
 {
     bool state = false;
     int32_t power = -1;
@@ -187,7 +187,7 @@ check_put_request(sol_coap_responsecode_t response_code, struct sol_oic_client *
 }
 
 static void
-check_post_request(sol_coap_responsecode_t response_code, struct sol_oic_client *cli, const struct sol_network_link_addr *cliaddr, const struct sol_oic_map_reader *map_reader, void *data)
+check_post_request(void *data, sol_coap_responsecode_t response_code, struct sol_oic_client *cli, const struct sol_network_link_addr *cliaddr, const struct sol_oic_map_reader *map_reader)
 {
     int32_t power = -1;
 
@@ -243,8 +243,8 @@ check_response_code(sol_coap_responsecode_t response_code, int test_number)
 }
 
 static void
-resource_notify(sol_coap_responsecode_t response_code, struct sol_oic_client *cli, const struct sol_network_link_addr *cliaddr,
-    const struct sol_oic_map_reader *map_reader, void *data)
+resource_notify(void *data, sol_coap_responsecode_t response_code, struct sol_oic_client *cli, const struct sol_network_link_addr *cliaddr,
+    const struct sol_oic_map_reader *map_reader)
 {
     struct Context *ctx = data;
     static uint8_t notify_count = 0;
@@ -293,8 +293,8 @@ dump_byte_string(struct sol_buffer *buf, const struct sol_str_slice bytes)
 }
 
 static void
-print_response(sol_coap_responsecode_t response_code, struct sol_oic_client *cli, const struct sol_network_link_addr *cliaddr,
-    const struct sol_oic_map_reader *map_reader, void *data)
+print_response(void *data, sol_coap_responsecode_t response_code, struct sol_oic_client *cli, const struct sol_network_link_addr *cliaddr,
+    const struct sol_oic_map_reader *map_reader)
 {
     struct sol_oic_repr_field field;
     enum sol_oic_map_loop_status end_reason;
@@ -403,7 +403,7 @@ error:
 }
 
 static void
-server_info_cb(struct sol_oic_client *cli, const struct sol_oic_device_info *info, void *data)
+server_info_cb(void *data, struct sol_oic_client *cli, const struct sol_oic_device_info *info)
 {
     char device_id[DEVICE_ID_LEN * 2];
 
@@ -424,7 +424,7 @@ server_info_cb(struct sol_oic_client *cli, const struct sol_oic_device_info *inf
 }
 
 static void
-platform_info_cb(struct sol_oic_client *cli, const struct sol_oic_platform_info *info, void *data)
+platform_info_cb(void *data, struct sol_oic_client *cli, const struct sol_oic_platform_info *info)
 {
     if (info == NULL) {
         SOL_WRN("No platform found.");
@@ -468,7 +468,7 @@ put_fill_repr_map(struct sol_oic_map_writer *repr_map)
 }
 
 static bool
-found_resource(struct sol_oic_client *cli, struct sol_oic_resource *res, void *data)
+found_resource(void *data, struct sol_oic_client *cli, struct sol_oic_resource *res)
 {
     struct Context *ctx = data;
     bool non_confirmable = false, observe = false;
@@ -491,7 +491,7 @@ found_resource(struct sol_oic_client *cli, struct sol_oic_resource *res, void *d
     }
 #endif
 
-    if (!found_resource_print(cli, res, data))
+    if (!found_resource_print(data, cli, res))
         return false;
 
     ctx->res = sol_oic_resource_ref(res);
@@ -624,7 +624,7 @@ main(int argc, char *argv[])
     const char *resource_type = NULL;
     const char *interface_type = NULL;
 
-    bool (*found_resource_cb)(struct sol_oic_client *cli, struct sol_oic_resource *res, void *data) = NULL;
+    bool (*found_resource_cb)(void *data, struct sol_oic_client *cli, struct sol_oic_resource *res) = NULL;
 
     ctx.res = NULL;
     sol_init();

@@ -69,8 +69,8 @@ err:
 }
 
 static bool
-reply_cb(struct sol_coap_server *server, struct sol_coap_packet *req,
-    const struct sol_network_link_addr *cliaddr, void *data)
+reply_cb(void *data, struct sol_coap_server *server, struct sol_coap_packet *req,
+    const struct sol_network_link_addr *cliaddr)
 {
     struct sol_str_slice *path = data;
     static int count;

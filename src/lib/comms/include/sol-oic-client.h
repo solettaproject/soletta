@@ -172,9 +172,8 @@ void sol_oic_client_del(struct sol_oic_client *client);
 bool sol_oic_client_find_resource(struct sol_oic_client *client,
     struct sol_network_link_addr *addr, const char *resource_type,
     const char *resource_interface,
-    bool (*resource_found_cb)(struct sol_oic_client *cli,
-    struct sol_oic_resource *res,
-    void *data),
+    bool (*resource_found_cb)(void *data, struct sol_oic_client *cli,
+    struct sol_oic_resource *res),
     const void *data);
 
 /**
@@ -204,8 +203,8 @@ bool sol_oic_client_find_resource(struct sol_oic_client *client,
  */
 bool sol_oic_client_get_platform_info(struct sol_oic_client *client,
     struct sol_oic_resource *resource,
-    void (*info_received_cb)(struct sol_oic_client *cli,
-    const struct sol_oic_platform_info *info, void *data),
+    void (*info_received_cb)(void *data, struct sol_oic_client *cli,
+    const struct sol_oic_platform_info *info),
     const void *data);
 
 /**
@@ -236,8 +235,8 @@ bool sol_oic_client_get_platform_info(struct sol_oic_client *client,
  */
 bool sol_oic_client_get_platform_info_by_addr(struct sol_oic_client *client,
     struct sol_network_link_addr *addr,
-    void (*info_received_cb)(struct sol_oic_client *cli,
-    const struct sol_oic_platform_info *info, void *data),
+    void (*info_received_cb)(void *data, struct sol_oic_client *cli,
+    const struct sol_oic_platform_info *info),
     const void *data);
 
 /**
@@ -267,8 +266,8 @@ bool sol_oic_client_get_platform_info_by_addr(struct sol_oic_client *client,
  */
 bool sol_oic_client_get_server_info(struct sol_oic_client *client,
     struct sol_oic_resource *resource,
-    void (*info_received_cb)(struct sol_oic_client *cli,
-    const struct sol_oic_device_info *info, void *data),
+    void (*info_received_cb)(void *data, struct sol_oic_client *cli,
+    const struct sol_oic_device_info *info),
     const void *data);
 
 /**
@@ -299,8 +298,8 @@ bool sol_oic_client_get_server_info(struct sol_oic_client *client,
  */
 bool sol_oic_client_get_server_info_by_addr(struct sol_oic_client *client,
     struct sol_network_link_addr *addr,
-    void (*info_received_cb)(struct sol_oic_client *cli,
-    const struct sol_oic_device_info *info, void *data),
+    void (*info_received_cb)(void *data, struct sol_oic_client *cli,
+    const struct sol_oic_device_info *info),
     const void *data);
 
 /**
@@ -324,7 +323,7 @@ bool sol_oic_client_get_server_info_by_addr(struct sol_oic_client *client,
  *
  * @return @c 0 on success or a negative number on errors.
  */
-int sol_oic_client_request(struct sol_oic_client *client, struct sol_oic_request *request, void (*callback)(sol_coap_responsecode_t response_code, struct sol_oic_client *cli, const struct sol_network_link_addr *addr, const struct sol_oic_map_reader *repr_vec, void *data), const void *callback_data);
+int sol_oic_client_request(struct sol_oic_client *client, struct sol_oic_request *request, void (*callback)(void *data, sol_coap_responsecode_t response_code, struct sol_oic_client *cli, const struct sol_network_link_addr *addr, const struct sol_oic_map_reader *repr_vec), const void *callback_data);
 
 /**
  * @brief Create an oic client request for an specific @a resource, using a
@@ -397,8 +396,8 @@ struct sol_oic_map_writer *sol_oic_client_request_get_writer(struct sol_oic_requ
  * @return @c 0 on success or a negative number on errors.
  */
 int sol_oic_client_resource_set_observable(struct sol_oic_client *client, struct sol_oic_resource *res,
-    void (*callback)(sol_coap_responsecode_t response_code, struct sol_oic_client *cli, const struct sol_network_link_addr *addr,
-    const struct sol_oic_map_reader *repr_map, void *data),
+    void (*callback)(void *data, sol_coap_responsecode_t response_code, struct sol_oic_client *cli, const struct sol_network_link_addr *addr,
+    const struct sol_oic_map_reader *repr_map),
     const void *data, bool observe);
 
 /**
@@ -436,8 +435,8 @@ int sol_oic_client_resource_set_observable(struct sol_oic_client *client, struct
  * @return @c 0 on success or a negative number on errors.
  */
 int sol_oic_client_resource_set_observable_non_confirmable(struct sol_oic_client *client, struct sol_oic_resource *res,
-    void (*callback)(sol_coap_responsecode_t response_code, struct sol_oic_client *cli, const struct sol_network_link_addr *addr,
-    const struct sol_oic_map_reader *repr_map, void *data),
+    void (*callback)(void *data, sol_coap_responsecode_t response_code, struct sol_oic_client *cli, const struct sol_network_link_addr *addr,
+    const struct sol_oic_map_reader *repr_map),
     const void *data, bool observe);
 
 /**
