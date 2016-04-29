@@ -58,7 +58,7 @@ for ( oneVariable in process.env ) {
 			] );
 			headers = headers.concat( [
 				"sol-oic-client.h",
-				"sol-oic-common.h"
+				"sol-oic.h"
 			] );
 			break;
 		case "NETWORK":

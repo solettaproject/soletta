@@ -1022,7 +1022,7 @@ def master_c_as_string(generated, oic_gen_c, oic_gen_h):
 
 #include "sol-coap.h"
 #include "sol-mainloop.h"
-#include "sol-oic-common.h"
+#include "sol-oic.h"
 #include "sol-oic-client.h"
 #include "sol-oic-server.h"
 #include "sol-str-slice.h"

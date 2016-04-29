@@ -25,7 +25,7 @@
 extern "C" {
 #endif
 
-#include "sol-oic-common.h"
+#include "sol-oic.h"
 
 /**
  * @file

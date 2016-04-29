@@ -128,38 +128,38 @@ enum sol_oic_resource_flag {
      * @brief The resource is discoverable by clients.
      */
     SOL_OIC_FLAG_DISCOVERABLE = 1 << 0,
-        /**
-         * @brief The resource is observable.
-         *
-         * Clients can request observable resources to be notified when a the
-         * resource status has changes.
-         */
-        SOL_OIC_FLAG_OBSERVABLE = 1 << 1,
-        /**
-         * @brief The resource is active.
-         *
-         * Devices are set as inactive when they are uninitialized,
-         * marked for deletion or already deleted.
-         */
-        SOL_OIC_FLAG_ACTIVE = 1 << 2,
-        /**
-         * @brief The resource is slow.
-         *
-         * Delays in response from slow resource is expected when processing
-         * requests.
-         */
-        SOL_OIC_FLAG_SLOW = 1 << 3,
-        /**
-         * @brief The resource is secure.
-         *
-         * Connection established with a secure devices is secure.
-         */
-        SOL_OIC_FLAG_SECURE = 1 << 4,
-        /**
-         * @brief The resource is discoverable by clients only if request
-         * contains an explicity query
-         */
-        SOL_OIC_FLAG_DISCOVERABLE_EXPLICIT = 1 << 5,
+    /**
+     * @brief The resource is observable.
+     *
+     * Clients can request observable resources to be notified when a the
+     * resource status has changes.
+     */
+    SOL_OIC_FLAG_OBSERVABLE = 1 << 1,
+    /**
+     * @brief The resource is active.
+     *
+     * Devices are set as inactive when they are uninitialized,
+     * marked for deletion or already deleted.
+     */
+    SOL_OIC_FLAG_ACTIVE = 1 << 2,
+    /**
+     * @brief The resource is slow.
+     *
+     * Delays in response from slow resource is expected when processing
+     * requests.
+     */
+    SOL_OIC_FLAG_SLOW = 1 << 3,
+    /**
+     * @brief The resource is secure.
+     *
+     * Connection established with a secure devices is secure.
+     */
+    SOL_OIC_FLAG_SECURE = 1 << 4,
+    /**
+     * @brief The resource is discoverable by clients only if request
+     * contains an explicity query
+     */
+    SOL_OIC_FLAG_DISCOVERABLE_EXPLICIT = 1 << 5,
 };
 
 /**
