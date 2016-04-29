@@ -53,6 +53,8 @@ obj-io-pwm-$(PLATFORM_LINUX) += \
     sol-pwm-impl-linux.o
 obj-io-pwm-$(PLATFORM_ZEPHYR) += \
     sol-pwm-impl-zephyr.o
+obj-io-pwm-$(PLATFORM_CONTIKI_QMSI) += \
+    sol-pwm-impl-contiki-qmsi.o
 
 obj-io-i2c-$(USE_I2C) := \
     sol-i2c-common.o
