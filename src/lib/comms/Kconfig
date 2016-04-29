@@ -88,6 +88,73 @@ config OIC
 
             Both client and server sides are covered by this library.
 
+menu "OIC Config"
+depends on OIC
+
+config OIC_SERVER_MANUFACTURER_NAME
+	string "OIC_SERVER_MANUFACTURER_NAME"
+	default "Soletta"
+	help
+    Name of the manufacturer of the device. Used when clients retrieve server
+    platform information.
+
+config OIC_SERVER_MANUFACTURER_URL
+	string "OIC_SERVER_MANUFACTURER_URL"
+	default "https://soletta-project.org"
+	help
+    URL to manufacturer web site.
+
+config OIC_SERVER_MODEL_NUMBER
+	string "OIC_SERVER_MODEL_NUMBER"
+	default "Unknown"
+	help
+    Model number as designated by manufacturer. Used when clients retrieve
+    server platform information.
+
+config OIC_SERVER_MANUFACTURE_DATE
+	string "OIC_SERVER_MANUFACTURE_DATE"
+	default "2015-01-01"
+	help
+    Date that the device was manufactured. Used when clients retrieve
+    server platform information.
+
+config OIC_SERVER_PLATFORM_VERSION
+	string "OIC_SERVER_PLATFORM_VERSION"
+	default "Unknown"
+	help
+    Version of the platform as defined by manufacturer. Used when clients
+    retrieve server platform information.
+
+config OIC_SERVER_HARDWARE_VERSION
+	string "OIC_SERVER_HARDWARE_VERSION"
+	default "Unknown"
+	help
+    Hardware Version as defined by manufacturer. Used when clients retrieve
+    server platform information.
+
+config OIC_SERVER_FIRMWARE_VERSION
+	string "OIC_SERVER_FIRMWARE_VERSION"
+	default "Unknown"
+	help
+    Firmware version as defined by manufacturer. Used when clients retrieve
+    server platform information.
+
+config OIC_SERVER_SUPPORT_URL
+	string "OIC_SERVER_SUPPORT_URL"
+	default "Unknown"
+	help
+    URL for manufacturer support. Used when clients retrieve server platform
+    information.
+
+config OIC_SERVER_DEVICE_NAME
+	string "OIC_SERVER_DEVICE_NAME"
+	default "Unknown"
+	help
+    The name of this device. Used when clients retrieve server device
+    information.
+
+endmenu
+
 config HTTP
 	bool "HTTP Common"
 	default y
