@@ -299,7 +299,7 @@ skid_steer_odometer_open(struct sol_flow_node *node, void *data,
         return -EINVAL;
     }
     if (opts->update_period <= 1) {
-        SOL_WRN("update_period=%d is invalid, assuming 1ms",
+        SOL_WRN("update_period=%"PRId32" is invalid, assuming 1ms",
             opts->update_period);
 
         timeout_ms = 1;
@@ -461,7 +461,8 @@ skid_steer_throttle_process(struct sol_flow_node *node, void *data,
     uint16_t port, uint16_t conn_id, const struct sol_flow_packet *packet)
 {
     struct skid_steer_data *priv = data;
-    int v, r;
+    int32_t v;
+    int r;
 
     r = sol_flow_packet_get_irange_value(packet, &v);
     SOL_INT_CHECK(r, < 0, r);

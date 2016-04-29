@@ -1002,7 +1002,7 @@ default_serialize_string(const struct sol_memdesc *desc, const char *value, stru
         return r;
 
     for (itr = value; *itr != '\0'; itr++) {
-        if (!isprint(*itr) || *itr == '"') {
+        if (!isprint((uint8_t)*itr) || *itr == '"') {
             r = sol_buffer_append_bytes(buffer, (const uint8_t *)last, itr - last);
             if (r < 0)
                 return r;
