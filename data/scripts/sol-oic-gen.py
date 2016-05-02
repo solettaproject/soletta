@@ -23,15 +23,31 @@ import traceback
 import re
 from collections import OrderedDict
 
+def merge_ref(directory, definitions, ref_link):
+    path, link = ref_link.split('#')
+    ref = load_json_schema(directory, path)
+    defnref = link.split('/')[-1]
+
+    definitions.update(ref[defnref])
+
 def merge_schema(directory, definitions, to_merge):
     for schema in to_merge:
         if not '$ref' in schema:
             raise ValueError("no $ref in allOf")
 
-        path, link = schema['$ref'].split('#')
-        ref = load_json_schema(directory, path)
-        defnref = link.split('/')[-1]
-        definitions.update(ref[defnref])
+        merge_ref(directory, definitions, schema['$ref'])
+
+def expand_json_schema(directory, schema):
+    if 'allOf' in schema:
+        merge_schema(directory, schema, schema['allOf'])
+        del schema['allOf']
+    if '$ref' in schema:
+        merge_ref(directory, schema, schema['$ref'])
+        del schema['$ref']
+    for key, value in schema.items():
+        if type(value) == dict and value.get('type', '') != 'array':
+                expand_json_schema(directory, value)
+
 
 def load_json_schema(directory, path, schemas={}):
     if path in schemas:
@@ -61,9 +77,12 @@ def load_json_schema(directory, path, schemas={}):
     required = set(data.get('required', []))
 
     for rt, descr in definitions.items():
-        if 'allOf' in descr:
-            merge_schema(directory, descr, descr['allOf'])
-            del descr['allOf']
+        if '$ref' in descr.get('properties', ()):
+            new_dict = {}
+            merge_ref(directory, new_dict, descr['properties']['$ref']);
+            descr['properties'].update(new_dict['properties'])
+            del descr['properties']['$ref']
+        expand_json_schema(directory, descr)
         if 'properties' in descr:
             for field, props in descr['properties'].items():
                 doc = props.get('description', '')
