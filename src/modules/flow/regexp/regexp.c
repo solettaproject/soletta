@@ -281,7 +281,7 @@ get_unescaped_regexp_replacement_str(struct string_regexp_replace_data *mdata,
     int *match_vector,
     size_t match_cnt)
 {
-    int r;
+    int r = -EINVAL;
     struct sol_str_slice slice;
     char *ptr = mdata->to_regexp;
 
