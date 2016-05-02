@@ -107,7 +107,7 @@ static void sol_oic_server_unref(void);
 
 #define APPEND_KEY_VALUE(info, k, v) \
     do { \
-        ret = sol_oic_map_append(&response->writer, &SOL_OIC_REPR_TEXT_STRING(k, \
+        r = sol_oic_map_append(&response->writer, &SOL_OIC_REPR_TEXT_STRING(k, \
             oic_server.info->v.data, oic_server.info->v.len)); \
     } while (0)
 
@@ -116,7 +116,6 @@ _sol_oic_server_d(void *data, struct sol_oic_request *request)
 {
     SOL_BUFFER_DECLARE_STATIC(dev_id, 37);
     struct sol_oic_response *response;
-    bool ret;
     int r;
 
     response = sol_oic_server_response_new(request);
@@ -126,16 +125,16 @@ _sol_oic_server_d(void *data, struct sol_oic_request *request)
     SOL_INT_CHECK_GOTO(r, < 0, error);
 
     APPEND_KEY_VALUE(server_info, SOL_OIC_KEY_DEVICE_NAME, device_name);
-    SOL_EXP_CHECK_GOTO(!ret, error);
+    SOL_INT_CHECK_GOTO(r, < 0, error);
     APPEND_KEY_VALUE(server_info, SOL_OIC_KEY_SPEC_VERSION, spec_version);
-    SOL_EXP_CHECK_GOTO(!ret, error);
+    SOL_INT_CHECK_GOTO(r, < 0, error);
     APPEND_KEY_VALUE(server_info, SOL_OIC_KEY_DATA_MODEL_VERSION,
         data_model_version);
-    SOL_EXP_CHECK_GOTO(!ret, error);
+    SOL_INT_CHECK_GOTO(r, < 0, error);
 
-    ret = sol_oic_map_append(&response->writer, &SOL_OIC_REPR_TEXT_STRING(
+    r = sol_oic_map_append(&response->writer, &SOL_OIC_REPR_TEXT_STRING(
         SOL_OIC_KEY_DEVICE_ID, dev_id.data, dev_id.used));
-    SOL_EXP_CHECK_GOTO(!ret, error);
+    SOL_INT_CHECK_GOTO(r, < 0, error);
 
     return sol_oic_server_send_response(request, response,
         SOL_COAP_RSPCODE_CONTENT);
@@ -151,42 +150,41 @@ _sol_oic_server_p(void *data, struct sol_oic_request *request)
 {
     struct sol_oic_response *response;
     const char *os_version;
-    bool ret;
+    int r;
 
     response = sol_oic_server_response_new(request);
 
     APPEND_KEY_VALUE(plat_info, SOL_OIC_KEY_MANUF_NAME, manufacturer_name);
-    SOL_EXP_CHECK_GOTO(!ret, error);
+    SOL_INT_CHECK_GOTO(r, < 0, error);
     APPEND_KEY_VALUE(plat_info, SOL_OIC_KEY_MANUF_URL, manufacturer_url);
-    SOL_EXP_CHECK_GOTO(!ret, error);
+    SOL_INT_CHECK_GOTO(r, < 0, error);
     APPEND_KEY_VALUE(plat_info, SOL_OIC_KEY_MODEL_NUM, model_number);
-    SOL_EXP_CHECK_GOTO(!ret, error);
+    SOL_INT_CHECK_GOTO(r, < 0, error);
     APPEND_KEY_VALUE(plat_info, SOL_OIC_KEY_MANUF_DATE, manufacture_date);
-    SOL_EXP_CHECK_GOTO(!ret, error);
+    SOL_INT_CHECK_GOTO(r, < 0, error);
     APPEND_KEY_VALUE(plat_info, SOL_OIC_KEY_PLATFORM_VER, platform_version);
-    SOL_EXP_CHECK_GOTO(!ret, error);
+    SOL_INT_CHECK_GOTO(r, < 0, error);
     APPEND_KEY_VALUE(plat_info, SOL_OIC_KEY_HW_VER, hardware_version);
-    SOL_EXP_CHECK_GOTO(!ret, error);
+    SOL_INT_CHECK_GOTO(r, < 0, error);
     APPEND_KEY_VALUE(plat_info, SOL_OIC_KEY_FIRMWARE_VER, firmware_version);
-    SOL_EXP_CHECK_GOTO(!ret, error);
+    SOL_INT_CHECK_GOTO(r, < 0, error);
     APPEND_KEY_VALUE(plat_info, SOL_OIC_KEY_SUPPORT_URL, support_url);
-    SOL_EXP_CHECK_GOTO(!ret, error);
+    SOL_INT_CHECK_GOTO(r, < 0, error);
     APPEND_KEY_VALUE(plat_info, SOL_OIC_KEY_PLATFORM_ID, platform_id);
-    SOL_EXP_CHECK_GOTO(!ret, error);
-
+    SOL_INT_CHECK_GOTO(r, < 0, error);
     APPEND_KEY_VALUE(plat_info, SOL_OIC_KEY_SYSTEM_TIME, platform_id);
-    SOL_EXP_CHECK_GOTO(!ret, error);
+    SOL_INT_CHECK_GOTO(r, < 0, error);
 
-    ret = sol_oic_map_append(&response->writer, &SOL_OIC_REPR_TEXT_STRING(
+    r = sol_oic_map_append(&response->writer, &SOL_OIC_REPR_TEXT_STRING(
         SOL_OIC_KEY_SYSTEM_TIME, NULL, 0));
-    SOL_EXP_CHECK_GOTO(!ret, error);
+    SOL_INT_CHECK_GOTO(r, < 0, error);
 
     os_version = sol_platform_get_os_version();
     if (!os_version)
         os_version = "Unknown";
-    ret = sol_oic_map_append(&response->writer, &SOL_OIC_REPR_TEXT_STRING(
+    r = sol_oic_map_append(&response->writer, &SOL_OIC_REPR_TEXT_STRING(
         SOL_OIC_KEY_OS_VER, os_version, strlen(os_version)));
-    SOL_EXP_CHECK_GOTO(!ret, error);
+    SOL_INT_CHECK_GOTO(r, < 0, error);
 
     return sol_oic_server_send_response(request, response,
         SOL_COAP_RSPCODE_CONTENT);

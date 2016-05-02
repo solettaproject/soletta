@@ -83,30 +83,31 @@ err:
     return false;
 }
 
-SOL_API bool
+SOL_API int
 sol_oic_map_append(struct sol_oic_map_writer *oic_map_writer, struct sol_oic_repr_field *repr)
 {
-    SOL_NULL_CHECK(oic_map_writer, false);
-    SOL_NULL_CHECK(repr, false);
+    SOL_NULL_CHECK(oic_map_writer, -EINVAL);
+    SOL_NULL_CHECK(repr, -EINVAL);
 
-    return sol_oic_packet_cbor_append(oic_map_writer, repr) == CborNoError;
+    return sol_oic_packet_cbor_append(oic_map_writer, repr) == CborNoError ? 0 :
+           -EIO;
 }
 
-SOL_API bool
+SOL_API int
 sol_oic_map_get_type(struct sol_oic_map_writer *oic_map_writer, enum sol_oic_map_type *type)
 {
-    SOL_NULL_CHECK(oic_map_writer, false);
-    SOL_NULL_CHECK(type, false);
+    SOL_NULL_CHECK(oic_map_writer, -EINVAL);
+    SOL_NULL_CHECK(type, -EINVAL);
 
     sol_cbor_map_get_type(oic_map_writer, type);
 
-    return true;
+    return 0;
 }
 
-SOL_API bool
+SOL_API int
 sol_oic_map_set_type(struct sol_oic_map_writer *oic_map_writer, enum sol_oic_map_type type)
 {
-    SOL_NULL_CHECK(oic_map_writer, false);
+    SOL_NULL_CHECK(oic_map_writer, -EINVAL);
 
     return sol_cbor_map_set_type(oic_map_writer, type);
 }

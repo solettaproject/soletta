@@ -124,7 +124,7 @@ static bool encodeSingleValue(const char *name, Local<Value> value,
         goto error;
     }
 
-    returnValue = sol_oic_map_append(map, &field);
+    returnValue = (sol_oic_map_append(map, &field) == 0);
     if (field.type == SOL_OIC_REPR_TYPE_TEXT_STRING ||
             field.type == SOL_OIC_REPR_TYPE_BYTE_STRING) {
         free((void *)(field.v_slice.data));
