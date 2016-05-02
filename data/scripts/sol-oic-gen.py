@@ -206,8 +206,8 @@ def generate_object_to_repr_vec_fn_common_c(state_struct_name, name, props, clie
             'key': prop_name,
             'fargs': ', '.join(fargs)
         }
-        fields.append('''ret = sol_oic_map_append(repr_map, &%(ftype)s("%(key)s", %(fargs)s));
-        SOL_EXP_CHECK(!ret, false);
+        fields.append('''r = sol_oic_map_append(repr_map, &%(ftype)s("%(key)s", %(fargs)s));
+        SOL_INT_CHECK(r, < 0, false);
 ''' % vars)
 
     if not fields:
@@ -217,7 +217,7 @@ def generate_object_to_repr_vec_fn_common_c(state_struct_name, name, props, clie
 %(struct_name)s_to_repr_vec(void *data, struct sol_oic_map_writer *repr_map)
 {
     struct %(struct_name)s *state = (struct %(struct_name)s *)data;
-    bool ret;
+    int r;
 
     %(fields)s
 

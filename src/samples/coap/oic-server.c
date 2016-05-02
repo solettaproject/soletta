@@ -80,7 +80,7 @@ set_scrolllock_led(bool on)
 static int
 user_handle_get(void *data, struct sol_oic_request *request)
 {
-    bool r;
+    int r;
     struct sol_oic_repr_field field;
     struct sol_oic_response *response = NULL;
     struct sol_oic_map_writer *output;
@@ -90,11 +90,11 @@ user_handle_get(void *data, struct sol_oic_request *request)
     output = sol_oic_server_response_get_writer(response);
     field = SOL_OIC_REPR_BOOLEAN("state", get_scrolllock_led());
     r = sol_oic_map_append(output, &field);
-    SOL_EXP_CHECK_GOTO(r == false, error);
+    SOL_INT_CHECK_GOTO(r, < 0, error);
 
     field = SOL_OIC_REPR_INT("power", 13);
     r = sol_oic_map_append(output, &field);
-    SOL_EXP_CHECK_GOTO(r == false, error);
+    SOL_INT_CHECK_GOTO(r, < 0, error);
 
     return sol_oic_server_send_response(request, response,
         SOL_COAP_RSPCODE_CONTENT);

@@ -89,10 +89,10 @@ NAN_METHOD(bind_sol_oic_client_find_resource) {
         return;
     }
 
-    bool result = sol_oic_client_find_resource((struct sol_oic_client *)client,
+    bool result = (sol_oic_client_find_resource((struct sol_oic_client *)client,
         &theAddress, (const char *)*String::Utf8Value(info[2]),
         (const char *)*String::Utf8Value(info[3]), resourceFound,
-        callbackData);
+        callbackData) == 0);
 
     if (!result) {
         delete callbackData;

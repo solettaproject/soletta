@@ -167,9 +167,9 @@ void sol_oic_client_del(struct sol_oic_client *client);
  *        is a pointer to the user's data parameter.
  * @param data A pointer to user's data.
  *
- * @return True if packet was successfully sent. False otherwise.
+ * @return @c 0 on success, error code (always negative) otherwise.
  */
-bool sol_oic_client_find_resource(struct sol_oic_client *client,
+int sol_oic_client_find_resource(struct sol_oic_client *client,
     struct sol_network_link_addr *addr, const char *resource_type,
     const char *resource_interface,
     bool (*resource_found_cb)(void *data, struct sol_oic_client *cli,
@@ -199,9 +199,9 @@ bool sol_oic_client_find_resource(struct sol_oic_client *client,
  *        parameter.
  * @param data A pointer to user's data.
  *
- * @return True if packet was successfully sent. False otherwise.
+ * @return @c 0 on success, error code (always negative) otherwise.
  */
-bool sol_oic_client_get_platform_info(struct sol_oic_client *client,
+int sol_oic_client_get_platform_info(struct sol_oic_client *client,
     struct sol_oic_resource *resource,
     void (*info_received_cb)(void *data, struct sol_oic_client *cli,
     const struct sol_oic_platform_info *info),
@@ -231,9 +231,9 @@ bool sol_oic_client_get_platform_info(struct sol_oic_client *client,
  *        parameter.
  * @param data A pointer to user's data.
  *
- * @return True if packet was successfully sent. False otherwise.
+ * @return @c 0 on success, error code (always negative) otherwise.
  */
-bool sol_oic_client_get_platform_info_by_addr(struct sol_oic_client *client,
+int sol_oic_client_get_platform_info_by_addr(struct sol_oic_client *client,
     struct sol_network_link_addr *addr,
     void (*info_received_cb)(void *data, struct sol_oic_client *cli,
     const struct sol_oic_platform_info *info),
@@ -262,9 +262,9 @@ bool sol_oic_client_get_platform_info_by_addr(struct sol_oic_client *client,
  *        parameter.
  * @param data A pointer to user's data.
  *
- * @return True if packet was successfully sent. False otherwise.
+ * @return @c 0 on success, error code (always negative) otherwise.
  */
-bool sol_oic_client_get_server_info(struct sol_oic_client *client,
+int sol_oic_client_get_server_info(struct sol_oic_client *client,
     struct sol_oic_resource *resource,
     void (*info_received_cb)(void *data, struct sol_oic_client *cli,
     const struct sol_oic_device_info *info),
@@ -294,9 +294,9 @@ bool sol_oic_client_get_server_info(struct sol_oic_client *client,
  *        parameter.
  * @param data A pointer to user's data.
  *
- * @return True if packet was successfully sent. False otherwise.
+ * @return @c 0 on success, error code (always negative) otherwise.
  */
-bool sol_oic_client_get_server_info_by_addr(struct sol_oic_client *client,
+int sol_oic_client_get_server_info_by_addr(struct sol_oic_client *client,
     struct sol_network_link_addr *addr,
     void (*info_received_cb)(void *data, struct sol_oic_client *cli,
     const struct sol_oic_device_info *info),

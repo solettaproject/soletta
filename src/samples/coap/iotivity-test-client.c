@@ -206,16 +206,11 @@ check_post_request(void *data, sol_coap_responsecode_t response_code, struct sol
     }
 }
 
-static bool
+static int
 post_fill_repr_map(struct sol_oic_map_writer *repr_map)
 {
-    int ret;
-
-    ret = sol_oic_map_append(repr_map,
-        &SOL_OIC_REPR_INT("power", POST_REQUEST_POWER));
-    SOL_EXP_CHECK(!ret, false);
-
-    return true;
+    return sol_oic_map_append(repr_map, &SOL_OIC_REPR_INT("power",
+        POST_REQUEST_POWER));
 }
 
 static bool
@@ -451,20 +446,18 @@ platform_info_cb(void *data, struct sol_oic_client *cli, const struct sol_oic_pl
     sol_quit();
 }
 
-static bool
+static int
 put_fill_repr_map(struct sol_oic_map_writer *repr_map)
 {
-    int ret;
+    int r;
 
-    ret = sol_oic_map_append(repr_map,
+    r = sol_oic_map_append(repr_map,
         &SOL_OIC_REPR_BOOLEAN("state", true));
-    SOL_EXP_CHECK(!ret, false);
+    SOL_INT_CHECK(r, < 0, r);
 
-    ret = sol_oic_map_append(repr_map,
+    return sol_oic_map_append(repr_map,
         &SOL_OIC_REPR_INT("power", PUT_REQUEST_POWER));
-    SOL_EXP_CHECK(!ret, false);
 
-    return true;
 }
 
 static bool
@@ -475,7 +468,7 @@ found_resource(void *data, struct sol_oic_client *cli, struct sol_oic_resource *
     const char *method_str = "GET";
     sol_coap_method_t method = SOL_COAP_METHOD_GET;
 
-    bool (*fill_repr_map)(struct sol_oic_map_writer *repr_map) = NULL;
+    int (*fill_repr_map)(struct sol_oic_map_writer *repr_map) = NULL;
     struct sol_str_slice path;
     struct sol_oic_request *request;
 

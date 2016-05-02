@@ -502,15 +502,14 @@ bool sol_oic_map_loop_next(struct sol_oic_repr_field *repr, struct sol_oic_map_r
  *        added.
  * @param repr The element
  *
- * @return true if the element was added successfully. False if an error
- *         occurred and the element was not added.
+ * @return @c 0 on success, error code (always negative) otherwise.
  *
  * @see sol_oic_server_send_notification_to_observers()
  * @see sol_oic_client_resource_request()
  * @note As this function adds elements to @a oic_map_writer, it will update
  * its type to SOL_OIC_MAP_CONTENT when needed.
  */
-bool sol_oic_map_append(struct sol_oic_map_writer *oic_map_writer, struct sol_oic_repr_field *repr);
+int sol_oic_map_append(struct sol_oic_map_writer *oic_map_writer, struct sol_oic_repr_field *repr);
 
 /**
  * @brief set current @a oic_map_writer type.
@@ -524,10 +523,9 @@ bool sol_oic_map_append(struct sol_oic_map_writer *oic_map_writer, struct sol_oi
  * @param oic_map_writer The map to set the type.
  * @param type The new type of @a oic_map_writer.
  *
- * @return False if @a oic_map_writer is NULL or if it was not possible to
- * change the type. True otherwise.
+ * @return @c 0 on success, error code (always negative) otherwise.
  */
-bool sol_oic_map_set_type(struct sol_oic_map_writer *oic_map_writer, enum sol_oic_map_type type);
+int sol_oic_map_set_type(struct sol_oic_map_writer *oic_map_writer, enum sol_oic_map_type type);
 
 /**
  * @brief get current @a oic_map_writer type.
@@ -535,9 +533,9 @@ bool sol_oic_map_set_type(struct sol_oic_map_writer *oic_map_writer, enum sol_oi
  * @param oic_map_writer The map to get the type from.
  * @param type A pointer to an enum to be filled with @a oic_map_writer type.
  *
- * @return False if any param is NULL. True otherwise.
+ * @return @c -EINVAL if any param is NULL. @c 0 otherwise.
  */
-bool sol_oic_map_get_type(struct sol_oic_map_writer *oic_map_writer, enum sol_oic_map_type *type);
+int sol_oic_map_get_type(struct sol_oic_map_writer *oic_map_writer, enum sol_oic_map_type *type);
 
 /**
  * @brief Release memory from field.
