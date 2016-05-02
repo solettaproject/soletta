@@ -63,8 +63,8 @@ def check_uncrustify():
     return uncrustify
 
 def check_dirty(args):
-    cmd_diff = "git diff --diff-filter=ACMR --oneline --name-only -- '*.[ch]'"
-    cmd_cached = "git diff --cached --diff-filter=ACMR --oneline --name-only -- '*.[ch]'"
+    cmd_diff = "git diff --diff-filter=ACMR --oneline --name-only --relative -- '*.[ch]'"
+    cmd_cached = "git diff --cached --diff-filter=ACMR --oneline --name-only --relative -- '*.[ch]'"
 
     diff_list = run_command(cmd_diff)
     diff_list += run_command(cmd_cached)
@@ -77,7 +77,7 @@ def check_dirty(args):
     return diff_list
 
 def check_commits(args):
-    cmd_check = "git diff --diff-filter=ACMR --oneline --name-only %s -- '*.[ch]'"
+    cmd_check = "git diff --diff-filter=ACMR --oneline --name-only --relative %s -- '*.[ch]'"
     print("Working directory is clean, checking commit changes for (%s)" % args.target_refspec)
     return run_command(cmd_check % args.target_refspec)
 
@@ -160,7 +160,7 @@ if __name__ == "__main__":
         exit(1)
 
     if not args.cfg_file:
-        args.cfg_file = "data/schemas/uncrustify.schema"
+        args.cfg_file = "%s/../data/schemas/uncrustify.schema" % os.path.dirname(os.path.realpath(__file__))
 
     replace = ""
     if args.replace:
