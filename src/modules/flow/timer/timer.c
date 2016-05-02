@@ -127,6 +127,10 @@ timer_open(struct sol_flow_node *node, void *data, const struct sol_flow_node_op
         return 0;
 
     mdata->interval = opts->interval;
+
+    if (!opts->enabled)
+        return 0;
+
     return start_timer(mdata);
 }
 
