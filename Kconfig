@@ -249,4 +249,12 @@ config USE_NODEJS
 	default n
 	help
 		Enable Node.js bindings
+
+config USE_PYTHON
+	bool "Python bindings"
+	depends on HAVE_LIBPYTHON3 && HAVE_CYTHON3 && HAVE_PYTHON3
+	default n
+	help
+		Enable python bindings
+
 endmenu
