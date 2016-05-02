@@ -64,6 +64,8 @@ obj-io-i2c-$(PLATFORM_LINUX) += \
     sol-i2c-impl-linux.o
 obj-io-i2c-$(PLATFORM_ZEPHYR) += \
     sol-i2c-impl-zephyr.o
+obj-io-i2c-$(PLATFORM_CONTIKI_QMSI) += \
+    sol-i2c-impl-contiki-qmsi.o
 
 obj-io-spi-$(USE_SPI) := \
     sol-spi-common.o
