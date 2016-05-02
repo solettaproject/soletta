@@ -30,11 +30,11 @@ var theInterval;
 
 console.log( JSON.stringify( { assertionCount: 0 } ) );
 
-theResource = soletta.sol_oic_server_add_resource( _.extend( {
+theResource = soletta.sol_oic_server_register_resource( _.extend( {
 		interface: "oic.if.baseline",
 		resource_type: "core.light",
 		path: "/a/" + uuid,
-		put: function putHandler( clientAddress, input, output ) {
+		put: function putHandler( input, output ) {
 			if ( input.finished === uuid ) {
 				observationCount++;
 				output.clientsFinished = observationCount;
@@ -45,7 +45,7 @@ theResource = soletta.sol_oic_server_add_resource( _.extend( {
 			return soletta.sol_coap_responsecode_t.SOL_COAP_RSPCODE_OK;
 		},
 	}, setObservable ? {} : {
-		get: function getHandler( clientAddress, input, output ) {
+		get: function getHandler( input, output ) {
 			_.extend( output, payload.generate() );
 			return soletta.sol_coap_responsecode_t.SOL_COAP_RSPCODE_OK;
 		}
@@ -58,12 +58,12 @@ console.log( JSON.stringify( { ready: true } ) );
 
 if ( !setObservable ) {
 	theInterval = setInterval( function() {
-		soletta.sol_oic_notify_observers( theResource, payload.generate() );
+		soletta.sol_oic_server_send_notification_to_observers( theResource, payload.generate() );
 	}, 200 );
 }
 
 process.on( "exit", function() {
-	soletta.sol_oic_server_del_resource( theResource );
+	soletta.sol_oic_server_unregister_resource( theResource );
 } );
 
 };

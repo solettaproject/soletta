@@ -19,19 +19,16 @@
 #pragma once
 
 #include "sol-coap.h"
-#include "sol-oic-client.h"
-#include "sol-oic.h"
-#include "sol-oic-server.h"
-#include "sol-str-slice.h"
 
-#define MACHINE_ID_LEN 16
+struct sol_oic_request {
+    bool isServerRequest;
+    struct sol_coap_packet *pkt;
+};
 
-struct sol_oic_security;
-
-struct sol_oic_security *sol_oic_server_security_add(
-    struct sol_coap_server *server, struct sol_coap_server *server_dtls);
-void sol_oic_server_security_del(struct sol_oic_security *security);
-
-struct sol_oic_security *sol_oic_client_security_add(
-    struct sol_coap_server *server, struct sol_coap_server *server_dtls);
-void sol_oic_client_security_del(struct sol_oic_security *security);
+static void
+oic_request_free(struct sol_oic_request *request)
+{
+    if (request->pkt)
+        sol_coap_packet_unref(request->pkt);
+    free(request);
+}

@@ -51,7 +51,7 @@ async.series( [
 		soletta.sol_oic_client_find_resource( client, destination, "", "",
 			function( client, resource ) {
 				discoveryCallbackCount++;
-				if ( resource && resource.href === "/a/" + process.argv[ 2 ] ) {
+				if ( resource && resource.path === "/a/" + process.argv[ 2 ] ) {
 					theResource = resource;
 				}
 				if ( !resource ) {
@@ -63,7 +63,7 @@ async.series( [
 			} );
 	},
 	function tellServerImDone( callback ) {
-		soletta.sol_oic_client_resource_request( client, theResource,
+		soletta.sol_oic_client_request( client, theResource,
 			soletta.sol_coap_method_t.SOL_COAP_METHOD_PUT, { uuid: process.argv[ 2 ] },
 				function( code, client, address, response ) {
 					testUtils.assert( "strictEqual", code,

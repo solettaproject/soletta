@@ -78,7 +78,16 @@ obj-networking-$(OIC)-extra-cflags += \
     -Wno-cpp \
     -Wno-declaration-after-statement \
     -Wno-float-equal \
-    -Wno-undef
+    -Wno-undef \
+    -DOIC_MANUFACTURER_NAME=$(OIC_SERVER_MANUFACTURER_NAME) \
+    -DOIC_MANUFACTURER_URL=$(OIC_SERVER_MANUFACTURER_URL) \
+    -DOIC_MODEL_NUMBER=$(OIC_SERVER_MODEL_NUMBER) \
+    -DOIC_MANUFACTURE_DATE=$(OIC_SERVER_MANUFACTURE_DATE) \
+    -DOIC_PLATFORM_VERSION=$(OIC_SERVER_PLATFORM_VERSION) \
+    -DOIC_HARDWARE_VERSION=$(OIC_SERVER_HARDWARE_VERSION) \
+    -DOIC_FIRMWARE_VERSION=$(OIC_SERVER_FIRMWARE_VERSION) \
+    -DOIC_SUPPORT_URL=$(OIC_SERVER_SUPPORT_URL) \
+    -DOIC_DEVICE_NAME=$(OIC_SERVER_DEVICE_NAME)
 
 obj-networking-$(HTTP) += \
     sol-http-common.o
@@ -133,7 +142,7 @@ headers-$(COAP) += \
     include/sol-coap.h
 
 headers-$(OIC) += \
-    include/sol-oic-common.h \
+    include/sol-oic.h \
     include/sol-oic-client.h \
     include/sol-oic-server.h
 

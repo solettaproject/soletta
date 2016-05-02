@@ -29,7 +29,7 @@
 extern "C" {
 #endif
 
-#include "sol-oic-common.h"
+#include "sol-oic.h"
 
 /**
  * @file
@@ -62,7 +62,7 @@ struct sol_oic_resource {
     /**
      * @brief The path pointing at this resource.
      */
-    struct sol_str_slice href;
+    struct sol_str_slice path;
     /**
      * @brief The Device ID as UUID 16-byte array.
      */
@@ -109,7 +109,7 @@ struct sol_oic_resource {
      * It is expected that clients that are observing a resource receives
      * notifications when resource state changes.
      */
-    bool is_observing : 1;
+    bool is_observed : 1;
 };
 
 /**
@@ -167,21 +167,20 @@ void sol_oic_client_del(struct sol_oic_client *client);
  *        is a pointer to the user's data parameter.
  * @param data A pointer to user's data.
  *
- * @return True if packet was successfully sent. False otherwise.
+ * @return @c 0 on success, error code (always negative) otherwise.
  */
-bool sol_oic_client_find_resource(struct sol_oic_client *client,
+int sol_oic_client_find_resource(struct sol_oic_client *client,
     struct sol_network_link_addr *addr, const char *resource_type,
     const char *resource_interface,
-    bool (*resource_found_cb)(struct sol_oic_client *cli,
-    struct sol_oic_resource *res,
-    void *data),
+    bool (*resource_found_cb)(void *data, struct sol_oic_client *cli,
+    struct sol_oic_resource *res),
     const void *data);
 
 /**
  * @brief Retrieve platform information.
  *
  * Sends a packet to @a resource's server asking for platform information
- * defined at @ref sol_oic_platform_information.
+ * defined at @ref sol_oic_platform_info.
  *
  * When a response is received, the function @a info_received_cb will be
  * called, with @a info parameter filled with the information received, or
@@ -195,24 +194,24 @@ bool sol_oic_client_find_resource(struct sol_oic_client *client,
  * @param resource The resource that is going to receive the request.
  * @param info_received_cb Callback to be called when response is received or
  *        when timeout is reached. Parameter cli is the sol_oic_client used to
- *        perform the request, info is the @ref sol_oic_platform_information
+ *        perform the request, info is the @ref sol_oic_platform_info
  *        structure with server info data, data is a pointer to user's data
  *        parameter.
  * @param data A pointer to user's data.
  *
- * @return True if packet was successfully sent. False otherwise.
+ * @return @c 0 on success, error code (always negative) otherwise.
  */
-bool sol_oic_client_get_platform_info(struct sol_oic_client *client,
+int sol_oic_client_get_platform_info(struct sol_oic_client *client,
     struct sol_oic_resource *resource,
-    void (*info_received_cb)(struct sol_oic_client *cli,
-    const struct sol_oic_platform_information *info, void *data),
+    void (*info_received_cb)(void *data, struct sol_oic_client *cli,
+    const struct sol_oic_platform_info *info),
     const void *data);
 
 /**
  * @brief Retrieve platform information from @a addr.
  *
  * Sends a packet to server identified by @a addr asking for platform
- * information defined at @ref sol_oic_platform_information.
+ * information defined at @ref sol_oic_platform_info.
  *
  * When a response is received, the function @a info_received_cb will be
  * called, with @a info parameter filled with the information received, or
@@ -227,24 +226,24 @@ bool sol_oic_client_get_platform_info(struct sol_oic_client *client,
  *        information.
  * @param info_received_cb Callback to be called when response is received or
  *        when timeout is reached. Parameter cli is the sol_oic_client used to
- *        perform the request, info is the @ref sol_oic_platform_information
+ *        perform the request, info is the @ref sol_oic_platform_info
  *        structure with server info data, data is a pointer to user's data
  *        parameter.
  * @param data A pointer to user's data.
  *
- * @return True if packet was successfully sent. False otherwise.
+ * @return @c 0 on success, error code (always negative) otherwise.
  */
-bool sol_oic_client_get_platform_info_by_addr(struct sol_oic_client *client,
+int sol_oic_client_get_platform_info_by_addr(struct sol_oic_client *client,
     struct sol_network_link_addr *addr,
-    void (*info_received_cb)(struct sol_oic_client *cli,
-    const struct sol_oic_platform_information *info, void *data),
+    void (*info_received_cb)(void *data, struct sol_oic_client *cli,
+    const struct sol_oic_platform_info *info),
     const void *data);
 
 /**
  * @brief Retrieve server information.
  *
  * Sends a packet to @a resource's server asking for server information
- * defined at @ref sol_oic_server_information.
+ * defined at @ref sol_oic_device_info.
  *
  * When a response is received, the function @a info_received_cb will be
  * called, with @a info parameter filled with the information received, or
@@ -258,24 +257,24 @@ bool sol_oic_client_get_platform_info_by_addr(struct sol_oic_client *client,
  * @param resource The resource that is going to receive the request.
  * @param info_received_cb Callback to be called when response is received or
  *        when timeout is reached. Parameter cli is the sol_oic_client used to
- *        perform the request, info is the @ref sol_oic_server_information
+ *        perform the request, info is the @ref sol_oic_device_info
  *        structure with server info data, data is a pointer to user's data
  *        parameter.
  * @param data A pointer to user's data.
  *
- * @return True if packet was successfully sent. False otherwise.
+ * @return @c 0 on success, error code (always negative) otherwise.
  */
-bool sol_oic_client_get_server_info(struct sol_oic_client *client,
+int sol_oic_client_get_server_info(struct sol_oic_client *client,
     struct sol_oic_resource *resource,
-    void (*info_received_cb)(struct sol_oic_client *cli,
-    const struct sol_oic_server_information *info, void *data),
+    void (*info_received_cb)(void *data, struct sol_oic_client *cli,
+    const struct sol_oic_device_info *info),
     const void *data);
 
 /**
  * @brief Retrieve server information from @a addr.
  *
  * Sends a packet to server identified by @a addr asking for server
- * information defined at @ref sol_oic_server_information.
+ * information defined at @ref sol_oic_device_info.
  *
  * When a response is received, the function @a info_received_cb will be
  * called, with @a info parameter filled with the information received, or
@@ -290,36 +289,28 @@ bool sol_oic_client_get_server_info(struct sol_oic_client *client,
  *        information.
  * @param info_received_cb Callback to be called when response is received or
  *        when timeout is reached. Parameter cli is the sol_oic_client used to
- *        perform the request, info is the @ref sol_oic_server_information
+ *        perform the request, info is the @ref sol_oic_device_info
  *        structure with server info data, data is a pointer to user's data
  *        parameter.
  * @param data A pointer to user's data.
  *
- * @return True if packet was successfully sent. False otherwise.
+ * @return @c 0 on success, error code (always negative) otherwise.
  */
-bool sol_oic_client_get_server_info_by_addr(struct sol_oic_client *client,
+int sol_oic_client_get_server_info_by_addr(struct sol_oic_client *client,
     struct sol_network_link_addr *addr,
-    void (*info_received_cb)(struct sol_oic_client *cli,
-    const struct sol_oic_server_information *info, void *data),
+    void (*info_received_cb)(void *data, struct sol_oic_client *cli,
+    const struct sol_oic_device_info *info),
     const void *data);
 
 /**
- * @brief Send a request packet to server for specific @a resource.
+ * @brief Send a @a request packet to server.
  *
- * Send a CoAP confirmable request packet to server that contains the
- * @a resource and wait for a response. When the response arrives, @a callback
- * will be called.
+ * Send a CoAP @a request packet to server and wait for a response. When the
+ * response arrives, @a callback will be called.
  *
  * @param client An oic client instance.
- * @param res The resource that is going to receive the request.
- * @param method The coap request method as documented in @ref
- *        sol_coap_method_t.
- * @param fill_repr_map A callback to be called to fill the request data.
- *        Parameter @a data is a pointer to user's @a fill_repr_map_data and
- *        @a repr_map is a handler to write data to request packet. Use @ref
- *        sol_oic_map_append() to append data to @a repr_map. If @c NULL,
- *        no data will be added to request.
- * @param fill_repr_map_data User's data to be passed to @a fill_repr_map.
+ * @param request A request created using @ref sol_oic_client_request_new()
+ *        or sol_oic_client_non_confirmable_request_new().
  * @param callback Callback to be called when a response from this request
  *        arrives. Parameter @a response_code is the header response code of
  *        this request, @a cli is the @a client used to perform the
@@ -328,59 +319,52 @@ bool sol_oic_client_get_server_info_by_addr(struct sol_oic_client *client,
  *        macro. @a data is the user's @a callback_data. When timeout is reached
  *        and no packet has arrived, callback is called with @c NULL @a addr and
  *        @c NULL repr_vec so any clean up can be performed.
- *
  * @param callback_data User's data to be passed to @a callback.
  *
- * @return True if packet was successfully sent. False otherwise.
+ * @return @c 0 on success or a negative number on errors.
  */
-bool sol_oic_client_resource_request(struct sol_oic_client *client, struct sol_oic_resource *res,
-    sol_coap_method_t method,
-    bool (*fill_repr_map)(void *data, struct sol_oic_map_writer *repr_map),
-    void *fill_repr_map_data,
-    void (*callback)(sol_coap_responsecode_t response_code, struct sol_oic_client *cli, const struct sol_network_link_addr *addr,
-    const struct sol_oic_map_reader *repr_vec, void *data),
-    const void *callback_data);
+int sol_oic_client_request(struct sol_oic_client *client, struct sol_oic_request *request, void (*callback)(void *data, sol_coap_responsecode_t response_code, struct sol_oic_client *cli, const struct sol_network_link_addr *addr, const struct sol_oic_map_reader *repr_vec), const void *callback_data);
 
 /**
- * @brief Send a request packet to server for specific @a resource, using
- * non-confirmable packets.
+ * @brief Create an oic client request for an specific @a resource, using a
+ * confirmable CoAP packet.
  *
- * Send a CoAP non-confirmable request packet to server that contains the
- * @a resource and wait for a response. When the response arrives, @a callback
- * will be called.
- *
- * The only difference from @ref sol_oic_client_resource_request() to this
- * function is that it uses CoAP non-confirmable packets to make the request.
- *
- * @param client An oic client instance.
- * @param res The resource that is going to receive the request.
  * @param method The coap request method as documented in @ref
  *        sol_coap_method_t.
- * @param fill_repr_map A callback to be called to fill the request data.
- *        Parameter @a data is a pointer to user's @a fill_repr_map_data and
- *        @a repr_map is a handler to write data to request packet. Use @ref
- *        sol_oic_map_append() to append data to @a repr_map. If @c NULL, no
- *        data will be added to request.
- * @param fill_repr_map_data User's data to be passed to @a fill_repr_map.
- * @param callback Callback to be called when a response from this request
- *        arrives. Parameter @a response_code is the header response code of
- *        this request, @a cli is the @a client used to perform the
- *        request, @a addr is the address of the server and repr_vec is a
- *        handler to access data from response, using @ref SOL_OIC_MAP_LOOP()
- *        macro. @a data is the user's @a callback_data. When timeout is reached
- *        and no packet has arrived, callback is called with @c NULL @a addr and
- *        @c NULL repr_vec so any clean up can be performed.
- * @param callback_data User's data to be passed to @a callback.
+ * @param res The resource that is going to receive the request.
  *
- * @return True if packet was successfully sent. False otherwise.
+ * @return A valid client request on success or @c NULL on errors.
  */
-bool sol_oic_client_resource_non_confirmable_request(struct sol_oic_client *client, struct sol_oic_resource *res,
-    sol_coap_method_t method,
-    bool (*fill_repr_map)(void *data, struct sol_oic_map_writer *repr_map),
-    void *fill_repr_map_data,
-    void (*callback)(sol_coap_responsecode_t response_code, struct sol_oic_client *cli, const struct sol_network_link_addr *addr,
-    const struct sol_oic_map_reader *repr_vec, void *data),
-    const void *callback_data);
+struct sol_oic_request *sol_oic_client_request_new(sol_coap_method_t method, struct sol_oic_resource *res);
+
+/**
+ * @brief Create an oic client request for an specific @a resource, using a
+ * non-confirmable CoAP packet.
+ *
+ * @param method The coap request method as documented in @ref
+ *        sol_coap_method_t.
+ * @param res The resource that is going to receive the request.
+ *
+ * @return A valid client request on success or @c NULL on errors.
+ */
+struct sol_oic_request *sol_oic_client_non_confirmable_request_new(sol_coap_method_t method, struct sol_oic_resource *res);
+
+/**
+ * @brief Release memory from a request.
+ *
+ * @param request A pointer to the request to be released.
+ */
+void sol_oic_client_request_free(struct sol_oic_request *request);
+
+/**
+ * @brief Get the packet writer from a client request.
+ *
+ * @param request The request to retrieve the writer.
+ *
+ * @return The packet writer from this request or @c NULL if the informed
+ *         request is not a client request.
+ */
+struct sol_oic_map_writer *sol_oic_client_request_get_writer(struct sol_oic_request *request);
 
 /**
  * @brief Set this resource as observable for this client.
@@ -409,11 +393,11 @@ bool sol_oic_client_resource_non_confirmable_request(struct sol_oic_client *clie
  * @param data A pointer to user's data.
  * @param observe If server will be obeserved or unobserved.
  *
- * @return True if packet was successfully sent. False otherwise.
+ * @return @c 0 on success or a negative number on errors.
  */
-bool sol_oic_client_resource_set_observable(struct sol_oic_client *client, struct sol_oic_resource *res,
-    void (*callback)(sol_coap_responsecode_t response_code, struct sol_oic_client *cli, const struct sol_network_link_addr *addr,
-    const struct sol_oic_map_reader *repr_map, void *data),
+int sol_oic_client_resource_set_observable(struct sol_oic_client *client, struct sol_oic_resource *res,
+    void (*callback)(void *data, sol_coap_responsecode_t response_code, struct sol_oic_client *cli, const struct sol_network_link_addr *addr,
+    const struct sol_oic_map_reader *repr_map),
     const void *data, bool observe);
 
 /**
@@ -448,11 +432,11 @@ bool sol_oic_client_resource_set_observable(struct sol_oic_client *client, struc
  * @param data A pointer to user's data.
  * @param observe If server will be obeserved or unobserved.
  *
- * @return True if packet was successfully sent. False otherwise.
+ * @return @c 0 on success or a negative number on errors.
  */
-bool sol_oic_client_resource_set_observable_non_confirmable(struct sol_oic_client *client, struct sol_oic_resource *res,
-    void (*callback)(sol_coap_responsecode_t response_code, struct sol_oic_client *cli, const struct sol_network_link_addr *addr,
-    const struct sol_oic_map_reader *repr_map, void *data),
+int sol_oic_client_resource_set_observable_non_confirmable(struct sol_oic_client *client, struct sol_oic_resource *res,
+    void (*callback)(void *data, sol_coap_responsecode_t response_code, struct sol_oic_client *cli, const struct sol_network_link_addr *addr,
+    const struct sol_oic_map_reader *repr_map),
     const void *data, bool observe);
 
 /**

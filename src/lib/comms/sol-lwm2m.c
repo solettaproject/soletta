@@ -255,9 +255,9 @@ static bool lifetime_server_timeout(void *data);
 static bool lifetime_client_timeout(void *data);
 static int register_with_server(struct sol_lwm2m_client *client,
     struct server_conn_ctx *conn_ctx, bool is_update);
-static int handle_resource(struct sol_coap_server *server,
+static int handle_resource(void *data, struct sol_coap_server *server,
     const struct sol_coap_resource *resource, struct sol_coap_packet *req,
-    const struct sol_network_link_addr *cliaddr, void *data);
+    const struct sol_network_link_addr *cliaddr);
 
 static void
 send_ack_if_needed(struct sol_coap_server *coap, struct sol_coap_packet *msg,
@@ -715,10 +715,10 @@ err_exit:
 }
 
 static int
-update_client(struct sol_coap_server *coap,
+update_client(void *data, struct sol_coap_server *coap,
     const struct sol_coap_resource *resource,
     struct sol_coap_packet *req,
-    const struct sol_network_link_addr *cliaddr, void *data)
+    const struct sol_network_link_addr *cliaddr)
 {
     struct sol_lwm2m_client_info *cinfo = data;
     struct sol_coap_packet *response;
@@ -749,10 +749,10 @@ err_update:
 }
 
 static int
-delete_client(struct sol_coap_server *coap,
+delete_client(void *data, struct sol_coap_server *coap,
     const struct sol_coap_resource *resource,
     struct sol_coap_packet *req,
-    const struct sol_network_link_addr *cliaddr, void *data)
+    const struct sol_network_link_addr *cliaddr)
 {
     struct sol_lwm2m_client_info *cinfo = data;
     struct sol_coap_packet *response;
@@ -851,10 +851,10 @@ get_client_info_by_name(struct sol_ptr_vector *clients,
 }
 
 static int
-registration_request(struct sol_coap_server *coap,
+registration_request(void *data, struct sol_coap_server *coap,
     const struct sol_coap_resource *resource,
     struct sol_coap_packet *req,
-    const struct sol_network_link_addr *cliaddr, void *data)
+    const struct sol_network_link_addr *cliaddr)
 {
     struct sol_lwm2m_client_info *cinfo, *old_cinfo;
     struct sol_lwm2m_server *server = data;
@@ -1612,9 +1612,8 @@ extract_content(struct sol_coap_packet *req, uint8_t *code,
 }
 
 static bool
-observation_request_reply(struct sol_coap_server *coap_server,
-    struct sol_coap_packet *req, const struct sol_network_link_addr *cliaddr,
-    void *data)
+observation_request_reply(void *data, struct sol_coap_server *coap_server,
+    struct sol_coap_packet *req, const struct sol_network_link_addr *cliaddr)
 {
     struct observer_entry *entry = data;
     struct sol_monitors_entry *m;
@@ -1793,9 +1792,8 @@ sol_lwm2m_resource_init(struct sol_lwm2m_resource *resource,
 }
 
 static bool
-management_reply(struct sol_coap_server *server,
-    struct sol_coap_packet *req, const struct sol_network_link_addr *cliaddr,
-    void *data)
+management_reply(void *data, struct sol_coap_server *server,
+    struct sol_coap_packet *req, const struct sol_network_link_addr *cliaddr)
 {
     struct management_ctx *ctx = data;
     uint8_t code = 0;
@@ -2964,10 +2962,10 @@ should_dispatch_notifications(uint8_t code, bool is_execute)
 }
 
 static int
-handle_resource(struct sol_coap_server *server,
+handle_resource(void *data, struct sol_coap_server *server,
     const struct sol_coap_resource *resource,
     struct sol_coap_packet *req,
-    const struct sol_network_link_addr *cliaddr, void *data)
+    const struct sol_network_link_addr *cliaddr)
 {
     int r;
     uint8_t method;
@@ -3478,9 +3476,9 @@ reschedule_client_timeout(struct sol_lwm2m_client *client)
 }
 
 static bool
-register_reply(struct sol_coap_server *server,
+register_reply(void *data, struct sol_coap_server *server,
     struct sol_coap_packet *pkt,
-    const struct sol_network_link_addr *server_addr, void *data)
+    const struct sol_network_link_addr *server_addr)
 {
     struct server_conn_ctx *conn_ctx = data;
     struct sol_str_slice path[2];
@@ -3531,9 +3529,9 @@ err_exit:
 }
 
 static bool
-update_reply(struct sol_coap_server *server,
+update_reply(void *data, struct sol_coap_server *server,
     struct sol_coap_packet *pkt,
-    const struct sol_network_link_addr *server_addr, void *data)
+    const struct sol_network_link_addr *server_addr)
 {
     uint8_t code;
     struct server_conn_ctx *conn_ctx = data;

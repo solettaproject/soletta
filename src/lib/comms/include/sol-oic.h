@@ -49,11 +49,10 @@ extern "C" {
  * @ref sol_oic_client_get_platform_info() and @ref
  * sol_oic_client_get_platform_info_by_addr
  */
-struct sol_oic_platform_information {
+struct sol_oic_platform_info {
 #ifndef SOL_NO_API_VERSION
-#define SOL_OIC_PLATFORM_INFORMATION_API_VERSION (1)
+#define SOL_OIC_PLATFORM_INFO_API_VERSION (1)
     uint16_t api_version; /**< @brief API version */
-    int : 0; /**< @brief Unused. Save possible hole for a future field */
 #endif
 
     /* All fields are required by the spec.  Some of the fields are
@@ -115,7 +114,7 @@ struct sol_oic_platform_information {
  *
  * Multiple flags can be set, just connect them using the | operator.
  *
- * @see sol_oic_server_add_resource()
+ * @see sol_oic_server_register_resource()
  */
 enum sol_oic_resource_flag {
     /**
@@ -128,38 +127,38 @@ enum sol_oic_resource_flag {
      * @brief The resource is discoverable by clients.
      */
     SOL_OIC_FLAG_DISCOVERABLE = 1 << 0,
-        /**
-         * @brief The resource is observable.
-         *
-         * Clients can request observable resources to be notified when a the
-         * resource status has changes.
-         */
-        SOL_OIC_FLAG_OBSERVABLE = 1 << 1,
-        /**
-         * @brief The resource is active.
-         *
-         * Devices are set as inactive when they are uninitialized,
-         * marked for deletion or already deleted.
-         */
-        SOL_OIC_FLAG_ACTIVE = 1 << 2,
-        /**
-         * @brief The resource is slow.
-         *
-         * Delays in response from slow resource is expected when processing
-         * requests.
-         */
-        SOL_OIC_FLAG_SLOW = 1 << 3,
-        /**
-         * @brief The resource is secure.
-         *
-         * Connection established with a secure devices is secure.
-         */
-        SOL_OIC_FLAG_SECURE = 1 << 4,
-        /**
-         * @brief The resource is discoverable by clients only if request
-         * contains an explicity query
-         */
-        SOL_OIC_FLAG_DISCOVERABLE_EXPLICIT = 1 << 5,
+    /**
+     * @brief The resource is observable.
+     *
+     * Clients can request observable resources to be notified when a the
+     * resource status has changes.
+     */
+    SOL_OIC_FLAG_OBSERVABLE = 1 << 1,
+    /**
+     * @brief The resource is active.
+     *
+     * Devices are set as inactive when they are uninitialized,
+     * marked for deletion or already deleted.
+     */
+    SOL_OIC_FLAG_ACTIVE = 1 << 2,
+    /**
+     * @brief The resource is slow.
+     *
+     * Delays in response from slow resource is expected when processing
+     * requests.
+     */
+    SOL_OIC_FLAG_SLOW = 1 << 3,
+    /**
+     * @brief The resource is secure.
+     *
+     * Connection established with a secure devices is secure.
+     */
+    SOL_OIC_FLAG_SECURE = 1 << 4,
+    /**
+     * @brief The resource is discoverable by clients only if request
+     * contains an explicity query
+     */
+    SOL_OIC_FLAG_DISCOVERABLE_EXPLICIT = 1 << 5,
 };
 
 /**
@@ -167,11 +166,10 @@ enum sol_oic_resource_flag {
  * @ref sol_oic_client_get_server_info() and @ref
  * sol_oic_client_get_server_info_by_addr
  */
-struct sol_oic_server_information {
+struct sol_oic_device_info {
 #ifndef SOL_NO_API_VERSION
-#define SOL_OIC_SERVER_INFORMATION_API_VERSION (1)
+#define SOL_OIC_DEVICE_INFO_API_VERSION (1)
     uint16_t api_version; /**< @brief API version */
-    int : 0; /**< @brief Unused. Save possible hole for a future field */
 #endif
 
     /**
@@ -372,7 +370,7 @@ struct sol_oic_repr_field {
  * This structure is used in callback parameters so users can add fields to an
  * oic packet using @ref sol_oic_map_append().
  *
- * @see sol_oic_notify_observers()
+ * @see sol_oic_server_send_notification_to_observers()
  * @see sol_oic_client_resource_request()
  */
 struct sol_oic_map_writer;
@@ -408,6 +406,13 @@ enum sol_oic_map_type {
  * This structure is used in callback parameters so users can read fields from
  * an oic packet using @ref SOL_OIC_MAP_LOOP.
  *
+ * @param parser Internal Pointer. Not to be used.
+ * @param ptr Internal Pointer. Not to be used.
+ * @param remaining Internal information. Not to be used.
+ * @param extra Internal information. Not to be used.
+ * @param type Internal information. Not to be used.
+ * @param flags Internal information. Not to be used.
+ *
  * @note Fields from this structure are not expected to be accessed by clients.
  * @see SOL_OIC_MAP_LOOP.
  */
@@ -421,9 +426,27 @@ struct sol_oic_map_reader {
 };
 
 /**
+ * @struct sol_oic_request
+ *
+ * @brief Information about a server request.
+ *
+ * @see sol_oic_server_send_response
+ */
+struct sol_oic_request;
+
+/**
+ * @struct sol_oic_response
+ *
+ * @brief Information about a server response.
+ *
+ * @see sol_oic_server_send_response
+ */
+struct sol_oic_response;
+
+/**
  * @brief Possible reasons a @ref SOL_OIC_MAP_LOOP was terminated.
  */
-enum sol_oic_map_loop_reason {
+enum sol_oic_map_loop_status {
     /**
      * @brief Success termination. Everything was OK.
      */
@@ -452,7 +475,7 @@ enum sol_oic_map_loop_reason {
  *
  * @see sol_oic_map_reader
  */
-enum sol_oic_map_loop_reason sol_oic_map_loop_init(const struct sol_oic_map_reader *map, struct sol_oic_map_reader *iterator, struct sol_oic_repr_field *repr);
+enum sol_oic_map_loop_status sol_oic_map_loop_init(const struct sol_oic_map_reader *map, struct sol_oic_map_reader *iterator, struct sol_oic_repr_field *repr);
 
 /**
  * @brief Get the next element from @a iterator.
@@ -470,7 +493,7 @@ enum sol_oic_map_loop_reason sol_oic_map_loop_init(const struct sol_oic_map_read
  *
  * @see sol_oic_map_reader
  */
-bool sol_oic_map_loop_next(struct sol_oic_repr_field *repr, struct sol_oic_map_reader *iterator, enum sol_oic_map_loop_reason *reason);
+bool sol_oic_map_loop_next(struct sol_oic_repr_field *repr, struct sol_oic_map_reader *iterator, enum sol_oic_map_loop_status *reason);
 
 /**
  * @brief Append an element to @a oic_map_writer
@@ -479,15 +502,14 @@ bool sol_oic_map_loop_next(struct sol_oic_repr_field *repr, struct sol_oic_map_r
  *        added.
  * @param repr The element
  *
- * @return true if the element was added successfully. False if an error
- *         occurred and the element was not added.
+ * @return @c 0 on success, error code (always negative) otherwise.
  *
- * @see sol_oic_notify_observers()
+ * @see sol_oic_server_send_notification_to_observers()
  * @see sol_oic_client_resource_request()
  * @note As this function adds elements to @a oic_map_writer, it will update
  * its type to SOL_OIC_MAP_CONTENT when needed.
  */
-bool sol_oic_map_append(struct sol_oic_map_writer *oic_map_writer, struct sol_oic_repr_field *repr);
+int sol_oic_map_append(struct sol_oic_map_writer *oic_map_writer, struct sol_oic_repr_field *repr);
 
 /**
  * @brief set current @a oic_map_writer type.
@@ -501,10 +523,9 @@ bool sol_oic_map_append(struct sol_oic_map_writer *oic_map_writer, struct sol_oi
  * @param oic_map_writer The map to set the type.
  * @param type The new type of @a oic_map_writer.
  *
- * @return False if @a oic_map_writer is NULL or if it was not possible to
- * change the type. True otherwise.
+ * @return @c 0 on success, error code (always negative) otherwise.
  */
-bool sol_oic_map_set_type(struct sol_oic_map_writer *oic_map_writer, enum sol_oic_map_type type);
+int sol_oic_map_set_type(struct sol_oic_map_writer *oic_map_writer, enum sol_oic_map_type type);
 
 /**
  * @brief get current @a oic_map_writer type.
@@ -512,9 +533,9 @@ bool sol_oic_map_set_type(struct sol_oic_map_writer *oic_map_writer, enum sol_oi
  * @param oic_map_writer The map to get the type from.
  * @param type A pointer to an enum to be filled with @a oic_map_writer type.
  *
- * @return False if any param is NULL. True otherwise.
+ * @return @c -EINVAL if any param is NULL. @c 0 otherwise.
  */
-bool sol_oic_map_get_type(struct sol_oic_map_writer *oic_map_writer, enum sol_oic_map_type *type);
+int sol_oic_map_get_type(struct sol_oic_map_writer *oic_map_writer, enum sol_oic_map_type *type);
 
 /**
  * @brief Release memory from field.
@@ -536,14 +557,14 @@ void sol_oic_repr_field_clear(struct sol_oic_repr_field *field);
  *        the current element data.
  * @param iterator_ A pointer to a struct sol_oic_map_reader to be used as an
  *        iterator
- * @param end_reason_ A pointer to a enum sol_oic_map_loop_reason to be filled
+ * @param end_reason_ A pointer to a enum sol_oic_map_loop_status to be filled
  *        with the reason this loop has terminated.
  *
  * Example to read data from a struct sol_oic_map_reader using this macro:
  * @code
  *
  * struct sol_oic_repr_field field;
- * enum sol_oic_map_loop_reason end_reason;
+ * enum sol_oic_map_loop_status end_reason;
  * struct sol_oic_map_reader iterator;
  *
  * SOL_OIC_MAP_LOOP(map_reader, &field, &iterator, end_reason) {

@@ -44,7 +44,7 @@ async.series( [
 				if ( !resource ) {
 					callback( new Error( messagePrefix + "Resource not found" ) );
 				}
-				if ( resource && resource.href === "/a/" + uuid ) {
+				if ( resource && resource.path === "/a/" + uuid ) {
 					testUtils.assert( "ok", true, messagePrefix + "Resource found" );
 					theResource = resource;
 					callback();
@@ -80,7 +80,7 @@ async.series( [
 	},
 
 	function maybeQuit( callback ) {
-		var result = soletta.sol_oic_client_resource_request( client, theResource,
+		var result = soletta.sol_oic_client_request( client, theResource,
 			soletta.sol_coap_method_t.SOL_COAP_METHOD_PUT, { finished: uuid },
 			function( code, client, address, response ) {
 				if ( response && response.clientsFinished === clientCount ) {

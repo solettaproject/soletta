@@ -20,7 +20,7 @@
 
 #include "tinycbor/cbor.h"
 #include "sol-coap.h"
-#include "sol-oic-common.h"
+#include "sol-oic.h"
 #include "sol-vector.h"
 
 CborError sol_oic_packet_cbor_extract_repr_map(struct sol_coap_packet *pkt, CborParser *parser, CborValue *repr_map);
@@ -29,29 +29,23 @@ CborError sol_oic_packet_cbor_close(struct sol_coap_packet *pkt, struct sol_oic_
 void sol_oic_packet_cbor_create(struct sol_coap_packet *pkt, struct sol_oic_map_writer *encoder);
 CborError sol_oic_packet_cbor_append(struct sol_oic_map_writer *encoder, struct sol_oic_repr_field *repr);
 bool sol_oic_pkt_has_cbor_content(const struct sol_coap_packet *pkt);
-bool sol_cbor_map_get_bytestr_value(const CborValue *map, const char *key, struct sol_str_slice *slice);
+int sol_cbor_map_get_bytestr_value(const CborValue *map, const char *key, struct sol_str_slice *slice);
 /* BSV is a blank separated string, as defined in oic documentation. It is a
  * string with list of values, separated by a blank space. */
-bool sol_cbor_map_get_bsv(const CborValue *map, const char *key, char **data, struct sol_vector *vector);
-bool sol_cbor_map_get_str_value(const CborValue *map, const char *key, struct sol_str_slice *slice);
-bool sol_cbor_map_get_array(const CborValue *map, const char *key, struct sol_vector *vector);
-bool sol_cbor_array_to_vector(CborValue *array, struct sol_vector *vector);
-bool sol_cbor_bsv_to_vector(const CborValue *value, char **data, struct sol_vector *vector);
+int sol_cbor_map_get_bsv(const CborValue *map, const char *key, char **data, struct sol_vector *vector);
+int sol_cbor_map_get_str_value(const CborValue *map, const char *key, struct sol_str_slice *slice);
+int sol_cbor_map_get_array(const CborValue *map, const char *key, struct sol_vector *vector);
+int sol_cbor_array_to_vector(CborValue *array, struct sol_vector *vector);
+int sol_cbor_bsv_to_vector(const CborValue *value, char **data, struct sol_vector *vector);
 
 void sol_cbor_map_get_type(struct sol_oic_map_writer *oic_map_writer, enum sol_oic_map_type *type);
-bool sol_cbor_map_set_type(struct sol_oic_map_writer *oic_map_writer, enum sol_oic_map_type type);
+int sol_cbor_map_set_type(struct sol_oic_map_writer *oic_map_writer, enum sol_oic_map_type type);
 
 struct sol_oic_map_writer {
     CborEncoder encoder, rep_map;
     uint8_t *payload;
     struct sol_coap_packet *pkt;
     enum sol_oic_map_type type;
-};
-
-enum sol_oic_payload_type {
-    SOL_OIC_PAYLOAD_DISCOVERY = 1,
-    SOL_OIC_PAYLOAD_PLATFORM = 3,
-    SOL_OIC_PAYLOAD_REPRESENTATION = 4,
 };
 
 #define SOL_OIC_DEVICE_PATH "/oic/d"

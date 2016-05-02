@@ -18,7 +18,7 @@
 
 #include "sol-log.h"
 #include "sol-oic-cbor.h"
-#include "sol-oic-common.h"
+#include "sol-oic.h"
 
 #define TYPICAL_OIC_PAYLOAD_SZ (64)
 
@@ -367,7 +367,7 @@ sol_oic_pkt_has_cbor_content(const struct sol_coap_packet *pkt)
     return ptr && len == 1 && *ptr == SOL_COAP_CONTENTTYPE_APPLICATION_CBOR;
 }
 
-bool
+int
 sol_cbor_array_to_vector(CborValue *array, struct sol_vector *vector)
 {
     CborError err;
@@ -378,48 +378,47 @@ sol_cbor_array_to_vector(CborValue *array, struct sol_vector *vector)
         err |= cbor_value_advance(&iter)) {
         struct sol_str_slice *slice = sol_vector_append(vector);
 
-        if (!slice) {
-            err = CborErrorOutOfMemory;
-            break;
-        }
+        if (!slice)
+            return -ENOMEM;
 
         err |= cbor_value_dup_text_string(&iter, (char **)&slice->data, &slice->len, NULL);
     }
 
-    return (err | cbor_value_leave_container(array, &iter)) == CborNoError;
+    err |= cbor_value_leave_container(array, &iter);
+    return err == CborNoError ? 0 : -EIO;
 }
 
-bool
+int
 sol_cbor_map_get_array(const CborValue *map, const char *key,
     struct sol_vector *vector)
 {
     CborValue value;
 
     if (cbor_value_map_find_value(map, key, &value) != CborNoError)
-        return false;
+        return -ENOENT;
 
     if (!cbor_value_is_array(&value))
-        return false;
+        return -ENOENT;
 
     return sol_cbor_array_to_vector(&value, vector);
 }
 
-bool
+int
 sol_cbor_map_get_str_value(const CborValue *map, const char *key,
     struct sol_str_slice *slice)
 {
     CborValue value;
 
     if (cbor_value_map_find_value(map, key, &value) != CborNoError)
-        return false;
+        return -ENOENT;
 
     if (!cbor_value_is_text_string(&value))
-        return false;
+        return -ENOENT;
 
-    return cbor_value_dup_text_string(&value, (char **)&slice->data, &slice->len, NULL) == CborNoError;
+    return cbor_value_dup_text_string(&value, (char **)&slice->data, &slice->len, NULL) == CborNoError ? 0 : -ENOMEM;
 }
 
-bool
+int
 sol_cbor_bsv_to_vector(const CborValue *value, char **data, struct sol_vector *vector)
 {
     size_t len;
@@ -431,7 +430,7 @@ sol_cbor_bsv_to_vector(const CborValue *value, char **data, struct sol_vector *v
     }
     sol_vector_clear(vector);
     if (cbor_value_dup_text_string(value, data, &len, NULL) != CborNoError)
-        return false;
+        return -ENOMEM;
 
     for (last = *data; last != NULL;) {
         size_t cur_len;
@@ -455,40 +454,40 @@ sol_cbor_bsv_to_vector(const CborValue *value, char **data, struct sol_vector *v
         len -= cur_len;
     }
 
-    return true;
+    return 0;
 
 error:
     free(*data);
     *data = NULL;
     sol_vector_clear(vector);
-    return false;
+    return -ENOMEM;
 }
 
-bool
+int
 sol_cbor_map_get_bsv(const CborValue *map, const char *key,
     char **data, struct sol_vector *vector)
 {
     CborValue value;
 
     if (cbor_value_map_find_value(map, key, &value) != CborNoError)
-        return false;
+        return -ENOENT;
 
     if (!cbor_value_is_text_string(&value))
-        return false;
+        return -ENOENT;
 
     return sol_cbor_bsv_to_vector(&value, data, vector);
 }
 
-bool
+int
 sol_cbor_map_get_bytestr_value(const CborValue *map, const char *key,
     struct sol_str_slice *slice)
 {
     CborValue value;
 
     if (cbor_value_map_find_value(map, key, &value) != CborNoError)
-        return false;
+        return -ENOENT;
 
-    return cbor_value_dup_byte_string(&value, (uint8_t **)&slice->data, &slice->len, NULL) == CborNoError;
+    return cbor_value_dup_byte_string(&value, (uint8_t **)&slice->data, &slice->len, NULL) == CborNoError ? 0 : -EIO;
 }
 
 void
@@ -497,18 +496,18 @@ sol_cbor_map_get_type(struct sol_oic_map_writer *oic_map_writer, enum sol_oic_ma
     *type = oic_map_writer->type;
 }
 
-bool
+int
 sol_cbor_map_set_type(struct sol_oic_map_writer *oic_map_writer, enum sol_oic_map_type type)
 {
     if (oic_map_writer->type == type)
-        return true;
+        return 0;
 
     if (oic_map_writer->payload) {
         SOL_WRN("Payload was already created. Impossible to change its type");
-        return false;
+        return -EPERM;
     }
 
     oic_map_writer->type = type;
-    return true;
+    return 0;
 
 }
