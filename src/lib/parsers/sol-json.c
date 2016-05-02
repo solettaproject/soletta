@@ -1092,6 +1092,10 @@ sol_json_load_memdesc(const struct sol_json_token *token, const struct sol_memde
             len++;
         }
 
+        /* never allocate zero bytes */
+        if (len == 0)
+            return -EINVAL;
+
         done = alloca(len * sizeof(bool));
         memset(done, 0, len * sizeof(bool));
 
