@@ -2203,8 +2203,11 @@ resolve_node(struct fbp_data *data, struct type_store *common_store)
 
     SOL_VECTOR_FOREACH_IDX (&data->graph.nodes, n, i) {
         n->user_data = get_node_data(common_store, data->store, n, data->filename);
-        if (!n->user_data)
+        if (!n->user_data) {
+            SOL_ERR("Failed to resolve node %.*s",
+                SOL_STR_SLICE_PRINT(n->name));
             return false;
+        }
         SOL_DBG("Node %.*s resolved", SOL_STR_SLICE_PRINT(n->name));
     }
 
@@ -2476,10 +2479,8 @@ create_fbp_data(struct sol_vector *fbp_data_vector, struct sol_ptr_vector *file_
         }
     }
 
-    if (!resolve_node(data, common_store)) {
-        SOL_ERR("Failed to resolve node type.");
+    if (!resolve_node(data, common_store))
         return NULL;
-    }
 
     return data;
 }
