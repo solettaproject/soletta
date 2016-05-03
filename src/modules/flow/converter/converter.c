@@ -17,8 +17,8 @@
  */
 
 #include "sol-flow/converter.h"
-#include "string-format.h"
 #include "sol-mainloop.h"
+#include "sol-flow-internal.h"
 
 #include <sol-json.h>
 #include <limits.h>
@@ -822,8 +822,11 @@ drange_to_string_convert(struct sol_flow_node *node, void *data, uint16_t port, 
     r = sol_flow_packet_get_drange(packet, &in_value);
     SOL_INT_CHECK(r, < 0, r);
 
-    r = do_float_markup(node, mdata->format, in_value, &out);
+#pragma GCC diagnostic push
+#pragma GCC diagnostic ignored "-Wformat-nonliteral"
+    r = sol_buffer_append_printf(&out, mdata->format, in_value.val);
     SOL_INT_CHECK_GOTO(r, < 0, end);
+#pragma GCC diagnostic pop
 
     r = sol_flow_send_string_slice_packet(node,
         SOL_FLOW_NODE_TYPE_CONVERTER_FLOAT_TO_STRING__OUT__OUT,
@@ -834,6 +837,111 @@ end:
     return r;
 }
 
+static bool
+validate_affix(const char *s)
+{
+    const char *ptr = s;
+    unsigned percent = 0;
+
+    while (*ptr) {
+        if (*ptr == '%') {
+            percent++;
+            if (percent > 2)
+                return false;
+        } else {
+            if (percent == 2)
+                percent = 0;
+            else if (percent)
+                return false;
+        }
+        ptr++;
+    }
+
+    return true;
+}
+
+static bool
+validate_flags(const char *s)
+{
+    const char *ptr = s;
+
+    while (*ptr) {
+        switch (*ptr) {
+        case '#':
+        case '0':
+        case '-':
+        case ' ':
+        case '+':
+            ptr++;
+            continue;
+        default:
+            return false;
+        }
+    }
+
+    return true;
+}
+
+static bool
+validate_field_width(const char *s)
+{
+    const char *ptr = s;
+    bool first = true;
+
+    while (*ptr) {
+        if (*ptr == '-') {
+            if (first)
+                first = false;
+            else
+                return false;
+        } else if (!isdigit((uint8_t)*ptr))
+            return false;
+        ptr++;
+    }
+
+    return true;
+}
+
+static bool
+validate_precision(const char *s)
+{
+    const char *ptr = s;
+    bool first = true;
+
+    while (*ptr) {
+        if (*ptr == '.') {
+            if (first)
+                first = false;
+            else
+                return false;
+        } else if (!isdigit((uint8_t)*ptr))
+            return false;
+        ptr++;
+    }
+
+    return true;
+}
+
+static bool
+validate_drange_conversion_specifier(const char *s)
+{
+    if ((s[0] == 'e' || s[0] == 'f' || s[0] == 'F' || s[0] == 'g' ||
+        s[0] == 'G' || s[0] == 'a' || s[0] == 'A') && s[1] == '\0')
+        return true;
+
+    return false;
+}
+
+static bool
+validate_irange_conversion_specifier(const char *s)
+{
+    if ((s[0] == 'd' || s[0] == 'i' || s[0] == 'o' || s[0] == 'u' ||
+        s[0] == 'x' || s[0] == 'X' || s[0] == 'c') && s[1] == '\0')
+        return true;
+
+    return false;
+}
+
 static int
 drange_to_string_open(struct sol_flow_node *node,
     void *data,
@@ -841,6 +949,8 @@ drange_to_string_open(struct sol_flow_node *node,
 {
     struct string_converter *mdata = data;
     const struct sol_flow_node_type_converter_float_to_string_options *opts;
+    bool prefix = false, suffix = false, flags = false, f_width = false,
+        precision = false, valid_conv = false;
 
     SOL_FLOW_NODE_OPTIONS_SUB_API_CHECK(options,
         SOL_FLOW_NODE_TYPE_CONVERTER_FLOAT_TO_STRING_OPTIONS_API_VERSION,
@@ -848,10 +958,58 @@ drange_to_string_open(struct sol_flow_node *node,
 
     opts = (const struct sol_flow_node_type_converter_float_to_string_options *)options;
 
-    mdata->format = strdup(opts->format_spec);
-    SOL_NULL_CHECK(mdata->format, -ENOMEM);
+    if (opts->format_prefix) {
+        if (!validate_affix(opts->format_prefix))
+            SOL_WRN("Invalid format prefix provided: %s,"
+                " proceeding with an empty one", opts->format_prefix);
+        else
+            prefix = true;
+    }
+    if (opts->format_suffix) {
+        if (!validate_affix(opts->format_suffix))
+            SOL_WRN("Invalid format suffix provided: %s,"
+                " proceeding with an empty one", opts->format_suffix);
+        else
+            suffix = true;
+    }
+    if (opts->format_flags) {
+        if (!validate_flags(opts->format_flags))
+            SOL_WRN("Invalid format flags provided: %s,"
+                " proceeding with no flags", opts->format_flags);
+        else
+            flags = true;
+    }
+    if (opts->format_field_width) {
+        if (!validate_field_width(opts->format_field_width))
+            SOL_WRN("Invalid format field width provided: %s,"
+                " proceeding with no field width", opts->format_field_width);
+        else
+            f_width = true;
+    }
+    if (opts->format_precision) {
+        if (!validate_precision(opts->format_precision))
+            SOL_WRN("Invalid format precision provided: %s,"
+                " proceeding with no precision", opts->format_precision);
+        else
+            precision = true;
+    }
+    if (opts->format_conversion_specifier) {
+        if (!validate_drange_conversion_specifier
+                (opts->format_conversion_specifier))
+            SOL_WRN("Invalid format conversion specifier provided: %s,"
+                " proceeding with default one (f)",
+                opts->format_conversion_specifier);
+        else
+            valid_conv = true;
+    }
 
-    return 0;
+    return asprintf(&mdata->format, "%s%%%s%s%s%s%s",
+        prefix ? opts->format_prefix : "",
+        flags ? opts->format_flags : "",
+        f_width ? opts->format_field_width : "",
+        precision ? opts->format_precision : "",
+        valid_conv ? opts->format_conversion_specifier : "f",
+        suffix ? opts->format_suffix : "");
 }
 
 static void
@@ -879,8 +1037,11 @@ irange_to_string_convert(struct sol_flow_node *node,
     r = sol_flow_packet_get_irange(packet, &in_value);
     SOL_INT_CHECK(r, < 0, r);
 
-    r = do_integer_markup(node, mdata->format, in_value, &out);
+#pragma GCC diagnostic push
+#pragma GCC diagnostic ignored "-Wformat-nonliteral"
+    r = sol_buffer_append_printf(&out, mdata->format, in_value.val);
     SOL_INT_CHECK_GOTO(r, < 0, end);
+#pragma GCC diagnostic pop
 
     r = sol_flow_send_string_slice_packet(node,
         SOL_FLOW_NODE_TYPE_CONVERTER_INT_TO_STRING__OUT__OUT,
@@ -898,6 +1059,8 @@ irange_to_string_open(struct sol_flow_node *node,
 {
     struct string_converter *mdata = data;
     const struct sol_flow_node_type_converter_int_to_string_options *opts;
+    bool prefix = false, suffix = false, flags = false, f_width = false,
+        precision = false, valid_conv = false;
 
     SOL_FLOW_NODE_OPTIONS_SUB_API_CHECK(options,
         SOL_FLOW_NODE_TYPE_CONVERTER_INT_TO_STRING_OPTIONS_API_VERSION,
@@ -905,10 +1068,58 @@ irange_to_string_open(struct sol_flow_node *node,
 
     opts = (const struct sol_flow_node_type_converter_int_to_string_options *)options;
 
-    mdata->format = strdup(opts->format_spec);
-    SOL_NULL_CHECK(mdata->format, -ENOMEM);
+    if (opts->format_prefix) {
+        if (!validate_affix(opts->format_prefix))
+            SOL_WRN("Invalid format prefix provided: %s,"
+                " proceeding with an empty one", opts->format_prefix);
+        else
+            prefix = true;
+    }
+    if (opts->format_suffix) {
+        if (!validate_affix(opts->format_suffix))
+            SOL_WRN("Invalid format suffix provided: %s,"
+                " proceeding with an empty one", opts->format_suffix);
+        else
+            suffix = true;
+    }
+    if (opts->format_flags) {
+        if (!validate_flags(opts->format_flags))
+            SOL_WRN("Invalid format flags provided: %s,"
+                " proceeding with no flags", opts->format_flags);
+        else
+            flags = true;
+    }
+    if (opts->format_field_width) {
+        if (!validate_field_width(opts->format_field_width))
+            SOL_WRN("Invalid format field width provided: %s,"
+                " proceeding with no field width", opts->format_field_width);
+        else
+            f_width = true;
+    }
+    if (opts->format_precision) {
+        if (!validate_precision(opts->format_precision))
+            SOL_WRN("Invalid format precision provided: %s,"
+                " proceeding with no precision", opts->format_precision);
+        else
+            precision = true;
+    }
+    if (opts->format_conversion_specifier) {
+        if (!validate_irange_conversion_specifier
+                (opts->format_conversion_specifier))
+            SOL_WRN("Invalid format conversion specifier provided: %s,"
+                " proceeding with default one (d)",
+                opts->format_conversion_specifier);
+        else
+            valid_conv = true;
+    }
 
-    return 0;
+    return asprintf(&mdata->format, "%s%%%s%s%s%s%s",
+        prefix ? opts->format_prefix : "",
+        flags ? opts->format_flags : "",
+        f_width ? opts->format_field_width : "",
+        precision ? opts->format_precision : "",
+        valid_conv ? opts->format_conversion_specifier : "d",
+        suffix ? opts->format_suffix : "");
 }
 
 static void

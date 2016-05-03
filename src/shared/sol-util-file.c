@@ -401,18 +401,21 @@ sol_util_fd_set_flag(int fd, int flag)
     return 0;
 }
 
-SOL_API bool
-sol_util_iterate_dir(const char *path, bool (*iterate_dir_cb)(void *data, const char *dir_path, struct dirent *ent), const void *data)
+SOL_API int
+sol_util_iterate_dir(const char *path,
+    enum sol_util_iterate_dir_reason (*iterate_dir_cb)(void *data,
+    const char *dir_path,
+    struct dirent *ent),
+    const void *data)
 {
     DIR *dir;
     struct dirent *ent, *res;
-    int success;
+    int r;
     long name_max;
     size_t len;
-    bool result = false;
 
-    SOL_NULL_CHECK(path, false);
-    SOL_NULL_CHECK(iterate_dir_cb, false);
+    SOL_NULL_CHECK(path, -EINVAL);
+    SOL_NULL_CHECK(iterate_dir_cb, -EINVAL);
 
     /* See readdir_r(3) */
     name_max = pathconf(path, _PC_NAME_MAX);
@@ -420,30 +423,37 @@ sol_util_iterate_dir(const char *path, bool (*iterate_dir_cb)(void *data, const 
         name_max = 255;
     len = offsetof(struct dirent, d_name) + name_max + 1;
     ent = malloc(len);
-    SOL_NULL_CHECK(ent, false);
+    SOL_NULL_CHECK(ent, -ENOMEM);
 
     dir = opendir(path);
     if (!dir) {
+        int aux_errno = errno;
         SOL_INF("Could not open dir [%s] to iterate: %s", path,
-            sol_util_strerrora(errno));
+            sol_util_strerrora(aux_errno));
         free(ent);
-        return false;
+        return -aux_errno;
     }
 
-    success = readdir_r(dir, ent, &res);
-    while (success == 0 && res) {
-        if (iterate_dir_cb((void *)data, path, res)) {
-            result = true;
-            break;
+    r = readdir_r(dir, ent, &res);
+    SOL_INT_CHECK_GOTO(r, != 0, exit);
+    while (res) {
+        if (!streq(res->d_name, ".") && !streq(res->d_name, "..")) {
+            r = iterate_dir_cb((void *)data, path, res);
+            SOL_INT_CHECK_GOTO(r, < 0, exit);
+
+            if (r == SOL_UTIL_ITERATE_DIR_STOP)
+                break;
         }
 
-        success = readdir_r(dir, ent, &res);
+        r = readdir_r(dir, ent, &res);
+        SOL_INT_CHECK_GOTO(r, != 0, exit);
     }
 
+exit:
     free(ent);
     closedir(dir);
 
-    return result;
+    return r > 0 ? -r : r;
 }
 
 static int

@@ -17,7 +17,7 @@ check-cpp: $(SOL_LIB_OUTPUT) $(HEADERS_CC)
 PHONY += check-cpp
 
 ifeq (y,$(FBP_RUNNER))
-check-fbp: $(SOL_LIB_OUTPUT) $(SOL_FBP_RUNNER_BIN) $(modules-out)
+check-fbp: $(SOL_LIB_OUTPUT) $(SOL_FBP_RUNNER_BIN) $(modules-out) $(PRE_GEN) gen-aliases
 	$(Q)$(PYTHON) $(TEST_FBP_SCRIPT) --runner="$(abspath $(SOL_FBP_RUNNER_BIN))"
 else
 check-fbp:
@@ -26,7 +26,7 @@ check-fbp:
 endif
 
 ifeq (y, $(FBP_GENERATOR))
-check-fbp-bin: $(SOL_LIB_OUTPUT) $(SOL_FBP_GENERATOR_BIN) $(modules-out) $(all-tests-fbp-bin-out)
+check-fbp-bin: $(SOL_LIB_OUTPUT) $(SOL_FBP_GENERATOR_BIN) $(modules-out) $(all-tests-fbp-bin-out) $(PRE_GEN) gen-aliases
 	$(Q)$(PYTHON) $(TEST_FBP_SCRIPT) --compiled --compiled-dir $(abspath $(build_stagedir)test-fbp/) \
 		--skip SKIP_SIMPLE SKIP_COMPILE SKIP_VALGRIND $(TEST_FBP_SCRIPT_SKIP_EXTRA)
 else
@@ -119,7 +119,7 @@ samples: samples-check $(SOL_LIB_OUTPUT) $(samples-out) $(PRE_GEN)
 
 PHONY += samples samples-check
 
-PRE_INSTALL := $(PRE_GEN) $(SOL_LIB_OUTPUT) $(bins-out) $(modules-out) $(all-mod-descs)
+PRE_INSTALL := default_target $(all-mod-descs)
 PRE_INSTALL += $(NODE_TYPE_SCHEMA_DEST) $(BOARD_DETECT_DEST) $(GDB_AUTOLOAD_PY_DEST)
 
 ifeq (y,$(RPATH))
@@ -182,7 +182,7 @@ ifeq (yyy,$(FBP_TO_DOT)$(HAVE_GRAPHVIZ)$(HAVE_IMAGEMAGICK))
 cheat-sheet: $(MAKEFILE_GEN) $(CHEAT_SHEET_HTML_SCRIPT) $(CHEAT_SHEET_RESOURCES) $(SOL_FBP_TO_DOT_BIN) $(all-mod-descs)
 	$(Q)echo "     "GEN"   "$(CHEAT_SHEET_INDEX_HTML)
 	$(Q)$(GEN_SVG_SCRIPT) "$(abspath $(SOL_FBP_TO_DOT_BIN))" $(SVG_OUTPUT_DIR)
-	$(Q)$(CHEAT_SHEET_HTML_SCRIPT) $(CHEAT_SHEET_INDEX_HTML_IN) $(CHEAT_SHEET_INDEX_HTML) $(SVG_OUTPUT_DIR) $(all-mod-descs)
+	$(Q)$(CHEAT_SHEET_HTML_SCRIPT) $(CHEAT_SHEET_INDEX_HTML_IN) $(CHEAT_SHEET_INDEX_HTML) $(SVG_OUTPUT_DIR) $(sort $(all-mod-descs))
 	$(Q)$(CP) -Rf doc/node-types-html/js/ $(build_docdir)node-types-html/
 	$(Q)$(CP) -Rf doc/node-types-html/css/ $(build_docdir)node-types-html/
 	$(Q)$(CP) -Rf doc/node-types-html/images/ $(build_docdir)node-types-html/
@@ -234,3 +234,10 @@ check-bindings-nodejs: bindings-nodejs
 PHONY += check-bindings-nodejs
 
 endif #neq($(USE_NODEJS),)
+
+DEFAULT_ALIAS_FILE := $(build_aliasesdir)/50-default.json
+
+gen-aliases:
+	$(Q)$(MKDIR) -p $(build_aliasesdir)
+	$(Q)echo "     "GEN"   "$(DEFAULT_ALIAS_FILE)
+	$(Q)$(FLOW_NODE_TYPE_ALIAS) --output=$(DEFAULT_ALIAS_FILE) $(all-gens)

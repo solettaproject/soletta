@@ -52,6 +52,19 @@ extern "C" {
 #define SOL_UTIL_MAX_READ_ATTEMPTS 10
 
 /**
+ * @brief Return values (for non-error paths) expected from
+ * sol_util_iterate_dir() callbacks
+ *
+ * They flag that function whether to continue or to stop looping on
+ * directory entries.
+ *
+ */
+enum sol_util_iterate_dir_reason {
+    SOL_UTIL_ITERATE_DIR_STOP = 0, /**< @brief The directory iteration should stop */
+    SOL_UTIL_ITERATE_DIR_CONTINUE = 1 /**< @brief The directory iteration should continue */
+};
+
+/**
  * @brief Write the formatted string in the file pointed by @c path.
  *
  * @param path The path to a valid file.
@@ -256,12 +269,24 @@ sol_util_fill_buffer_exactly(const int fd, struct sol_buffer *buffer, const size
  * @brief Iterate over a directory.
  *
  * @param path A valid path.
- * @param iterate_dir_cb The callback called in which directory found.
- * @param data The user data which will be passed in the callback.
+ * @param iterate_dir_cb The callback issued for each directory entry
+ *                       found. Return a negative error to stop the
+ *                       iteration with an error,
+ *                       #SOL_UTIL_ITERATE_DIR_CONTINUE to continue
+ *                       the iteration or #SOL_UTIL_ITERATE_DIR_STOP
+ *                       to stop it.
+ * @param data The user data to be passed in the callback.
  *
- * @return @c true on success, otherwise @c false.
+ * @return 0 on success or negative error, otherwise.
+ *
+ * @note @c "." and @c ".." will be excluded from the iteration.
+ *
+ * @see #SOL_UTIL_ITERATE_DIR_CONTINUE
+ * @see #SOL_UTIL_ITERATE_DIR_STOP
  */
-bool sol_util_iterate_dir(const char *path, bool (*iterate_dir_cb)(void *data, const char *dir_path,
+int sol_util_iterate_dir(const char *path,
+    enum sol_util_iterate_dir_reason (*iterate_dir_cb)(void *data,
+    const char *dir_path,
     struct dirent *ent), const void *data);
 
 /**

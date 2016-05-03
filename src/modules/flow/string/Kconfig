@@ -15,31 +15,16 @@ config FLOW_NODE_TYPE_STRING
 		 - measure the lenght of the string
 		 - change a string to lower/uppercase
 		 - check whether a string stards/ends with another
-		 - replace regular expression patterns in a string
-		 - search for regular expression patterns in a string
 
-		For the nodes dealing with regular expressions, only
-		one RE backend is supported: libpcre. If that
-		dependency is not present, those nodes will be built
-		but made useless -- they will always generate error
-		packets after any input ones.
-
-		For each of the remaining string nodes, there may be
-		two implementations (depending on the presence of the
-		ICU library or not). We strongly recommend that you
-		build Soletta with ICU, so that the full UTF-8 set of
+		For most of string nodes, there may be two
+		implementations (depending on the presence of the ICU
+		library or not). We strongly recommend that you build
+		Soletta with ICU, so that the full UTF-8 set of
 		characters is properly handled by the string nodes.
 
-# This is the solely user of ICU. If gets wider use, move up in the
+# This is the sole user of ICU. If it gets wider use, move it up in the
 # hierarchy.
 config USE_ICU
 	bool "Use ICU library"
 	depends on HAVE_ICU && FLOW_NODE_TYPE_STRING
-	default y
-
-# This is the solely user of LIBPCRE. If gets wider use, move up in
-# the hierarchy.
-config USE_LIBPCRE
-	bool "Use LIBPCRE library"
-	depends on HAVE_LIBPCRE && FLOW_NODE_TYPE_STRING
 	default y

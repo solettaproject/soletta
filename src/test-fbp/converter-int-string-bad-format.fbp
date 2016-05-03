@@ -14,16 +14,16 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
-_(constant/int:value=3) OUT -> IN _(converter/int-to-string:format_spec="{4:d}") ERROR -> IN _(converter/error) MESSAGE -> IN[0] test_cmp_01(string/compare)
+_(constant/int:value=3) OUT -> IN _(converter/int-to-string-format:format_spec="{4:d}") ERROR -> IN _(converter/error) MESSAGE -> IN[0] test_cmp_01(string/compare)
 _(constant/string:value="Field index 4 does not exist for integer type") OUT -> IN[1] test_cmp_01 EQUAL -> RESULT _(test/result)
 
-_(constant/int:value=3) OUT -> IN _(converter/int-to-string:format_spec="{4:d") ERROR -> IN _(converter/error) MESSAGE -> IN[0] test_cmp_02(string/compare)
+_(constant/int:value=3) OUT -> IN _(converter/int-to-string-format:format_spec="{4:d") ERROR -> IN _(converter/error) MESSAGE -> IN[0] test_cmp_02(string/compare)
 _(constant/string:value="unmatched '{' in format spec") OUT -> IN[1] test_cmp_02 EQUAL -> RESULT _(test/result)
 
-_(constant/int:value=3) OUT -> IN _(converter/int-to-string:format_spec="{:Q}") ERROR -> IN _(converter/error) MESSAGE -> IN[0] test_cmp_03(string/compare)
+_(constant/int:value=3) OUT -> IN _(converter/int-to-string-format:format_spec="{:Q}") ERROR -> IN _(converter/error) MESSAGE -> IN[0] test_cmp_03(string/compare)
 _(constant/string:value="Unknown format code 'Q' for object of type 'integer'") OUT -> IN[1] test_cmp_03 EQUAL -> RESULT _(test/result)
 
-_(constant/int:value=3) OUT -> IN _(converter/int-to-string:format_spec="{vala:d}") ERROR -> IN _(converter/error) MESSAGE -> IN[0] test_cmp_04(string/compare)
+_(constant/int:value=3) OUT -> IN _(converter/int-to-string-format:format_spec="{vala:d}") ERROR -> IN _(converter/error) MESSAGE -> IN[0] test_cmp_04(string/compare)
 _(constant/string:value="Field vala does not exist for integer type") OUT -> IN[1] test_cmp_04 EQUAL -> RESULT _(test/result)
 
 ## TEST-OUTPUT-REGEX
