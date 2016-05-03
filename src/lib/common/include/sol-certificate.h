@@ -18,6 +18,8 @@
 
 #pragma once
 
+#include "sol-buffer.h"
+
 #ifdef __cplusplus
 extern "C" {
 #endif
@@ -41,6 +43,15 @@ extern "C" {
  * This object is the abstraction of certificate.
  */
 struct sol_cert;
+
+/**
+ * @brief Create a certificate located in @a path.
+ *
+ * @param path Absolute path to the certificate file.
+ *
+ * @return sol_cert object on success, NULL otherwise
+ */
+struct sol_cert *sol_cert_new(const char *path);
 
 /**
  * @brief Load a certificate from a file
@@ -71,6 +82,36 @@ void sol_cert_unref(struct sol_cert *cert);
  * @return sol_cert object on success, NULL otherwise
  */
 const char *sol_cert_get_filename(const struct sol_cert *cert);
+
+/**
+ * @brief Read data from @a cert.
+ *
+ * @param cert Certificate object.
+ * @param buffer The buffer to write the read data.
+ *
+ * @return 0 on success or a negative error number on errors.
+ */
+int sol_cert_read_data(const struct sol_cert *cert, struct sol_buffer *buffer);
+
+/**
+ * @brief Write data to @a cert.
+ *
+ * @param cert Certificate object.
+ * @param buffer The buffer to be written to certificate.
+ *
+ * @return 0 on success or a negative error code on errors.
+ */
+int sol_cert_write_data(const struct sol_cert *cert, struct sol_buffer *buffer);
+
+/**
+ * @brief Get the size in bytes occupied by the certificate.
+ *
+ * @param cert The certificate object.
+ *
+ * @return The size in bytes occupied by this certificate or a negative error
+ *         code on errors.
+ */
+ssize_t sol_cert_size(const struct sol_cert *cert);
 
 /**
  * @}

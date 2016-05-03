@@ -65,7 +65,7 @@ enum sol_util_iterate_dir_reason {
 };
 
 /**
- * @brief Write the formatted string in the file pointed by @c path.
+ * @brief Write the formatted string in the file pointed by @a path.
  *
  * @param path The path to a valid file.
  * @param fmt The string format.
@@ -78,9 +78,9 @@ enum sol_util_iterate_dir_reason {
 int sol_util_write_file(const char *path, const char *fmt, ...) SOL_ATTR_PRINTF(2, 3);
 
 /**
- * @brief Write the formatted string in the file pointed by @c path.
+ * @brief Write the formatted string in the file pointed by @a path.
  *
- * It is equivalent to @c sol_util_write_file except it receives @c
+ * It is equivalent to @a sol_util_write_file except it receives @a
  * va_list instead of a variable number of arguments.
  *
  * @param path The path to a valid file.
@@ -93,6 +93,17 @@ int sol_util_write_file(const char *path, const char *fmt, ...) SOL_ATTR_PRINTF(
  * @see sol_util_write_file
  */
 int sol_util_vwrite_file(const char *path, const char *fmt, va_list args) SOL_ATTR_PRINTF(2, 0);
+
+/**
+ * @brief Write the buffer content the file pointed by @a path.
+ *
+ * @param path The path to a valid file.
+ * @param buffer The buffer to be written.
+ *
+ * @return The number of written characters, if an error is encountered a
+ * negative value with the error code.
+ */
+ssize_t sol_util_write_file_buffer(const char *path, const struct sol_buffer *buffer);
 
 /**
  * @brief Reads from a file the contents according with the formatted string.

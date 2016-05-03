@@ -22,6 +22,7 @@
 #define SOL_LOG_DOMAIN &_sol_certificate_log_domain
 #include "sol-log-internal.h"
 #include "sol-util-internal.h"
+#include "sol-util-file.h"
 #include "sol-vector.h"
 
 SOL_LOG_INTERNAL_DECLARE(_sol_certificate_log_domain, "certificate");
@@ -147,4 +148,81 @@ sol_cert_get_filename(const struct sol_cert *cert)
     SOL_NULL_CHECK(cert, NULL);
 
     return cert->filename;
+}
+
+SOL_API int
+sol_cert_read_data(const struct sol_cert *cert, struct sol_buffer *buffer)
+{
+    int r;
+
+    SOL_NULL_CHECK(cert, -EINVAL);
+    SOL_NULL_CHECK(buffer, -EINVAL);
+
+    r = sol_util_load_file_buffer(cert->filename, buffer);
+
+    return r < 0 ? r : 0;
+}
+
+SOL_API int
+sol_cert_write_data(const struct sol_cert *cert, struct sol_buffer *buffer)
+{
+    ssize_t r;
+
+    SOL_NULL_CHECK(cert, -EINVAL);
+    SOL_NULL_CHECK(buffer, -EINVAL);
+
+    r = sol_util_write_file_buffer(cert->filename, buffer);
+
+    return r < 0 ? (int)r : 0;
+}
+
+SOL_API struct sol_cert *
+sol_cert_new(const char *path)
+{
+    struct sol_cert *cert;
+    int idx;
+    int r;
+
+    SOL_NULL_CHECK(path, NULL);
+
+    SOL_PTR_VECTOR_FOREACH_IDX (&storage, cert, idx) {
+        if (streq(cert->filename, path)) {
+            cert->refcnt++;
+            return cert;
+        }
+    }
+
+    cert = calloc(1, sizeof(*cert));
+    SOL_NULL_CHECK(cert, NULL);
+
+    cert->refcnt++;
+    cert->filename = strdup(path);
+
+    r = sol_ptr_vector_append(&storage, cert);
+    SOL_INT_CHECK_GOTO(r, != 0, insert_error);
+
+    return cert;
+
+insert_error:
+    free(cert->filename);
+    free(cert);
+    return NULL;
+}
+
+SOL_API ssize_t
+sol_cert_size(const struct sol_cert *cert)
+{
+    struct stat st;
+
+    SOL_NULL_CHECK(cert, -EINVAL);
+
+    errno = 0;
+    if (stat(cert->filename, &st) < 0)
+        return -errno;
+
+    if (st.st_size < 0 || (unsigned long long)st.st_size > SIZE_MAX)
+        return -EOVERFLOW;
+
+    return (ssize_t)st.st_size;
+
 }

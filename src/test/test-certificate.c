@@ -83,4 +83,36 @@ load_certificate(void)
     remove("dummy.pem");
 }
 
+DEFINE_TEST(read_write_certificate);
+
+static void
+read_write_certificate(void)
+{
+    struct sol_cert *cert, *cert2;
+    struct sol_buffer buf = SOL_BUFFER_INIT_EMPTY,
+        buf2 = SOL_BUFFER_INIT_EMPTY;
+
+    create_dummy_certificate();
+
+    cert = sol_cert_load_from_file("dummy.pem");
+    ASSERT(cert != NULL);
+
+    cert2 = sol_cert_new("dummy2.pem");
+    ASSERT(cert2 != NULL);
+
+    ASSERT(sol_cert_read_data(cert, &buf) == 0);
+    ASSERT(streq(buf.data, dummy_cert));
+
+    ASSERT(sol_cert_write_data(cert2, &buf) == 0);
+    ASSERT(sol_cert_read_data(cert2, &buf2) == 0);
+    ASSERT(streq(buf2.data, dummy_cert));
+
+    sol_cert_unref(cert);
+    sol_cert_unref(cert2);
+    sol_buffer_fini(&buf);
+    sol_buffer_fini(&buf2);
+    remove("dummy.pem");
+    remove("dummy2.pem");
+}
+
 TEST_MAIN();
