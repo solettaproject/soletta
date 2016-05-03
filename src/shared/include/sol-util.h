@@ -202,6 +202,23 @@ sol_util_timespec_from_msec(const int msec)
 }
 
 /**
+ * @brief Create a @c struct timespec from microseconds.
+ *
+ * @param usec The number of microseconds.
+ *
+ * @return a @c struct timespec representing @c usec microseconds.
+ */
+static inline struct timespec
+sol_util_timespec_from_usec(const int usec)
+{
+    struct timespec ts;
+
+    ts.tv_sec = usec / SOL_USEC_PER_SEC;
+    ts.tv_nsec = (usec % SOL_USEC_PER_SEC) * SOL_NSEC_PER_USEC;
+    return ts;
+}
+
+/**
  * @brief Gets the number of milliseconds for given time.
  *
  * @param ts The struct timespec to get the milliseconds.
@@ -212,6 +229,19 @@ static inline int
 sol_util_msec_from_timespec(const struct timespec *ts)
 {
     return ts->tv_sec * SOL_MSEC_PER_SEC + ts->tv_nsec / SOL_NSEC_PER_MSEC;
+}
+
+/**
+ * @brief Gets the number of microseconds for given time.
+ *
+ * @param ts The struct timespec to get the microseconds.
+ *
+ * @return the number of microseconds on @c ts.
+ */
+static inline int
+sol_util_usec_from_timespec(const struct timespec *ts)
+{
+    return ts->tv_sec * SOL_USEC_PER_SEC + ts->tv_nsec / SOL_NSEC_PER_USEC;
 }
 
 /**
