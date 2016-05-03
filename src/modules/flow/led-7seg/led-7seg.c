@@ -107,10 +107,19 @@ value_set(struct sol_flow_node *node, void *data, uint16_t port, uint16_t conn_i
 
 #define OPEN_GPIO(_pin, _option) \
     do { \
-        mdata->gpio[_pin] = sol_gpio_open(opts->pin_ ## _option, \
-            &gpio_conf); \
+        if (opts->raw) { \
+            if (!sscanf(opts->pin_ ## _option, "%" SCNu32, &pin)) { \
+                SOL_WRN("'raw' option was set, but '%s' couldn't be parsed as integer.", \
+                    opts->pin_ ## _option); \
+            } else { \
+                mdata->gpio[_pin] = sol_gpio_open(pin, &gpio_conf); \
+            } \
+        } else { \
+            mdata->gpio[_pin] = sol_gpio_open_by_label(opts->pin_ ## _option, \
+                &gpio_conf); \
+        } \
         if (!mdata->gpio[_pin]) { \
-            SOL_WRN("could not open gpio #%" PRId32, \
+            SOL_WRN("could not open gpio #%s", \
                 opts->pin_ ## _option); \
             goto port_error; \
         } \
@@ -119,6 +128,7 @@ value_set(struct sol_flow_node *node, void *data, uint16_t port, uint16_t conn_i
 static int
 led_open(struct sol_flow_node *node, void *data, const struct sol_flow_node_options *options)
 {
+    uint32_t pin;
     struct led_7seg_data *mdata = data;
     const struct sol_flow_node_type_led_7seg_led_options *opts =
         (const struct sol_flow_node_type_led_7seg_led_options *)options;
