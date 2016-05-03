@@ -27,7 +27,7 @@
 #include "sol-socket.h"
 #include "sol-str-slice.h"
 #ifdef DTLS
-#include "sol-util-file.h"
+#include "sol-certificate.h"
 #endif
 #include "sol-util-internal.h"
 #include "sol-vector.h"
@@ -252,10 +252,13 @@ creds_init(const void *data)
     struct creds *creds;
     struct sol_json_scanner scanner;
     struct sol_json_token token;
+    struct sol_cert *cert;
+    struct sol_buffer buf;
     enum sol_json_loop_reason reason;
     char *file_data;
-    size_t length;
+    ssize_t cert_size;
     char file_name[256];
+    int r;
 
     if (!generate_file_name("/tmp/oic-creds-", file_name, sizeof(file_name)))
         return NULL;
@@ -266,11 +269,26 @@ creds_init(const void *data)
     creds->security = data;
     sol_vector_init(&creds->items, sizeof(struct cred_item));
 
-    file_data = sol_util_load_file_string(file_name, &length);
-    if (!file_data)
+    cert = sol_cert_load_from_file(file_name);
+    if (!cert)
         return creds;
 
-    sol_json_scanner_init(&scanner, file_data, length);
+    cert_size = sol_cert_size(cert);
+    SOL_INT_CHECK_GOTO(cert_size, < 0, error);
+    if (cert_size == 0)
+        goto out_cert;
+
+    file_data = malloc((size_t)cert_size);
+    SOL_NULL_CHECK_GOTO(file_data, error);
+
+    sol_buffer_init_flags(&buf, file_data, (size_t)cert_size,
+        SOL_BUFFER_FLAGS_CLEAR_MEMORY | SOL_BUFFER_FLAGS_NO_NUL_BYTE |
+        SOL_BUFFER_FLAGS_FIXED_CAPACITY);
+
+    r = sol_cert_read_data(cert, &buf);
+    SOL_INT_CHECK_GOTO(r, < 0, error_buf);
+
+    sol_json_scanner_init(&scanner, buf.data, buf.used);
     SOL_JSON_SCANNER_ARRAY_LOOP (&scanner, &token, SOL_JSON_TYPE_OBJECT_START, reason) {
         if (!creds_add_json_token(creds, &scanner, &token)) {
             creds_clear(creds);
@@ -288,11 +306,18 @@ out:
     sol_util_secure_clear_memory(&scanner, sizeof(scanner));
     sol_util_secure_clear_memory(&token, sizeof(token));
     sol_util_secure_clear_memory(&reason, sizeof(reason));
+    sol_buffer_fini(&buf);
 
-    sol_util_secure_clear_memory(file_data, length);
-    free(file_data);
-
+out_cert:
+    sol_cert_unref(cert);
     return creds;
+
+error_buf:
+    sol_buffer_fini(&buf);
+error:
+    sol_cert_unref(cert);
+    creds_clear(creds);
+    return NULL;
 }
 
 static void
