@@ -795,7 +795,7 @@ def generate_enums_common_c(name, props):
             output.append('''enum %(struct_name)s_%(field_name)s { %(items)s };''' % {
                 'struct_name': name,
                 'field_name': field,
-                'items': ', '.join(('%s_%s_%s' % (name, field, item)).upper() for item in descr['enum'])
+                'items': ', '.join(('%s_%s_%s' % (name, field, remove_special_chars(item))).upper() for item in descr['enum'])
             })
 
             output.append('''static const struct sol_str_table %(struct_name)s_%(field_name)s_tbl[] = {
@@ -805,7 +805,7 @@ def generate_enums_common_c(name, props):
                 'struct_name': name,
                 'field_name': field,
                 'items': ',\n'.join('SOL_STR_TABLE_ITEM(\"%s\", %s_%s_%s)' % (
-                    item, name.upper(), field.upper(), item.upper()) for item in descr['enum'])
+                    remove_special_chars(item), name.upper(), field.upper(), remove_special_chars(item).upper()) for item in descr['enum'])
             })
 
     return '\n'.join(output)
@@ -872,6 +872,10 @@ struct %(struct_name)s {
 # handle port_name, portName and PortName
 def get_port_name(name):
     return re.sub('(?!^)([A-Z]+)', r'_\1', name).upper()
+
+# handle props name with '-' or other special chars
+def remove_special_chars(name):
+    return re.sub(r'[\W]+', '_', name)
 
 def generate_object_json(resource_type, struct_name, node_name, title, props, server):
     if server:
@@ -992,7 +996,7 @@ def generate_object(rt, title, props, json_name):
 
     new_props = OrderedDict()
     for k, v in sorted(props.items(), key=type_value):
-        new_props[k] = v
+        new_props[remove_special_chars(k)] = v
     props = new_props
 
     retval = {
