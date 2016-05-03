@@ -1738,8 +1738,8 @@ if __name__ == '__main__':
                         json_name):
                     generated.append(code)
             except KeyError as e:
-                if e.args[0] == 'array':
-                    print("(arrays unsupported)", end=' ')
+                if e.args[0] in ('array', 'object'):
+                    print("(%ss unsupported)" % e.args[0], end=' ')
                 else:
                     raise e
             except Exception as e:
