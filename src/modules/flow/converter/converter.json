@@ -1636,7 +1636,7 @@
           },
           {
             "data_type": "string",
-            "default": "f",
+            "default": "d",
             "description": "Conversion specification to compose the final format string (one of 'd', 'i', 'o', 'u', 'x', 'X' or 'c')",
             "name": "format_conversion_specifier"
           }
