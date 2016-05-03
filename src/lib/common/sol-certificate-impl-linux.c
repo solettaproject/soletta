@@ -92,17 +92,18 @@ sol_cert_load_from_file(const char *filename)
 
     SOL_NULL_CHECK(filename, NULL);
 
-    SOL_PTR_VECTOR_FOREACH_IDX (&storage, cert, idx) {
-        if (streq(cert->filename, filename)) {
-            cert->refcnt++;
-            return cert;
-        }
-    }
-
     path = find_cert(filename, search_paths);
     if (path == NULL) {
         SOL_WRN("Certificate not found: %s", filename);
         return NULL;
+    }
+
+    SOL_PTR_VECTOR_FOREACH_IDX (&storage, cert, idx) {
+        if (streq(cert->filename, path)) {
+            cert->refcnt++;
+            free(path);
+            return cert;
+        }
     }
 
     cert = calloc(1, sizeof(*cert));
