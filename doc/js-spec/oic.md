@@ -403,7 +403,7 @@ function startClient() {
   oic.onresourcefound = function(event) {
     if(event.resource && event.resource.id.path === "/light/ambience/red") {
       red = event.resource;
-      red.addEventListener('update', redHandler);
+      red.on('update', redHandler);
     }
   }
   oic.findResources({ resourceType: “oic.r.light” })
@@ -413,12 +413,15 @@ function startClient() {
     });
 };
 
-function redHandler(red, updates) {
+function redHandler(event) {
+  var red = event.resource;
+  if (!red)
+    return;
   console.log("Update received on " + red.id);
-  console.lof("Running local business logic to determine further actions...");
-  if (red && red.properties.dimmer > 0.5) {
+  console.log("Running local business logic to determine further actions...");
+  if (red.properties.dimmer > 0.5) {
     // do something, e.g. limit output
-    oic.update({ id: red.id, properties.dimmer: 0.5 })
+    oic.update({ id: red.id, red.properties.dimmer: 0.5 })
       .then(() => { console.log("Changed red light dimmer"); })
       .catch((e) => { console.log("Error changing red light"); });
   }
@@ -442,11 +445,11 @@ function startServer() {
   }).then((res) => {
     console.log("Local resource " + res.id.path + " has been registered.");
     lightResource = res;
-    oic.addEventListener("updaterequest", onLightUpdate);
-    oic.addEventListener("observerequest", onLightObserve);
-    oic.addEventListener("deleterequest", onLightDelete);
-    oic.addEventListener("retrieverequest", onLightRetrieve);
-    oic.addEventListener("createrequest", onLightCreate);
+    oic.on("updaterequest", onLightUpdate);
+    oic.on("observerequest", onLightObserve);
+    oic.on("deleterequest", onLightDelete);
+    oic.on("retrieverequest", onLightRetrieve);
+    oic.on("createrequest", onLightCreate);
     }
   }).catch((error) => {
     console.log("Error creating resource " + error.resource.id.path + " : " + error.message);
