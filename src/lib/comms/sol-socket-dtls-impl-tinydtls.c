@@ -418,11 +418,11 @@ call_user_write_cb(void *data, struct sol_socket *wrapped)
         return false;
     }
 
-    if (socket->write.cb(socket->data, socket)) {
+    if (socket->write.cb((void *)socket->data, socket)) {
         SOL_DBG("User func@%p returned success, encrypting payload",
             socket->write.cb);
 
-        if (encrypt_payload(data)) {
+        if (encrypt_payload(socket)) {
             SOL_DBG("Data encrypted, should have been passed to the "
                 "wrapped socket");
             return true;
@@ -682,13 +682,19 @@ sol_socket_default_dtls_new(const struct sol_socket_options *options)
 
     opts = *(struct sol_socket_ip_options *)options;
     init_dtls_if_needed();
-    opts.base.on_can_read = read_encrypted;
-    opts.base.on_can_write = call_user_write_cb;
 
     s = calloc(1, sizeof(*s));
     SOL_NULL_CHECK(s, NULL);
 
-    s->wrapped = sol_socket_ip_default_new(options);
+    s->write.cb = opts.base.on_can_write;
+    s->read.cb = opts.base.on_can_read;
+    s->data = opts.base.data;
+
+    opts.base.data = s;
+    opts.base.on_can_read = read_encrypted;
+    opts.base.on_can_write = call_user_write_cb;
+
+    s->wrapped = sol_socket_ip_default_new(&opts);
     SOL_NULL_CHECK_GOTO(s, err);
 
     s->context = dtls_new_context(s);
