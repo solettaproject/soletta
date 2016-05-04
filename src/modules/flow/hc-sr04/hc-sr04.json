@@ -29,25 +29,19 @@
         "members": [
           {
             "data_type": "string",
-            "description": "Label of the 'Trigger' pin on the board. This pin will receive a pulse to emit the wave. If raw is set to true, this should be the pin number as recognized by the platform.",
+            "description": "Label of the 'Trigger' pin on the board. This pin will receive a pulse to emit the wave. If 'raw' is set to true, this should be the pin number as recognized by the platform.",
             "name": "trigger"
           },
           {
-            "data_type": "boolean",
-            "default": false,
-            "description": "Change 'trigger' meaning to be the system parameters needed to address the desired pin. Use it if you know what you are doing.",
-            "name": "trigger_raw"
-          },
-          {
             "data_type": "string",
-            "description": "Label of the 'Echo' pin on the board. This pin will read a pulse and based on its width distance is calculated. If raw is set to true, this should be the pin number as recognized by the platform.",
+            "description": "Label of the 'Echo' pin on the board. This pin will read a pulse and based on its width distance is calculated. If 'raw' is set to true, this should be the pin number as recognized by the platform.",
             "name": "echo"
           },
           {
             "data_type": "boolean",
             "default": false,
-            "description": "Change 'echo' meaning to be the system parameters needed to address the desired pin. Use it if you know what you are doing.",
-            "name": "echo_raw"
+            "description": "Change 'trigger' and 'echo' meaning to be the system parameters needed to address the desired pin. Use it if you know what you are doing.",
+            "name": "raw"
           },
           {
             "data_type": "int",

@@ -101,9 +101,9 @@ hc_sr04_open(struct sol_flow_node *node, void *data, const struct sol_flow_node_
         return -EINVAL;
     }
 
-    if (opts->trigger_raw) {
+    if (opts->raw) {
         if (!sscanf(opts->trigger, "%" SCNu32, &pin)) {
-            SOL_WRN("'trigger_raw' option was set, but 'pin' "
+            SOL_WRN("'raw' option was set, but 'pin' "
                 "value=%s couldn't be parsed as integer.", opts->trigger);
         } else {
             mdata->trig_gpio = sol_gpio_open(pin, &trig_gpio_conf);
@@ -117,9 +117,9 @@ hc_sr04_open(struct sol_flow_node *node, void *data, const struct sol_flow_node_
         return -EIO;
     }
 
-    if (opts->echo_raw) {
+    if (opts->raw) {
         if (!sscanf(opts->echo, "%" SCNu32, &pin)) {
-            SOL_WRN("'echo_raw' option was set, but 'pin' "
+            SOL_WRN("'raw' option was set, but 'pin' "
                 "value=%s couldn't be parsed as integer.", opts->echo);
         } else {
             mdata->echo_gpio = sol_gpio_open(pin, &echo_gpio_conf);
