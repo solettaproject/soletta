@@ -267,7 +267,7 @@ console_open(struct sol_flow_node *node, void *data, const struct sol_flow_node_
     }
 
     if (!mdata->prefix) {
-        char buf[512];
+        char buf[128];
         int r;
 
         r = snprintf(buf, sizeof(buf), "%s ", sol_flow_node_get_id(node));
