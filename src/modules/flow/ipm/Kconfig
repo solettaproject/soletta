@@ -1,0 +1,4 @@
+config FLOW_NODE_TYPE_IPM
+	tristate "Node type: IPM"
+	depends on USE_IPM
+	default y
