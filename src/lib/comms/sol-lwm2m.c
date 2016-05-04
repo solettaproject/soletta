@@ -2243,6 +2243,7 @@ sol_lwm2m_resource_clear(struct sol_lwm2m_resource *resource)
     LWM2M_RESOURCE_CHECK_API(resource);
 
     free(resource->data);
+    resource->data = NULL;
 }
 
 static int
