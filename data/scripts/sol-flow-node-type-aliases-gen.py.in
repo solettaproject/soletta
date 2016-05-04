@@ -56,7 +56,7 @@ if __name__ == '__main__':
                         default=aliasesDefaultDir + aliasesDefaultFileName)
     parser.add_argument("inputs_list", nargs='+',
                         help="List of input description files in JSON format",
-                        type=argparse.FileType('r'))
+                        type=argparse.FileType('r', encoding='UTF-8'))
 
     args = parser.parse_args()
 
