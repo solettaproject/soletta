@@ -656,10 +656,6 @@ forward:
     return sol_flow_send_string_packet(mdata->node,
         SOL_FLOW_NODE_TYPE_REGEXP_REPLACE__OUT__OUT,
         mdata->orig_string);
-    sol_flow_send_error_packet(node, ENOTSUP, "The string/regexp-search"
-        " can't work on this Soletta build -- libpcre dependency is needed "
-        "in order for this node to work");
-    return -EINVAL;
 }
 
 static int
