@@ -38,17 +38,14 @@ SOL_LOG_INTERNAL_DECLARE_STATIC(_log_domain, "i2c");
 
 struct i2c_dev {
     const char *name;
-    int refcnt;
 };
 
 static struct i2c_dev i2c_0_dev = {
-    .name = "I2C0",
-    .refcnt = 0
+    .name = "I2C_0",
 };
 
 static struct i2c_dev i2c_1_dev = {
-    .name = "I2C1",
-    .refcnt = 0
+    .name = "I2C_1",
 };
 
 static struct i2c_dev *devs[2] = {
@@ -145,15 +142,6 @@ sol_i2c_open_raw(uint8_t bus, enum sol_i2c_speed speed)
     i2c = calloc(1, sizeof(struct sol_i2c));
     SOL_NULL_CHECK(i2c, NULL);
 
-    devs[bus]->refcnt++;
-    if (devs[bus]->refcnt == 1) {
-        if (i2c_resume(dev) < 0) {
-            SOL_WRN("Failed to resume I2C device %s", devs[bus]->name);
-            free(i2c);
-            return NULL;
-        }
-    }
-
     i2c->dev = dev;
     i2c->dev_ref = devs[bus];
 
@@ -169,12 +157,6 @@ sol_i2c_close_raw(struct sol_i2c *i2c)
     if (i2c->async.timeout)
         sol_i2c_pending_cancel
             (i2c, (struct sol_i2c_pending *)i2c->async.timeout);
-
-    if (!--(i2c->dev_ref->refcnt)) {
-        if (i2c_suspend(i2c->dev) < 0) {
-            SOL_WRN("Failed to suspend I2C device %s", i2c->dev_ref->name);
-        }
-    }
 
     free(i2c);
 }
