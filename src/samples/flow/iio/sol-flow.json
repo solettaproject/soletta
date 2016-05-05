@@ -7,11 +7,11 @@
   },
   {
    "name": "MyMagnet",
-   "type": "iio/magnet"
+   "type": "iio/magnetometer"
   },
   {
    "name": "MyAccelerate",
-   "type": "iio/accelerate"
+   "type": "iio/accelerometer"
   },
   {
    "name": "MyColor",
@@ -19,19 +19,19 @@
   },
   {
    "name": "MyHumidity",
-   "type": "iio/humidity"
+   "type": "iio/humidity-sensor"
   },
   {
    "name": "MyLight",
-   "type": "iio/light"
+   "type": "iio/light-sensor"
   },
   {
    "name": "MyPressure",
-   "type": "iio/pressure"
+   "type": "iio/pressure-sensor"
   },
   {
    "name": "MyTemperature",
-   "type": "iio/temperature"
+   "type": "iio/thermometer"
   },
   {
    "name": "MyADC",

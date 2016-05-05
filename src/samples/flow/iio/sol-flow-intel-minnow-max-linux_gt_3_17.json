@@ -15,7 +15,7 @@
            "iio_device": "lsm303dlhc_magn create,i2c,platform/80860F41:05,0x1e,lsm303dlhc_magn 0",
            "buffer_size": "20"
      },
-     "type": "iio/magnet"
+     "type": "iio/magnetometer"
   },
   {
      "name": "MyAccelerate",
@@ -23,7 +23,7 @@
            "iio_device": "lis3dh create,i2c,platform/80860F41:05,0x19,lis3dh 0",
            "buffer_size": "20"
      },
-     "type": "iio/accelerate"
+     "type": "iio/accelerometer"
   },
   {
      "name": "MyColor",
@@ -39,7 +39,7 @@
            "iio_device": "si7020 create,i2c,platform/80860F41:05,0x40,si7020 0",
            "buffer_size": "-1"
      },
-     "type": "iio/humidity"
+     "type": "iio/humidity-sensor"
   },
   {
      "name": "MyLight",
@@ -47,7 +47,7 @@
            "iio_device": "tsl2561 create,i2c,platform/80860F41:05,0x39,tsl2561 0",
            "buffer_size": "-1"
      },
-     "type": "iio/light"
+     "type": "iio/light-sensor"
   },
   {
      "name": "MyPressure",
@@ -55,7 +55,7 @@
            "iio_device": "mpl3115 create,i2c,platform/80860F41:05,0x60,mpl3115 0",
            "buffer_size": "20"
      },
-     "type": "iio/pressure"
+     "type": "iio/pressure-sensor"
   },
   {
      "name": "MyTemperature",
@@ -63,7 +63,7 @@
            "iio_device": "mpl3115 create,i2c,platform/80860F41:05,0x60,mpl3115 0",
            "buffer_size": "-1"
      },
-     "type": "iio/temperature"
+     "type": "iio/thermometer"
   }
  ]
 }
