@@ -25,6 +25,9 @@
         "open": "gyroscope_open"
       },
       "name": "iio/gyroscope",
+      "aliases": [
+          "gyroscope/iio"
+      ],
       "options": {
        "members": [
          {
@@ -113,6 +116,9 @@
         "open": "magnet_open"
       },
       "name": "iio/magnetometer",
+      "aliases": [
+          "magnetometer/iio"
+      ],
       "options": {
        "members": [
          {
@@ -202,6 +208,9 @@
         "open": "temperature_open"
       },
       "name": "iio/thermometer",
+      "aliases": [
+          "thermometer/iio"
+      ],
       "options": {
        "members": [
          {
@@ -291,6 +300,9 @@
         "open": "pressure_open"
       },
       "name": "iio/pressure-sensor",
+      "aliases": [
+          "pressure-sensor/iio"
+      ],
       "options": {
        "members": [
          {
@@ -380,6 +392,9 @@
         "open": "color_open"
       },
       "name": "iio/color",
+      "aliases": [
+          "color/iio"
+      ],
       "options": {
        "members": [
          {
@@ -467,6 +482,9 @@
         "open": "accelerate_open"
       },
       "name": "iio/accelerometer",
+      "aliases": [
+          "accelerometer/iio"
+      ],
       "options": {
        "members": [
          {
@@ -555,6 +573,9 @@
         "open": "humidity_open"
       },
       "name": "iio/humidity-sensor",
+      "aliases": [
+          "humidity-sensor/iio"
+      ],
       "options": {
        "members": [
          {
@@ -644,6 +665,9 @@
         "open": "adc_open"
       },
       "name": "iio/adc",
+      "aliases": [
+          "adc/iio"
+      ],
       "options": {
        "members": [
          {
@@ -733,6 +757,9 @@
         "open": "light_open"
       },
       "name": "iio/light-sensor",
+      "aliases": [
+          "light-sensor/iio"
+      ],
       "options": {
        "members": [
          {
