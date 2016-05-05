@@ -91,6 +91,13 @@ config OIC
 menu "OIC Config"
 depends on OIC
 
+config OIC_SERVER_COMPAT_1_0
+	bool "OIC_SERVER_COMPAT_1_0"
+	default false
+	help
+    Uses payload defined in OIC 1.0 spec. Only select this option if using OIC
+    server with clients that doesn't support OIC 1.1 spec.
+
 config OIC_SERVER_MANUFACTURER_NAME
 	string "OIC_SERVER_MANUFACTURER_NAME"
 	default "Soletta"

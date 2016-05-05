@@ -122,16 +122,14 @@ static void sol_oic_server_unref(void);
 static int
 _sol_oic_server_d(void *data, struct sol_oic_request *request)
 {
+#ifndef OIC_SERVER_COMPAT_1_0
     SOL_BUFFER_DECLARE_STATIC(dev_id, 37);
+#endif
     struct sol_oic_response *response;
     int r;
 
     response = sol_oic_server_response_new(request);
     SOL_NULL_CHECK(response, -ENOMEM);
-
-    r = sol_util_uuid_string_from_bytes(true, true,
-        sol_platform_get_machine_id_as_bytes(), &dev_id);
-    SOL_INT_CHECK_GOTO(r, < 0, error);
 
     APPEND_KEY_VALUE(server_info, SOL_OIC_KEY_DEVICE_NAME, device_name);
     SOL_INT_CHECK_GOTO(r, < 0, error);
@@ -141,8 +139,18 @@ _sol_oic_server_d(void *data, struct sol_oic_request *request)
         data_model_version);
     SOL_INT_CHECK_GOTO(r, < 0, error);
 
+#ifndef OIC_SERVER_COMPAT_1_0
+    r = sol_util_uuid_string_from_bytes(true, true,
+        sol_platform_get_machine_id_as_bytes(), &dev_id);
+    SOL_INT_CHECK_GOTO(r, < 0, error);
+
     r = sol_oic_map_append(&response->writer, &SOL_OIC_REPR_TEXT_STRING(
         SOL_OIC_KEY_DEVICE_ID, dev_id.data, dev_id.used));
+#else
+    r = sol_oic_map_append(&response->writer, &SOL_OIC_REPR_BYTE_STRING(
+        SOL_OIC_KEY_DEVICE_ID, (char *)sol_platform_get_machine_id_as_bytes(),
+        MACHINE_ID_LEN));
+#endif
     SOL_INT_CHECK_GOTO(r, < 0, error);
 
     return sol_oic_server_send_response(request, response,
@@ -256,6 +264,7 @@ oic_query_split(struct sol_str_slice query, struct sol_str_slice *key, struct so
     return true;
 }
 
+#ifndef OIC_SERVER_COMPAT_1_0
 static CborError
 encode_array_from_bsv(CborEncoder *map, const char *val)
 {
@@ -273,6 +282,7 @@ encode_array_from_bsv(CborEncoder *map, const char *val)
     err |= cbor_encoder_close_container(map, &array);
     return err;
 }
+#endif
 
 static CborError
 res_payload_do(CborEncoder *encoder,
@@ -294,7 +304,13 @@ res_payload_do(CborEncoder *encoder,
     err = cbor_encoder_create_array(encoder, &array, 1);
     err |= cbor_encoder_create_map(&array, &device_map, 2);
     err |= cbor_encode_text_stringz(&device_map, SOL_OIC_KEY_DEVICE_ID);
+
+#ifndef OIC_SERVER_COMPAT_1_0
     err |= cbor_encode_text_string(&device_map, dev_id->data, dev_id->used);
+#else
+    err |= cbor_encode_byte_string(&device_map,
+        sol_platform_get_machine_id_as_bytes(), MACHINE_ID_LEN);
+#endif
     err |= cbor_encode_text_stringz(&device_map, SOL_OIC_KEY_RESOURCE_LINKS);
     err |= cbor_encoder_create_array(&device_map, &array_res,
         CborIndefiniteLength);
@@ -334,12 +350,20 @@ res_payload_do(CborEncoder *encoder,
 
         if (iter->iface) {
             err |= cbor_encode_text_stringz(&map, SOL_OIC_KEY_INTERFACES);
+#ifndef OIC_SERVER_COMPAT_1_0
             err |= encode_array_from_bsv(&map, iter->iface);
+#else
+            err |= cbor_encode_text_stringz(&map, iter->iface);
+#endif
         }
 
         if (iter->rt) {
             err |= cbor_encode_text_stringz(&map, SOL_OIC_KEY_RESOURCE_TYPES);
+#ifndef OIC_SERVER_COMPAT_1_0
             err |= encode_array_from_bsv(&map, iter->rt);
+#else
+            err |= cbor_encode_text_stringz(&map, iter->rt);
+#endif
         }
 
         err |= cbor_encode_text_stringz(&map, SOL_OIC_KEY_POLICY);
@@ -376,7 +400,11 @@ _sol_oic_server_res(void *data, struct sol_coap_server *server,
     const struct sol_coap_resource *resource, struct sol_coap_packet *req,
     const struct sol_network_link_addr *cliaddr)
 {
+#ifndef OIC_SERVER_COMPAT_1_0
     SOL_BUFFER_DECLARE_STATIC(dev_id, 37);
+#else
+    struct sol_buffer dev_id = SOL_BUFFER_INIT_EMPTY;
+#endif
     const uint8_t format_cbor = SOL_COAP_CONTENT_TYPE_APPLICATION_CBOR;
     const uint8_t *encoder_start;
     struct sol_coap_packet *resp;
@@ -409,9 +437,11 @@ _sol_oic_server_res(void *data, struct sol_coap_server *server,
         return SOL_COAP_RESPONSE_CODE_BAD_REQUEST;
     }
 
+#ifndef OIC_SERVER_COMPAT_1_0
     r = sol_util_uuid_string_from_bytes(true, true,
         sol_platform_get_machine_id_as_bytes(), &dev_id);
     SOL_INT_CHECK(r, < 0, ENOMEM);
+#endif
 
     resp = sol_coap_packet_new(req);
     SOL_NULL_CHECK(resp, -ENOMEM);
@@ -504,9 +534,6 @@ init_static_server_info(void)
         .data_model_version = SOL_STR_SLICE_LITERAL(TO_STRING(OIC_DATA_MODEL_VERSION)),
     };
     struct sol_oic_device_info *info;
-
-    server_info.device_id =
-        SOL_STR_SLICE_STR((const char *)sol_platform_get_machine_id_as_bytes(), 16);
 
     info = sol_util_memdup(&server_info, sizeof(*info));
     SOL_NULL_CHECK(info, NULL);
