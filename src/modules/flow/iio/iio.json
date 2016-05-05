@@ -112,7 +112,7 @@
         "close": "magnet_close",
         "open": "magnet_open"
       },
-      "name": "iio/magnet",
+      "name": "iio/magnetometer",
       "options": {
        "members": [
          {
@@ -201,7 +201,7 @@
         "close": "temperature_close",
         "open": "temperature_open"
       },
-      "name": "iio/temperature",
+      "name": "iio/temperature-sensor",
       "options": {
        "members": [
          {
@@ -290,7 +290,7 @@
         "close": "pressure_close",
         "open": "pressure_open"
       },
-      "name": "iio/pressure",
+      "name": "iio/pressure-sensor",
       "options": {
        "members": [
          {
@@ -466,7 +466,7 @@
         "close": "accelerate_close",
         "open": "accelerate_open"
       },
-      "name": "iio/accelerate",
+      "name": "iio/accelerometer",
       "options": {
        "members": [
          {
@@ -554,7 +554,7 @@
         "close": "humidity_close",
         "open": "humidity_open"
       },
-      "name": "iio/humidity",
+      "name": "iio/humidity-sensor",
       "options": {
        "members": [
          {
@@ -732,7 +732,7 @@
         "close": "light_close",
         "open": "light_open"
       },
-      "name": "iio/light",
+      "name": "iio/light-sensor",
       "options": {
        "members": [
          {

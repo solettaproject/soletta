@@ -221,7 +221,7 @@ magnet_reader_cb(void *data, struct sol_iio_device *device)
     if (!b) goto error;
 
     sol_flow_send_direction_vector_packet(node,
-        SOL_FLOW_NODE_TYPE_IIO_MAGNET__OUT__OUT, &out);
+        SOL_FLOW_NODE_TYPE_IIO_MAGNETOMETER__OUT__OUT, &out);
 
     return;
 
@@ -267,12 +267,12 @@ static int
 magnet_open(struct sol_flow_node *node, void *data, const struct sol_flow_node_options *options)
 {
     struct magnet_data *mdata = data;
-    const struct sol_flow_node_type_iio_magnet_options *opts;
+    const struct sol_flow_node_type_iio_magnetometer_options *opts;
     int device_id;
 
-    SOL_FLOW_NODE_OPTIONS_SUB_API_CHECK(options, SOL_FLOW_NODE_TYPE_IIO_MAGNET_OPTIONS_API_VERSION,
+    SOL_FLOW_NODE_OPTIONS_SUB_API_CHECK(options, SOL_FLOW_NODE_TYPE_IIO_MAGNETOMETER_OPTIONS_API_VERSION,
         -EINVAL);
-    opts = (const struct sol_flow_node_type_iio_magnet_options *)options;
+    opts = (const struct sol_flow_node_type_iio_magnetometer_options *)options;
 
     mdata->buffer_enabled = opts->buffer_size > -1;
 
@@ -373,7 +373,7 @@ temp_reader_cb(void *data, struct sol_iio_device *device)
     if (!b) goto error;
 
     sol_flow_send_drange_value_packet(node,
-        SOL_FLOW_NODE_TYPE_IIO_TEMPERATURE__OUT__OUT, out.val);
+        SOL_FLOW_NODE_TYPE_IIO_TEMPERATURE_SENSOR__OUT__OUT, out.val);
 
     return;
 
@@ -418,12 +418,12 @@ static int
 temperature_open(struct sol_flow_node *node, void *data, const struct sol_flow_node_options *options)
 {
     struct temperature_data *mdata = data;
-    const struct sol_flow_node_type_iio_temperature_options *opts;
+    const struct sol_flow_node_type_iio_temperature_sensor_options *opts;
     int device_id;
 
-    SOL_FLOW_NODE_OPTIONS_SUB_API_CHECK(options, SOL_FLOW_NODE_TYPE_IIO_TEMPERATURE_OPTIONS_API_VERSION,
+    SOL_FLOW_NODE_OPTIONS_SUB_API_CHECK(options, SOL_FLOW_NODE_TYPE_IIO_TEMPERATURE_SENSOR_OPTIONS_API_VERSION,
         -EINVAL);
-    opts = (const struct sol_flow_node_type_iio_temperature_options *)options;
+    opts = (const struct sol_flow_node_type_iio_temperature_sensor_options *)options;
 
     mdata->buffer_enabled = opts->buffer_size > -1;
 
@@ -525,7 +525,7 @@ pressure_reader_cb(void *data, struct sol_iio_device *device)
     if (!b) goto error;
 
     sol_flow_send_drange_value_packet(node,
-        SOL_FLOW_NODE_TYPE_IIO_PRESSURE__OUT__OUT, out.val);
+        SOL_FLOW_NODE_TYPE_IIO_PRESSURE_SENSOR__OUT__OUT, out.val);
 
     return;
 
@@ -570,12 +570,12 @@ static int
 pressure_open(struct sol_flow_node *node, void *data, const struct sol_flow_node_options *options)
 {
     struct pressure_data *mdata = data;
-    const struct sol_flow_node_type_iio_pressure_options *opts;
+    const struct sol_flow_node_type_iio_pressure_sensor_options *opts;
     int device_id;
 
-    SOL_FLOW_NODE_OPTIONS_SUB_API_CHECK(options, SOL_FLOW_NODE_TYPE_IIO_PRESSURE_OPTIONS_API_VERSION,
+    SOL_FLOW_NODE_OPTIONS_SUB_API_CHECK(options, SOL_FLOW_NODE_TYPE_IIO_PRESSURE_SENSOR_OPTIONS_API_VERSION,
         -EINVAL);
-    opts = (const struct sol_flow_node_type_iio_pressure_options *)options;
+    opts = (const struct sol_flow_node_type_iio_pressure_sensor_options *)options;
 
     mdata->buffer_enabled = opts->buffer_size > -1;
 
@@ -848,7 +848,7 @@ accelerate_reader_cb(void *data, struct sol_iio_device *device)
     if (!b) goto error;
 
     sol_flow_send_direction_vector_packet(node,
-        SOL_FLOW_NODE_TYPE_IIO_ACCELERATE__OUT__OUT, &out);
+        SOL_FLOW_NODE_TYPE_IIO_ACCELEROMETER__OUT__OUT, &out);
 
     return;
 
@@ -894,12 +894,12 @@ static int
 accelerate_open(struct sol_flow_node *node, void *data, const struct sol_flow_node_options *options)
 {
     struct accelerate_data *mdata = data;
-    const struct sol_flow_node_type_iio_accelerate_options *opts;
+    const struct sol_flow_node_type_iio_accelerometer_options *opts;
     int device_id;
 
-    SOL_FLOW_NODE_OPTIONS_SUB_API_CHECK(options, SOL_FLOW_NODE_TYPE_IIO_ACCELERATE_OPTIONS_API_VERSION,
+    SOL_FLOW_NODE_OPTIONS_SUB_API_CHECK(options, SOL_FLOW_NODE_TYPE_IIO_ACCELEROMETER_OPTIONS_API_VERSION,
         -EINVAL);
-    opts = (const struct sol_flow_node_type_iio_accelerate_options *)options;
+    opts = (const struct sol_flow_node_type_iio_accelerometer_options *)options;
 
     mdata->buffer_enabled = opts->buffer_size > -1;
 
@@ -1000,7 +1000,7 @@ humidity_reader_cb(void *data, struct sol_iio_device *device)
     if (!b) goto error;
 
     sol_flow_send_drange_value_packet(node,
-        SOL_FLOW_NODE_TYPE_IIO_HUMIDITY__OUT__OUT, out.val);
+        SOL_FLOW_NODE_TYPE_IIO_HUMIDITY_SENSOR__OUT__OUT, out.val);
 
     return;
 
@@ -1045,12 +1045,12 @@ static int
 humidity_open(struct sol_flow_node *node, void *data, const struct sol_flow_node_options *options)
 {
     struct humidity_data *mdata = data;
-    const struct sol_flow_node_type_iio_humidity_options *opts;
+    const struct sol_flow_node_type_iio_humidity_sensor_options *opts;
     int device_id;
 
-    SOL_FLOW_NODE_OPTIONS_SUB_API_CHECK(options, SOL_FLOW_NODE_TYPE_IIO_HUMIDITY_OPTIONS_API_VERSION,
+    SOL_FLOW_NODE_OPTIONS_SUB_API_CHECK(options, SOL_FLOW_NODE_TYPE_IIO_HUMIDITY_SENSOR_OPTIONS_API_VERSION,
         -EINVAL);
-    opts = (const struct sol_flow_node_type_iio_humidity_options *)options;
+    opts = (const struct sol_flow_node_type_iio_humidity_sensor_options *)options;
 
     mdata->buffer_enabled = opts->buffer_size > -1;
 
@@ -1304,7 +1304,7 @@ light_reader_cb(void *data, struct sol_iio_device *device)
     if (!b) goto error;
 
     sol_flow_send_drange_value_packet(node,
-        SOL_FLOW_NODE_TYPE_IIO_LIGHT__OUT__OUT, out.val);
+        SOL_FLOW_NODE_TYPE_IIO_LIGHT_SENSOR__OUT__OUT, out.val);
 
     return;
 
@@ -1351,12 +1351,12 @@ static int
 light_open(struct sol_flow_node *node, void *data, const struct sol_flow_node_options *options)
 {
     struct light_data *mdata = data;
-    const struct sol_flow_node_type_iio_light_options *opts;
+    const struct sol_flow_node_type_iio_light_sensor_options *opts;
     int device_id;
 
-    SOL_FLOW_NODE_OPTIONS_SUB_API_CHECK(options, SOL_FLOW_NODE_TYPE_IIO_LIGHT_OPTIONS_API_VERSION,
+    SOL_FLOW_NODE_OPTIONS_SUB_API_CHECK(options, SOL_FLOW_NODE_TYPE_IIO_LIGHT_SENSOR_OPTIONS_API_VERSION,
         -EINVAL);
-    opts = (const struct sol_flow_node_type_iio_light_options *)options;
+    opts = (const struct sol_flow_node_type_iio_light_sensor_options *)options;
 
     mdata->buffer_enabled = opts->buffer_size > -1;
 
