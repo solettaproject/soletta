@@ -147,7 +147,7 @@ twitter_request_finished(void *data,
 
 err:
     sol_flow_send_error_packet(node, r,
-        "Invalid response from twitter %s", response->url);
+        "Invalid response from twitter %s", response ? response->url : "");
 }
 
 static struct sol_http_client_connection *
