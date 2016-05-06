@@ -14,7 +14,7 @@
         "close": "max31855_close",
         "open": "max31855_open"
       },
-      "name": "max31855/temperature",
+      "name": "max31855",
       "options": {
         "members": [
           {
@@ -48,7 +48,7 @@
         }
       ],
       "private_data_type": "max31855_data",
-      "url": "http://solettaproject.org/doc/latest/node_types/max31855/temperature.html"
+      "url": "http://solettaproject.org/doc/latest/node_types/max31855/thermometer.html"
     }
   ]
 }
