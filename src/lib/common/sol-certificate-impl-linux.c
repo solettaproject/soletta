@@ -31,6 +31,7 @@ SOL_LOG_INTERNAL_DECLARE(_sol_certificate_log_domain, "certificate");
 struct sol_cert {
     char *filename;
     uint16_t refcnt;
+    const char *basename;
 };
 
 static struct sol_ptr_vector storage = SOL_PTR_VECTOR_INIT;
@@ -93,10 +94,19 @@ sol_cert_load_from_id(const char *id)
 
     SOL_NULL_CHECK(id, NULL);
 
-    SOL_PTR_VECTOR_FOREACH_IDX (&storage, cert, idx) {
-        if (streq(cert->filename, id)) {
-            cert->refcnt++;
-            return cert;
+    if (id[0] == '/') {
+        SOL_PTR_VECTOR_FOREACH_IDX (&storage, cert, idx) {
+            if (streq(cert->filename, id)) {
+                cert->refcnt++;
+                return cert;
+            }
+        }
+    } else {
+        SOL_PTR_VECTOR_FOREACH_IDX (&storage, cert, idx) {
+            if (streq(cert->basename, id)) {
+                cert->refcnt++;
+                return cert;
+            }
         }
     }
 
@@ -111,6 +121,7 @@ sol_cert_load_from_id(const char *id)
 
     cert->refcnt++;
     cert->filename = path;
+    cert->basename = sol_util_file_get_basename(sol_str_slice_from_str(path)).data;
 
     r = sol_ptr_vector_append(&storage, cert);
     SOL_INT_CHECK_GOTO(r, != 0, insert_error);
@@ -159,7 +170,7 @@ sol_cert_get_file_name(const struct sol_cert *cert)
 {
     SOL_NULL_CHECK(cert, NULL);
 
-    return cert->filename;
+    return cert->basename;
 }
 
 SOL_API struct sol_blob *
