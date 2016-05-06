@@ -23,6 +23,7 @@ var soletta = require( require( "path" )
 var exec = require( "child_process" ).exec;
 var initialHostname = require( "os" ).hostname();
 var initialTimezone, destinationTimezone;
+var sudo = ( process.geteuid() ? "sudo " : "" );
 
 console.log( JSON.stringify( { assertionCount: 5 } ) );
 
@@ -80,7 +81,7 @@ async.series( [
 				"The new hostname is as expected" );
 			callback();
 		} );
-		exec( "sudo hostname " + initialHostname, function( error ) {
+		exec( sudo + "hostname " + initialHostname, function( error ) {
 			if ( error ) {
 				callback( error );
 			}
@@ -98,7 +99,7 @@ async.series( [
 				"The new time zone is '" + destinationTimezone + "'" );
 			callback();
 		} );
-		exec( "sudo timedatectl set-timezone " + destinationTimezone, function( error ) {
+		exec( sudo + "timedatectl set-timezone " + destinationTimezone, function( error ) {
 			if ( error ) {
 				callback( error );
 			}
@@ -117,7 +118,7 @@ async.series( [
 			"Attempting to delete a monitor twice throws a TypeError" );
 		utils.assert( "strictEqual", theError.message, "Object is not of type SolPlatformMonitor",
 			"The message of the TypeError is as expected" );
-		exec( "sudo timedatectl set-timezone " + initialTimezone, callback );
+		exec( sudo + "timedatectl set-timezone " + initialTimezone, callback );
 	}
 ], function( error ) {
 	if ( error ) {
