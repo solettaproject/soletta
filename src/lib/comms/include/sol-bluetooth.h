@@ -264,7 +264,7 @@ struct sol_bt_device_info {
  */
 enum sol_bt_transport {
     /** @brief Discover devices over the Bluetooth Low Energy transport */
-    SOL_BT_TRANSPORT_LE,
+    SOL_BT_TRANSPORT_LE = 1,
     /** @brief Discover devices over the Bluetooth Basic Rate transport */
     SOL_BT_TRANSPORT_BREDR,
     /** @brief Discover devices over All transports */
