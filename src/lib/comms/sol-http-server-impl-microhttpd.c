@@ -654,6 +654,8 @@ get_static_file(const struct static_dir *dir, const char *url, struct sol_buffer
     ret = sol_buffer_append_slice(path, sol_str_slice_from_str(real_path));
     free(real_path);
 
+    SOL_INT_CHECK(ret, < 0, ret);
+
     /*  According with microhttpd fd will be closed when response is
      *  destroyed and fd should be in 'blocking' mode
      */
