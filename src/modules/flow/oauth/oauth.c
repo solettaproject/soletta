@@ -172,8 +172,8 @@ v1_authorize_response_cb(void *data, struct sol_http_request *request)
         }
     }
 
-    SOL_NULL_CHECK_GOTO(verifier, err);
-    SOL_NULL_CHECK_GOTO(token, err);
+    SOL_NULL_CHECK_GOTO(verifier, err_params);
+    SOL_NULL_CHECK_GOTO(token, err_params);
 
     req_data->request = request;
     req_data->node = node;
@@ -201,12 +201,12 @@ err_append:
 err_connection:
 err_params:
     sol_http_params_clear(&params);
-err:
     free(req_data->timestamp);
     free(req_data->nonce);
     free(req_data);
     free(token);
     free(verifier);
+err:
     r = sol_http_server_send_response(request, &((struct sol_http_response) {
             SOL_SET_API_VERSION(.api_version = SOL_HTTP_RESPONSE_API_VERSION, )
             .content = SOL_BUFFER_INIT_EMPTY,
