@@ -6,3 +6,4 @@ config CONTIKI
     select FEATURE_HW_GPIO if HAVE_QMSI
     select FEATURE_HW_PWM if HAVE_QMSI
     select FEATURE_HW_I2C if HAVE_QMSI
+    select FEATURE_HW_SPI if HAVE_QMSI

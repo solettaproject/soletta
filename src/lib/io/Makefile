@@ -75,6 +75,8 @@ obj-io-spi-$(PLATFORM_LINUX) += \
     sol-spi-impl-linux.o
 obj-io-spi-$(PLATFORM_ZEPHYR) += \
     sol-spi-impl-zephyr.o
+obj-io-spi-$(PLATFORM_CONTIKI_QMSI) += \
+    sol-spi-impl-contiki-qmsi.o
 
 obj-io-uart-$(USE_UART) := \
     sol-uart-common.o
