@@ -221,7 +221,6 @@ sol_util_strerror(int errnum, struct sol_buffer *buf)
 {
     char *ret;
     int err;
-    size_t len;
 
     SOL_NULL_CHECK(buf, NULL);
 
@@ -256,15 +255,19 @@ sol_util_strerror(int errnum, struct sol_buffer *buf)
             break;
     }
 
-    len = strlen(ret);
+    {
+        size_t len;
 
-    if (buf->capacity - buf->used < len) {
-        err = sol_buffer_expand(buf, len);
+        len = strlen(ret);
+
+        if (buf->capacity - buf->used < len) {
+            err = sol_buffer_expand(buf, len);
+            SOL_INT_CHECK(err, < 0, NULL);
+        }
+
+        err = sol_buffer_append_bytes(buf, (const uint8_t *)ret, len);
         SOL_INT_CHECK(err, < 0, NULL);
     }
-
-    err = sol_buffer_append_bytes(buf, (const uint8_t *)ret, len);
-    SOL_INT_CHECK(err, < 0, NULL);
 #endif
 
     return ret;
