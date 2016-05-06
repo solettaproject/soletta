@@ -30,6 +30,6 @@ sample-$(FLOW_GROVE_ROTARY_ANGLE_SENSOR_SAMPLE) += grove-rotary-angle-sensor
 sample-grove-rotary-angle-sensor-$(FLOW_GROVE_ROTARY_ANGLE_SENSOR_SAMPLE) := grove-rotary-angle-sensor.fbp
 sample-grove-rotary-angle-sensor-$(FLOW_GROVE_ROTARY_ANGLE_SENSOR_SAMPLE)-conffile := sol-flow-intel-galileo-rev-g.json
 
-sample-$(FLOW_GROVE_TEMPERATURE_SENSOR_SAMPLE) += grove-temperature-sensor
-sample-grove-temperature-sensor-$(FLOW_GROVE_TEMPERATURE_SENSOR_SAMPLE) := grove-temperature-sensor.fbp
-sample-grove-temperature-sensor-$(FLOW_GROVE_TEMPERATURE_SENSOR_SAMPLE)-conffile := sol-flow-intel-galileo-rev-g.json
+sample-$(FLOW_GROVE_THERMOMETER_SAMPLE) += grove-thermometer
+sample-grove-thermometer-$(FLOW_GROVE_THERMOMETER_SAMPLE) := grove-thermometer.fbp
+sample-grove-thermometer-$(FLOW_GROVE_THERMOMETER_SAMPLE)-conffile := sol-flow-intel-galileo-rev-g.json

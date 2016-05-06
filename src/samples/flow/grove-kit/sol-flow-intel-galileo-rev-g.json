@@ -32,12 +32,12 @@
    "type": "grove/light-sensor"
   },
   {
-   "name": "TemperatureSensor",
+   "name": "Thermometer",
    "options": {
     "pin": "A2",
     "poll_timeout": 50
    },
-   "type": "grove/temperature-sensor"
+   "type": "grove/thermometer"
   },
   {
    "name": "SoundSensor",

@@ -371,7 +371,7 @@ temperature_convert(struct sol_flow_node *node, void *data, uint16_t port, uint1
 static int
 temperature_child_opts_set(const struct sol_flow_node_type *type, uint16_t child_index, const struct sol_flow_node_options *opts, struct sol_flow_node_options *child_opts)
 {
-    struct sol_flow_node_type_grove_temperature_sensor_options *container_opts = (struct sol_flow_node_type_grove_temperature_sensor_options *)opts;
+    struct sol_flow_node_type_grove_thermometer_options *container_opts = (struct sol_flow_node_type_grove_thermometer_options *)opts;
 
     if (child_index == TEMPERATURE_CONVERTER_NODE_IDX) {
         struct sol_flow_node_type_grove_temperature_converter_options *converter_opts =
@@ -400,7 +400,7 @@ temperature_child_opts_set(const struct sol_flow_node_type *type, uint16_t child
 }
 
 static void
-grove_temperature_sensor_new_type(const struct sol_flow_node_type **current)
+grove_thermometer_new_type(const struct sol_flow_node_type **current)
 {
     struct sol_flow_node_type *type;
     const struct sol_flow_node_type **aio_reader, **ctl;
@@ -455,7 +455,7 @@ grove_temperature_sensor_new_type(const struct sol_flow_node_type **current)
 static void
 temperature_init_type(void)
 {
-    grove_temperature_sensor_new_type(&SOL_FLOW_NODE_TYPE_GROVE_TEMPERATURE_SENSOR);
+    grove_thermometer_new_type(&SOL_FLOW_NODE_TYPE_GROVE_THERMOMETER);
 }
 
 #include "grove-gen.c"

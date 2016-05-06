@@ -74,7 +74,7 @@
       "methods": {
         "init_type": "temperature_init_type"
       },
-      "name": "grove/temperature-sensor",
+      "name": "grove/thermometer",
       "options": {
         "members": [
           {

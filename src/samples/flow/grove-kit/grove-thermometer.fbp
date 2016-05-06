@@ -16,7 +16,7 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
-# sol-fbp-runner grove-temperature-sensor.fbp
+# sol-fbp-runner grove-thermometer.fbp
 
 # This is a translation of
 # Grove_Temperature_Sensor/Grove_Temperature_Sensor.ino, from
@@ -24,6 +24,6 @@
 
 const_celsius_symbol(constant/string:value= C)
 
-temperatureSensor(TemperatureSensor) KELVIN -> KELVIN _(temperature/converter) CELSIUS -> IN converter(converter/float-to-string)
+thermometer(Thermometer) KELVIN -> KELVIN _(temperature/converter) CELSIUS -> IN converter(converter/float-to-string)
 converter OUT -> IN[0] concat(string/concatenate)
 const_celsius_symbol OUT -> IN[1] concat OUT -> IN screen(LCDString)
