@@ -15,6 +15,9 @@
         "open": "max31855_open"
       },
       "name": "max31855",
+      "aliases": [
+          "thermometer/max31855"
+      ],
       "options": {
         "members": [
           {
