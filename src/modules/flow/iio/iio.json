@@ -25,6 +25,9 @@
         "open": "gyroscope_open"
       },
       "name": "iio/gyroscope",
+      "aliases": [
+          "gyroscope/iio"
+      ],
       "options": {
        "members": [
          {
@@ -112,7 +115,10 @@
         "close": "magnet_close",
         "open": "magnet_open"
       },
-      "name": "iio/magnet",
+      "name": "iio/magnetometer",
+      "aliases": [
+          "magnetometer/iio"
+      ],
       "options": {
        "members": [
          {
@@ -201,7 +207,10 @@
         "close": "temperature_close",
         "open": "temperature_open"
       },
-      "name": "iio/temperature",
+      "name": "iio/temperature-sensor",
+      "aliases": [
+          "temperature-sensor/iio"
+      ],
       "options": {
        "members": [
          {
@@ -290,7 +299,10 @@
         "close": "pressure_close",
         "open": "pressure_open"
       },
-      "name": "iio/pressure",
+      "name": "iio/pressure-sensor",
+      "aliases": [
+          "pressure-sensor/iio"
+      ],
       "options": {
        "members": [
          {
@@ -380,6 +392,9 @@
         "open": "color_open"
       },
       "name": "iio/color",
+      "aliases": [
+          "color/iio"
+      ],
       "options": {
        "members": [
          {
@@ -466,7 +481,10 @@
         "close": "accelerate_close",
         "open": "accelerate_open"
       },
-      "name": "iio/accelerate",
+      "name": "iio/accelerometer",
+      "aliases": [
+          "accelerometer/iio"
+      ],
       "options": {
        "members": [
          {
@@ -554,7 +572,10 @@
         "close": "humidity_close",
         "open": "humidity_open"
       },
-      "name": "iio/humidity",
+      "name": "iio/humidity-sensor",
+      "aliases": [
+          "humidity-sensor/iio"
+      ],
       "options": {
        "members": [
          {
@@ -644,6 +665,9 @@
         "open": "adc_open"
       },
       "name": "iio/adc",
+      "aliases": [
+          "adc/iio"
+      ],
       "options": {
        "members": [
          {
@@ -732,7 +756,10 @@
         "close": "light_close",
         "open": "light_open"
       },
-      "name": "iio/light",
+      "name": "iio/light-sensor",
+      "aliases": [
+          "light-sensor/iio"
+      ],
       "options": {
        "members": [
          {
