@@ -23,7 +23,7 @@
 # before the two seconds interval.
 
 timer(timer)
-temp(am2315/temperature:i2c_bus=0,i2c_slave=1)
+temp(am2315/thermometer:i2c_bus=0,i2c_slave=1)
 humidity(am2315/humidity:i2c_bus=0,i2c_slave=1)
 converter(temperature/converter)
 

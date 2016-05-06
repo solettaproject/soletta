@@ -24,7 +24,7 @@
         "close": "temperature_am2315_close",
         "open": "temperature_am2315_open"
       },
-      "name": "am2315/temperature",
+      "name": "am2315/thermometer",
       "options": {
         "members": [
           {
@@ -48,7 +48,8 @@
           "name": "KELVIN"
         }
       ],
-      "private_data_type": "am2315_data"
+      "private_data_type": "am2315_data",
+      "url": "http://solettaproject.org/doc/latest/node_types/am2315/thermometer.html"
     },
     {
       "category": "input/hw",
@@ -91,7 +92,8 @@
           "name": "OUT"
         }
       ],
-      "private_data_type": "am2315_data"
+      "private_data_type": "am2315_data",
+      "url": "http://solettaproject.org/doc/latest/node_types/am2315/humidity.html"
     }
   ]
 }

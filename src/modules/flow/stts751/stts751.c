@@ -112,11 +112,11 @@ static int
 temperature_stts751_open(struct sol_flow_node *node, void *data, const struct sol_flow_node_options *options)
 {
     struct stts751_data *mdata = data;
-    const struct sol_flow_node_type_stts751_temperature_options *opts;
+    const struct sol_flow_node_type_stts751_options *opts;
 
-    SOL_FLOW_NODE_OPTIONS_SUB_API_CHECK(options, SOL_FLOW_NODE_TYPE_STTS751_TEMPERATURE_OPTIONS_API_VERSION,
+    SOL_FLOW_NODE_OPTIONS_SUB_API_CHECK(options, SOL_FLOW_NODE_TYPE_STTS751_OPTIONS_API_VERSION,
         -EINVAL);
-    opts = (const struct sol_flow_node_type_stts751_temperature_options *)options;
+    opts = (const struct sol_flow_node_type_stts751_options *)options;
 
     mdata->node = node;
 
@@ -174,7 +174,7 @@ send_temperature(struct stts751_data *mdata)
     val.val = temp;
 
     sol_flow_send_drange_packet(mdata->node,
-        SOL_FLOW_NODE_TYPE_STTS751_TEMPERATURE__OUT__KELVIN, &val);
+        SOL_FLOW_NODE_TYPE_STTS751__OUT__KELVIN, &val);
 }
 
 static void
