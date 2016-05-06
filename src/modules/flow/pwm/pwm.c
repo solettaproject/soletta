@@ -86,7 +86,7 @@ map_irange_to_period(struct sol_irange val, int32_t period)
         return UINT32_MAX;
     }
 
-    result = (val.val - val.min) * period / (val.max - val.min);
+    result = (val.val - val.min) * (int64_t)period / (val.max - val.min);
     SOL_INT_CHECK(result, < 0, 0);
 
     return (uint32_t)result;
