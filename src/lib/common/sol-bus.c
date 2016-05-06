@@ -383,9 +383,8 @@ sol_bus_client_free(struct sol_bus_client *client)
     if (!client)
         return;
 
-    destroy_client(client);
-
     sol_ptr_vector_remove(&_ctx.clients, client);
+    destroy_client(client);
 }
 
 SOL_API const char *
