@@ -516,7 +516,6 @@ setup_ports_vector(struct sol_vector *tokens, struct sol_vector *ports,
     struct sol_str_slice *slice, type_slice;
     struct sol_flow_metatype_port_description *port;
 
-    sol_vector_init(ports, sizeof(struct sol_flow_metatype_port_description));
     SOL_VECTOR_FOREACH_IDX (tokens, slice, i) {
         port = sol_vector_append(ports);
         SOL_NULL_CHECK(port, -ENOMEM);
@@ -811,9 +810,11 @@ composed_metatype_generate_type_code(struct sol_buffer *out,
     memset(&composed_port, 0,
         sizeof(struct sol_flow_metatype_port_description));
     packet_signature = NULL;
-    sol_buffer_init(&ports_body);
 
     SOL_NULL_CHECK(out, -EINVAL);
+
+    sol_buffer_init(&ports_body);
+    sol_vector_init(&ports, sizeof(struct sol_flow_metatype_port_description));
 
     r = get_ports_from_contents(contents, &ports, true);
     SOL_INT_CHECK_GOTO(r, < 0, exit);
