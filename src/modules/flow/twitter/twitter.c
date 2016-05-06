@@ -131,10 +131,12 @@ twitter_request_finished(void *data,
     if (sol_json_is_valid_type(&object_scanner, SOL_JSON_TYPE_OBJECT_START)) {
         r = sol_flow_send_json_object_packet(node,
             SOL_FLOW_NODE_TYPE_TWITTER_CLIENT__OUT__OBJECT, blob);
+        SOL_INT_CHECK_GOTO(r, < 0, err_send);
     } else if (sol_json_is_valid_type(&array_scanner,
         SOL_JSON_TYPE_ARRAY_START)) {
         r = sol_flow_send_json_array_packet(node,
             SOL_FLOW_NODE_TYPE_TWITTER_CLIENT__OUT__ARRAY, blob);
+        SOL_INT_CHECK_GOTO(r, < 0, err_send);
     } else {
         sol_flow_send_error_packet(node, EINVAL, "The json received from:%s"
             " is not valid json-object or json-array", response->url);
@@ -148,6 +150,12 @@ twitter_request_finished(void *data,
 err:
     sol_flow_send_error_packet(node, r,
         "Invalid response from twitter %s", response ? response->url : "");
+    return;
+err_send:
+    sol_blob_unref(blob);
+    sol_flow_send_error_packet(node, r,
+        "Could not send the packet from twitter");
+    return;
 }
 
 static struct sol_http_client_connection *
