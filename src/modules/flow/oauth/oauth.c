@@ -59,7 +59,10 @@ static int
 server_ref(void)
 {
     if (!oauth.server) {
-        oauth.server = sol_http_server_new(HTTP_SERVER_PORT);
+        oauth.server = sol_http_server_new(&(struct sol_http_server_config) {
+            SOL_SET_API_VERSION(.api_version = SOL_HTTP_SERVER_CONFIG_API_VERSION, )
+            .port = HTTP_SERVER_PORT,
+        });
         SOL_NULL_CHECK(oauth.server, -ENOMEM);
     }
     oauth.server_ref++;
