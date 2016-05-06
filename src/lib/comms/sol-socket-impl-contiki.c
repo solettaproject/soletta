@@ -173,11 +173,12 @@ sol_socket_contiki_set_write_monitor(struct sol_socket *s, bool on)
 }
 
 static ssize_t
-sol_socket_contiki_recvmsg(struct sol_socket *s, void *buf, size_t len, struct sol_network_link_addr *cliaddr)
+sol_socket_contiki_recvmsg(struct sol_socket *s, struct sol_buffer *buf, struct sol_network_link_addr *cliaddr)
 {
     struct sol_socket_contiki *socket = (struct sol_socket_contiki *)s;
     struct pending_buffer *pending_buf;
     size_t buflen = -EAGAIN;
+    int r = 0;
 
     pending_buf = sol_ptr_vector_get(&socket->pending_buffers, 0);
     if (pending_buf) {
@@ -186,31 +187,43 @@ sol_socket_contiki_recvmsg(struct sol_socket *s, void *buf, size_t len, struct s
             sol_ptr_vector_del(&socket->pending_buffers, 0);
     }
 
-    if (!buf)
-        return buflen;
+    if (SOL_BUFFER_CAN_RESIZE(buf)) {
+        r = sol_buffer_ensure(buf, buflen);
+        SOL_INT_CHECK_GOTO(r, < 0, err);
+    }
 
-    if (buflen > len)
-        buflen = len;
+    if (buflen > buf->capacity)
+        buflen = buf->capacity;
 
     if (cliaddr)
         *cliaddr = pending_buf->addr;
 
-    memcpy(buf, pending_buf->data, buflen);
+    memcpy(buf->data, pending_buf->data, buflen);
+    buf->used = buflen;
+
+    if (SOL_BUFFER_NEEDS_NUL_BYTE(buf)) {
+        r = sol_buffer_ensure_nul_byte(buf);
+        SOL_INT_CHECK_GOTO(r, < 0, err);
+    }
 
     free(pending_buf);
 
     return buflen;
+
+err:
+    free(pending_buf);
+    return r;
 }
 
 static ssize_t
-sol_socket_contiki_sendmsg(struct sol_socket *s, const void *buf, size_t len, const struct sol_network_link_addr *cliaddr)
+sol_socket_contiki_sendmsg(struct sol_socket *s, const struct sol_buffer *buf, const struct sol_network_link_addr *cliaddr)
 {
     struct sol_socket_contiki *socket = (struct sol_socket_contiki *)s;
 
-    simple_udp_sendto_port(&socket->udpconn, buf, len,
+    simple_udp_sendto_port(&socket->udpconn, buf->data, buf->used,
         (uip_ipaddr_t *)&cliaddr->addr.in6, cliaddr->port);
 
-    return len;
+    return buf->used;
 }
 
 static int
