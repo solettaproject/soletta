@@ -249,6 +249,12 @@ def handle_exec_check(args, conf, context):
     dep = conf.get("dependency")
     dep_sym = dep.upper()
     exe = conf.get("exec")
+    atleast_ver = conf.get("atleast-version")
+    max_ver = conf.get("max-version")
+    exact_ver = conf.get("exact-version")
+    cmd = conf.get("version-command")
+    ver_match = True
+    version = None
 
     if not exe:
         context.info("Could not parse dependency: %s, no exec was specified.", dep)
@@ -257,20 +263,40 @@ def handle_exec_check(args, conf, context):
     path = which(exe)
     required = conf.get("required")
 
-    success = bool(path)
+    if exact_ver or max_ver or atleast_ver:
+        if not cmd:
+            context.info("Could not parse dependency: %s, version requested "
+                "but no version-command to fetch it was specified.", dep)
+            exit(1)
 
-    if required and not success:
-        req_label = context.find_makefile_var("NOT_FOUND")
-        req_label += "executable: %s\\n" % exe
-        context.add_append_makefile_var("NOT_FOUND", req_label, True)
+        result, status = run_command(cmd, context)
+        if not status:
+            ver_match = False
+        elif (exact_ver and result != exact_ver) or \
+            (max_ver and result > max_ver) or \
+            (atleast_ver and result < atleast_ver):
+            version = result
+            ver_match = False
+
+    if required:
+        if not path:
+            req_label = context.find_makefile_var("NOT_FOUND")
+            req_label += "executable: %s" % exe
+            context.add_append_makefile_var("NOT_FOUND", req_label)
+        elif not ver_match:
+            req_label = context.find_makefile_var("NOT_FOUND")
+            req_label += "%s version: %s" % (exe, version)
+            context.add_append_makefile_var("NOT_FOUND", req_label)
 
     context.add_cond_makefile_var(dep_sym, path)
+
+    success = bool(path) and ver_match
 
     if success:
         dir_path = os.path.dirname(os.path.realpath("%s" % path))
         context.add_cond_makefile_var("%s_DIR" % dep_sym, dir_path)
 
-    context.add_kconfig("HAVE_%s" % dep_sym, "bool", "y" if path else "n")
+    context.add_kconfig("HAVE_%s" % dep_sym, "bool", "y" if success else "n")
 
     return success
 

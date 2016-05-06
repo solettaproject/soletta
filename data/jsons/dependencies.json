@@ -533,7 +533,9 @@
     {
       "dependency": "nodejs",
       "type": "exec",
-      "exec": "node"
+      "exec": "node",
+      "version-command": "node --version",
+      "atleast-version": "v4.0"
     },
     {
       "dependency": "nodejs_npm",
