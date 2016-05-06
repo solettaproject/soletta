@@ -25,6 +25,9 @@
         "open": "temperature_stts751_open"
       },
       "name": "stts751",
+      "aliases": [
+          "thermometer/stts751"
+      ],
       "options": {
         "members": [
           {
