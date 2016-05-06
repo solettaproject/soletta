@@ -16,6 +16,7 @@
  * limitations under the License.
  */
 
+#include <inttypes.h>
 #include <stdio.h>
 
 #include <sol-bluetooth.h>
@@ -36,7 +37,7 @@ string_to_uuid128(struct sol_bt_uuid *uuid, const char *str)
     uint16_t data1, data2, data3, data5;
     uint8_t *val = uuid->val128;
 
-    if (sscanf(str, "%08x-%04hx-%04hx-%04hx-%08x%04hx",
+    if (sscanf(str, "%08" SCNx32 "-%04" SCNx16 "-%04" SCNx16 "-%04" SCNx16 "-%08" SCNx32 "%04" SCNx16,
         &data0, &data1, &data2,
         &data3, &data4, &data5) != 6)
         return -EINVAL;
@@ -140,7 +141,7 @@ sol_bt_uuid_to_str(const struct sol_bt_uuid *uuid, struct sol_buffer *buffer)
     memcpy(&tmp4, &u.val128[10], sizeof(tmp4));
     memcpy(&tmp5, &u.val128[14], sizeof(tmp5));
 
-    r = sol_buffer_append_printf(buffer, "%.8x-%.4x-%.4x-%.4x-%.8x%.4x",
+    r = sol_buffer_append_printf(buffer, "%.8" PRIx32 "-%.4" PRIx16 "-%.4" PRIx16 "-%.4" PRIx16 "-%.8" PRIx32 "%.4" PRIx16,
         sol_util_cpu_to_be32(tmp0), sol_util_cpu_to_be16(tmp1),
         sol_util_cpu_to_be16(tmp2), sol_util_cpu_to_be16(tmp3),
         sol_util_cpu_to_be32(tmp4), sol_util_cpu_to_be16(tmp5));
