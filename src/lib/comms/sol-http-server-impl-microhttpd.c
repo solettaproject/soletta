@@ -1054,11 +1054,19 @@ sol_http_server_new(const struct sol_http_server_config *config)
 
     if (config->security.cert && config->security.key) {
         struct sol_blob *cert_contents, *key_contents;
-        cert_contents = sol_cert_get_contents(config->security.cert);
-        key_contents = sol_cert_get_contents(config->security.key);
 
-        if (!(cert_contents && key_contents))
+        cert_contents = sol_cert_get_contents(config->security.cert);
+        if (!cert_contents) {
+            SOL_WRN("Could not get the certificate contents");
             goto err_daemon;
+        }
+
+        key_contents = sol_cert_get_contents(config->security.key);
+        if (!key_contents) {
+            SOL_WRN("Could not get the certificate key contents");
+            sol_blob_unref(cert_contents);
+            goto err_daemon;
+        }
 
         server->daemon = MHD_start_daemon(MHD_USE_SUSPEND_RESUME | MHD_USE_SSL,
             config->port, NULL, NULL,
