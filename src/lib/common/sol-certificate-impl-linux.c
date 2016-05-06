@@ -31,6 +31,7 @@ struct sol_cert {
     int refcnt;
 
     char *filename;
+    char *basename;
 };
 
 static struct sol_ptr_vector storage = SOL_PTR_VECTOR_INIT;
@@ -83,6 +84,18 @@ find_cert(const char *filename, const char *const paths[])
     return NULL;
 }
 
+static char *
+get_basename(char *str)
+{
+    char *basename;
+
+    basename = strrchr(str, '/');
+    if (!basename || basename[1] == 0)
+        return str;
+
+    return basename + 1;
+}
+
 SOL_API struct sol_cert *
 sol_cert_load_from_file(const char *filename)
 {
@@ -93,10 +106,20 @@ sol_cert_load_from_file(const char *filename)
 
     SOL_NULL_CHECK(filename, NULL);
 
-    SOL_PTR_VECTOR_FOREACH_IDX (&storage, cert, idx) {
-        if (streq(cert->filename, filename)) {
-            cert->refcnt++;
-            return cert;
+    if (filename[0] == '/') {
+        SOL_PTR_VECTOR_FOREACH_IDX (&storage, cert, idx) {
+            if (streq(cert->filename, filename)) {
+                cert->refcnt++;
+                return cert;
+            }
+        }
+    } else {
+        SOL_PTR_VECTOR_FOREACH_IDX (&storage, cert, idx) {
+            SOL_WRN("%s %s", cert->basename, filename);
+            if (streq(cert->basename, filename)) {
+                cert->refcnt++;
+                return cert;
+            }
         }
     }
 
@@ -111,6 +134,7 @@ sol_cert_load_from_file(const char *filename)
 
     cert->refcnt++;
     cert->filename = path;
+    cert->basename = get_basename(path);
 
     r = sol_ptr_vector_append(&storage, cert);
     SOL_INT_CHECK_GOTO(r, != 0, insert_error);
