@@ -65,6 +65,8 @@ struct sol_cert *sol_cert_load_from_file(const char *filename);
  */
 void sol_cert_unref(struct sol_cert *cert);
 
+#ifdef FEATURE_FILESYSTEM
+
 /**
  * @brief Get the full path to the certificate in the filesystem
  *
@@ -73,6 +75,8 @@ void sol_cert_unref(struct sol_cert *cert);
  * @return sol_cert object on success, NULL otherwise
  */
 const char *sol_cert_get_filename(const struct sol_cert *cert);
+
+#endif /*FEATURE_FILESYSTEM*/
 
 /**
  * @brief Get the certificate contents
