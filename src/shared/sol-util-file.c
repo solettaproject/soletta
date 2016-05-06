@@ -593,3 +593,32 @@ sol_util_busy_wait_file(const char *path, uint64_t nanoseconds)
 
     return true;
 }
+
+SOL_API ssize_t
+sol_util_write_file_buffer(const char *path, const struct sol_buffer *buffer)
+{
+    FILE *fp;
+    size_t bytes;
+    int r;
+
+    SOL_NULL_CHECK(path, -EINVAL);
+    SOL_NULL_CHECK(buffer, -EINVAL);
+
+    errno = 0;
+    fp = fopen(path, "we");
+    if (!fp)
+        return -errno;
+
+    bytes = fwrite(buffer->data, 1, buffer->used, fp);
+
+    errno = 0;
+    r = fclose(fp);
+
+    if (bytes != buffer->used)
+        return -EIO;
+
+    if (r != 0)
+        return -errno;
+
+    return bytes;
+}
