@@ -72,10 +72,10 @@ load_certificate(void)
 
     create_dummy_certificate();
 
-    cert = sol_cert_load_from_file("dummy.pem");
+    cert = sol_cert_load_from_id("dummy.pem");
     ASSERT(cert != NULL);
 
-    filename = sol_cert_get_filename(cert);
+    filename = sol_cert_get_file_name(cert);
     ASSERT(filename != NULL);
     ASSERT(streq(filename, "dummy.pem"));
 

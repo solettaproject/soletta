@@ -224,9 +224,9 @@ mqtt_client_open(struct sol_flow_node *node, void *data, const struct sol_flow_n
     ALLOC_AND_CHECK(opts->username, mdata->user, strdup);
     ALLOC_AND_CHECK(opts->password, mdata->pass, strdup);
     ALLOC_AND_CHECK(opts->client_id, mdata->id, strdup);
-    ALLOC_AND_CHECK(opts->ca_cert, mdata->ca_cert, sol_cert_load_from_file);
-    ALLOC_AND_CHECK(opts->client_cert, mdata->client_cert, sol_cert_load_from_file);
-    ALLOC_AND_CHECK(opts->private_key, mdata->private_key, sol_cert_load_from_file);
+    ALLOC_AND_CHECK(opts->ca_cert, mdata->ca_cert, sol_cert_load_from_id);
+    ALLOC_AND_CHECK(opts->client_cert, mdata->client_cert, sol_cert_load_from_id);
+    ALLOC_AND_CHECK(opts->private_key, mdata->private_key, sol_cert_load_from_id);
     ALLOC_AND_CHECK(opts->topic, mdata->topic, strdup);
 
 #undef ALLOC_AND_CHECK

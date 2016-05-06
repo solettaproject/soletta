@@ -91,12 +91,12 @@ startup_server(void)
             port = atoi(optarg);
             break;
         case 'c':
-            cert = sol_cert_load_from_file(optarg);
+            cert = sol_cert_load_from_id(optarg);
             if (!cert)
                 goto err;
             break;
         case 'k':
-            key = sol_cert_load_from_file(optarg);
+            key = sol_cert_load_from_id(optarg);
             if (!key)
                 goto err;
             break;
