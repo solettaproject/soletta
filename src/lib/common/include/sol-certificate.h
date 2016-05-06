@@ -47,7 +47,7 @@ struct sol_cert;
 /**
  * @brief Load a certificate from a file
  *
- * @param filename Path to the certificate file
+ * @param file_name Path to the certificate file
  *
  * The path to the certificate file does not need to be absolute. The file
  * can also be in the default system folders ($SYSCONF/ssl/certs,
@@ -56,7 +56,7 @@ struct sol_cert;
  *
  * @return sol_cert object on success, NULL otherwise
  */
-struct sol_cert *sol_cert_load_from_file(const char *filename);
+struct sol_cert *sol_cert_load_from_file(const char *file_name);
 
 /**
  * @brief Free the resources a sol_cert object and the object itself
@@ -74,7 +74,7 @@ void sol_cert_unref(struct sol_cert *cert);
  *
  * @return sol_cert object on success, NULL otherwise
  */
-const char *sol_cert_get_filename(const struct sol_cert *cert);
+const char *sol_cert_get_file_name(const struct sol_cert *cert);
 
 #endif /*FEATURE_FILESYSTEM*/
 

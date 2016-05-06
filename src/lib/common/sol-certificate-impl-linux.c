@@ -166,7 +166,7 @@ sol_cert_unref(struct sol_cert *cert)
 }
 
 SOL_API const char *
-sol_cert_get_filename(const struct sol_cert *cert)
+sol_cert_get_file_name(const struct sol_cert *cert)
 {
     SOL_NULL_CHECK(cert, NULL);
 
