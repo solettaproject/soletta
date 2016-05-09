@@ -17,17 +17,17 @@ config TEST_COAP
 
 config TEST_FBP
 	bool "fbp"
-	depends on FLOW_SUPPORT
+	depends on USE_FLOW
 	default y
 
 config TEST_FBP_SCANNER
 	bool "fbp scanner"
-	depends on FLOW_SUPPORT
+	depends on USE_FLOW
 	default y
 
 config TEST_FLOW
 	bool "flow"
-	depends on FLOW_SUPPORT && FLOW_NODE_TYPE_INT && FLOW_NODE_TYPE_TIMER
+	depends on USE_FLOW && FLOW_NODE_TYPE_INT && FLOW_NODE_TYPE_TIMER
 	default y
 
 config TEST_FLOW_BUILDER
@@ -107,7 +107,7 @@ config TEST_UTIL
 
 config TEST_COMPOSED_TYPE
 	bool "composed-type"
-	depends on FLOW_SUPPORT
+	depends on USE_FLOW
 	default y
 
 config TEST_MESSAGE_DIGEST

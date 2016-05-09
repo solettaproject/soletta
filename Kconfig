@@ -191,7 +191,7 @@ source "src/samples/bluetooth/Kconfig"
 
 config FLOW_SAMPLES
 	bool "Flow samples"
-	depends on FLOW_SUPPORT
+	depends on USE_FLOW
 	default y
 
 config FLOW_FBP_GENERATOR_SAMPLES

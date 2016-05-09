@@ -6,13 +6,13 @@ obj-libshared-y := \
     sol-util.o \
     sol-random.o
 
-obj-libshared-$(FLOW_SUPPORT) += \
+obj-libshared-$(USE_FLOW) += \
     sol-fbp-graph.o \
     sol-fbp-internal-scanner.o \
     sol-fbp-parser.o
 
 ifeq (y,$(LOG))
-obj-libshared-$(FLOW_SUPPORT) += \
+obj-libshared-$(USE_FLOW) += \
     sol-fbp-internal-log.o
 endif
 

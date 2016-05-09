@@ -1,6 +1,6 @@
-obj-$(FLOW_SUPPORT) += flow.mod
+obj-$(USE_FLOW) += flow.mod
 
-obj-flow-$(FLOW_SUPPORT) := \
+obj-flow-$(USE_FLOW) := \
     sol-flow-node-options.o \
     sol-flow-packet.o \
     sol-flow-simplectype.o \
@@ -27,9 +27,9 @@ endif
 obj-flow-$(RESOLVER_CONFFILE) += \
     sol-flow-resolver-conffile.o
 
-obj-flow-$(FLOW_SUPPORT)-extra-cflags += $(def-resolver-flag)
+obj-flow-$(USE_FLOW)-extra-cflags += $(def-resolver-flag)
 
-headers-$(FLOW_SUPPORT) := \
+headers-$(USE_FLOW) := \
     include/sol-flow.h \
     include/sol-flow-inspector.h \
     include/sol-flow-metatype.h \

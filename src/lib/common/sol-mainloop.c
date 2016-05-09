@@ -64,7 +64,7 @@ extern int sol_blob_init(void);
 extern void sol_blob_shutdown(void);
 extern int sol_crypto_init(void);
 extern void sol_crypto_shutdown(void);
-#ifdef FLOW_SUPPORT
+#ifdef USE_FLOW
 extern int sol_flow_init(void);
 extern void sol_flow_shutdown(void);
 #endif
@@ -150,7 +150,7 @@ sol_init(void)
     if (r < 0)
         goto crypto_error;
 
-#ifdef FLOW_SUPPORT
+#ifdef USE_FLOW
     r = sol_flow_init();
     if (r < 0)
         goto flow_error;
@@ -180,7 +180,7 @@ update_error:
 #ifdef NETWORK
 comms_error:
 #endif
-#ifdef FLOW_SUPPORT
+#ifdef USE_FLOW
     sol_flow_shutdown();
 flow_error:
 #endif
@@ -257,7 +257,7 @@ sol_shutdown(void)
 #ifdef NETWORK
     sol_comms_shutdown();
 #endif
-#ifdef FLOW_SUPPORT
+#ifdef USE_FLOW
     sol_flow_shutdown();
 #endif
     sol_crypto_shutdown();

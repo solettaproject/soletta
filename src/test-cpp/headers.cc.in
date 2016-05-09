@@ -61,7 +61,7 @@ SOL_UPDATE_DECLARE(my_update,
                    .shutdown = NULL);
 #endif
 
-#ifdef FLOW_SUPPORT
+#ifdef USE_FLOW
 
 SOL_FLOW_METATYPE(my_meta,
                   .name = NULL,
@@ -154,7 +154,7 @@ startup()
     SOL_JSON_SCANNER_OBJECT_LOOP(&scanner, &token, &token_key, &token_value, json_reason);
     SOL_JSON_SCANNER_OBJECT_LOOP_NEST(&scanner, &token, &token_key, &token_value, json_reason);
 
-#ifdef FLOW_SUPPORT
+#ifdef USE_FLOW
     struct sol_flow_static_node_spec node_spec = SOL_FLOW_STATIC_NODE_SPEC_GUARD;
     struct sol_flow_static_conn_spec conn_spec = SOL_FLOW_STATIC_CONN_SPEC_GUARD;
     struct sol_flow_static_port_spec port_sec = SOL_FLOW_STATIC_PORT_SPEC_GUARD;

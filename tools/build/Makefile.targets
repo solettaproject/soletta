@@ -237,7 +237,7 @@ endif #neq($(USE_NODEJS),)
 
 DEFAULT_ALIAS_FILE := $(build_aliasesdir)/50-default.json
 
-ifeq (y,$(FLOW_SUPPORT))
+ifeq (y,$(USE_FLOW))
 gen-aliases:
 	$(Q)$(MKDIR) -p $(build_aliasesdir)
 	$(Q)echo "     "GEN"   "$(DEFAULT_ALIAS_FILE)
