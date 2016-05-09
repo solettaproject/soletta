@@ -406,11 +406,14 @@ sol_socket_ip_default_new(const struct sol_socket_options *options)
         .del = sol_socket_zephyr_del,
     };
 
-    SOL_INT_CHECK_GOTO(opts->family, != SOL_NETWORK_FAMILY_INET6,
-        unsupported_family);
+    SOL_INT_CHECK_ERRNO(opts->family, != SOL_NETWORK_FAMILY_INET6,
+        EAFNOSUPPORT);
 
     socket = calloc(1, sizeof(*socket));
-    SOL_NULL_CHECK_GOTO(socket, socket_error);
+    if (!socket) {
+        errno = ENOMEM;
+        return NULL;;
+    }
 
     socket->base.type = &type;
     sol_ptr_vector_init(&socket->mcast_contexts);
@@ -422,12 +425,4 @@ sol_socket_ip_default_new(const struct sol_socket_options *options)
     socket->data = options->data;
 
     return &socket->base;
-
-socket_error:
-    errno = ENOMEM;
-    return NULL;
-
-unsupported_family:
-    errno = EAFNOSUPPORT;
-    return NULL;
 }

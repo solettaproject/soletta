@@ -44,7 +44,7 @@ testUtils.assert( "ok", !!destination, messagePrefix + "sol_network_addr_from_st
 
 async.series( [
 	function findResource( callback ) {
-		soletta.sol_oic_client_find_resource( client, destination, "", "",
+		soletta.sol_oic_client_find_resources( client, destination, "", "",
 			function( client, resource ) {
 				lastDiscoveryReturnValue = true;
 				if ( resource && resource.path === "/a/" + process.argv[ 2 ] ) {

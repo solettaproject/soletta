@@ -62,6 +62,18 @@ template <> inline const char *sol_int_format<unsigned char>(unsigned char) { re
         } \
     } while (0)
 
+#define SOL_INT_CHECK_GOTO_IMPL_ERRNO(var, exp, err, label) \
+    do { \
+        if (SOL_UNLIKELY((var)exp)) { \
+            char *str = (char *)alloca(snprintf(NULL, 0, "%s (%s) %s", \
+                # var, sol_int_format(var),  # exp) + 1); \
+            sprintf(str, "%s (%s) %s", # var, sol_int_format(var), # exp); \
+            SOL_WRN(str, var); \
+            errno = err; \
+            goto label; \
+        } \
+    } while (0)
+
 #else
 
 /**
@@ -127,6 +139,15 @@ template <> inline const char *sol_int_format<unsigned char>(unsigned char) { re
         } \
     } while (0)
 
+#define SOL_INT_CHECK_GOTO_IMPL_ERRNO(var, exp, err, label) \
+    do { \
+        if (SOL_UNLIKELY((var)exp)) { \
+            SOL_WRN(_SOL_INT_CHECK_FMT(var), var, # exp); \
+            errno = err; \
+            goto label; \
+        } \
+    } while (0)
+
 #endif
 
 #ifdef __cplusplus
@@ -182,6 +203,27 @@ extern "C" {
     do { \
         if (SOL_UNLIKELY(!(ptr))) { \
             SOL_WRN("%s == NULL", # ptr); \
+            return __VA_ARGS__; \
+        } \
+    } while (0)
+
+/**
+ * @brief Convenience macro to check for @c NULL pointer (and set @c
+ * errno).
+ *
+ * This macro logs a warning message and returns if the pointer @a ptr
+ * happens to be @c NULL. Additionally, it sets the @c errno variable
+ * to @a err.
+ *
+ * @param ptr Pointer to check
+ * @param err @c errno value to set
+ * @param ... Optional return value
+ */
+#define SOL_NULL_CHECK_ERRNO(ptr, err, ...) \
+    do { \
+        if (SOL_UNLIKELY(!(ptr))) { \
+            SOL_WRN("%s == NULL", # ptr); \
+            errno = err; \
             return __VA_ARGS__; \
         } \
     } while (0)
@@ -266,6 +308,22 @@ extern "C" {
  */
 #define SOL_INT_CHECK_GOTO(var, exp, label) \
     SOL_INT_CHECK_GOTO_IMPL(var, exp, label)
+
+/**
+ * @brief Similar to @ref SOL_INT_CHECK but jumping to @c label
+ * instead of returning (and setting @c errno value).
+ *
+ * This macro logs a warning message and jumps to @c label if the
+ * integer @c var satisfies the expression @c exp. Additionally, it
+ * sets the @c errno variable to @a err.
+ *
+ * @param var Integer to be check
+ * @param exp Safety-check expression
+ * @param err @c errno value to set
+ * @param label @c goto label
+ */
+#define SOL_INT_CHECK_GOTO_ERRNO(var, exp, err, label) \
+    SOL_INT_CHECK_GOTO_IMPL_ERRNO(var, exp, label)
 
 /**
  * @brief Safety-check macro to check the expression @c exp.

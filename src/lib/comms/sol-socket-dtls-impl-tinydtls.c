@@ -677,6 +677,7 @@ sol_socket_default_dtls_new(const struct sol_socket_options *options)
     };
     struct sol_socket_ip_options opts;
     struct sol_socket_dtls *s;
+    int r = 0;
 
     SOL_SOCKET_OPTIONS_CHECK_SUB_API_VERSION(options, SOL_SOCKET_IP_OPTIONS_SUB_API_VERSION, NULL);
 
@@ -684,7 +685,7 @@ sol_socket_default_dtls_new(const struct sol_socket_options *options)
     init_dtls_if_needed();
 
     s = calloc(1, sizeof(*s));
-    SOL_NULL_CHECK(s, NULL);
+    SOL_NULL_CHECK_ERRNO(s, ENOMEM, NULL);
 
     s->write.cb = opts.base.on_can_write;
     s->read.cb = opts.base.on_can_read;
@@ -695,12 +696,16 @@ sol_socket_default_dtls_new(const struct sol_socket_options *options)
     opts.base.on_can_write = call_user_write_cb;
 
     s->wrapped = sol_socket_ip_default_new(&opts);
-    SOL_NULL_CHECK_GOTO(s, err);
+    if (!s) {
+        r = -errno;
+        goto err;
+    }
 
     s->context = dtls_new_context(s);
     if (!s->context) {
         SOL_WRN("Could not create DTLS context");
         sol_socket_del(s->wrapped);
+        r = -errno;
         goto err;
     }
 
@@ -716,6 +721,7 @@ sol_socket_default_dtls_new(const struct sol_socket_options *options)
 
 err:
     free(s);
+    errno = -r;
     return NULL;
 }
 

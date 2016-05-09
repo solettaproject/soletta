@@ -1088,6 +1088,11 @@ struct client_resource {
 
     struct sol_oic_resource *resource;
 
+    struct pending {
+        struct sol_oic_pending *ipv4, *ipv6_local, *ipv6_site;
+    } discover_pending, scan_pending;
+    /* discover registered device IDs or scan for unknown IDs */
+
     struct sol_timeout *find_timeout;
     struct sol_timeout *update_schedule_timeout;
 
@@ -1193,13 +1198,13 @@ found_resource(void *data, struct sol_oic_client *oic_cli, struct sol_oic_resour
 
     if (!oic_res) {
         SOL_WRN("resource discovery timeout");
-        return false;
+        goto cancel;
     }
 
     /* Some OIC device sent this node a discovery response packet but node's already set up. */
     if (resource->resource) {
         SOL_DBG("Received discovery packet when resource already set up, ignoring");
-        return false;
+        goto cancel;
     }
 
     if (memcmp(oic_res->device_id.data, resource->device_id, 16) != 0) {
@@ -1212,11 +1217,6 @@ found_resource(void *data, struct sol_oic_client *oic_cli, struct sol_oic_resour
     if (resource->rt && !client_resource_implements_type(oic_res, resource->rt)) {
         SOL_DBG("Received resource that does not implement rt=%%s, ignoring", resource->rt);
         return true;
-    }
-
-    if (resource->find_timeout) {
-        sol_timeout_del(resource->find_timeout);
-        resource->find_timeout = NULL;
     }
 
     SOL_INF("Found resource matching device_id");
@@ -1232,7 +1232,42 @@ found_resource(void *data, struct sol_oic_client *oic_cli, struct sol_oic_resour
     if (r < 0)
         SOL_WRN("Could not send flow packet, will try again");
 
+cancel:
+    resource->find_timeout = NULL;
+    memset(&resource->discover_pending, 0, sizeof(resource->discover_pending));
     return false;
+}
+
+static void
+find_resources(struct client_resource *resource,
+    bool (*resource_found_cb)(void *data,
+    struct sol_oic_client *cli,
+    struct sol_oic_resource *res),
+    bool scan)
+{
+    struct pending *pending;
+
+    if (scan)
+        pending = &resource->scan_pending;
+    else
+        pending = &resource->discover_pending;
+
+    if (multicast_ipv4.family != SOL_NETWORK_FAMILY_UNSPEC) {
+        if (pending->ipv4)
+            sol_oic_pending_cancel(pending->ipv4);
+        pending->ipv4 = sol_oic_client_find_resources(resource->client,
+            &multicast_ipv4, resource->rt, NULL, resource_found_cb, resource);
+    }
+
+    if (pending->ipv6_local)
+        sol_oic_pending_cancel(pending->ipv6_local);
+    pending->ipv6_local = sol_oic_client_find_resources(resource->client,
+        &multicast_ipv6_local, resource->rt, NULL, resource_found_cb, resource);
+
+    if (pending->ipv6_site)
+        sol_oic_pending_cancel(pending->ipv6_site);
+    pending->ipv6_site = sol_oic_client_find_resources(resource->client,
+        &multicast_ipv6_site, resource->rt, NULL, resource_found_cb, resource);
 }
 
 static void
@@ -1243,13 +1278,7 @@ send_discovery_packets(struct client_resource *resource)
 
     sol_flow_send_boolean_packet(resource->node, resource->funcs->found_port, false);
 
-    if (multicast_ipv4.family != SOL_NETWORK_FAMILY_UNSPEC)
-        sol_oic_client_find_resource(resource->client, &multicast_ipv4, resource->rt,
-            NULL, found_resource, resource);
-    sol_oic_client_find_resource(resource->client, &multicast_ipv6_local, resource->rt,
-        NULL, found_resource, resource);
-    sol_oic_client_find_resource(resource->client, &multicast_ipv6_site, resource->rt,
-        NULL, found_resource, resource);
+    find_resources(resource, found_resource, false);
 }
 
 static bool
@@ -1308,7 +1337,7 @@ scan_callback(void *data, struct sol_oic_client *oic_cli, struct sol_oic_resourc
 
     if (!oic_res) {
         SOL_WRN("Scanning timeout");
-        return false;
+        goto cancel;
     }
 
     /* FIXME: Should this check move to sol-oic-client? Does it actually make sense? */
@@ -1340,6 +1369,10 @@ error:
     SOL_WRN("Failed to process id.");
     free(id);
     return true;
+
+cancel:
+    memset(&resource->discover_pending, 0, sizeof(resource->discover_pending));
+    return false;
 }
 
 static void
@@ -1357,13 +1390,7 @@ static void
 send_scan_packets(struct client_resource *resource)
 {
     clear_scanned_ids(&resource->scanned_ids);
-    if (multicast_ipv4.family != SOL_NETWORK_FAMILY_UNSPEC)
-        sol_oic_client_find_resource(resource->client, &multicast_ipv4,
-             resource->rt, NULL, scan_callback, resource);
-    sol_oic_client_find_resource(resource->client, &multicast_ipv6_local,
-         resource->rt, NULL, scan_callback, resource);
-    sol_oic_client_find_resource(resource->client, &multicast_ipv6_site,
-         resource->rt, NULL, scan_callback, resource);
+    find_resources(resource, scan_callback, true);
 }
 
 static bool
@@ -1584,12 +1611,26 @@ client_resource_init(struct sol_flow_node *node, struct client_resource *resourc
 }
 
 static void
+pending_free(struct pending *pending)
+{
+    if (pending->ipv4)
+        sol_oic_pending_cancel(pending->ipv4);
+    if (pending->ipv6_local)
+        sol_oic_pending_cancel(pending->ipv6_local);
+    if (pending->ipv6_site)
+        sol_oic_pending_cancel(pending->ipv6_site);
+}
+
+static void
 client_resource_close(struct client_resource *resource)
 {
     if (resource->find_timeout)
         sol_timeout_del(resource->find_timeout);
     if (resource->update_schedule_timeout)
         sol_timeout_del(resource->update_schedule_timeout);
+
+    pending_free(&resource->scan_pending);
+    pending_free(&resource->discover_pending);
 
     if (resource->resource) {
         if (sol_oic_client_resource_set_observable(resource->client,
@@ -1617,7 +1658,7 @@ client_resource_perform_update(void *data)
 {
     struct client_resource *resource = data;
     struct sol_oic_request *request;
-    int r;
+    struct sol_oic_pending *pending;
 
     SOL_NULL_CHECK_GOTO(resource->resource, disable_timeout);
     SOL_NULL_CHECK_GOTO(resource->funcs->to_repr_vec, disable_timeout);
@@ -1630,9 +1671,9 @@ client_resource_perform_update(void *data)
         return true;
     }
 
-    r = sol_oic_client_request(resource->client, request,
+    pending = sol_oic_client_request(resource->client, request,
         client_resource_update_ack, data);
-    if (r < 0) {
+    if (!pending) {
         SOL_WRN("Could not send update request to resource, will try again");
         return true;
     }

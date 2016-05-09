@@ -320,8 +320,8 @@ sol_random_fill_buffer(struct sol_random *engine, struct sol_buffer *buffer,
     struct sol_str_slice slice = SOL_STR_SLICE_STR((const char *)&value, sizeof(value));
     ssize_t total;
 
-    SOL_NULL_CHECK(engine, 0);
-    SOL_NULL_CHECK(engine->impl, 0);
+    SOL_NULL_CHECK(engine, -EINVAL);
+    SOL_NULL_CHECK(engine->impl, -EINVAL);
 
     for (total = (ssize_t)len; total > 0; total -= sizeof(value)) {
         int r;

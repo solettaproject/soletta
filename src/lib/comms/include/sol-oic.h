@@ -428,7 +428,7 @@ struct sol_oic_map_reader {
 /**
  * @struct sol_oic_request
  *
- * @brief Information about a server request.
+ * @brief Information about a client request.
  *
  * @see sol_oic_server_send_response
  */
