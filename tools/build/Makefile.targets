@@ -237,7 +237,11 @@ endif #neq($(USE_NODEJS),)
 
 DEFAULT_ALIAS_FILE := $(build_aliasesdir)/50-default.json
 
+ifeq (y,$(FLOW_SUPPORT))
 gen-aliases:
 	$(Q)$(MKDIR) -p $(build_aliasesdir)
 	$(Q)echo "     "GEN"   "$(DEFAULT_ALIAS_FILE)
 	$(Q)$(FLOW_NODE_TYPE_ALIAS) --output=$(DEFAULT_ALIAS_FILE) $(all-gens)
+else
+gen-aliases:
+endif

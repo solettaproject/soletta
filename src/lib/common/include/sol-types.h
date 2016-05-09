@@ -21,6 +21,7 @@
 #include <stdbool.h>
 #include <stdint.h>
 #include <stdlib.h>
+#include <string.h>
 #include <float.h>
 #include <sol-common-buildopts.h>
 #include <sol-vector.h>
@@ -554,6 +555,65 @@ void sol_blob_unref(struct sol_blob *blob);
  * @param parent New parent
  */
 void sol_blob_set_parent(struct sol_blob *blob, struct sol_blob *parent);
+
+/**
+ * @brief Creates a new blob duplicating target memory,
+ *
+ * Instead creating a blob wrapping any given memory, it duplicates
+ * given memory. Useful, for instance, to create blobs for packet types.
+ *
+ * @param mem memory that blob will duplicate and refers to
+ * @param size size of memory block
+ *
+ * @return new sol_blob on sucess. @c NULL on failure
+ */
+static inline struct sol_blob *
+sol_blob_new_dup(const void *mem, size_t size)
+{
+    struct sol_blob *blob;
+    void *v;
+
+    if (!mem)
+        return NULL;
+
+    v = malloc(size);
+    if (!v)
+        return NULL;
+
+    memcpy(v, mem, size);
+
+    blob = sol_blob_new(SOL_BLOB_TYPE_DEFAULT, NULL, v, size);
+    if (!blob)
+        goto fail;
+
+    return blob;
+
+fail:
+    free(v);
+    return NULL;
+}
+
+/**
+ * Helper macro to create a new blob duplicating target memory
+ * calculating target size
+ */
+#define SOL_BLOB_NEW_DUP(mem_) sol_blob_new_dup((&mem_), sizeof(mem_))
+
+/**
+ * @brief Creates a new blob duplicating target NUL terminated string
+ *
+ * @param str string to be duplicated in a blob.
+ *
+ * @return new sol_blob on sucess. @c NULL on failure
+ */
+static inline struct sol_blob *
+sol_blob_new_dup_str(const char *str)
+{
+    if (!str)
+        return NULL;
+
+    return sol_blob_new_dup(str, strlen(str) + 1);
+}
 
 /**
  * @brief Data type to describe <key, value> pairs of strings.
