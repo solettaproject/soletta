@@ -36,6 +36,8 @@ obj-libshared-$(PLATFORM_ZEPHYR) += \
 
 obj-libshared-y-extra-cflags += -fvisibility=default
 
+obj-libshared-y-extra-ldflags += -lm
+
 headers-y += \
     include/sol-util.h
 
