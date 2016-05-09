@@ -722,6 +722,13 @@ int sol_coap_send_packet(struct sol_coap_server *server, struct sol_coap_packet 
  * continue waiting responses until it ends, otherwise @a server will
  * terminate response waiting.
  *
+ * @warning If @a pkt has the #SOL_COAP_OPTION_OBSERVE option and at
+ * least one response arrives before the internal timeout and @a
+ * reply_cb returns @c true, that will be interpreted as if the user
+ * wishes to wait for responses indefinetely and no timeout will apply
+ * anymore. The user is then responsible for cancelling the request
+ * with sol_coap_cancel_send_packet().
+ *
  * @note This function will take the reference of the given @a pkt.
  *
  * @param server The server through which the packet will be sent.
