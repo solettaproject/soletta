@@ -106,8 +106,9 @@ config TEST_UTIL
 	default y
 
 config TEST_COMPOSED_TYPE
-      bool "composed-type"
-      default y
+	bool "composed-type"
+	depends on FLOW_SUPPORT
+	default y
 
 config TEST_MESSAGE_DIGEST
       bool "crypto message-digest"
