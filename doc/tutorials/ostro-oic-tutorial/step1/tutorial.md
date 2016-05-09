@@ -253,10 +253,10 @@ OUTPORT=state.OUT:STATE
 power(http-server/int:path="/power",port=8002)
 state(http-server/boolean:path="/state",port=8002)
 
-http_server POWER -> IN print_power(console)
-http_server STATE -> IN print_state(console)
+power OUT -> IN print_power(console)
+state OUT -> IN print_state(console)
 
-_(constant/string:value="http-light-server running on port 8002, paths: /state and /power") OUT -> IN _(console:prefixo="note: ")
+_(constant/string:value="http-light-server running on port 8002, paths: /state and /power") OUT -> IN _(console:prefix="note: ")
 ```
 
 Really small, huh?

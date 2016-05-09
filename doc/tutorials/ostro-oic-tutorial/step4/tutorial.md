@@ -288,13 +288,13 @@ update 'Hint message' as well.
 
 ### Showing a nice error message to user
 
-If we run our `controller-oic.fbp` as is, it will end up showing an error
+If we run our `oic-controller.fbp` as is, it will end up showing an error
 message like:
 
 ```
-$ sol-fbp-runner controller-oic.fbp
+$ sol-fbp-runner oic-controller.fbp
 
-WRN:sol-flow ./src/lib/flow/sol-flow-static.c:341 flow_send_do() Error packet '22 (Argument position (1) is greater than arguments length (1))' sent from 'controller-oic.fbp (0x560d1c548e90)' was not handled
+WRN:sol-flow ./src/lib/flow/sol-flow-static.c:341 flow_send_do() Error packet '22 (Argument position (1) is greater than arguments length (1))' sent from 'oic-controller.fbp (0x560d1c548e90)' was not handled
 ```
 
 This is so because we didn't pass the device id as argument. But how a
@@ -315,7 +315,7 @@ Now, if we run without the expected argument, we get a better error
 message:
 
 ```
-$ sol-fbp-runner controller-oic.fbp
+$ sol-fbp-runner oic-controller.fbp
 
 ERROR: Missing device ID in the command line. Example: 2f3089a1dbfb43d38cab64383bdf9380 (string)
 ```

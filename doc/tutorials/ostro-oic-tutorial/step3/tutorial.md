@@ -44,8 +44,8 @@ And that's it. With this simple modifications, our server exposes an
 OIC interface. Final code should looks like:
 
 ```sh
-DECLARE=http-light-server:fbp:http-server.fbp
-DECLARE=persistence-light-server:fbp:persistence.fbp
+DECLARE=http-light-server:fbp:http-light-server.fbp
+DECLARE=persistence-light-server:fbp:persistence-light-server.fbp
 
 oic_server(oic/server-light)
 http_server(http-light-server)

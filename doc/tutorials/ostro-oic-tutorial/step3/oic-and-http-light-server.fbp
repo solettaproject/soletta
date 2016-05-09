@@ -16,8 +16,8 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
-DECLARE=http-light-server:fbp:http-server.fbp
-DECLARE=persistence-light-server:fbp:persistence.fbp
+DECLARE=http-light-server:fbp:http-light-server.fbp
+DECLARE=persistence-light-server:fbp:persistence-light-server.fbp
 
 oic_server(oic/server-light)
 http_server(http-light-server)

@@ -4,21 +4,21 @@
         {
             "name": "QuitButton",
             "options": {
-                "binary_code": 113 
+                "binary_code": 113
             },
             "type": "keyboard/boolean"
         },
         {
             "name": "IncreaseButton",
             "options": {
-                "binary_code": 106 
+                "binary_code": 106
             },
             "type": "keyboard/boolean"
         },
         {
             "name": "DecreaseButton",
             "options": {
-                "binary_code": 107 
+                "binary_code": 107
             },
             "type": "keyboard/boolean"
         },
