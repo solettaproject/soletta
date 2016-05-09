@@ -183,7 +183,7 @@ main(int argc, char *argv[])
         resource_type = argv[2];
     }
 
-    sol_oic_client_find_resource(client, &srv_addr,
+    sol_oic_client_find_resources(client, &srv_addr,
         resource_type, NULL, found_resource, NULL);
 
     sol_run();

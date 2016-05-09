@@ -45,7 +45,25 @@ extern "C" {
  * @{
  */
 
+/**
+ * @struct sol_oic_client
+ * @brief Opaque handler for an OIC client instance.
+ *
+ * It's created with sol_oic_client_new() and should be later
+ * deleted with sol_oic_client_del()
+ */
 struct sol_oic_client;
+
+/**
+ * @brief Represents a pending OIC client call
+ *
+ * This can be used to cancel the pending call. Note that the context
+ * might die by other means, e.g. the user returning false on a
+ * request's response callback. The user is responsible for discarding
+ * invalid request contexts.
+ *
+ */
+struct sol_oic_pending;
 
 /**
  * @brief Structure defining an oic resource.
@@ -134,22 +152,30 @@ struct sol_oic_client *sol_oic_client_new(void);
 void sol_oic_client_del(struct sol_oic_client *client);
 
 /**
+ * @brief Cancel a pending OIC call
+ *
+ * @param pending the pending OIC call handle
+ */
+void sol_oic_pending_cancel(struct sol_oic_pending *pending);
+
+/**
  * @brief Send a discovevery packet to find resources.
  *
- * Sends a discovery packet to the destination address especified by @a addr,
- * which may be a multicast address for discovery purposes.
+ * Sends a discovery packet to the destination address especified by
+ * @a addr, which may be a multicast address for discovery purposes.
  *
- * When a response is received, the function @a resource_found_cb will be
- * called. Note that multiple responses can be received for this request.
- * As long as this function returns @c true, @a client will continue waiting
- * for more responses. When the function returns @c false, the internal response
- * handler will be freed and any new replies that arrive for this request
- * will be ignored.
- * After internal timeout is reached @a resource_found_cb will be called with
- * @c NULL @a oic_res. The same behavior is expected for @a resource_found_cb
- * return, if resource_found_cb returns @c true, @a client will continue
- * waiting responses until next timeout. If @a resource_found_cb returns
- * @c false, @a client will terminate response waiting.
+ * When a response is received, the function @a resource_found_cb will
+ * be called. Note that multiple responses can be received for this
+ * request. As long as this function returns @c true, @a client will
+ * continue waiting for more responses. When the function returns @c
+ * false, the internal response handler will be freed and any new
+ * replies that may arrive for this request will be ignored. After an
+ * internal timeout is reached and the request is still alive, @a
+ * resource_found_cb will be called with a @c NULL @a oic_res. For
+ * this timeout invocation of @a resource_found_cb, if
+ * resource_found_cb returns @c true, @a client will continue waiting
+ * for responses until next a new timeout window closes, otherwise @a
+ * client will terminate response waiting.
  *
  * @param client An oic client instance.
  * @param addr The address of the server that contains the desired resource.
@@ -167,9 +193,12 @@ void sol_oic_client_del(struct sol_oic_client *client);
  *        is a pointer to the user's data parameter.
  * @param data A pointer to user's data.
  *
- * @return @c 0 on success, error code (always negative) otherwise.
+ * @return @c A pending call handle on success, @c NULL otherwise
+ *         (when @errno will be set to one of @c EINVAL, @c ENOMEM, @c
+ *         EIO, @C EOVERFLOW, @c ERANGE). It will be valid until @a
+ *         resource_found_cb returns @c false.
  */
-int sol_oic_client_find_resource(struct sol_oic_client *client,
+struct sol_oic_pending *sol_oic_client_find_resources(struct sol_oic_client *client,
     struct sol_network_link_addr *addr, const char *resource_type,
     const char *resource_interface,
     bool (*resource_found_cb)(void *data, struct sol_oic_client *cli,
@@ -182,13 +211,12 @@ int sol_oic_client_find_resource(struct sol_oic_client *client,
  * Sends a packet to @a resource's server asking for platform information
  * defined at @ref sol_oic_platform_info.
  *
- * When a response is received, the function @a info_received_cb will be
- * called, with @a info parameter filled with the information received, or
- * NULL on errors. As @a info_received_cb is always called, it can be used
- * to perform clean up operations.
+ * When a response is received, the function @a info_received_cb will
+ * be called, with @a info parameter filled with the information
+ * received, or @c NULL on errors.
  *
- * After internal timeout is reached @a info_received_cb will be called with
- * @c NULL @a info and any clean up can be performed.
+ * After an internal timeout is reached, @a info_received_cb will be
+ * called with @c NULL @a info.
  *
  * @param client An oic client instance.
  * @param resource The resource that is going to receive the request.
@@ -199,9 +227,15 @@ int sol_oic_client_find_resource(struct sol_oic_client *client,
  *        parameter.
  * @param data A pointer to user's data.
  *
- * @return @c 0 on success, error code (always negative) otherwise.
+ * @note As @a info_received_cb is always called, it can be used to
+ * perform clean up operations.
+ *
+ * @return @c A pending call handle on success, @c NULL otherwise
+ *         (when @errno will be set to one of @c EINVAL, @c ENOMEM, @c
+ *         EIO, @C EOVERFLOW, @c ERANGE). It will be valid until @a
+ *         info_received_cb is called.
  */
-int sol_oic_client_get_platform_info(struct sol_oic_client *client,
+struct sol_oic_pending *sol_oic_client_get_platform_info(struct sol_oic_client *client,
     struct sol_oic_resource *resource,
     void (*info_received_cb)(void *data, struct sol_oic_client *cli,
     const struct sol_oic_platform_info *info),
@@ -213,13 +247,12 @@ int sol_oic_client_get_platform_info(struct sol_oic_client *client,
  * Sends a packet to server identified by @a addr asking for platform
  * information defined at @ref sol_oic_platform_info.
  *
- * When a response is received, the function @a info_received_cb will be
- * called, with @a info parameter filled with the information received, or
- * NULL on errors. As @a info_received_cb is always called, it can be used
- * to perform clean up operations.
-
- * After internal timeout is reached @a info_received_cb will be called with
- * @c NULL @a info and any clean up can be performed.
+ * When a response is received, the function @a info_received_cb will
+ * be called, with @a info parameter filled with the information
+ * received, or @c NULL on errors.
+ *
+ * After internal timeout is reached @a info_received_cb will be
+ * called with @c NULL @a info.
  *
  * @param client An oic client instance.
  * @param addr The address of the server that contains the desired
@@ -231,9 +264,15 @@ int sol_oic_client_get_platform_info(struct sol_oic_client *client,
  *        parameter.
  * @param data A pointer to user's data.
  *
- * @return @c 0 on success, error code (always negative) otherwise.
+ * @note As @a info_received_cb is always called, it can be used to
+ * perform clean up operations.
+ *
+ * @return @c A pending call handle on success, @c NULL otherwise.
+ *         (when @errno will be set to one of @c EINVAL, @c ENOMEM, @c
+ *         EIO, @C EOVERFLOW, @c ERANGE). It will be valid until @a
+ *         info_received_cb is called.
  */
-int sol_oic_client_get_platform_info_by_addr(struct sol_oic_client *client,
+struct sol_oic_pending *sol_oic_client_get_platform_info_by_addr(struct sol_oic_client *client,
     struct sol_network_link_addr *addr,
     void (*info_received_cb)(void *data, struct sol_oic_client *cli,
     const struct sol_oic_platform_info *info),
@@ -245,13 +284,12 @@ int sol_oic_client_get_platform_info_by_addr(struct sol_oic_client *client,
  * Sends a packet to @a resource's server asking for server information
  * defined at @ref sol_oic_device_info.
  *
- * When a response is received, the function @a info_received_cb will be
- * called, with @a info parameter filled with the information received, or
- * NULL on errors. As @a info_received_cb is always called, it can be used
- * to perform clean up operations.
-
- * After internal timeout is reached @a info_received_cb will be called with
- * @c NULL @a info and any clean up can be performed.
+ * When a response is received, the function @a info_received_cb will
+ * be called, with @a info parameter filled with the information
+ * received, or @c NULL on errors.
+ *
+ * After internal timeout is reached @a info_received_cb will be
+ * called with @c NULL @a info.
  *
  * @param client An oic client instance.
  * @param resource The resource that is going to receive the request.
@@ -262,9 +300,15 @@ int sol_oic_client_get_platform_info_by_addr(struct sol_oic_client *client,
  *        parameter.
  * @param data A pointer to user's data.
  *
- * @return @c 0 on success, error code (always negative) otherwise.
+ * @note As @a info_received_cb is always called, it can be used to
+ * perform clean up operations.
+ *
+ * @return @c A pending call handle on success, @c NULL otherwise.
+ *         (when @errno will be set to one of @c EINVAL, @c ENOMEM, @c
+ *         EIO, @C EOVERFLOW, @c ERANGE). It will be valid until @a
+ *         info_received_cb is called
  */
-int sol_oic_client_get_server_info(struct sol_oic_client *client,
+struct sol_oic_pending *sol_oic_client_get_server_info(struct sol_oic_client *client,
     struct sol_oic_resource *resource,
     void (*info_received_cb)(void *data, struct sol_oic_client *cli,
     const struct sol_oic_device_info *info),
@@ -276,13 +320,12 @@ int sol_oic_client_get_server_info(struct sol_oic_client *client,
  * Sends a packet to server identified by @a addr asking for server
  * information defined at @ref sol_oic_device_info.
  *
- * When a response is received, the function @a info_received_cb will be
- * called, with @a info parameter filled with the information received, or
- * NULL on errors. As @a info_received_cb is always called, it can be used
- * to perform clean up operations.
-
- * After internal timeout is reached @a info_received_cb will be called with
- * @c NULL @a info and any clean up can be performed.
+ * When a response is received, the function @a info_received_cb will
+ * be called, with @a info parameter filled with the information
+ * received, or @c NULL on errors.
+ *
+ * After internal timeout is reached @a info_received_cb will be
+ * called with @c NULL @a info.
  *
  * @param client An oic client instance.
  * @param addr The address of the server that contains the desired
@@ -294,9 +337,12 @@ int sol_oic_client_get_server_info(struct sol_oic_client *client,
  *        parameter.
  * @param data A pointer to user's data.
  *
- * @return @c 0 on success, error code (always negative) otherwise.
+ * @return @c A pending call handle on success, @c NULL otherwise
+ *         (when @errno will be set to one of @c EINVAL, @c ENOMEM, @c
+ *         EIO, @C EOVERFLOW, @c ERANGE). It will be valid until @a
+ *         info_received_cb is called.
  */
-int sol_oic_client_get_server_info_by_addr(struct sol_oic_client *client,
+struct sol_oic_pending *sol_oic_client_get_server_info_by_addr(struct sol_oic_client *client,
     struct sol_network_link_addr *addr,
     void (*info_received_cb)(void *data, struct sol_oic_client *cli,
     const struct sol_oic_device_info *info),
@@ -322,9 +368,12 @@ int sol_oic_client_get_server_info_by_addr(struct sol_oic_client *client,
  *        @c NULL repr_vec so any clean up can be performed.
  * @param callback_data User's data to be passed to @a callback.
  *
- * @return @c 0 on success or a negative number on errors.
+ * @return @c A pending call handle on success, @c NULL otherwise
+ *         (when @errno will be set to one of @c EINVAL, @c ENOMEM, @c
+ *         EIO, @C EOVERFLOW, @c ERANGE). It will be valid until @a
+ *         callback is called.
  */
-int sol_oic_client_request(struct sol_oic_client *client,
+struct sol_oic_pending *sol_oic_client_request(struct sol_oic_client *client,
     struct sol_oic_request *request,
     void (*callback)(void *data, sol_coap_responsecode_t response_code,
     struct sol_oic_client *cli, const struct sol_network_link_addr *addr,
@@ -374,16 +423,18 @@ struct sol_oic_map_writer *sol_oic_client_request_get_writer(struct sol_oic_requ
 /**
  * @brief Set this resource as observable for this client.
  *
- * If server providing the @a resource supports observing clients, sends a
- * request to server asking it to add @a client to its observing list. Clients
- * in observation receives notifications when server status changes. When a
- * notification is received by @a client, @a callback will be called.
- * If the @a resource is not observable, @a client will emulate the observing
- * behavior using a polling strategy, so @a callback will be notified with
- * server changes from time to time.
+ * If the server providing the @a resource supports observing clients,
+ * this sends it a request to add @a client to its observing list.
+ * Clients in observation receive notifications when the server status
+ * for resources changes. When a notification is received by @a
+ * client, @a callback will be called. If the @a resource is not
+ * observable, @a client will emulate the observing behavior using a
+ * polling strategy, so @a callback will be notified with server
+ * changes from time to time.
  *
- * When user wants to stop observing the server, call @ref
- * sol_oic_client_resource_set_observable() with @a observe as @c false.
+ * To stop observing the server, call
+ * sol_oic_client_resource_set_observable() with @a observe as @c
+ * false.
  *
  * @param client An oic client instance.
  * @param res The resource that is going to be observed
@@ -409,13 +460,14 @@ int sol_oic_client_resource_set_observable(struct sol_oic_client *client, struct
  * @brief Set this resource as observable for this client, using non-confirmable
  * packets.
  *
- * If server providing the @a resource supports observing clients, sends a
- * request to server asking it to add @a client to its observing list. Clients
- * in observation receives notifications when server status changes. When a
- * notification is received by @a client, @a callback will be called.
- * If the @a resource is not observable, @a client will emulate the observing
- * behavior using a polling strategy, so @a callback will be notified with
- * server changes from time to time.
+ * If the server providing the @a resource supports observing clients,
+ * this sends it a request to add @a client to its observing list.
+ * Clients in observation receive notifications when the server status
+ * for resources changes. When a notification is received by @a
+ * client, @a callback will be called. If the @a resource is not
+ * observable, @a client will emulate the observing behavior using a
+ * polling strategy, so @a callback will be notified with server
+ * changes from time to time.
  *
  * When user wants to stop observing the server, call @ref
  * sol_oic_client_resource_set_observable() with @a observe as @c false.

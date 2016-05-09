@@ -182,7 +182,7 @@ sol_mainloop_impl_fd_add(int fd, uint32_t flags, bool (*cb)(void *data, int fd, 
 {
     struct sol_fd_glib *fd_handle = malloc(sizeof(*fd_handle));
 
-    SOL_NULL_CHECK(fd_handle, NULL);
+    SOL_NULL_CHECK_ERRNO(fd_handle, ENOMEM, NULL);
 
     fd_handle->refcnt = 1;
 

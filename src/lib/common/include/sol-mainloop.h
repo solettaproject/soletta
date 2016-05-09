@@ -307,7 +307,9 @@ struct sol_fd;
  * @param cb The function to call on events
  * @param data The user data pointer to pass to the function
  *
- * @return A handle that can be used to delete the file descriptor watcher
+ * @return A handle that can be used to delete the file descriptor
+ * watcher, on success, or @c NULL otherwise (when @errno will be set
+ * to one of @c EINVAL, @c ENOMEM, @c EOVERFLOW).
  *
  * @note MT-safe if compiled with threads support.
  */

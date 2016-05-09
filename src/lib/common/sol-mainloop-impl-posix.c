@@ -736,9 +736,9 @@ void *
 sol_mainloop_impl_fd_add(int fd, uint32_t flags, bool (*cb)(void *data, int fd, uint32_t active_flags), const void *data)
 {
     struct sol_fd_posix *handle = malloc(sizeof(struct sol_fd_posix));
-    int ret;
+    int ret = 0;
 
-    SOL_NULL_CHECK(handle, NULL);
+    SOL_NULL_CHECK_ERRNO(handle, ENOMEM, NULL);
 
     sol_mainloop_impl_lock();
 
@@ -760,6 +760,7 @@ sol_mainloop_impl_fd_add(int fd, uint32_t flags, bool (*cb)(void *data, int fd, 
 clean:
     sol_mainloop_impl_unlock();
     free(handle);
+    errno = -ret;
     return NULL;
 }
 

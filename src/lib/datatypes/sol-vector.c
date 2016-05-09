@@ -321,7 +321,7 @@ sol_ptr_vector_append(struct sol_ptr_vector *pv, const void *ptr)
 
     data = sol_vector_append(&pv->base);
     if (!data)
-        return -ENODATA;
+        return -errno;
     *data = (void *)ptr;
     return 0;
 }

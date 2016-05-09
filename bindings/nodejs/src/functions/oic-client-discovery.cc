@@ -62,7 +62,7 @@ static bool resourceFound(void *data, struct sol_oic_client *client,
     return keepDiscovering;
 }
 
-NAN_METHOD(bind_sol_oic_client_find_resource) {
+NAN_METHOD(bind_sol_oic_client_find_resources) {
     VALIDATE_ARGUMENT_COUNT(info, 4);
     VALIDATE_ARGUMENT_TYPE(info, 0, IsObject);
     VALIDATE_ARGUMENT_TYPE(info, 1, IsObject);
@@ -89,14 +89,16 @@ NAN_METHOD(bind_sol_oic_client_find_resource) {
         return;
     }
 
-    bool result = (sol_oic_client_find_resource((struct sol_oic_client *)client,
+    struct sol_oic_pending *pending =
+        (sol_oic_client_find_resources((struct sol_oic_client *)client,
         &theAddress, (const char *)*String::Utf8Value(info[2]),
         (const char *)*String::Utf8Value(info[3]), resourceFound,
         callbackData) == 0);
 
-    if (!result) {
+    if (!pending) {
         delete callbackData;
     }
 
-    info.GetReturnValue().Set(Nan::New(result));
+    //FIXME: properly expose pending handle to JS
+    info.GetReturnValue().Set(Nan::New(pending));
 }

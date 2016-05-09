@@ -28,6 +28,7 @@
         SOL_SOCKET_OPTIONS_API_VERSION)) { \
         SOL_ERR("Unexpected API version (socket options is %u, expected %u)", \
             (options_)->api_version, SOL_SOCKET_OPTIONS_API_VERSION); \
+        errno = EINVAL; \
         return __VA_ARGS__; \
     }
 
@@ -40,6 +41,7 @@
                 (options), \
                 ((const struct sol_socket_options *)options)->sub_api, \
                 (expected)); \
+            errno = EINVAL; \
             return __VA_ARGS__; \
         } \
     } while (0)

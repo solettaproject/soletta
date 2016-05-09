@@ -370,8 +370,9 @@ int sol_coap_header_get_type(const struct sol_coap_packet *pkt, uint8_t *type);
  * @param pkt The packet with the token.
  * @param len Pointer where to store the length in bytes of the token.
  *
- * @return @c NULL in case of error, otherwise a pointer to an internal
- * buffer containint the token. It must not be modified.
+ * @return @c NULL in case of error (when @errno will be set to @c
+ * EINVAL), otherwise a pointer to an internal buffer containint the
+ * token. It must not be modified.
  */
 uint8_t *sol_coap_header_get_token(const struct sol_coap_packet *pkt, uint8_t *len);
 

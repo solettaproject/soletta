@@ -257,11 +257,16 @@ sol_socket_ip_default_new(const struct sol_socket_options *options)
         .del = sol_socket_contiki_del
     };
     bool ret;
+    int r = 0;
 
-    SOL_INT_CHECK_GOTO(opts->family, != SOL_NETWORK_FAMILY_INET6, unsupported_family);
+    SOL_INT_CHECK_ERRNO(opts->family, != SOL_NETWORK_FAMILY_INET6,
+        EAFNOSUPPORT);
 
     socket = calloc(1, sizeof(*socket));
-    SOL_NULL_CHECK_GOTO(socket, socket_error);
+    if (!socket) {
+        r = -ENOMEM;
+        goto socket_error;
+    }
 
     socket->base.type = &type;
     socket->on_can_read = options->on_can_read;
@@ -274,19 +279,15 @@ sol_socket_ip_default_new(const struct sol_socket_options *options)
         sol_udp_socket_event = process_alloc_event();
     }
 
-    ret = sol_mainloop_contiki_event_handler_add(&sol_udp_socket_event, socket,
+    r = sol_mainloop_contiki_event_handler_add(&sol_udp_socket_event, socket,
         receive_process_cb, NULL);
-    SOL_EXP_CHECK_GOTO(!ret, handler_add_error);
+    SOL_EXP_CHECK_GOTO(r, handler_add_error);
 
     return &socket->base;
 
 handler_add_error:
     free(socket);
 socket_error:
-    errno = ENOMEM;
-    return NULL;
-
-unsupported_family:
-    errno = EAFNOSUPPORT;
+    errno = -r;
     return NULL;
 }

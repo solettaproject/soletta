@@ -37,7 +37,7 @@ void sol_random_del(struct sol_random *random);
 ssize_t sol_random_fill_buffer(struct sol_random *random,
     struct sol_buffer *buffer, size_t len);
 
-static inline bool
+static inline int
 sol_random_get_int32(struct sol_random *engine, int32_t *value)
 {
     struct sol_buffer buf = SOL_BUFFER_INIT_FLAGS(value, sizeof(*value),
@@ -46,10 +46,10 @@ sol_random_get_int32(struct sol_random *engine, int32_t *value)
 
     sol_buffer_fini(&buf);
 
-    return r == (ssize_t)sizeof(*value);
+    return r == (ssize_t)sizeof(*value) ? 0 : (int)r;
 }
 
-static inline bool
+static inline int
 sol_random_get_int64(struct sol_random *engine, int64_t *value)
 {
     struct sol_buffer buf = SOL_BUFFER_INIT_FLAGS(value, sizeof(*value),
@@ -58,47 +58,50 @@ sol_random_get_int64(struct sol_random *engine, int64_t *value)
 
     sol_buffer_fini(&buf);
 
-    return r == (ssize_t)sizeof(*value);
+    return r == (ssize_t)sizeof(*value) ? 0 : (int)r;
 }
 
-static inline bool
+static inline int
 sol_random_get_double(struct sol_random *engine, double *value)
 {
     int32_t num, den;
+    int r;
 
-    if (!sol_random_get_int32(engine, &num))
-        return false;
-    if (!sol_random_get_int32(engine, &den))
-        return false;
+    r = sol_random_get_int32(engine, &num);
+    if (r < 0)
+        return r;
+    r = sol_random_get_int32(engine, &den);
+    if (r < 0)
+        return r;
 
     *value = num * ((double)(INT32_MAX - 1) / INT32_MAX) +
         (double)den / INT32_MAX;
 
-    return true;
+    return r;
 }
 
-static inline bool
+static inline int
 sol_random_get_bool(struct sol_random *engine, bool *value)
 {
     int32_t i;
+    int r;
 
-    if (sol_random_get_int32(engine, &i)) {
+    r = sol_random_get_int32(engine, &i);
+    if (r >= 0)
         *value = i & 1;
-        return true;
-    }
 
-    return false;
+    return r;
 }
 
-static inline uint8_t
+static inline int
 sol_random_get_byte(struct sol_random *engine, uint8_t *value)
 {
     int32_t i;
+    int r;
 
-    if (sol_random_get_int32(engine, &i)) {
+    r = sol_random_get_int32(engine, &i);
+    if (r >= 0)
         *value = i & 0xff;
-        return true;
-    }
 
-    return false;
+    return r;
 }
