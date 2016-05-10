@@ -28,6 +28,13 @@
 
 SOL_LOG_INTERNAL_DECLARE(_sol_mainloop_log_domain, "mainloop");
 
+extern int sol_platform_init(void);
+extern void sol_platform_shutdown(void);
+extern int sol_blob_init(void);
+extern void sol_blob_shutdown(void);
+extern int sol_crypto_init(void);
+extern void sol_crypto_shutdown(void);
+
 #ifdef SOL_LOG_ENABLED
 extern int sol_log_init(void);
 extern void sol_log_shutdown(void);
@@ -58,23 +65,52 @@ sol_pin_mux_shutdown(void)
 }
 #endif
 
-extern int sol_platform_init(void);
-extern void sol_platform_shutdown(void);
-extern int sol_blob_init(void);
-extern void sol_blob_shutdown(void);
-extern int sol_crypto_init(void);
-extern void sol_crypto_shutdown(void);
 #ifdef USE_FLOW
 extern int sol_flow_init(void);
 extern void sol_flow_shutdown(void);
+#else
+static inline int
+sol_flow_init(void)
+{
+    return 0;
+}
+
+static inline void
+sol_flow_shutdown(void)
+{
+}
 #endif
+
 #ifdef NETWORK
 extern int sol_comms_init(void);
 extern void sol_comms_shutdown(void);
+#else
+static inline int
+sol_comms_init(void)
+{
+    return 0;
+}
+
+static inline void
+sol_comms_shutdown(void)
+{
+}
 #endif
+
 #ifdef USE_UPDATE
 extern int sol_update_init(void);
 extern void sol_update_shutdown(void);
+#else
+static inline int
+sol_update_init(void)
+{
+    return 0;
+}
+
+static inline void
+sol_update_shutdown(void)
+{
+}
 #endif
 
 static const struct sol_mainloop_implementation _sol_mainloop_implementation_default = {
@@ -150,23 +186,17 @@ sol_init(void)
     if (r < 0)
         goto crypto_error;
 
-#ifdef USE_FLOW
     r = sol_flow_init();
     if (r < 0)
         goto flow_error;
-#endif
 
-#ifdef NETWORK
     r = sol_comms_init();
     if (r < 0)
         goto comms_error;
-#endif
 
-#ifdef USE_UPDATE
     r = sol_update_init();
     if (r < 0)
         goto update_error;
-#endif
 
     SOL_DBG("Soletta %s on %s-%s initialized",
         sol_platform_get_sw_version(), BASE_OS,
@@ -174,16 +204,11 @@ sol_init(void)
 
     return 0;
 
-#ifdef USE_UPDATE
 update_error:
-#endif
-#ifdef NETWORK
+    sol_comms_shutdown();
 comms_error:
-#endif
-#ifdef USE_FLOW
     sol_flow_shutdown();
 flow_error:
-#endif
     sol_crypto_shutdown();
 crypto_error:
     sol_blob_shutdown();
@@ -254,21 +279,15 @@ sol_shutdown(void)
         return;
 
     SOL_DBG("shutdown");
-#ifdef NETWORK
     sol_comms_shutdown();
-#endif
-#ifdef USE_FLOW
     sol_flow_shutdown();
-#endif
     sol_crypto_shutdown();
     sol_blob_shutdown();
     sol_pin_mux_shutdown();
     sol_platform_shutdown();
     mainloop_impl->shutdown();
     sol_modules_clear_cache();
-#ifdef USE_UPDATE
     sol_update_shutdown();
-#endif
 
     sol_log_shutdown();
 }
