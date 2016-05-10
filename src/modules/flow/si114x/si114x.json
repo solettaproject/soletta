@@ -15,7 +15,10 @@
         "open": "si114x_open",
         "process": "si114x_process"
       },
-      "name": "light-sensor/si114x",
+      "name": "si114x",
+      "aliases": [
+          "light-sensor/si114x"
+      ],
       "options": {
         "members": [
           {

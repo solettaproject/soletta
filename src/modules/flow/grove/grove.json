@@ -24,6 +24,9 @@
          "open": "temperature_converter_open"
       },
       "name": "grove/temperature-converter",
+      "aliases": [
+          "temperature/converter-raw"
+      ],
       "options": {
         "members": [
           {
@@ -75,6 +78,9 @@
         "init_type": "temperature_init_type"
       },
       "name": "grove/thermometer",
+      "aliases": [
+          "thermometer/grove"
+      ],
       "options": {
         "members": [
           {
@@ -188,6 +194,9 @@
          "init_type": "light_sensor_init_type"
       },
       "name": "grove/light-sensor",
+      "aliases": [
+          "light-sensor/grove"
+      ],
       "options": {
         "members": [
           {

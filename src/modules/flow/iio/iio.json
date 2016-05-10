@@ -391,9 +391,9 @@
         "close": "color_close",
         "open": "color_open"
       },
-      "name": "iio/color",
+      "name": "iio/color-sensor",
       "aliases": [
-          "color/iio"
+          "color-sensor/iio"
       ],
       "options": {
        "members": [
@@ -848,7 +848,7 @@
         "close": "proximity_close",
         "open": "proximity_open"
       },
-      "name": "iio/proximity",
+      "name": "iio/proximity-sensor",
       "options": {
        "members": [
          {

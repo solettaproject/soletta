@@ -15,7 +15,7 @@
   },
   {
    "name": "MyColor",
-   "type": "iio/color"
+   "type": "iio/color-sensor"
   },
   {
    "name": "MyHumidity",

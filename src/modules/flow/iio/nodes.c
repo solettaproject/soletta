@@ -407,8 +407,8 @@ temp_create_channels(struct temperature_data *mdata, int device_id)
     return true;
 
 error:
-    SOL_WRN("Could not create iio/temperature node. Failed to open IIO device %d",
-        device_id);
+    SOL_WRN("Could not create iio/thermometer node. Failed to open"
+        " IIO device %d", device_id);
 
     sol_iio_close(mdata->device);
     return false;
@@ -448,8 +448,8 @@ temperature_open(struct sol_flow_node *node, void *data, const struct sol_flow_n
 
     device_id = sol_iio_address_device(opts->iio_device);
     if (device_id < 0) {
-        SOL_WRN("Could not create iio/temperature node. Failed to open IIO device %s",
-            opts->iio_device);
+        SOL_WRN("Could not create iio/thermometer node. Failed to"
+            " open IIO device %s", opts->iio_device);
         goto err;
     }
 
@@ -689,7 +689,7 @@ color_reader_cb(void *data, struct sol_iio_device *device)
     out.blue = tmp;
 
     sol_flow_send_rgb_packet(node,
-        SOL_FLOW_NODE_TYPE_IIO_COLOR__OUT__OUT, &out);
+        SOL_FLOW_NODE_TYPE_IIO_COLOR_SENSOR__OUT__OUT, &out);
 
     return;
 
@@ -725,8 +725,8 @@ color_create_channels(struct color_data *mdata, int device_id)
     return true;
 
 error:
-    SOL_WRN("Could not create iio/color node. Failed to open IIO device %d",
-        device_id);
+    SOL_WRN("Could not create iio/color-sensor node. Failed to open IIO"
+        " device %d", device_id);
     sol_iio_close(mdata->device);
     return false;
 }
@@ -735,12 +735,12 @@ static int
 color_open(struct sol_flow_node *node, void *data, const struct sol_flow_node_options *options)
 {
     struct color_data *mdata = data;
-    const struct sol_flow_node_type_iio_color_options *opts;
+    const struct sol_flow_node_type_iio_color_sensor_options *opts;
     int device_id;
 
-    SOL_FLOW_NODE_OPTIONS_SUB_API_CHECK(options, SOL_FLOW_NODE_TYPE_IIO_COLOR_OPTIONS_API_VERSION,
+    SOL_FLOW_NODE_OPTIONS_SUB_API_CHECK(options, SOL_FLOW_NODE_TYPE_IIO_COLOR_SENSOR_OPTIONS_API_VERSION,
         -EINVAL);
-    opts = (const struct sol_flow_node_type_iio_color_options *)options;
+    opts = (const struct sol_flow_node_type_iio_color_sensor_options *)options;
 
     mdata->buffer_enabled = opts->buffer_size > -1;
 
@@ -765,8 +765,8 @@ color_open(struct sol_flow_node *node, void *data, const struct sol_flow_node_op
 
     device_id = sol_iio_address_device(opts->iio_device);
     if (device_id < 0) {
-        SOL_WRN("Could not create iio/color node. Failed to open IIO device %s",
-            opts->iio_device);
+        SOL_WRN("Could not create iio/color-sensor node. Failed to open"
+            " IIO device %s", opts->iio_device);
         goto err;
     }
 
@@ -1340,8 +1340,8 @@ light_create_channels(struct light_data *mdata, int device_id)
     return true;
 
 error:
-    SOL_WRN("Could not create iio/light node. Failed to open IIO device %d",
-        device_id);
+    SOL_WRN("Could not create iio/light-sensor node. Failed to open IIO"
+        " device %d", device_id);
 
     sol_iio_close(mdata->device);
     return false;
@@ -1381,8 +1381,8 @@ light_open(struct sol_flow_node *node, void *data, const struct sol_flow_node_op
 
     device_id = sol_iio_address_device(opts->iio_device);
     if (device_id < 0) {
-        SOL_WRN("Could not create iio/light node. Failed to open IIO device %s",
-            opts->iio_device);
+        SOL_WRN("Could not create iio/light-sensor node. Failed to open"
+            " IIO device %s", opts->iio_device);
         goto err;
     }
 
@@ -1458,7 +1458,7 @@ proximity_reader_cb(void *data, struct sol_iio_device *device)
     if (!b) goto error;
 
     sol_flow_send_drange_value_packet(node,
-        SOL_FLOW_NODE_TYPE_IIO_PROXIMITY__OUT__OUT, out.val);
+        SOL_FLOW_NODE_TYPE_IIO_PROXIMITY_SENSOR__OUT__OUT, out.val);
 
     return;
 
@@ -1494,8 +1494,8 @@ proximity_create_channels(struct proximity_data *mdata, int device_id)
     return true;
 
 error:
-    SOL_WRN("Could not create iio/proximity node. Failed to open IIO device %d",
-        device_id);
+    SOL_WRN("Could not create iio/proximity-sensor node. Failed to open"
+        " IIO device %d", device_id);
 
     sol_iio_close(mdata->device);
     return false;
@@ -1505,12 +1505,12 @@ static int
 proximity_open(struct sol_flow_node *node, void *data, const struct sol_flow_node_options *options)
 {
     struct proximity_data *mdata = data;
-    const struct sol_flow_node_type_iio_proximity_options *opts;
+    const struct sol_flow_node_type_iio_proximity_sensor_options *opts;
     int device_id;
 
-    SOL_FLOW_NODE_OPTIONS_SUB_API_CHECK(options, SOL_FLOW_NODE_TYPE_IIO_PROXIMITY_OPTIONS_API_VERSION,
+    SOL_FLOW_NODE_OPTIONS_SUB_API_CHECK(options, SOL_FLOW_NODE_TYPE_IIO_PROXIMITY_SENSOR_OPTIONS_API_VERSION,
         -EINVAL);
-    opts = (const struct sol_flow_node_type_iio_proximity_options *)options;
+    opts = (const struct sol_flow_node_type_iio_proximity_sensor_options *)options;
 
     mdata->buffer_enabled = opts->buffer_size > -1;
 
@@ -1535,8 +1535,8 @@ proximity_open(struct sol_flow_node *node, void *data, const struct sol_flow_nod
 
     device_id = sol_iio_address_device(opts->iio_device);
     if (device_id < 0) {
-        SOL_WRN("Could not create iio/proximity node. Failed to open IIO device %s",
-            opts->iio_device);
+        SOL_WRN("Could not create iio/proximity-sensor node. Failed to open"
+            " IIO device %s", opts->iio_device);
         goto err;
     }
 

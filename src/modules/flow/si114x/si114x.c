@@ -230,7 +230,7 @@ setup_device(void *cb_data, struct sol_i2c *i2c, uint8_t reg, uint8_t *data, ssi
 
         while (mdata->pending_calls) {
             si114x_process(mdata->node, mdata,
-                SOL_FLOW_NODE_TYPE_LIGHT_SENSOR_SI114X__IN__TICK, 0, 0);
+                SOL_FLOW_NODE_TYPE_SI114X__IN__TICK, 0, 0);
             mdata->pending_calls--;
         }
         return;
@@ -257,11 +257,11 @@ static int
 si114x_open(struct sol_flow_node *node, void *data, const struct sol_flow_node_options *options)
 {
     struct si114x_data *mdata = data;
-    struct sol_flow_node_type_light_sensor_si114x_options *opts =
-        (struct sol_flow_node_type_light_sensor_si114x_options *)options;
+    struct sol_flow_node_type_si114x_options *opts =
+        (struct sol_flow_node_type_si114x_options *)options;
 
     SOL_FLOW_NODE_OPTIONS_SUB_API_CHECK(opts,
-        SOL_FLOW_NODE_TYPE_LIGHT_SENSOR_SI114X_OPTIONS_API_VERSION, -EINVAL);
+        SOL_FLOW_NODE_TYPE_SI114X_OPTIONS_API_VERSION, -EINVAL);
 
     mdata->fully_initialized = false;
 
@@ -306,7 +306,7 @@ read_callback(void *cb_data, struct sol_i2c *i2c, uint8_t reg, uint8_t *data, ss
     } else {
         double value = (double)mdata->read_data / 100.0;
         sol_flow_send_drange_value_packet(mdata->node,
-            SOL_FLOW_NODE_TYPE_LIGHT_SENSOR_SI114X__OUT__OUT,  value);
+            SOL_FLOW_NODE_TYPE_SI114X__OUT__OUT,  value);
     }
 }
 

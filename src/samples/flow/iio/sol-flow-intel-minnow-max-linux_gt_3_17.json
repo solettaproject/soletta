@@ -31,7 +31,7 @@
            "iio_device": "tcs3472 create,i2c,platform/80860F41:05,0x29,tcs3472 0",
            "buffer_size": "20"
      },
-     "type": "iio/color"
+     "type": "iio/color-sensor"
   },
   {
      "name": "MyHumidity",
