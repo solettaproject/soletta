@@ -21,12 +21,61 @@
 #include "sol-str-slice.h"
 #include "sol-types.h"
 
+/**
+ * @addtogroup File-utils
+ * @{
+ */
+
+/**
+ * @brief Opaque handler for a file reader.
+ */
 struct sol_file_reader;
 
+/**
+ * @brief Open a file using its filename.
+ *
+ * @param filename The file name of the file to open.
+ *
+ * @return The file reader associated with the @a file on success or @c NULL
+ *         on errors.
+ */
 struct sol_file_reader *sol_file_reader_open(const char *filename);
+
+/**
+ * @brief Create a file reader from a file descriptor.
+ *
+ * @param fd The file descriptor.
+ *
+ * @return A file reader to read contents from @a fd on success or @c NULL on
+ *         errors.
+ */
 struct sol_file_reader *sol_file_reader_from_fd(int fd);
+
+/**
+ * @brief Closes a file reader, releasing its memory.
+ *
+ * @param fr A pointer to the file reader to be closed.
+ */
 void sol_file_reader_close(struct sol_file_reader *fr);
+
+/**
+ * @brief Get the content of the file as a sol_str_slice.
+ *
+ * @param fr The file reader object.
+ *
+ * @return a sol_str_slice containing all contents of the file. Slice will be
+ *         empty if file reader is @c NULL or invalid.
+ */
 struct sol_str_slice sol_file_reader_get_all(const struct sol_file_reader *fr);
+
+/**
+ * @brief Retrieve stat information from a file.
+ *
+ * @param fr The file reader object.
+ *
+ * @return A pointer to the stat structure containing stat information on
+ *         success or @c NULL on errors.
+ */
 const struct stat *sol_file_reader_get_stat(const struct sol_file_reader *fr);
 
 /**
@@ -42,3 +91,7 @@ const struct stat *sol_file_reader_get_stat(const struct sol_file_reader *fr);
  *         be sol_blob_unref() once it's not needed.
  */
 struct sol_blob *sol_file_reader_to_blob(struct sol_file_reader *fr);
+
+/**
+ * @}
+ */

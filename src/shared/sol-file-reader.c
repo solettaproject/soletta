@@ -36,11 +36,18 @@ struct sol_file_reader {
     bool mmapped;
 };
 
-struct sol_file_reader *
+SOL_API struct sol_file_reader *
 sol_file_reader_open(const char *filename)
 {
     struct sol_file_reader *fr;
     int fd;
+
+    SOL_NULL_CHECK(filename, NULL);
+
+    if (*filename == '\0') {
+        SOL_WRN("File name shouldn't be empty");
+        return NULL;
+    }
 
     fd = open(filename, O_RDONLY | O_CLOEXEC);
     if (fd < 0)
@@ -51,7 +58,7 @@ sol_file_reader_open(const char *filename)
     return fr;
 }
 
-struct sol_file_reader *
+SOL_API struct sol_file_reader *
 sol_file_reader_from_fd(int fd)
 {
     int saved_errno;
@@ -60,8 +67,7 @@ sol_file_reader_from_fd(int fd)
     size_t size;
 
     fr = malloc(sizeof(*fr));
-    if (!fr)
-        return NULL;
+    SOL_NULL_CHECK(fr, NULL);
 
     fr->mmapped = false;
 
@@ -96,6 +102,8 @@ err:
 void
 sol_file_reader_close(struct sol_file_reader *fr)
 {
+    SOL_NULL_CHECK(fr);
+
     if (fr->mmapped)
         munmap(fr->contents, fr->st.st_size);
     else
@@ -106,6 +114,11 @@ sol_file_reader_close(struct sol_file_reader *fr)
 struct sol_str_slice
 sol_file_reader_get_all(const struct sol_file_reader *fr)
 {
+    SOL_NULL_CHECK(fr, (struct sol_str_slice) {
+        .len = 0,
+        .data = NULL,
+    });
+
     return (struct sol_str_slice) {
                .len = fr->st.st_size,
                .data = fr->contents,
@@ -115,6 +128,8 @@ sol_file_reader_get_all(const struct sol_file_reader *fr)
 const struct stat *
 sol_file_reader_get_stat(const struct sol_file_reader *fr)
 {
+    SOL_NULL_CHECK(fr, NULL);
+
     return &fr->st;
 }
 
@@ -144,7 +159,11 @@ struct sol_blob *
 sol_file_reader_to_blob(struct sol_file_reader *fr)
 {
     struct sol_blob_file_reader *b;
-    struct sol_str_slice c = sol_file_reader_get_all(fr);
+    struct sol_str_slice c;
+
+    SOL_NULL_CHECK(fr, NULL);
+
+    c = sol_file_reader_get_all(fr);
 
     b = calloc(1, sizeof(struct sol_blob_file_reader));
     SOL_NULL_CHECK_GOTO(b, error);
