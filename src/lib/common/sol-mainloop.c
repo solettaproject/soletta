@@ -375,15 +375,29 @@ sol_fd_get_flags(const struct sol_fd *handle)
 SOL_API bool
 sol_fd_add_flags(struct sol_fd *handle, uint32_t flags)
 {
+    uint32_t f;
+
     SOL_NULL_CHECK(handle, false);
+
+    f = mainloop_impl->fd_get_flags(handle);
+
+    if (flags & f)
+        return true;
+
     return mainloop_impl->fd_set_flags(handle, mainloop_impl->fd_get_flags(handle) | flags);
 }
 
 SOL_API bool
 sol_fd_remove_flags(struct sol_fd *handle, uint32_t flags)
 {
+    uint32_t f;
+
     SOL_NULL_CHECK(handle, false);
-    return mainloop_impl->fd_set_flags(handle, mainloop_impl->fd_get_flags(handle) & ~flags);
+
+    f = mainloop_impl->fd_get_flags(handle);
+    if (flags & f)
+        return mainloop_impl->fd_set_flags(handle, mainloop_impl->fd_get_flags(handle) & ~flags);
+    return true;
 }
 #endif
 
