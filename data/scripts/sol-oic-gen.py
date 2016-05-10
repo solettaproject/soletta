@@ -416,10 +416,14 @@ def generate_object_from_repr_vec_fn_common_c(name, props):
        "c_check_updated": JSON_TO_FLOW_CHECK_UPDATED["integer"]})
 
         update_state.append("""\
-        state->%(name)s = fields.%(name)s;
+        state->%(name)s = fields.%(name)s;""" % {"name": field_name})
+        if not 'enum' in field_props and field_props.get('type') == 'string':
+            update_state.append("""\
+        fields.%(name)s = NULL;""" % {"name": field_name})
+        update_state.append("""\
         updated = true;
     }
-""" % {"name": field_name})
+""")
 
     return '''static int
 %(struct_name)s_from_repr_vec(struct %(struct_name)s *state,
@@ -442,10 +446,7 @@ def generate_object_from_repr_vec_fn_common_c(name, props):
 
 %(update_state)s
 
-    if (!updated)
-        goto out;
-
-    return 1;
+    ret = updated ? 1 : 0;
 
 out:
 %(free_fields)s

@@ -23,3 +23,4 @@
 
 light(oic/server-light)
 light STATE -> IN LightState(console)
+_(constant/string:value="My Lamp") OUT -> NAME light
