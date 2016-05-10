@@ -1,0 +1,603 @@
+{
+  "$schema": "http://solettaproject.github.io/soletta/schemas/node-type-genspec.schema",
+  "name": "ipm",
+  "meta": {
+    "author": "Intel Corporation",
+    "license": "Apache-2.0",
+    "version": "1"
+  },
+  "types": [
+    {
+      "category": "output/ipm",
+      "description": "Inter-Processor Messaging boolean writer. Writes a boolean packet with a given ID to a different core.",
+      "methods": {
+        "open": "boolean_writer_open"
+      },
+      "node_type": {
+        "access": [
+          "base"
+        ],
+        "data_type": "struct ipm_writer_node_type",
+        "extra_methods": {
+          "consumed_port": "SOL_FLOW_NODE_TYPE_IPM_BOOLEAN_WRITER__OUT__CONSUMED"
+        }
+      },
+      "name": "ipm/boolean-writer",
+      "options": {
+        "members": [
+          {
+            "data_type": "int",
+            "description": "ID of message. Readers will use this ID to receive messages. Must be greater than 0 and smaller than platform maximum id number.",
+            "name": "id"
+          }
+        ],
+        "version": 1
+      },
+      "in_ports": [
+        {
+          "data_type": "boolean",
+          "description": "Boolean packets sent here will be sent to another core.",
+          "methods": {
+            "process": "boolean_writer_process"
+          },
+          "name": "IN"
+        }
+      ],
+      "out_ports": [
+        {
+          "data_type": "empty",
+          "description": "Packet sent after remote side consumed sent packet.",
+          "name": "CONSUMED"
+        }
+      ],
+      "private_data_type": "ipm_data",
+      "url": "http://solettaproject.org/doc/latest/node_types/ipm/boolean-writer.html"
+    },
+    {
+      "category": "input/ipm",
+      "description": "Inter-Processor Messaging boolean reader. Reads a boolean packet with a given ID from a different core.",
+      "methods": {
+        "close": "common_reader_close",
+        "open": "boolean_reader_open"
+      },
+      "name": "ipm/boolean-reader",
+      "options": {
+        "members": [
+          {
+            "data_type": "int",
+            "description": "ID of message. Only messages written with this ID will be received. Must be greater than 0 and smaller than platform maximum id number.",
+            "name": "id"
+          }
+        ],
+        "version": 1
+      },
+      "out_ports": [
+        {
+          "data_type": "boolean",
+          "description": "Boolean packets read from different core will be sent here.",
+          "name": "OUT"
+        }
+      ],
+      "private_data_type": "ipm_data",
+      "url": "http://solettaproject.org/doc/latest/node_types/ipm/boolean-reader.html"
+    },
+    {
+      "category": "output/ipm",
+      "description": "Inter-Processor Messaging string writer. Writes a string packet with a given ID to a different core.",
+      "methods": {
+        "open": "string_writer_open"
+      },
+      "node_type": {
+        "access": [
+          "base"
+        ],
+        "data_type": "struct ipm_writer_node_type",
+        "extra_methods": {
+          "consumed_port": "SOL_FLOW_NODE_TYPE_IPM_STRING_WRITER__OUT__CONSUMED"
+        }
+      },
+      "name": "ipm/string-writer",
+      "options": {
+        "members": [
+          {
+            "data_type": "int",
+            "description": "ID of message. Readers will use this ID to receive messages. Must be greater than 0 and smaller than platform maximum id number.",
+            "name": "id"
+          }
+        ],
+        "version": 1
+      },
+      "in_ports": [
+        {
+          "data_type": "string",
+          "description": "String packets sent here will be sent to another core.",
+          "methods": {
+            "process": "string_writer_process"
+          },
+          "name": "IN"
+        }
+      ],
+      "out_ports": [
+        {
+          "data_type": "empty",
+          "description": "Packet sent after remote side consumed sent packet.",
+          "name": "CONSUMED"
+        }
+      ],
+      "private_data_type": "ipm_data",
+      "url": "http://solettaproject.org/doc/latest/node_types/ipm/string-writer.html"
+    },
+    {
+      "category": "input/ipm",
+      "description": "Inter-Processor Messaging string reader. Reads a string packet with a given ID from a different core.",
+      "methods": {
+        "close": "common_reader_close",
+        "open": "string_reader_open"
+      },
+      "name": "ipm/string-reader",
+      "options": {
+        "members": [
+          {
+            "data_type": "int",
+            "description": "ID of message. Only messages written with this ID will be received. Must be greater than 0 and smaller than platform maximum id number.",
+            "name": "id"
+          }
+        ],
+        "version": 1
+      },
+      "out_ports": [
+        {
+          "data_type": "string",
+          "description": "String packets read from different core will be sent here.",
+          "name": "OUT"
+        }
+      ],
+      "private_data_type": "ipm_data",
+      "url": "http://solettaproject.org/doc/latest/node_types/ipm/string-reader.html"
+    },
+    {
+      "category": "output/ipm",
+      "description": "Inter-Processor Messaging float writer. Writes a drange packet with a given ID to a different core.",
+      "methods": {
+        "open": "float_writer_open"
+      },
+      "node_type": {
+        "access": [
+          "base"
+        ],
+        "data_type": "struct ipm_writer_node_type",
+        "extra_methods": {
+          "consumed_port": "SOL_FLOW_NODE_TYPE_IPM_FLOAT_WRITER__OUT__CONSUMED"
+        }
+      },
+      "name": "ipm/float-writer",
+      "options": {
+        "members": [
+          {
+            "data_type": "int",
+            "description": "ID of message. Readers will use this ID to receive messages. Must be greater than 0 and smaller than platform maximum id number.",
+            "name": "id"
+          }
+        ],
+        "version": 1
+      },
+      "in_ports": [
+        {
+          "data_type": "float",
+          "description": "Drange packets sent here will be sent to another core.",
+          "methods": {
+            "process": "float_writer_process"
+          },
+          "name": "IN"
+        }
+      ],
+      "out_ports": [
+        {
+          "data_type": "empty",
+          "description": "Packet sent after remote side consumed sent packet.",
+          "name": "CONSUMED"
+        }
+      ],
+      "private_data_type": "ipm_data",
+      "url": "http://solettaproject.org/doc/latest/node_types/ipm/float-writer.html"
+    },
+    {
+      "category": "input/ipm",
+      "description": "Inter-Processor Messaging float reader. Reads a drange packet with a given ID from a different core.",
+      "methods": {
+        "close": "common_reader_close",
+        "open": "float_reader_open"
+      },
+      "name": "ipm/float-reader",
+      "options": {
+        "members": [
+          {
+            "data_type": "int",
+            "description": "ID of message. Only messages written with this ID will be received. Must be greater than 0 and smaller than platform maximum id number.",
+            "name": "id"
+          }
+        ],
+        "version": 1
+      },
+      "out_ports": [
+        {
+          "data_type": "float",
+          "description": "Drange packets read from different core will be sent here.",
+          "name": "OUT"
+        }
+      ],
+      "private_data_type": "ipm_data",
+      "url": "http://solettaproject.org/doc/latest/node_types/ipm/float-reader.html"
+    },
+    {
+      "category": "output/ipm",
+      "description": "Inter-Processor Messaging integer writer. Writes an irange packet with a given ID to a different core.",
+      "methods": {
+        "open": "int_writer_open"
+      },
+      "node_type": {
+        "access": [
+          "base"
+        ],
+        "data_type": "struct ipm_writer_node_type",
+        "extra_methods": {
+          "consumed_port": "SOL_FLOW_NODE_TYPE_IPM_INT_WRITER__OUT__CONSUMED"
+        }
+      },
+      "name": "ipm/int-writer",
+      "options": {
+        "members": [
+          {
+            "data_type": "int",
+            "description": "ID of message. Readers will use this ID to receive messages. Must be greater than 0 and smaller than platform maximum id number.",
+            "name": "id"
+          }
+        ],
+        "version": 1
+      },
+      "in_ports": [
+        {
+          "data_type": "int",
+          "description": "Irange packets sent here will be sent to another core.",
+          "methods": {
+            "process": "int_writer_process"
+          },
+          "name": "IN"
+        }
+      ],
+      "out_ports": [
+        {
+          "data_type": "empty",
+          "description": "Packet sent after remote side consumed sent packet.",
+          "name": "CONSUMED"
+        }
+      ],
+      "private_data_type": "ipm_data",
+      "url": "http://solettaproject.org/doc/latest/node_types/ipm/int-writer.html"
+    },
+    {
+      "category": "input/ipm",
+      "description": "Inter-Processor Messaging int reader. Reads an irange packet with a given ID from a different core.",
+      "methods": {
+        "close": "common_reader_close",
+        "open": "int_reader_open"
+      },
+      "name": "ipm/int-reader",
+      "options": {
+        "members": [
+          {
+            "data_type": "int",
+            "description": "ID of message. Only messages written with this ID will be received. Must be greater than 0 and smaller than platform maximum id number.",
+            "name": "id"
+          }
+        ],
+        "version": 1
+      },
+      "out_ports": [
+        {
+          "data_type": "int",
+          "description": "Irange packets read from different core will be sent here.",
+          "name": "OUT"
+        }
+      ],
+      "private_data_type": "ipm_data",
+      "url": "http://solettaproject.org/doc/latest/node_types/ipm/int-reader.html"
+    },
+    {
+      "category": "output/ipm",
+      "description": "Inter-Processor Messaging RGB writer. Writes an RGB packet with a given ID to a different core.",
+      "methods": {
+        "open": "rgb_writer_open"
+      },
+      "node_type": {
+        "access": [
+          "base"
+        ],
+        "data_type": "struct ipm_writer_node_type",
+        "extra_methods": {
+          "consumed_port": "SOL_FLOW_NODE_TYPE_IPM_RGB_WRITER__OUT__CONSUMED"
+        }
+      },
+      "name": "ipm/rgb-writer",
+      "options": {
+        "members": [
+          {
+            "data_type": "int",
+            "description": "ID of message. Readers will use this ID to receive messages. Must be greater than 0 and smaller than platform maximum id number.",
+            "name": "id"
+          }
+        ],
+        "version": 1
+      },
+      "in_ports": [
+        {
+          "data_type": "rgb",
+          "description": "RGB packets sent here will be sent to another core.",
+          "methods": {
+            "process": "rgb_writer_process"
+          },
+          "name": "IN"
+        }
+      ],
+      "out_ports": [
+        {
+          "data_type": "empty",
+          "description": "Packet sent after remote side consumed sent packet.",
+          "name": "CONSUMED"
+        }
+      ],
+      "private_data_type": "ipm_data",
+      "url": "http://solettaproject.org/doc/latest/node_types/ipm/rgb-writer.html"
+    },
+    {
+      "category": "input/ipm",
+      "description": "Inter-Processor Messaging RGB reader. Reads an RGB packet with a given ID from a different core.",
+      "methods": {
+        "close": "common_reader_close",
+        "open": "rgb_reader_open"
+      },
+      "name": "ipm/rgb-reader",
+      "options": {
+        "members": [
+          {
+            "data_type": "int",
+            "description": "ID of message. Only messages written with this ID will be received. Must be greater than 0 and smaller than platform maximum id number.",
+            "name": "id"
+          }
+        ],
+        "version": 1
+      },
+      "out_ports": [
+        {
+          "data_type": "rgb",
+          "description": "RGB packets read from different core will be sent here.",
+          "name": "OUT"
+        }
+      ],
+      "private_data_type": "ipm_data",
+      "url": "http://solettaproject.org/doc/latest/node_types/ipm/rgb-reader.html"
+    },
+    {
+      "category": "output/ipm",
+      "description": "Inter-Processor Messaging direction-vector writer. Writes a direction-vector packet with a given ID to a different core.",
+      "methods": {
+        "open": "direction_vector_writer_open"
+      },
+      "node_type": {
+        "access": [
+          "base"
+        ],
+        "data_type": "struct ipm_writer_node_type",
+        "extra_methods": {
+          "consumed_port": "SOL_FLOW_NODE_TYPE_IPM_DIRECTION_VECTOR_WRITER__OUT__CONSUMED"
+        }
+      },
+      "name": "ipm/direction-vector-writer",
+      "options": {
+        "members": [
+          {
+            "data_type": "int",
+            "description": "ID of message. Readers will use this ID to receive messages. Must be greater than 0 and smaller than platform maximum id number.",
+            "name": "id"
+          }
+        ],
+        "version": 1
+      },
+      "in_ports": [
+        {
+          "data_type": "direction-vector",
+          "description": "Direction vector packets sent here will be sent to another core.",
+          "methods": {
+            "process": "direction_vector_writer_process"
+          },
+          "name": "IN"
+        }
+      ],
+      "out_ports": [
+        {
+          "data_type": "empty",
+          "description": "Packet sent after remote side consumed sent packet.",
+          "name": "CONSUMED"
+        }
+      ],
+      "private_data_type": "ipm_data",
+      "url": "http://solettaproject.org/doc/latest/node_types/ipm/direction-vector-writer.html"
+    },
+    {
+      "category": "input/ipm",
+      "description": "Inter-Processor Messaging direction vector reader. Reads a direction-vector packet with a given ID from a different core.",
+      "methods": {
+        "close": "common_reader_close",
+        "open": "direction_vector_reader_open"
+      },
+      "name": "ipm/direction-vector-reader",
+      "options": {
+        "members": [
+          {
+            "data_type": "int",
+            "description": "ID of message. Only messages written with this ID will be received. Must be greater than 0 and smaller than platform maximum id number.",
+            "name": "id"
+          }
+        ],
+        "version": 1
+      },
+      "out_ports": [
+        {
+          "data_type": "direction-vector",
+          "description": "Direction vector packets read from different core will be sent here.",
+          "name": "OUT"
+        }
+      ],
+      "private_data_type": "ipm_data",
+      "url": "http://solettaproject.org/doc/latest/node_types/ipm/direction-vector-reader.html"
+    },
+    {
+      "category": "output/ipm",
+      "description": "Inter-Processor Messaging byte writer. Writes a byte packet with a given ID to a different core.",
+      "methods": {
+        "open": "byte_writer_open"
+      },
+      "node_type": {
+        "access": [
+          "base"
+        ],
+        "data_type": "struct ipm_writer_node_type",
+        "extra_methods": {
+          "consumed_port": "SOL_FLOW_NODE_TYPE_IPM_BYTE_WRITER__OUT__CONSUMED"
+        }
+      },
+      "name": "ipm/byte-writer",
+      "options": {
+        "members": [
+          {
+            "data_type": "int",
+            "description": "ID of message. Readers will use this ID to receive messages. Must be greater than 0 and smaller than platform maximum id number.",
+            "name": "id"
+          }
+        ],
+        "version": 1
+      },
+      "in_ports": [
+        {
+          "data_type": "byte",
+          "description": "Byte packets sent here will be sent to another core.",
+          "methods": {
+            "process": "byte_writer_process"
+          },
+          "name": "IN"
+        }
+      ],
+      "out_ports": [
+        {
+          "data_type": "empty",
+          "description": "Packet sent after remote side consumed sent packet.",
+          "name": "CONSUMED"
+        }
+      ],
+      "private_data_type": "ipm_data",
+      "url": "http://solettaproject.org/doc/latest/node_types/ipm/byte-writer.html"
+    },
+    {
+      "category": "input/ipm",
+      "description": "Inter-Processor Messaging byte reader. Reads a byte packet with a given ID from a different core.",
+      "methods": {
+        "close": "common_reader_close",
+        "open": "byte_reader_open"
+      },
+      "name": "ipm/byte-reader",
+      "options": {
+        "members": [
+          {
+            "data_type": "int",
+            "description": "ID of message. Only messages written with this ID will be received. Must be greater than 0 and smaller than platform maximum id number.",
+            "name": "id"
+          }
+        ],
+        "version": 1
+      },
+      "out_ports": [
+        {
+          "data_type": "byte",
+          "description": "Byte packets read from different core will be sent here.",
+          "name": "OUT"
+        }
+      ],
+      "private_data_type": "ipm_data",
+      "url": "http://solettaproject.org/doc/latest/node_types/ipm/byte-reader.html"
+    },
+    {
+      "category": "output/ipm",
+      "description": "Inter-Processor Messaging empty writer. Writes an empty packet with a given ID to a different core.",
+      "methods": {
+        "open": "empty_writer_open"
+      },
+      "node_type": {
+        "access": [
+          "base"
+        ],
+        "data_type": "struct ipm_writer_node_type",
+        "extra_methods": {
+          "consumed_port": "SOL_FLOW_NODE_TYPE_IPM_EMPTY_WRITER__OUT__CONSUMED"
+        }
+      },
+      "name": "ipm/empty-writer",
+      "options": {
+        "members": [
+          {
+            "data_type": "int",
+            "description": "ID of message. Readers will use this ID to receive messages. Must be greater than 0 and smaller than platform maximum id number.",
+            "name": "id"
+          }
+        ],
+        "version": 1
+      },
+      "in_ports": [
+        {
+          "data_type": "any",
+          "description": "Packets sent here will be sent as empty packets to another core.",
+          "methods": {
+            "process": "empty_writer_process"
+          },
+          "name": "IN"
+        }
+      ],
+      "out_ports": [
+        {
+          "data_type": "empty",
+          "description": "Packet sent after remote side consumed sent packet.",
+          "name": "CONSUMED"
+        }
+      ],
+      "private_data_type": "ipm_data",
+      "url": "http://solettaproject.org/doc/latest/node_types/ipm/empty-writer.html"
+    },
+    {
+      "category": "input/ipm",
+      "description": "Inter-Processor Messaging empty reader. Reads an empty packet with a given ID from a different core.",
+      "methods": {
+        "close": "common_reader_close",
+        "open": "empty_reader_open"
+      },
+      "name": "ipm/empty-reader",
+      "options": {
+        "members": [
+          {
+            "data_type": "int",
+            "description": "ID of message. Only messages written with this ID will be received. Must be greater than 0 and smaller than platform maximum id number.",
+            "name": "id"
+          }
+        ],
+        "version": 1
+      },
+      "out_ports": [
+        {
+          "data_type": "empty",
+          "description": "Empty packets read from different core will be sent here.",
+          "name": "OUT"
+        }
+      ],
+      "private_data_type": "ipm_data",
+      "url": "http://solettaproject.org/doc/latest/node_types/ipm/empty-reader.html"
+    }
+  ]
+}
