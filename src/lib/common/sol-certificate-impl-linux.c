@@ -17,6 +17,7 @@
  */
 
 #include <sys/stat.h>
+#include <unistd.h>
 
 #include "sol-certificate.h"
 #define SOL_LOG_DOMAIN &_sol_certificate_log_domain
@@ -45,17 +46,33 @@ static const char *const search_paths[] = {
     NULL,
 };
 
+static int
+get_home_config_dir(struct sol_buffer *buffer)
+{
+    int r;
+
+    r = sol_util_get_user_config_dir(buffer);
+    SOL_INT_CHECK(r, < 0, r);
+
+    return sol_buffer_append_printf(buffer, "/certs");
+}
+
+static inline bool
+is_cert(const char *file)
+{
+    return access(file, R_OK) == 0;
+}
+
 static char *
 find_cert(const char *filename, const char *const paths[])
 {
     const char *ssl_cert_dir = getenv("SSL_CERT_DIR");
     struct sol_buffer buffer = SOL_BUFFER_INIT_EMPTY;
-    struct stat st;
     int idx;
     int r;
 
     /* Check absolute path */
-    if (stat(filename, &st) == 0 && S_ISREG(st.st_mode) && st.st_mode & S_IRUSR)
+    if (is_cert(filename))
         return strdup(filename);
 
     /* Check SSL_CERT_DIR */
@@ -63,18 +80,26 @@ find_cert(const char *filename, const char *const paths[])
         r = sol_buffer_append_printf(&buffer, "%s/%s", ssl_cert_dir, filename);
         SOL_INT_CHECK(r, != 0, NULL);
 
-        if (stat(buffer.data, &st) == 0 && S_ISREG(st.st_mode) && st.st_mode & S_IRUSR)
+        if (is_cert(buffer.data))
             return sol_buffer_steal(&buffer, NULL);
 
         sol_buffer_reset(&buffer);
     }
+
+    /* Search cert in HOME config dir */
+    r = get_home_config_dir(&buffer);
+    SOL_INT_CHECK(r, != 0, NULL);
+    r = sol_buffer_append_printf(&buffer, "/%s", filename);
+    SOL_INT_CHECK(r, != 0, NULL);
+    if (is_cert(buffer.data))
+        return sol_buffer_steal(&buffer, NULL);
 
     /* Search known paths */
     for (idx = 0; search_paths[idx] != 0; idx++) {
         r = sol_buffer_append_printf(&buffer, "%s/%s/%s", SYSCONF, search_paths[idx], filename);
         SOL_INT_CHECK(r, != 0, NULL);
 
-        if (stat(buffer.data, &st) == 0 && S_ISREG(st.st_mode) && st.st_mode & S_IRUSR)
+        if (is_cert(buffer.data))
             return sol_buffer_steal(&buffer, NULL);
 
         sol_buffer_reset(&buffer);
@@ -172,4 +197,31 @@ sol_cert_get_contents(const struct sol_cert *cert)
     SOL_NULL_CHECK(fr, NULL);
 
     return sol_file_reader_to_blob(fr);
+}
+
+SOL_API int
+sol_cert_write_contents(const char *file_name, struct sol_str_slice contents)
+{
+    SOL_BUFFER_DECLARE_STATIC(path, PATH_MAX);
+    ssize_t written;
+    int r;
+
+    SOL_NULL_CHECK(file_name, -EINVAL);
+
+    if (*file_name == '\0') {
+        SOL_WRN("File name shouldn't be empty");
+        return -EINVAL;
+    }
+
+    r = get_home_config_dir(&path);
+    SOL_INT_CHECK(r, != 0, r);
+
+    r = sol_util_create_recursive_dirs(sol_buffer_get_slice(&path), S_IRWXU);
+    SOL_INT_CHECK(r, != 0, r);
+
+    r = sol_buffer_append_printf(&path, "/%s", file_name);
+    SOL_INT_CHECK(r, != 0, r);
+
+    written = sol_util_write_file_slice(path.data, contents);
+    return written >= 0 ? 0 : (int)written;
 }

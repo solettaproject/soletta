@@ -20,6 +20,7 @@
 
 #include <sol-common-buildopts.h>
 #include <sol-types.h>
+#include <sol-str-slice.h>
 
 #ifdef __cplusplus
 extern "C" {
@@ -52,9 +53,10 @@ struct sol_cert;
  *
  * In systems where file system is supported, the @a id is the name of the
  * certificate file. The @a id can be a relative or an absolute path to the
- * certificat file. If relative, function will look for it in default system
+ * certificat file. If relative, function will look for it at user home config
+ * directory (${HOME}/.config/{$APPNAME}/certs/), in default system
  * directories ($SYSCONF/ssl/certs, $SYSCONF/ssl/private, $SYSCONF/tls/certs
- * and $SYSCONF/tls/private), or in a directory specified by SSL_CERT_DIR
+ * and $SYSCONF/tls/private), and in a directory specified by SSL_CERT_DIR
  *
  * @return sol_cert object on success, NULL otherwise
  */
@@ -88,6 +90,20 @@ const char *sol_cert_get_file_name(const struct sol_cert *cert);
  * @return the contents of the certificate @a cert on success, NULL otherwise
  */
 struct sol_blob *sol_cert_get_contents(const struct sol_cert *cert);
+
+/**
+ * @brief Write @a contents to @a cert.
+ *
+ * Certificates are always saved in user context.
+ *
+ * @param file_name The name of the certificate file. The certificate file name
+ *        must be relative. File name with full path is not supported.
+ * @param contents A blob containing the contents to be written to the
+ *        certificate.
+ *
+ * @return 0 on success or a negative error number on errors.
+ */
+int sol_cert_write_contents(const char *file_name, struct sol_str_slice contents);
 
 /**
  * @}

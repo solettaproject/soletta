@@ -65,7 +65,7 @@ enum sol_util_iterate_dir_reason {
 };
 
 /**
- * @brief Write the formatted string in the file pointed by @c path.
+ * @brief Write the formatted string in the file pointed by @a path.
  *
  * @param path The path to a valid file.
  * @param fmt The string format.
@@ -78,9 +78,9 @@ enum sol_util_iterate_dir_reason {
 int sol_util_write_file(const char *path, const char *fmt, ...) SOL_ATTR_PRINTF(2, 3);
 
 /**
- * @brief Write the formatted string in the file pointed by @c path.
+ * @brief Write the formatted string in the file pointed by @a path.
  *
- * It is equivalent to @c sol_util_write_file except it receives @c
+ * It is equivalent to sol_util_write_file() except it receives @a
  * va_list instead of a variable number of arguments.
  *
  * @param path The path to a valid file.
@@ -93,6 +93,17 @@ int sol_util_write_file(const char *path, const char *fmt, ...) SOL_ATTR_PRINTF(
  * @see sol_util_write_file
  */
 int sol_util_vwrite_file(const char *path, const char *fmt, va_list args) SOL_ATTR_PRINTF(2, 0);
+
+/**
+ * @brief Write the slice content the file pointed by @a path.
+ *
+ * @param path The path to a valid file.
+ * @param slice The slice to be written.
+ *
+ * @return The number of written characters, if an error is encountered a
+ * negative value with the error code.
+ */
+ssize_t sol_util_write_file_slice(const char *path, struct sol_str_slice slice);
 
 /**
  * @brief Reads from a file the contents according with the formatted string.
@@ -336,6 +347,25 @@ bool sol_util_busy_wait_file(const char *path, uint64_t nanoseconds);
  * of the @a path. Return will be an empty string if @a path is empty.
  */
 struct sol_str_slice sol_util_file_get_basename(struct sol_str_slice path);
+
+/**
+ * @brief Create directories recursively.
+ *
+ * @param path The path of the directory to be created.
+ * @param mode The mode of the directory as specified by stat function.
+ *
+ * @return 0 on success or a negative error code on errors.
+ */
+int sol_util_create_recursive_dirs(const struct sol_str_slice path, mode_t mode);
+
+/**
+ * @brief Get the user context config directory for current app.
+ *
+ * @param buffer The buffer where the user config dir will be written.
+ *
+ * @return 0 on success or a negative error code on errors.
+ */
+int sol_util_get_user_config_dir(struct sol_buffer *buffer);
 
 /**
  * @}

@@ -20,6 +20,7 @@
 #include "sol-util-internal.h"
 #include "sol-mainloop.h"
 #include "sol-log.h"
+#include "sol-platform.h"
 
 #include <dlfcn.h>
 #include <errno.h>
@@ -614,4 +615,82 @@ sol_util_file_get_basename(struct sol_str_slice path)
     basename.len -= 1;
 
     return basename;
+}
+
+SOL_API ssize_t
+sol_util_write_file_slice(const char *path, struct sol_str_slice slice)
+{
+    FILE *fp;
+    size_t bytes;
+    int r;
+
+    SOL_NULL_CHECK(path, -EINVAL);
+
+    errno = 0;
+    fp = fopen(path, "we");
+    if (!fp)
+        return -errno;
+
+    bytes = fwrite(slice.data, 1, slice.len, fp);
+
+    errno = 0;
+    r = fclose(fp);
+
+    if (bytes != slice.len)
+        return -EIO;
+
+    if (r != 0)
+        return -errno;
+
+    return bytes;
+}
+
+SOL_API int
+sol_util_create_recursive_dirs(const struct sol_str_slice path, mode_t mode)
+{
+    SOL_BUFFER_DECLARE_STATIC(buf, PATH_MAX);
+    const char *p = NULL;
+    int r;
+    struct sol_str_slice token, delim = SOL_STR_SLICE_LITERAL("/");
+    struct stat stat_result;
+
+    if (path.len == 0 || *path.data == '\0')
+        return -EINVAL;
+
+    while (sol_str_slice_split_iterate(path, &token, &p, delim)) {
+        if (token.len == 0)
+            continue;
+        r = sol_buffer_append_printf(&buf, "/%.*s", SOL_STR_SLICE_PRINT(token));
+        SOL_INT_CHECK(r, < 0, r);
+        if (mkdir(buf.data, mode) < 0 && errno != EEXIST)
+            return -errno;
+    }
+
+    return !stat(buf.data, &stat_result) && S_ISDIR(stat_result.st_mode) ? 0 :
+           -ENOTDIR;
+}
+
+SOL_API int
+sol_util_get_user_config_dir(struct sol_buffer *buffer)
+{
+    const char *dir;
+    int r;
+
+    dir = getenv("XDG_CONFIG_HOME");
+    if (dir) {
+        r = sol_buffer_append_slice(buffer, sol_str_slice_from_str(dir));
+        SOL_INT_CHECK(r, < 0, r);
+        r = sol_buffer_append_char(buffer, '/');
+        SOL_INT_CHECK(r, < 0, r);
+        r = sol_buffer_append_slice(buffer, sol_platform_get_appname());
+        SOL_INT_CHECK(r, < 0, r);
+        return sol_buffer_append_char(buffer, '/');
+    }
+
+    dir = getenv("HOME");
+    if (!dir)
+        return -EINVAL;
+
+    return sol_buffer_append_printf(buffer, "%s/.config/%.*s/", dir,
+        SOL_STR_SLICE_PRINT(sol_platform_get_appname()));
 }
