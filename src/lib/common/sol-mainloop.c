@@ -124,7 +124,7 @@ sol_ipm_init(void)
 }
 
 static inline void
-sol_ipm_shutdown()
+sol_ipm_shutdown(void)
 {
 }
 #endif
