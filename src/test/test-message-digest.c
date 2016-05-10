@@ -91,7 +91,7 @@ on_timeout_do_single(void *data)
         struct sol_blob *blob;
         int r;
 
-        blob = sol_blob_new(SOL_BLOB_TYPE_NO_FREE, NULL, itr->mem, itr->len);
+        blob = sol_blob_new(SOL_BLOB_TYPE_NO_FREE_DATA, NULL, itr->mem, itr->len);
         ASSERT(blob != NULL);
 
         md = sol_message_digest_new(&cfg);
@@ -147,7 +147,7 @@ on_timeout_do_chunked_internal(void *data)
         }
 
         mem = (char *)ctx->t->mem + ctx->offset;
-        blob = sol_blob_new(SOL_BLOB_TYPE_NO_FREE, NULL, mem, len);
+        blob = sol_blob_new(SOL_BLOB_TYPE_NO_FREE_DATA, NULL, mem, len);
         ASSERT(blob != NULL);
 
         ctx->offset += len;
@@ -363,7 +363,7 @@ on_digest_ready_feed_after_last(void *data, struct sol_message_digest *handle, s
     static char mem[] = "x";
     int r;
 
-    blob = sol_blob_new(SOL_BLOB_TYPE_NO_FREE, NULL, mem, sizeof(mem));
+    blob = sol_blob_new(SOL_BLOB_TYPE_NO_FREE_DATA, NULL, mem, sizeof(mem));
     ASSERT(blob != NULL);
 
     r = sol_message_digest_feed(handle, blob, true);
@@ -387,7 +387,7 @@ on_timeout_feed_after_last(void *data)
     static char mem[] = "x";
     int r;
 
-    blob = sol_blob_new(SOL_BLOB_TYPE_NO_FREE, NULL, mem, sizeof(mem));
+    blob = sol_blob_new(SOL_BLOB_TYPE_NO_FREE_DATA, NULL, mem, sizeof(mem));
     ASSERT(blob != NULL);
 
     md = sol_message_digest_new(&cfg);

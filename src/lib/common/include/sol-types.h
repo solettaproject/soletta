@@ -504,6 +504,14 @@ extern const struct sol_blob_type *SOL_BLOB_TYPE_DEFAULT;
  *
  * @note Blob's struct memory will be freed.
  */
+extern const struct sol_blob_type *SOL_BLOB_TYPE_NO_FREE_DATA;
+
+/**
+ * @brief Blob type object for the @c nofree implementation.
+ *
+ * The no-free type doesn't free blob's data memory and the blob itself.
+ * Used when creating a blob in the application's stack with constant data.
+ */
 extern const struct sol_blob_type *SOL_BLOB_TYPE_NO_FREE;
 
 /**

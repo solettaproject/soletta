@@ -166,18 +166,31 @@ blob_free(struct sol_blob *blob)
     free(blob);
 }
 
+static void
+blob_no_free(struct sol_blob *blob)
+{
+}
+
 static const struct sol_blob_type _SOL_BLOB_TYPE_DEFAULT = {
     SOL_SET_API_VERSION(.api_version = SOL_BLOB_TYPE_API_VERSION, )
     SOL_SET_API_VERSION(.sub_api = 0, )
     .free = blob_free,
 };
 
-static const struct sol_blob_type _SOL_BLOB_TYPE_NO_FREE = {
+static const struct sol_blob_type _SOL_BLOB_TYPE_NO_FREE_DATA = {
     SOL_SET_API_VERSION(.api_version = SOL_BLOB_TYPE_API_VERSION, )
     SOL_SET_API_VERSION(.sub_api = 0, )
     .free = NULL,
 };
 
+static const struct sol_blob_type _SOL_BLOB_TYPE_NO_FREE = {
+    SOL_SET_API_VERSION(.api_version = SOL_BLOB_TYPE_API_VERSION, )
+    SOL_SET_API_VERSION(.sub_api = 0, )
+    .free = blob_no_free,
+};
+
 SOL_API const struct sol_blob_type *SOL_BLOB_TYPE_DEFAULT = &_SOL_BLOB_TYPE_DEFAULT;
+
+SOL_API const struct sol_blob_type *SOL_BLOB_TYPE_NO_FREE_DATA = &_SOL_BLOB_TYPE_NO_FREE_DATA;
 
 SOL_API const struct sol_blob_type *SOL_BLOB_TYPE_NO_FREE = &_SOL_BLOB_TYPE_NO_FREE;
