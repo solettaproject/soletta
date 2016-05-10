@@ -79,7 +79,7 @@ int_validator_open(
         -EINVAL);
     mdata->done = false;
 
-    if (opts->sequence == NULL || opts->sequence == '\0') {
+    if (opts->sequence == NULL || *opts->sequence == '\0') {
         SOL_ERR("Option 'sequence' is either NULL or empty.");
         return -EINVAL;
     }
