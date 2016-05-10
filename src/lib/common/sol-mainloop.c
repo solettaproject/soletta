@@ -448,44 +448,47 @@ sol_mainloop_get_implementation(void)
 SOL_API bool
 sol_mainloop_set_implementation(const struct sol_mainloop_implementation *impl)
 {
-    SOL_NULL_CHECK(impl, false);
+    /* Note: can't use SOL_WRN or SOL_NULL_CHECK from this function since
+     * it is to be called before sol_init(), thus before log is initialized.
+     */
+#define NULL_CHECK(ptr) if (!ptr) return false
+    NULL_CHECK(impl);
 
 #ifndef SOL_NO_API_VERSION
     if (impl->api_version != SOL_MAINLOOP_IMPLEMENTATION_API_VERSION) {
-        SOL_WRN("impl(%p)->api_version(%hu) != "
-            "SOL_MAINLOOP_IMPLEMENTATION_API_VERSION(%hu)",
-            impl, impl->api_version,
-            SOL_MAINLOOP_IMPLEMENTATION_API_VERSION);
         return false;
     }
 #endif
 
-    SOL_NULL_CHECK(impl->init, false);
-    SOL_NULL_CHECK(impl->shutdown, false);
-    SOL_NULL_CHECK(impl->run, false);
-    SOL_NULL_CHECK(impl->quit, false);
-    SOL_NULL_CHECK(impl->timeout_add, false);
-    SOL_NULL_CHECK(impl->timeout_del, false);
-    SOL_NULL_CHECK(impl->idle_add, false);
-    SOL_NULL_CHECK(impl->idle_del, false);
+    NULL_CHECK(impl->init);
+    NULL_CHECK(impl->shutdown);
+    NULL_CHECK(impl->run);
+    NULL_CHECK(impl->quit);
+    NULL_CHECK(impl->timeout_add);
+    NULL_CHECK(impl->timeout_del);
+    NULL_CHECK(impl->idle_add);
+    NULL_CHECK(impl->idle_del);
 
 #ifdef SOL_MAINLOOP_FD_ENABLED
-    SOL_NULL_CHECK(impl->fd_add, false);
-    SOL_NULL_CHECK(impl->fd_del, false);
-    SOL_NULL_CHECK(impl->fd_set_flags, false);
-    SOL_NULL_CHECK(impl->fd_get_flags, false);
+    NULL_CHECK(impl->fd_add);
+    NULL_CHECK(impl->fd_del);
+    NULL_CHECK(impl->fd_set_flags);
+    NULL_CHECK(impl->fd_get_flags);
 #endif
 
 #ifdef SOL_MAINLOOP_FORK_WATCH_ENABLED
-    SOL_NULL_CHECK(impl->child_watch_add, false);
-    SOL_NULL_CHECK(impl->child_watch_del, false);
+    NULL_CHECK(impl->child_watch_add);
+    NULL_CHECK(impl->child_watch_del);
 #endif
 
-    SOL_NULL_CHECK(impl->source_add, false);
-    SOL_NULL_CHECK(impl->source_del, false);
-    SOL_NULL_CHECK(impl->source_get_data, false);
+    NULL_CHECK(impl->source_add);
+    NULL_CHECK(impl->source_del);
+    NULL_CHECK(impl->source_get_data);
 
-    SOL_INT_CHECK(_init_count, > 0, false);
+#undef NULL_CHECK
+
+    if (_init_count > 0)
+        return false;
 
     mainloop_impl = impl;
     return true;
