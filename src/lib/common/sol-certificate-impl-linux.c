@@ -22,6 +22,7 @@
 #define SOL_LOG_DOMAIN &_sol_certificate_log_domain
 #include "sol-log-internal.h"
 #include "sol-util-file.h"
+#include "sol-file-reader.h"
 #include "sol-util-internal.h"
 #include "sol-vector.h"
 
@@ -152,21 +153,12 @@ sol_cert_get_file_name(const struct sol_cert *cert)
 SOL_API struct sol_blob *
 sol_cert_get_contents(const struct sol_cert *cert)
 {
-    struct sol_blob *blob;
-    size_t size;
-    char *data;
+    struct sol_file_reader *fr;
 
     SOL_NULL_CHECK(cert, NULL);
 
-    data = sol_util_load_file_string(cert->filename, &size);
-    SOL_NULL_CHECK(data, NULL);
+    fr = sol_file_reader_open(cert->filename);
+    SOL_NULL_CHECK(fr, NULL);
 
-    blob = sol_blob_new(&SOL_BLOB_TYPE_DEFAULT, NULL, data, size);
-    if (!blob) {
-        SOL_WRN("Could not allocate memory for sol_blob");
-        free(data);
-        return NULL;
-    }
-
-    return blob;
+    return sol_file_reader_to_blob(fr);
 }
