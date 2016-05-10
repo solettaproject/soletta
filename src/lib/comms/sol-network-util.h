@@ -55,10 +55,10 @@ sol_bluetooth_is_addr_str(const char *str)
     const char *p = str;
 
     while (*str) {
-        if (!isxdigit(*str++))
+        if (!isxdigit((int)*str++))
             return false;
 
-        if (!isxdigit(*str++))
+        if (!isxdigit((int)*str++))
             return false;
 
         if (*str == '0')
