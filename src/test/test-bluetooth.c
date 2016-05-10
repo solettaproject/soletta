@@ -90,6 +90,8 @@ test_bluetooth_uuid_comparison(void)
     s = sol_buffer_get_slice(&buffer);
 
     ASSERT(sol_str_slice_eq(slice, s));
+
+    sol_buffer_fini(&buffer);
 }
 
 TEST_MAIN();
