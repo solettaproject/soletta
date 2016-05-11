@@ -206,7 +206,7 @@ uint32_t sol_memmap_get_timeout(const struct sol_memmap_map *map);
     void *v = malloc(_s); \
     SOL_NULL_CHECK(v, -ENOMEM); \
     memcpy(v, _val, _s); \
-    blob = sol_blob_new(SOL_BLOB_TYPE_DEFAULT, NULL, v, _s); \
+    blob = sol_blob_new(&SOL_BLOB_TYPE_DEFAULT, NULL, v, _s); \
     if (!blob) { \
         free(v); \
         return -EINVAL; \
@@ -373,7 +373,7 @@ sol_memmap_write_string(const char *name, const char *value,
     string = strdup(value);
     SOL_NULL_CHECK(string, -ENOMEM);
 
-    blob = sol_blob_new(SOL_BLOB_TYPE_DEFAULT, NULL, string, strlen(value) + 1);
+    blob = sol_blob_new(&SOL_BLOB_TYPE_DEFAULT, NULL, string, strlen(value) + 1);
     SOL_NULL_CHECK_GOTO(blob, error);
 
     r = sol_memmap_write_raw(name, blob, cb, data);

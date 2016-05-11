@@ -2046,7 +2046,7 @@
     },
     {
       "category": "converter",
-      "description": "Receives a string packet and converts it to a blob (sub-type SOL_BLOB_TYPE_DEFAULT) one.",
+      "description": "Receives a string packet and converts it to a blob (sub-type &SOL_BLOB_TYPE_DEFAULT) one.",
       "in_ports": [
         {
           "data_type": "string",

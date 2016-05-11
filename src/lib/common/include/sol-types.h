@@ -493,7 +493,7 @@ struct sol_blob_type {
  *
  * The default type uses free() to release the blob's memory
  */
-extern const struct sol_blob_type *SOL_BLOB_TYPE_DEFAULT;
+extern const struct sol_blob_type SOL_BLOB_TYPE_DEFAULT;
 
 /**
  * @brief Blob type object for the @c nofree implementation.
@@ -504,7 +504,7 @@ extern const struct sol_blob_type *SOL_BLOB_TYPE_DEFAULT;
  *
  * @note Blob's struct memory will be freed.
  */
-extern const struct sol_blob_type *SOL_BLOB_TYPE_NO_FREE_DATA;
+extern const struct sol_blob_type SOL_BLOB_TYPE_NO_FREE_DATA;
 
 /**
  * @brief Blob type object for the @c nofree implementation.
@@ -512,7 +512,7 @@ extern const struct sol_blob_type *SOL_BLOB_TYPE_NO_FREE_DATA;
  * The no-free type doesn't free blob's data memory and the blob itself.
  * Used when creating a blob in the application's stack with constant data.
  */
-extern const struct sol_blob_type *SOL_BLOB_TYPE_NO_FREE;
+extern const struct sol_blob_type SOL_BLOB_TYPE_NO_FREE;
 
 /**
  * @brief Creates a new blob instance of the given type @c type.
@@ -590,7 +590,7 @@ sol_blob_new_dup(const void *mem, size_t size)
 
     memcpy(v, mem, size);
 
-    blob = sol_blob_new(SOL_BLOB_TYPE_DEFAULT, NULL, v, size);
+    blob = sol_blob_new(&SOL_BLOB_TYPE_DEFAULT, NULL, v, size);
     if (!blob)
         goto fail;
 

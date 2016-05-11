@@ -146,7 +146,7 @@ string_b64decode(struct sol_flow_node *node,
         return sol_flow_send_string_take_packet(node,
             SOL_FLOW_NODE_TYPE_STRING_B64DECODE__OUT__STRING, output);
     } else if (mdata->string_conns == 0 && mdata->blob_conns > 0) {
-        struct sol_blob *blob = sol_blob_new(SOL_BLOB_TYPE_DEFAULT,
+        struct sol_blob *blob = sol_blob_new(&SOL_BLOB_TYPE_DEFAULT,
             NULL, output, outputlen);
         SOL_NULL_CHECK_GOTO(blob, error_blob);
         r = sol_flow_send_blob_packet(node,
@@ -154,7 +154,7 @@ string_b64decode(struct sol_flow_node *node,
         sol_blob_unref(blob);
         return r;
     } else {
-        struct sol_blob *blob = sol_blob_new(SOL_BLOB_TYPE_DEFAULT,
+        struct sol_blob *blob = sol_blob_new(&SOL_BLOB_TYPE_DEFAULT,
             NULL, output, outputlen);
         int r2;
         SOL_NULL_CHECK_GOTO(blob, error_blob);
@@ -370,7 +370,7 @@ string_b16decode(struct sol_flow_node *node,
         return sol_flow_send_string_take_packet(node,
             SOL_FLOW_NODE_TYPE_STRING_B16DECODE__OUT__STRING, output);
     } else if (mdata->string_conns == 0 && mdata->blob_conns > 0) {
-        struct sol_blob *blob = sol_blob_new(SOL_BLOB_TYPE_DEFAULT,
+        struct sol_blob *blob = sol_blob_new(&SOL_BLOB_TYPE_DEFAULT,
             NULL, output, outputlen);
         SOL_NULL_CHECK_GOTO(blob, error_blob);
         r = sol_flow_send_blob_packet(node,
@@ -378,7 +378,7 @@ string_b16decode(struct sol_flow_node *node,
         sol_blob_unref(blob);
         return r;
     } else {
-        struct sol_blob *blob = sol_blob_new(SOL_BLOB_TYPE_DEFAULT,
+        struct sol_blob *blob = sol_blob_new(&SOL_BLOB_TYPE_DEFAULT,
             NULL, output, outputlen);
         int r2;
         SOL_NULL_CHECK_GOTO(blob, error_blob);

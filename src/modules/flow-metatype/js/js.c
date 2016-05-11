@@ -331,7 +331,7 @@ pop_blob(duk_context *ctx)
     cpy = malloc(size);
     SOL_NULL_CHECK(cpy, NULL);
     memcpy(cpy, mem, size);
-    blob = sol_blob_new(SOL_BLOB_TYPE_DEFAULT, NULL, cpy, size);
+    blob = sol_blob_new(&SOL_BLOB_TYPE_DEFAULT, NULL, cpy, size);
 
     if (!blob) {
         free(cpy);
@@ -413,7 +413,7 @@ pop_http_response(duk_context *ctx)
     cpy = malloc(size);
     SOL_NULL_CHECK(cpy, NULL);
     memcpy(cpy, mem, size);
-    content = sol_blob_new(SOL_BLOB_TYPE_DEFAULT, NULL, cpy, size);
+    content = sol_blob_new(&SOL_BLOB_TYPE_DEFAULT, NULL, cpy, size);
     SOL_NULL_CHECK_GOTO(content, err_exit);
 
     packet = sol_flow_packet_new_http_response(code, url,
@@ -443,7 +443,7 @@ pop_json(duk_context *ctx,
     value = duk_require_string(ctx, -1);
     cpy = strdup(value);
 
-    blob = sol_blob_new(SOL_BLOB_TYPE_DEFAULT, NULL, cpy, strlen(cpy));
+    blob = sol_blob_new(&SOL_BLOB_TYPE_DEFAULT, NULL, cpy, strlen(cpy));
     if (!blob) {
         free(cpy);
         return NULL;

@@ -529,7 +529,7 @@ v1_request_start_cb(void *data, struct sol_http_request *request)
         SOL_STR_SLICE_PRINT(sol_buffer_get_slice(&escaped_params)));
     SOL_INT_CHECK_GOTO(r, < 0, err_signature);
 
-    blob = sol_blob_new(SOL_BLOB_TYPE_DEFAULT, NULL, signature, strlen(signature));
+    blob = sol_blob_new(&SOL_BLOB_TYPE_DEFAULT, NULL, signature, strlen(signature));
     SOL_NULL_CHECK_GOTO(blob, err_blob);
 
     r = sol_message_digest_feed(digest, blob, true);

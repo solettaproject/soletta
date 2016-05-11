@@ -159,7 +159,7 @@ storage_write(struct persist_data *mdata, void *data, size_t size, struct sol_fl
 
     memcpy(cp_data, data, size);
 
-    blob = sol_blob_new(SOL_BLOB_TYPE_DEFAULT, NULL, cp_data, size);
+    blob = sol_blob_new(&SOL_BLOB_TYPE_DEFAULT, NULL, cp_data, size);
     SOL_NULL_CHECK_GOTO(blob, error);
 
     cb_data = malloc(sizeof(struct write_cb_data));

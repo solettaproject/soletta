@@ -205,7 +205,7 @@ child_read(struct sol_blob **p_blob, bool *eof, int fd)
     }
 
     v = sol_buffer_steal(&buf, &size);
-    *p_blob = sol_blob_new(SOL_BLOB_TYPE_DEFAULT, NULL, v, size);
+    *p_blob = sol_blob_new(&SOL_BLOB_TYPE_DEFAULT, NULL, v, size);
     SOL_NULL_CHECK_GOTO(*p_blob, blob_error);
     return 0;
 

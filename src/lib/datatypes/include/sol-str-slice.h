@@ -256,7 +256,7 @@ sol_str_slice_from_blob(const struct sol_blob *blob)
 /**
  * @brief Creates a blob from a slice.
  *
- * This function creates @ref SOL_BLOB_TYPE_DEFAULT, this means that
+ * This function creates @ref &SOL_BLOB_TYPE_DEFAULT, this means that
  * the memory used by the slice will be duplicated.
  *
  * @param slice Source slice
@@ -274,7 +274,7 @@ sol_str_slice_to_blob(const struct sol_str_slice slice)
 
     memcpy(blob_mem, slice.data, slice.len);
 
-    blob = sol_blob_new(SOL_BLOB_TYPE_DEFAULT, NULL,
+    blob = sol_blob_new(&SOL_BLOB_TYPE_DEFAULT, NULL,
         blob_mem, slice.len);
 
     if (!blob) {

@@ -97,7 +97,7 @@ on_feed_done_cb(void *data, struct sol_message_digest *md, struct sol_blob *inpu
     blob_backend = malloc(size);
     SOL_NULL_CHECK_GOTO(blob_backend, err);
 
-    blob = sol_blob_new(SOL_BLOB_TYPE_DEFAULT, NULL, blob_backend, size);
+    blob = sol_blob_new(&SOL_BLOB_TYPE_DEFAULT, NULL, blob_backend, size);
     SOL_NULL_CHECK_GOTO(blob, err);
 
     memcpy(blob_backend, buf, size);
