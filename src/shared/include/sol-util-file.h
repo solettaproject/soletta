@@ -368,6 +368,19 @@ int sol_util_create_recursive_dirs(const struct sol_str_slice path, mode_t mode)
 int sol_util_get_user_config_dir(struct sol_buffer *buffer);
 
 /**
+ * Encode string to be used as a file name.
+ *
+ * Encode all non alphanumerical character to '\\xXX', where XX is the character
+ * hexcode.
+ *
+ * @param buf An initialized buffer to append the encoded filename.
+ * @param value The string to be encoded.
+ *
+ * @return 0 on success or a negative error code on errors.
+ */
+int sol_util_file_encode_filename(struct sol_buffer *buf, const struct sol_str_slice value);
+
+/**
  * @}
  */
 

@@ -686,3 +686,34 @@ sol_util_get_user_config_dir(struct sol_buffer *buffer)
     return sol_buffer_append_printf(buffer, "%s/.config/%.*s/", dir,
         SOL_STR_SLICE_PRINT(sol_platform_get_appname()));
 }
+
+SOL_API int
+sol_util_file_encode_filename(struct sol_buffer *buf, const struct sol_str_slice value)
+{
+    int r;
+    size_t i, last_append;
+
+    SOL_NULL_CHECK(buf, -EINVAL);
+
+    if (!value.len)
+        return 0;
+
+    last_append = 0;
+    for (i = 0; i < value.len; i++) {
+        unsigned char c = value.data[i];
+        if (!isalnum(c)) {
+            r = sol_buffer_append_slice(buf,
+                SOL_STR_SLICE_STR(value.data + last_append, i - last_append));
+            SOL_INT_CHECK(r, < 0, r);
+            last_append = i + 1;
+            r = sol_buffer_append_printf(buf, "\\x%02X", c);
+            SOL_INT_CHECK(r, < 0, r);
+        }
+    }
+
+    r = sol_buffer_append_slice(buf, SOL_STR_SLICE_STR(value.data + last_append,
+        value.len - last_append));
+    SOL_INT_CHECK(r, < 0, r);
+
+    return 0;
+}

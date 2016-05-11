@@ -37,7 +37,7 @@ enum sol_socket_dtls_cipher {
 struct sol_socket_dtls_credential_cb {
     const void *data;
 
-    void *(*init)(const void *data);
+    int (*init)(const void *data);
     void (*clear)(void *creds);
 
     ssize_t (*get_id)(const void *creds, char *id, size_t id_len);

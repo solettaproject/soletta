@@ -26,18 +26,14 @@
 #include "sol-socket-dtls.h"
 #include "sol-socket.h"
 #include "sol-str-slice.h"
-#ifdef DTLS
-#include "sol-util-file.h"
-#endif
 #include "sol-util-internal.h"
 #include "sol-vector.h"
 
 #ifdef DTLS
+#include "sol-certificate.h"
 
-enum method {
-    METHOD_GET,
-    METHOD_PUT
-};
+#define OIC_CRED_FILE_PREFIX "oic-"
+#define OIC_CRED_FILE_SUFIX ".psk"
 
 struct sol_oic_security {
     struct sol_coap_server *server;
@@ -53,34 +49,50 @@ struct cred_item {
     /* FIXME: Only symmetric pairwise keys supported at the moment. */
 };
 
-struct creds {
-    struct sol_vector items;
-    const struct sol_oic_security *security;
-};
-
 struct sol_socket *sol_coap_server_get_socket(const struct sol_coap_server *server);
 
 static ssize_t
 creds_get_psk(const void *data, struct sol_str_slice id,
     char *psk, size_t psk_len)
 {
-    const struct creds *creds = data;
-    struct cred_item *iter;
-    uint16_t idx;
+    SOL_BUFFER_DECLARE_STATIC(path, NAME_MAX);
+    struct sol_cert *cert;
+    struct sol_blob *contents;
+    int r;
 
-    SOL_DBG("Looking for PSK with ID=%.*s", (int)id.len, id.data);
+    SOL_DBG("Looking for PSK with ID=%.*s", SOL_STR_SLICE_PRINT(id));
 
-    SOL_VECTOR_FOREACH_IDX (&creds->items, iter, idx) {
-        if (sol_str_slice_eq(id, iter->id.slice)) {
-            if (iter->id.slice.len > psk_len)
-                return -ENOBUFS;
+    if (psk_len < SOL_DTLS_PSK_KEY_LEN)
+        return -ENOBUFS;
 
-            memcpy(psk, iter->psk.data, iter->id.slice.len);
-            return (ssize_t)iter->psk.slice.len;
-        }
+    r = sol_buffer_append_slice(&path,
+        sol_str_slice_from_str(OIC_CRED_FILE_PREFIX));
+    SOL_INT_CHECK(r, < 0, r);
+
+    r = sol_util_file_encode_filename(&path, id);
+    SOL_INT_CHECK(r, < 0, r);
+
+    r = sol_buffer_append_slice(&path,
+        sol_str_slice_from_str(OIC_CRED_FILE_SUFIX));
+    SOL_INT_CHECK(r, < 0, r);
+
+    cert = sol_cert_load_from_id(path.data);
+    if (!cert)
+        return -ENOENT;
+
+    contents = sol_cert_get_contents(cert);
+    sol_cert_unref(cert);
+
+    if (contents->size < SOL_DTLS_PSK_KEY_LEN) {
+        SOL_WRN("PSK found is invalid.");
+        sol_blob_unref(contents);
+        return -ENOENT;
     }
 
-    return -ENOENT;
+    memcpy(psk, contents->mem, SOL_DTLS_PSK_KEY_LEN);
+    sol_blob_unref(contents);
+
+    return SOL_DTLS_PSK_KEY_LEN;
 }
 
 static ssize_t
@@ -326,8 +338,6 @@ sol_oic_security_add_full(struct sol_coap_server *server,
 
     security->callbacks = (struct sol_socket_dtls_credential_cb) {
         .data = security,
-        .init = creds_init,
-        .clear = creds_clear,
         .get_id = creds_get_id,
         .get_psk = creds_get_psk
     };
