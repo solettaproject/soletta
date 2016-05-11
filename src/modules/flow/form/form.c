@@ -1733,20 +1733,7 @@ string_open(struct sol_flow_node *node,
     }
 
     mdata->min_length = opts->min_length;
-    if (opts->min_length < 0) {
-        SOL_WRN("Invalid minimum output size (%" PRId32 "), "
-            "that must be positive. Setting to %" PRId32 ".",
-            opts->min_length, def_opts->min_length);
-        mdata->min_length = def_opts->min_length;
-    }
-
     mdata->max_length = opts->max_length;
-    if (opts->max_length < 0) {
-        SOL_WRN("Invalid maximum output size (%" PRId32 "), "
-            "that must be positive. Setting to %" PRId32 ".",
-            opts->max_length, def_opts->max_length);
-        mdata->max_length = def_opts->max_length;
-    }
 
     if (mdata->max_length && mdata->max_length < mdata->min_length) {
         SOL_WRN("Invalid maximum output size (%" PRId32 "), "
