@@ -226,6 +226,7 @@ source "src/samples/flow/http-oauth/Kconfig"
 source "src/samples/flow/am2315/Kconfig"
 source "src/samples/flow/js/Kconfig"
 source "src/samples/flow/mqtt/Kconfig"
+source "src/samples/design_patterns/Kconfig"
 
 endmenu
 

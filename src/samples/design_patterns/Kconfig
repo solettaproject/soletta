@@ -1,0 +1,3 @@
+config DESIGN_PATTERN_SAMPLES
+	bool "Design patterns samples"
+	default y
