@@ -1,6 +1,10 @@
+config ENV_BOARD_NAME
+	string
+	option env="BOARD_NAME"
+
 config BOARD_NAME
 	string "Board Name"
-	default ""
+	default $ENV_BOARD_NAME
 	help
             Some parts of Soletta uses a "board name" string from
             'sol_platform_get_board_name()' to improve board behavior.

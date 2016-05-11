@@ -5,6 +5,7 @@ MAKEFLAGS += -r --no-print-directory
 export PREFIX ?= "/usr"
 export CFLAGS ?=
 export LDFLAGS ?=
+export BOARD_NAME ?=
 
 # kconfig settings
 KCONFIG_CONFIG ?= $(top_srcdir).config
