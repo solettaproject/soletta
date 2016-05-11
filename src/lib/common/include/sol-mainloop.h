@@ -74,24 +74,36 @@ extern "C" {
  * @author Anselmo L. S. Melo <anselmo.melo@intel.com>
  * @author Bruno Bottazzini <bruno.bottazzini@intel.com>
  * @author Bruno Dilly <bruno.dilly@intel.com>
+ * @author Bruno Melo <bsilva.melo@gmail.com>
  * @author Caio Marcelo de Oliveira Filho <caio.oliveira@intel.com>
+ * @author Chao Jie Gu <chao.jie.gu@intel.com>
  * @author Ederson de Souza <ederson.desouza@intel.com>
  * @author Flavio Ceolin <flavio.ceolin@intel.com>
+ * @author Gabriel Schulhof <gabriel.schulhof@intel.com>
+ * @author Guilherme Iscaro de Godoy <guilherme.iscaro@intel.com>
  * @author Gustavo Lima Chaves <gustavo.lima.chaves@intel.com>
  * @author Gustavo Sverzut Barbieri <gustavo.barbieri@intel.com>
  * @author Iván Briano <ivan.briano@intel.com>
+ * @author Jesus Sanchez-Palencia <jesus.sanchez-palencia@intel.com>
  * @author José Roberto de Souza <jose.souza@intel.com>
  * @author Leandro Dorileo <leandro.maciel.dorileo@intel.com>
  * @author Leandro Pereira <leandro.pereira@intel.com>
+ * @author Lei Yang <lei.a.yang@intel.com>
  * @author Lucas De Marchi <lucas.demarchi@intel.com>
  * @author Luis Felipe Strano Moraes <luis.strano@intel.com>
  * @author Luiz Ywata <luizg.ywata@intel.com>
  * @author Murilo Belluzzo <murilo.belluzzo@intel.com>
+ * @author Otavio Pontes <otavio.pontes@intel.com>
  * @author Ricardo de Almeida Gonzaga <ricardo.gonzaga@intel.com>
  * @author Rodrigo Chiossi <rodrigo.chiossi@intel.com>
+ * @author Srinivasa Ragavan <srinivasa.ragavan.venkateswaran@intel.com>
+ * @author Sudarsana Nagineni <sudarsana.nagineni@intel.com>
+ * @author Thiago Macieira <thiago.macieira@intel.com>
  * @author Tomaz Canabrava <tomaz.canabrava@intel.com>
  * @author Ulisses Furquim <ulisses.furquim@intel.com>
  * @author Vinicius Costa Gomes <vinicius.gomes@intel.com>
+ * @author Vladimir Cernov <cernov.vladimir@gmail.com>
+ * @author Zoltan Kis <zoltan.kis@intel.com>
  *
  * Please contact <soletta-dev@solettaproject.org> to get in contact with the
  * developers and maintainers.
