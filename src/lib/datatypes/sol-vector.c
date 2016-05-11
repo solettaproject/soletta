@@ -377,18 +377,23 @@ sol_vector_del_element(struct sol_vector *v, const void *elem)
 SOL_API int
 sol_ptr_vector_del_element(struct sol_ptr_vector *pv, const void *elem)
 {
-    int r;
-    uint16_t i, removed = 0;
-    void *cur;
+    uint16_t i = 0, offset = 0;
+    void **v = pv->base.data;
 
-    SOL_PTR_VECTOR_FOREACH_REVERSE_IDX (pv, cur, i)
-        if (cur == elem) {
-            r = sol_ptr_vector_del(pv, i);
-            SOL_INT_CHECK(r, < 0, r);
-            removed++;
-        }
+    while (i < pv->base.len && v[i] != elem)
+        i++;
 
-    if (!removed)
+    offset = i;
+
+    for (; i < pv->base.len; i++)
+        if (v[i] != elem)
+            v[offset++] = v[i];
+
+    if (offset == pv->base.len)
         return -ENOENT;
+
+    pv->base.len = offset;
+    sol_vector_shrink(&pv->base);
+
     return 0;
 }

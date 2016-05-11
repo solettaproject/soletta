@@ -572,7 +572,7 @@ sol_ptr_vector_del_range(struct sol_ptr_vector *pv, uint16_t start, uint16_t len
  *
  * @return @c 0 on success, error code (always negative) otherwise
  *
- * @remark Time complexity: number of @c elem occurrences * vector size
+ * @remark Time complexity: linear in vector size
  *
  * @see sol_ptr_vector_del()
  * @see sol_ptr_vector_remove()
