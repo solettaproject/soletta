@@ -78,8 +78,18 @@ on_stdin(void *data, int fd, uint32_t flags)
     uint16_t i;
     struct sol_http_progressive_response *sse;
     struct sol_buffer value = SOL_BUFFER_INIT_EMPTY;
-    static const struct sol_str_slice begin = SOL_STR_SLICE_LITERAL("data: ");
-    static const struct sol_str_slice end = SOL_STR_SLICE_LITERAL("\n\n");
+    static struct sol_blob *sse_prefix = NULL;
+    static struct sol_blob *sse_suffix = NULL;
+
+    if (!sse_prefix) {
+        sse_prefix = sol_blob_new(SOL_BLOB_TYPE_NO_FREE, NULL, "data: ", strlen("data: "));
+        SOL_NULL_CHECK(sse_prefix, -ENOMEM);
+    }
+
+    if (!sse_suffix) {
+        sse_suffix = sol_blob_new(SOL_BLOB_TYPE_NO_FREE, NULL, "\n\n", strlen("\n\n"));
+        SOL_NULL_CHECK(sse_suffix, -ENOMEM);
+    }
 
     if (flags & (SOL_FD_FLAGS_ERR | SOL_FD_FLAGS_HUP)) {
         fprintf(stderr, "ERROR: Something wrong happened with file descriptor: %d\n", fd);
@@ -88,6 +98,7 @@ on_stdin(void *data, int fd, uint32_t flags)
 
     if (flags & SOL_FD_FLAGS_IN) {
         int err;
+        struct sol_blob *blob;
 
         /* this will loop trying to read as much data as possible to buffer. */
         err = sol_util_load_file_fd_buffer(fd, &value);
@@ -104,24 +115,19 @@ on_stdin(void *data, int fd, uint32_t flags)
             SOL_PTR_VECTOR_FOREACH_IDX (&responses, sse, i)
                 sol_http_progressive_response_del(sse, true);
             goto end;
-        } else {
-            err = sol_buffer_insert_slice(&value, 0, begin);
-            if (err < 0) {
-                fprintf(stderr, "ERROR: failed to append the data prefix: %s\n",
-                    sol_util_strerrora(-err));
-                goto err;
-            }
-
-            err = sol_buffer_append_slice(&value, end);
-            if (err < 0) {
-                fprintf(stderr, "ERROR: Could not prepend data to buffer: %s\n",
-                    sol_util_strerrora(-err));
-                goto err;
-            }
         }
 
-        SOL_PTR_VECTOR_FOREACH_IDX (&responses, sse, i)
-            sol_http_progressive_response_feed(sse, sol_buffer_get_slice(&value));
+        blob = sol_buffer_to_blob(&value);
+        if (!blob) {
+            fprintf(stderr, "Could not alloc the blob data\n");
+            goto err;
+        }
+        SOL_PTR_VECTOR_FOREACH_IDX (&responses, sse, i) {
+            sol_http_progressive_response_feed(sse, sse_prefix);
+            sol_http_progressive_response_feed(sse, blob);
+            sol_http_progressive_response_feed(sse, sse_suffix);
+        }
+        sol_blob_unref(blob);
     }
 
     sol_buffer_fini(&value);

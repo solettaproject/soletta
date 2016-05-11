@@ -313,43 +313,72 @@ sse_conn_closed(void *data, const struct sol_http_progressive_response *sse)
 }
 
 static int
+send_data(struct sol_http_progressive_response *client, struct sol_blob *blob)
+{
+    int r;
+    static struct sol_blob *sse_prefix = NULL;
+    static struct sol_blob *sse_suffix = NULL;
+
+    if (!sse_prefix) {
+        sse_prefix = sol_blob_new(SOL_BLOB_TYPE_NO_FREE, NULL, "data: ", strlen("data: "));
+        SOL_NULL_CHECK(sse_prefix, -ENOMEM);
+    }
+
+    if (!sse_suffix) {
+        sse_suffix = sol_blob_new(SOL_BLOB_TYPE_NO_FREE, NULL, "\n\n", strlen("\n\n"));
+        SOL_NULL_CHECK(sse_suffix, -ENOMEM);
+    }
+
+    r = sol_http_progressive_response_feed(client, sse_prefix);
+    SOL_INT_CHECK(r, < 0, r);
+
+    r = sol_http_progressive_response_feed(client, blob);
+    SOL_INT_CHECK(r, < 0, r);
+
+    r = sol_http_progressive_response_feed(client, sse_suffix);
+    SOL_INT_CHECK(r, < 0, r);
+
+    return 0;
+}
+
+static int
 send_sse_data(const struct http_server_node_type *type, struct http_data *mdata,
     struct sol_http_progressive_response *to_client)
 {
     struct sol_buffer buf = SOL_BUFFER_INIT_EMPTY;
     struct sol_http_progressive_response *client;
-    struct sol_str_slice buf_slice;
+    struct sol_blob *blob;
     uint16_t i;
     int r;
 
     if (!sol_ptr_vector_get_len(&mdata->sse_clients))
         return 0;
 
-    r = sol_buffer_append_slice(&buf, sol_str_slice_from_str("data: "));
-    SOL_INT_CHECK(r, < 0, r);
-
     r = type->response_cb(mdata, &buf, true);
     SOL_INT_CHECK(r, < 0, r);
 
-    r = sol_buffer_append_slice(&buf, sol_str_slice_from_str("\n\n"));
-    SOL_INT_CHECK(r, < 0, r);
 
-    buf_slice = sol_buffer_get_slice(&buf);
-    SOL_DBG("Sending SSE data: %.*s", SOL_STR_SLICE_PRINT(buf_slice));
+    SOL_DBG("Sending SSE data: %.*s", SOL_STR_SLICE_PRINT(sol_buffer_get_slice(&buf)));
+
+    blob = sol_buffer_to_blob(&buf);
+    r = -ENOMEM;
+    SOL_NULL_CHECK_GOTO(blob, exit);
 
     if (!to_client) {
         SOL_PTR_VECTOR_FOREACH_IDX (&mdata->sse_clients, client, i) {
-            r = sol_http_progressive_response_feed(client, buf_slice);
+            r = send_data(client, blob);
             SOL_INT_CHECK_GOTO(r, < 0, exit);
         }
     } else {
-        r = sol_http_progressive_response_feed(to_client, buf_slice);
+        r = send_data(to_client, blob);
         SOL_INT_CHECK_GOTO(r, < 0, exit);
     }
 
     r = 0;
 exit:
     sol_buffer_fini(&buf);
+    if (blob)
+        sol_blob_unref(blob);
     return r;
 }
 

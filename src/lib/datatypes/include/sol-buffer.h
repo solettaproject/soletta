@@ -22,6 +22,7 @@
 
 #include <errno.h>
 #include <sol-str-slice.h>
+#include <sol-types.h>
 #include <stdarg.h>
 
 #ifdef __cplusplus
@@ -976,6 +977,17 @@ int sol_buffer_ensure_nul_byte(struct sol_buffer *buf);
  * the data is not released. If that is wanted, one should call @ref sol_buffer_trim
  */
 int sol_buffer_remove_data(struct sol_buffer *buf, size_t offset, size_t size);
+
+
+/**
+ * @brief Convert a buffer to a @ref struct sol_blob
+ *
+ * The buffer will be stealed by the created blob.
+ *
+ * @param buf The buf to be transformed in a blob
+ * @return a blob or NULL on error
+ */
+struct sol_blob *sol_buffer_to_blob(struct sol_buffer *buf);
 
 /**
  * @}
