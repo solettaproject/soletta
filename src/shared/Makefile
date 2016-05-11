@@ -42,4 +42,5 @@ headers-y += \
     include/sol-util.h
 
 headers-$(FEATURE_FILESYSTEM) += \
-    include/sol-util-file.h
+    include/sol-util-file.h \
+    include/sol-file-reader.h

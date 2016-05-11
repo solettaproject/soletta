@@ -22,6 +22,7 @@
 #define SOL_LOG_DOMAIN &_sol_certificate_log_domain
 #include "sol-log-internal.h"
 #include "sol-util-file.h"
+#include "sol-file-reader.h"
 #include "sol-util-internal.h"
 #include "sol-vector.h"
 
@@ -31,6 +32,7 @@ struct sol_cert {
     int refcnt;
 
     char *filename;
+    char *basename;
 };
 
 static struct sol_ptr_vector storage = SOL_PTR_VECTOR_INIT;
@@ -43,17 +45,35 @@ static const char *const search_paths[] = {
     NULL,
 };
 
+static int
+get_home_config_dir(struct sol_buffer *buffer)
+{
+    int r;
+
+    r = sol_util_get_user_config_dir(buffer);
+    SOL_INT_CHECK(r, < 0, r);
+
+    return sol_buffer_append_printf(buffer, "/certs");
+}
+
+static inline bool
+is_cert(const char *file)
+{
+    struct stat st;
+
+    return stat(file, &st) == 0 && S_ISREG(st.st_mode) && st.st_mode & S_IRUSR;
+}
+
 static char *
 find_cert(const char *filename, const char *const paths[])
 {
     const char *ssl_cert_dir = getenv("SSL_CERT_DIR");
     struct sol_buffer buffer = SOL_BUFFER_INIT_EMPTY;
-    struct stat st;
     int idx;
     int r;
 
     /* Check absolute path */
-    if (stat(filename, &st) == 0 && S_ISREG(st.st_mode) && st.st_mode & S_IRUSR)
+    if (is_cert(filename))
         return strdup(filename);
 
     /* Check SSL_CERT_DIR */
@@ -61,18 +81,26 @@ find_cert(const char *filename, const char *const paths[])
         r = sol_buffer_append_printf(&buffer, "%s/%s", ssl_cert_dir, filename);
         SOL_INT_CHECK(r, != 0, NULL);
 
-        if (stat(buffer.data, &st) == 0 && S_ISREG(st.st_mode) && st.st_mode & S_IRUSR)
+        if (is_cert(buffer.data))
             return sol_buffer_steal(&buffer, NULL);
 
         sol_buffer_reset(&buffer);
     }
+
+    /* Search cert in HOME config dir */
+    r = get_home_config_dir(&buffer);
+    SOL_INT_CHECK(r, != 0, NULL);
+    r = sol_buffer_append_printf(&buffer, "/%s", filename);
+    SOL_INT_CHECK(r, != 0, NULL);
+    if (is_cert(buffer.data))
+        return sol_buffer_steal(&buffer, NULL);
 
     /* Search known paths */
     for (idx = 0; search_paths[idx] != 0; idx++) {
         r = sol_buffer_append_printf(&buffer, "%s/%s/%s", SYSCONF, search_paths[idx], filename);
         SOL_INT_CHECK(r, != 0, NULL);
 
-        if (stat(buffer.data, &st) == 0 && S_ISREG(st.st_mode) && st.st_mode & S_IRUSR)
+        if (is_cert(buffer.data))
             return sol_buffer_steal(&buffer, NULL);
 
         sol_buffer_reset(&buffer);
@@ -81,6 +109,18 @@ find_cert(const char *filename, const char *const paths[])
     sol_buffer_fini(&buffer);
 
     return NULL;
+}
+
+static char *
+get_basename(char *str)
+{
+    char *basename;
+
+    basename = strrchr(str, '/');
+    if (!basename || basename[1] == 0)
+        return str;
+
+    return basename + 1;
 }
 
 SOL_API struct sol_cert *
@@ -93,10 +133,20 @@ sol_cert_load_from_file(const char *filename)
 
     SOL_NULL_CHECK(filename, NULL);
 
-    SOL_PTR_VECTOR_FOREACH_IDX (&storage, cert, idx) {
-        if (streq(cert->filename, filename)) {
-            cert->refcnt++;
-            return cert;
+    if (filename[0] == '/') {
+        SOL_PTR_VECTOR_FOREACH_IDX (&storage, cert, idx) {
+            if (streq(cert->filename, filename)) {
+                cert->refcnt++;
+                return cert;
+            }
+        }
+    } else {
+        SOL_PTR_VECTOR_FOREACH_IDX (&storage, cert, idx) {
+            SOL_WRN("%s %s", cert->basename, filename);
+            if (streq(cert->basename, filename)) {
+                cert->refcnt++;
+                return cert;
+            }
         }
     }
 
@@ -111,6 +161,7 @@ sol_cert_load_from_file(const char *filename)
 
     cert->refcnt++;
     cert->filename = path;
+    cert->basename = get_basename(path);
 
     r = sol_ptr_vector_append(&storage, cert);
     SOL_INT_CHECK_GOTO(r, != 0, insert_error);
@@ -142,7 +193,7 @@ sol_cert_unref(struct sol_cert *cert)
 }
 
 SOL_API const char *
-sol_cert_get_filename(const struct sol_cert *cert)
+sol_cert_get_file_name(const struct sol_cert *cert)
 {
     SOL_NULL_CHECK(cert, NULL);
 
@@ -152,21 +203,38 @@ sol_cert_get_filename(const struct sol_cert *cert)
 SOL_API struct sol_blob *
 sol_cert_get_contents(const struct sol_cert *cert)
 {
-    struct sol_blob *blob;
-    size_t size;
-    char *data;
+    struct sol_file_reader *fr;
 
     SOL_NULL_CHECK(cert, NULL);
 
-    data = sol_util_load_file_string(cert->filename, &size);
-    SOL_NULL_CHECK(data, NULL);
+    fr = sol_file_reader_open(cert->filename);
+    SOL_NULL_CHECK(fr, NULL);
 
-    blob = sol_blob_new(SOL_BLOB_TYPE_DEFAULT, NULL, data, size);
-    if (!blob) {
-        SOL_WRN("Could not allocate memory for sol_blob");
-        free(data);
-        return NULL;
-    }
+    return sol_file_reader_to_blob(fr);
+}
 
-    return blob;
+SOL_API int
+sol_cert_write_contents(const char *file_name, const struct sol_blob *contents)
+{
+    SOL_BUFFER_DECLARE_STATIC(path, PATH_MAX);
+    ssize_t written;
+    int r;
+
+    SOL_NULL_CHECK(file_name, -EINVAL);
+    SOL_NULL_CHECK(contents, -EINVAL);
+
+    if (*file_name == '\0')
+        return -EINVAL;
+
+    r = get_home_config_dir(&path);
+    SOL_INT_CHECK(r, != 0, r);
+
+    r = sol_util_create_recursive_dirs(sol_buffer_get_slice(&path), S_IRWXU);
+    SOL_INT_CHECK(r, != 0, r);
+
+    r = sol_buffer_append_printf(&path, "/%s", file_name);
+    SOL_INT_CHECK(r, != 0, r);
+
+    written = sol_util_write_file_blob(path.data, contents);
+    return written >= 0 ? 0 : (int)written;
 }

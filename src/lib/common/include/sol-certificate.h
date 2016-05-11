@@ -45,18 +45,18 @@ extern "C" {
 struct sol_cert;
 
 /**
- * @brief Load a certificate from a file
+ * @brief Load a certificate from a file name.
  *
- * @param filename Path to the certificate file
+ * @param file_name Name of the certificate to be loaded.
  *
- * The path to the certificate file does not need to be absolute. The file
- * can also be in the default system folders ($SYSCONF/ssl/certs,
- * $SYSCONF/ssl/private, $SYSCONF/tls/certs and $SYSCONF/tls/private), or
- * in a directory specified by SSL_CERT_DIR
+ * The @a file_name can be the full path to the certificate file when file system
+ * is supported. If not absolute the file will be looked at the default system
+ * folders ($SYSCONF/ssl/certs, $SYSCONF/ssl/private, $SYSCONF/tls/certs and
+ * $SYSCONF/tls/private), or in a directory specified by SSL_CERT_DIR.
  *
  * @return sol_cert object on success, NULL otherwise
  */
-struct sol_cert *sol_cert_load_from_file(const char *filename);
+struct sol_cert *sol_cert_load_from_file(const char *file_name);
 
 /**
  * @brief Free the resources a sol_cert object and the object itself
@@ -65,6 +65,8 @@ struct sol_cert *sol_cert_load_from_file(const char *filename);
  */
 void sol_cert_unref(struct sol_cert *cert);
 
+#ifdef FEATURE_FILESYSTEM
+
 /**
  * @brief Get the full path to the certificate in the filesystem
  *
@@ -72,7 +74,9 @@ void sol_cert_unref(struct sol_cert *cert);
  *
  * @return sol_cert object on success, NULL otherwise
  */
-const char *sol_cert_get_filename(const struct sol_cert *cert);
+const char *sol_cert_get_file_name(const struct sol_cert *cert);
+
+#endif /*FEATURE_FILESYSTEM*/
 
 /**
  * @brief Get the certificate contents
@@ -82,6 +86,20 @@ const char *sol_cert_get_filename(const struct sol_cert *cert);
  * @return the contents of the certificate @a cert on success, NULL otherwise
  */
 struct sol_blob *sol_cert_get_contents(const struct sol_cert *cert);
+
+/**
+ * @brief Write @a contents to @a cert.
+ *
+ * Certificates are always saved in user context.
+ *
+ * @param file_name The name of the certificate file. The certificate file name
+ *        must be relative. File name with full path is not supported.
+ * @param contents A blob containing the contents to be written to the
+ *        certificate.
+ *
+ * @return 0 on success or a negative error number on errors.
+ */
+int sol_cert_write_contents(const char *file_name, const struct sol_blob *contents);
 
 /**
  * @}

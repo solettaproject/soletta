@@ -593,3 +593,73 @@ sol_util_busy_wait_file(const char *path, uint64_t nanoseconds)
 
     return true;
 }
+
+SOL_API ssize_t
+sol_util_write_file_blob(const char *path, const struct sol_blob *blob)
+{
+    FILE *fp;
+    size_t bytes;
+    int r;
+
+    SOL_NULL_CHECK(path, -EINVAL);
+    SOL_NULL_CHECK(blob, -EINVAL);
+
+    errno = 0;
+    fp = fopen(path, "we");
+    if (!fp)
+        return -errno;
+
+    bytes = fwrite(blob->mem, 1, blob->size, fp);
+
+    errno = 0;
+    r = fclose(fp);
+
+    if (bytes != blob->size)
+        return -EIO;
+
+    if (r != 0)
+        return -errno;
+
+    return bytes;
+}
+
+SOL_API int
+sol_util_create_recursive_dirs(const struct sol_str_slice path, mode_t mode)
+{
+    SOL_BUFFER_DECLARE_STATIC(buf, PATH_MAX);
+    const char *p = NULL;
+    int r;
+    struct sol_str_slice token, delim = SOL_STR_SLICE_LITERAL("/");
+    struct stat stat_result;
+
+    if (path.len == 0 || *path.data == '\0')
+        return -EINVAL;
+
+    while (sol_str_slice_split_iterate(path, &token, &p, delim)) {
+        if (token.len == 0)
+            continue;
+        r = sol_buffer_append_printf(&buf, "/%.*s", SOL_STR_SLICE_PRINT(token));
+        SOL_INT_CHECK(r, < 0, r);
+        if (mkdir(buf.data, mode) < 0 && errno != EEXIST)
+            return -errno;
+    }
+
+    return !stat(buf.data, &stat_result) && S_ISDIR(stat_result.st_mode) ? 0 :
+           -ENOTDIR;
+}
+
+SOL_API int
+sol_util_get_user_config_dir(struct sol_buffer *buffer)
+{
+    const char *dir;
+
+    dir = getenv("XDG_CONFIG_HOME");
+    if (dir)
+        return sol_buffer_append_printf(buffer, "%s", dir);
+
+    dir = getenv("HOME");
+    if (!dir)
+        return -EINVAL;
+
+    return sol_buffer_append_printf(buffer, "%s/%s", dir, ".config/soletta/");
+}

@@ -396,9 +396,9 @@ sol_mqtt_connect(const struct sol_mqtt_config *config)
     }
 
     if (config->ca_cert && config->client_cert && config->private_key) {
-        r = mosquitto_tls_set(mqtt->mosq, sol_cert_get_filename(config->ca_cert), NULL,
-            sol_cert_get_filename(config->client_cert),
-            sol_cert_get_filename(config->private_key), NULL);
+        r = mosquitto_tls_set(mqtt->mosq, sol_cert_get_file_name(config->ca_cert), NULL,
+            sol_cert_get_file_name(config->client_cert),
+            sol_cert_get_file_name(config->private_key), NULL);
 
         if (r != MOSQ_ERR_SUCCESS) {
             SOL_WRN("Unable to set TLS connection");
