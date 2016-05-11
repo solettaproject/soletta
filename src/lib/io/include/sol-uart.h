@@ -99,6 +99,7 @@ enum sol_uart_stop_bits {
  * @brief A configuration struct used to set the UART paramenters.
  *
  * @see sol_uart_open()
+ * @note UART follows the Soletta stream guidelines, which can be found here: @ref streams
  */
 struct sol_uart_config {
 #ifndef SOL_NO_API_VERSION
@@ -278,6 +279,7 @@ void sol_uart_close(struct sol_uart *uart);
  * @param blob The blob to be written
  * @return 0 on success or negative errno on error
  * @see sol_uart_config::tx_cb()
+ * @note UART follows the Soletta stream guidelines, which can be found here: @ref streams
  *
  */
 int sol_uart_write(struct sol_uart *uart, struct sol_blob *blob);

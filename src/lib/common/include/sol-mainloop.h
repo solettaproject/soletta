@@ -64,8 +64,266 @@ extern "C" {
  * @li @ref Update
  * @li @ref Utils
  * @li @ref WorkerThread
+ * @li @ref patterns
  *
  * Please see the @ref authors page for contact details.
+ */
+
+/**
+ * @page patterns Design Patterns
+ * @tableofcontents
+ *
+ * This page will explain the common design patterns employed by Soletta.
+ *
+ * @section streams IO Streams
+ *
+ * Soletta has its own pattern for dealing with input/output streams. This
+ * section will describe how the soletta pattern is implemented and how to use it.
+ *
+ * The aim of this section is to guide the developer the to provide a unified API for all kind of streams, making
+ * it easier for a third party developer to migrate its application to any stream related IO, if necessary.
+ *
+ * The pattern is divided in three categories: The stream configuration, the write API and the read API.
+ *
+ * @subsection config Configuration
+ *
+ * The stream should configured using a struct during its creation, this struct should provide the following fields.
+ *
+ * <ul>
+ * <li> @c tx_size: The write buffer size - if @c 0 it means that is no limit (Data for this buffer is not necessary allocated).
+ * <li> @c rx_size: The read buffer size - If @c 0 a default value will be set (platform specific).
+ * <li> @c tx_cb: The write callback - It will be called when data was fully written.
+ *    <ul>
+ *    <li> Respecting the interface:
+ *    @code{.c}
+ *    void (*tx_cb)(void *user_data, my_stream_api_handle *handle, struct sol_blob *blob, int status);
+ *    @endcode
+ *    </ul>
+ * <li> @c rx_cb: The read callback - It will be called when there's data available to read.
+ *    <ul>
+ *    <li> Respecting the interface:
+ *    @code{.c}
+ *    ssize_t (*rx_cb)(void *user_data, my_stream_api_handle *handle, const struct sol_buffer *buf);
+ *    @endcode
+ *    </ul>
+ * <li> @c user_data: Data to @c rx_cb and @c tx_cb.
+ * </ul>
+ *
+ * Below there's a example of a configuration struct.
+ * @code{.c}
+ *
+ * //my_stream_api.h
+ *
+ * struct my_stream_api_config {
+ *    const void *user_data;
+ *    void (*tx_cb)(void *user_data, my_stream_api_handle *handle, struct sol_blob *blob, int status);
+ *    ssize_t (*rx_cb)()void *user_data, my_stream_api_handle *handle, const struct sol_buffer *buf);
+ *    size_t tx_size;
+ *    size_t rx_size;
+ * };
+ *
+ * //Code...
+ *
+ * //The config struct should be provided during the stream creation.
+ * struct my_stream_api_handle *my_stream_api_new(struct my_stream_api_config *config);
+ *
+ * //More code...
+ * @endcode
+ *
+ * @subsection write Writing
+ *
+ * Write operations must be async and the data that will be transfered must be
+ * provided as a pointer to @ref sol_blob. One should follow the API below:
+ * @code{.c}
+ * //returns 0 on success, -ENOSPC if tx_buffer is FULL or negative errno.
+ * int my_stream_api_write(struct my_stream_api_handle *handle, struct sol_blob *blob);
+ * @endcode
+ *
+ * Every blob requested to be written, must be queued in order to be sent. If there's no more space
+ * to queue more blobs (sum of all queued blobs >= @c tx_size) the function write should return @c -ENOSPC.
+ *
+ * Everytime a blob is fully written the @c tx_cb must be called in order to inform the user that
+ * the write operation was completed. The @c tx_cb should have the following signature:
+ *
+ * @code{.c}
+ * void (*tx_cb)(void *user_data, my_stream_api_handle *handle, struct sol_blob *blob, int status);
+ * @endcode
+ *
+ * One should warn the user that it's not necessary to use @ref sol_blob_unref(), because the stream
+ * API will already do that. The @c status variable should be 0 on success and @c -errno on error.
+ * The @c tx_cb can also be used to send blobs that were reject, because the tx buffer was full due
+ * @c tx_size restrictions.
+ *
+ * Below there's an example of a write implementation:
+ * @code{.c}
+ *
+ * //my_stream_api.c
+ *
+ * struct my_stream_api_handle {
+ *    Device *dev;
+ *    const void *user_data;
+ *    void (*tx_cb)(void *user_data, my_stream_api_handle *handle, struct sol_blob *blob, int status);
+ *    struct sol_ptr_vector pending_blobs;
+ *    size_t tx_size;
+ *    size_t pending_bytes;
+ * };
+ *
+ *
+ * static void
+ * _write(void *data)
+ * {
+ *    struct sol_blob *blob;
+ *    struct my_stream_api_handle *handle = data;
+ *    int status;
+ *
+ *    //Write the blob
+ *    blob = sol_ptr_vector_get_no_check(&handle->pending_blobs, 0);
+ *    status = my_device_write(handle->dev, blob->mem, blob->size);
+ *
+ *    // Data was written, inform the user
+ *    if (handle->tx_cb)
+ *       handle->tx_cb((void *)handle->user_data, handle, blob, status);
+ *    handle->pending_bytes -= blob->size;
+ *    sol_blob_unref(blob); //NOTE: that we unref the blob, not the user!
+ *
+ *    //Do we still have more data ?
+ *    sol_ptr_vector_del(&handle->pending_blobs, 0);
+ *    if (sol_ptr_vector_get_len(&handle->pending_blobs))
+ *       my_device_schedule_write(handle->dev, _write, handle);
+ * }
+ *
+ * SOL_API int
+ * my_stream_api_write(struct my_stream_api_handle *handle, struct sol_blob *blob)
+ * {
+ *    size_t total = handle->pending_bytes + blob->size;
+ *
+ *    //Tx_size was set and the total must not exceed tx_size
+ *    if (tx_size && total >= tx_size)
+ *       return -ENOSPC;
+ *
+ *    //Store the blob and ref it, since it will written later.
+ *    r = sol_ptr_vector_append(&handle->pending_blobs, blob);
+ *    SOL_INT_CHECK(r, < 0, r);
+ *    sol_blob_ref(blob);
+ *    handle->pending_bytes = total;
+ *
+ *    //Schedule the write operation
+ *    my_device_schedule_write(handle->dev, _write, handle);
+ *    return 0;
+ * }
+ * @endcode
+ *
+ * @subsection read Reading
+ *
+ * Since this is a stream, there's no direct way for a third party developer to request a read operation.
+ * In order to be able to read from the stream, the third party developer must provide the @c rx_cb durtion the
+ * stream configuration/creation. The @c rx_cb is provided during the stream creation, one must inform the user every time
+ * data is avaible to read.
+ * The @c rx_cb has the following signature:
+ *
+ * @code{.c}
+ * ssize_t (*rx_cb)(void *user_data, my_stream_api_handle *handle, const struct sol_buffer *buf);
+ * @endcode
+ *
+ * Note that the @c rx_cb returns a @c ssize_t, the returned value must be @c -errno if an error happened or the number
+ * of bytes consumed from @c buf (0 is valid). The consumed bytes will be removed from the @c buf.
+ *
+ * Below there's an example of the read implementation:
+ *
+ * @code{.c}
+ * //my_stream_api.c
+ *
+ * struct my_stream_api_handle {
+ *    Device *dev;
+ *    const void *user_data;
+ *    void (*tx_cb)(void *user_data, my_stream_api_handle *handle, struct sol_blob *blob, int status);
+ *    ssize_t (*rx_cb)(void *user_data, my_stream_api_handle *handle, const struct sol_buffer *buf);
+ *    struct sol_ptr_vector pending_blobs;
+ *    size_t tx_size;
+ *    size_t pending_bytes;
+ *    struct sol_timeout *read_timeout;
+ * };
+ *
+ * //Code...
+ *
+ * static bool
+ * _inform_user(void *data)
+ * {
+ *    struct my_stream_api_handle *handle = data;
+ *    ssize_t r;
+ *
+ *    //Inform the user
+ *    r = handle->rx_cb((void *)handle->user_data, handle, handle->rx);
+ *    //Remove the data.
+ *    if (r < 0)
+ *       SOL_ERR("Something wrong happened %zd", r);
+ *   else
+ *       sol_buffer_remove_data(&uart->rx, 0, r);
+ *   if (handle->rx.used)
+ *      return true;
+ *   handle->read_timeout = NULL;
+ *   return false;
+ * }
+ * static void
+ * _can_read(void *data)
+ * {
+ *    struct my_stream_api_handle *handle = data;
+ *    size_r read;
+ *    ssize_t r;
+ *
+ *    //Append data to the buffer
+ *    read = my_device_read(handle->dev, sol_buffer_at_end(&uart->rx), uart->rx.capacity - uart->rx.used);
+ *    uart->rx.used += read;
+ *    //Keep reading until there's no more data
+ *    if (!handle->read_timeout)
+ *       handle->read_timeout = sol_timeout_add(0, _inform_user, handle);
+ * }
+ *
+ *
+ * struct my_stream_api_handle *
+ * my_stream_api_new(struct my_stream_api_config *config)
+ * {
+ *    struct my_stream_api_handle *handle;
+ *    size_t rx_size;
+ *    void *buf;
+ *
+ *    //Init stuff...
+ *
+ *    //The user does not want to read from the stream, ignore rx configuration.
+ *    if (!config->rx_cb)
+ *       return handle;
+ *
+ *    handle->rx_cb = config->rx_cb;
+ *    rx_size = config->rx_size;
+ *
+ *    //Use a default size.
+ *    if (!rx_size)
+ *       rx_size = DEFAULT_SIZE:
+ *
+ *    buf = malloc(rx_size);
+ *    if (!buf)
+ *        goto clean_up;
+ *
+ *    sol_buffer_init_flags(&uart->rx, buf, rx_size, SOL_BUFFER_FLAGS_FIXED_CAPACITY | SOL_BUFFER_FLAGS_NO_NUL_BYTE);
+ *    //Register input observer
+ *    my_device_inform_data_available_for_read(handle->dev, _can_read, handle);
+ *    return handle;
+ * clean_up:
+ *   //Clean up code...
+ * }
+ * //More code...
+ * @endcode
+ *
+ * @subsection implementations Implementations
+ *
+ * Soletta currently implements streams for the following modules:
+ * <ul>
+ * <li> @ref UART
+ *    <ul>
+ *    <li> sol_uart_write()
+ *    <li> @ref sol_uart_config
+ *    </ul>
+ * </ul>
  */
 
 /**
