@@ -243,6 +243,12 @@
          "default": "Hello World",
          "description": "Dummy string option.",
          "name": "opt_string"
+        },
+        {
+         "data_type": "uint",
+         "default": 42,
+         "description": "Dummy uint option.",
+         "name": "opt_uint"
         }
        ],
        "version": 1
