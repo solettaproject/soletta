@@ -600,22 +600,17 @@ get_psk_info(struct dtls_context_t *ctx, const session_t *session,
 {
     struct sol_socket_dtls *socket = dtls_get_app_data(ctx);
     ssize_t len;
-    void *creds;
     int r = -1;
 
     SOL_NULL_CHECK(socket->credentials,
-        dtls_alert_fatal_create(DTLS_ALERT_INTERNAL_ERROR));
-    SOL_NULL_CHECK(socket->credentials->init,
-        dtls_alert_fatal_create(DTLS_ALERT_INTERNAL_ERROR));
-    SOL_NULL_CHECK(socket->credentials->clear,
         dtls_alert_fatal_create(DTLS_ALERT_INTERNAL_ERROR));
     SOL_NULL_CHECK(socket->credentials->get_psk,
         dtls_alert_fatal_create(DTLS_ALERT_INTERNAL_ERROR));
     SOL_NULL_CHECK(socket->credentials->get_id,
         dtls_alert_fatal_create(DTLS_ALERT_INTERNAL_ERROR));
 
-    creds = socket->credentials->init(socket->credentials->data);
-    if (!creds) {
+    if (socket->credentials->init &&
+        socket->credentials->init(socket->credentials->data) < 0) {
         SOL_WRN("Could not initialize credential storage");
         return dtls_alert_fatal_create(DTLS_ALERT_INTERNAL_ERROR);
     }
@@ -625,7 +620,8 @@ get_psk_info(struct dtls_context_t *ctx, const session_t *session,
             type == DTLS_PSK_IDENTITY ? "identity" : "hint",
             result_len, SOL_DTLS_PSK_ID_LEN);
 
-        len = socket->credentials->get_id(creds, result, result_len);
+        len = socket->credentials->get_id(socket->credentials->data, result,
+            result_len);
         if (len != SOL_DTLS_PSK_ID_LEN) {
             SOL_DBG("Not enough space to write key ID");
             r = dtls_alert_fatal_create(DTLS_ALERT_INTERNAL_ERROR);
@@ -637,7 +633,7 @@ get_psk_info(struct dtls_context_t *ctx, const session_t *session,
             type, DTLS_PSK_KEY);
         r = dtls_alert_fatal_create(DTLS_ALERT_INTERNAL_ERROR);
     } else {
-        len = socket->credentials->get_psk(creds,
+        len = socket->credentials->get_psk(socket->credentials->data,
             SOL_STR_SLICE_STR(desc, desc_len), result, result_len);
         if (len != SOL_DTLS_PSK_KEY_LEN) {
             if (len < 0)
@@ -652,7 +648,9 @@ get_psk_info(struct dtls_context_t *ctx, const session_t *session,
         }
     }
 
-    socket->credentials->clear(creds);
+    if (socket->credentials->clear)
+        socket->credentials->clear(socket->credentials->data);
+
     return r;
 }
 
