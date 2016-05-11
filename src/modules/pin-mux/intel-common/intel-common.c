@@ -252,14 +252,24 @@ mux_set_aio(const int device, const int pin, const struct mux_controller *const 
 }
 
 int
-mux_set_gpio(const uint32_t pin, const enum sol_gpio_direction dir,
+mux_set_gpio(const uint32_t pin, const struct sol_gpio_config *config,
     const struct mux_description *const *desc_list, const uint32_t s)
 {
+    unsigned int mode = MODE_GPIO_OUTPUT;
+
     if (pin >= s || !desc_list[pin])
         return 0;
 
-    return apply_mux_desc(desc_list[pin], dir == SOL_GPIO_DIR_OUT ?
-        MODE_GPIO_OUTPUT : MODE_GPIO_INPUT_PULLUP);
+    if (config->dir == SOL_GPIO_DIR_IN) {
+        if (config->drive_mode == SOL_GPIO_DRIVE_NONE)
+            mode = MODE_GPIO_INPUT_HIZ;
+        else if (config->drive_mode == SOL_GPIO_DRIVE_PULL_UP)
+            mode = MODE_GPIO_INPUT_PULLUP;
+        else if (config->drive_mode == SOL_GPIO_DRIVE_PULL_DOWN)
+            mode = MODE_GPIO_INPUT_PULLDOWN;
+    }
+
+    return apply_mux_desc(desc_list[pin], mode);
 }
 
 int

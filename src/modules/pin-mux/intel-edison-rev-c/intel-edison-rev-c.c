@@ -441,10 +441,10 @@ _set_aio(const int device, const int pin)
 }
 
 static int
-_set_gpio(const uint32_t pin, const enum sol_gpio_direction dir)
+_set_gpio(const uint32_t pin, const struct sol_gpio_config *config)
 {
     if (ardu_breakout)
-        return mux_set_gpio(pin, dir, gpio_dev_0, (uint32_t)sol_util_array_size(gpio_dev_0));
+        return mux_set_gpio(pin, config, gpio_dev_0, (uint32_t)sol_util_array_size(gpio_dev_0));
 
     return 0;
 }

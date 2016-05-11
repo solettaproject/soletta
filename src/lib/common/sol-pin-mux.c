@@ -191,9 +191,9 @@ sol_pin_mux_setup_aio(const int device, const int pin)
 }
 
 SOL_API int
-sol_pin_mux_setup_gpio(const uint32_t pin, const enum sol_gpio_direction dir)
+sol_pin_mux_setup_gpio(const uint32_t pin, const struct sol_gpio_config *config)
 {
-    return (mux && mux->gpio) ? mux->gpio(pin, dir) : 0;
+    return (mux && mux->gpio) ? mux->gpio(pin, config) : 0;
 }
 
 SOL_API int
