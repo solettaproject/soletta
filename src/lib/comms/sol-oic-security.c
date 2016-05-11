@@ -26,18 +26,14 @@
 #include "sol-socket-dtls.h"
 #include "sol-socket.h"
 #include "sol-str-slice.h"
-#ifdef DTLS
-#include "sol-util-file.h"
-#endif
 #include "sol-util-internal.h"
 #include "sol-vector.h"
 
 #ifdef DTLS
+#include "sol-certificate.h"
 
-enum method {
-    METHOD_GET,
-    METHOD_PUT
-};
+#define OIC_CRED_FILE_PREFIX "oic-"
+#define OIC_CRED_FILE_SUFIX ".psk"
 
 struct sol_oic_security {
     struct sol_coap_server *server;
@@ -53,34 +49,50 @@ struct cred_item {
     /* FIXME: Only symmetric pairwise keys supported at the moment. */
 };
 
-struct creds {
-    struct sol_vector items;
-    const struct sol_oic_security *security;
-};
-
 struct sol_socket *sol_coap_server_get_socket(const struct sol_coap_server *server);
 
 static ssize_t
 creds_get_psk(const void *data, struct sol_str_slice id,
     char *psk, size_t psk_len)
 {
-    const struct creds *creds = data;
-    struct cred_item *iter;
-    uint16_t idx;
+    SOL_BUFFER_DECLARE_STATIC(path, NAME_MAX);
+    struct sol_cert *cert;
+    struct sol_blob *contents;
+    int r;
 
-    SOL_DBG("Looking for PSK with ID=%.*s", (int)id.len, id.data);
+    SOL_DBG("Looking for PSK with ID=%.*s", SOL_STR_SLICE_PRINT(id));
 
-    SOL_VECTOR_FOREACH_IDX (&creds->items, iter, idx) {
-        if (sol_str_slice_eq(id, iter->id.slice)) {
-            if (iter->id.slice.len > psk_len)
-                return -ENOBUFS;
+    if (psk_len < SOL_DTLS_PSK_KEY_LEN)
+        return -ENOBUFS;
 
-            memcpy(psk, iter->psk.data, iter->id.slice.len);
-            return (ssize_t)iter->psk.slice.len;
-        }
+    r = sol_buffer_append_slice(&path,
+        sol_str_slice_from_str(OIC_CRED_FILE_PREFIX));
+    SOL_INT_CHECK(r, < 0, r);
+
+    r = sol_util_file_encode_filename(&path, id);
+    SOL_INT_CHECK(r, < 0, r);
+
+    r = sol_buffer_append_slice(&path,
+        sol_str_slice_from_str(OIC_CRED_FILE_SUFIX));
+    SOL_INT_CHECK(r, < 0, r);
+
+    cert = sol_cert_load_from_id(path.data);
+    if (!cert)
+        return -ENOENT;
+
+    contents = sol_cert_get_contents(cert);
+    sol_cert_unref(cert);
+
+    if (contents->size < SOL_DTLS_PSK_KEY_LEN) {
+        SOL_WRN("PSK found is invalid.");
+        sol_blob_unref(contents);
+        return -ENOENT;
     }
 
-    return -ENOENT;
+    memcpy(psk, contents->mem, SOL_DTLS_PSK_KEY_LEN);
+    sol_blob_unref(contents);
+
+    return SOL_DTLS_PSK_KEY_LEN;
 }
 
 static ssize_t
@@ -94,205 +106,6 @@ creds_get_id(const void *data, char *id, size_t id_len)
 
     memcpy(id, machine_id, len);
     return (ssize_t)len;
-}
-
-static bool
-creds_add(struct creds *creds, const char *id, size_t id_len,
-    const char *psk, size_t psk_len)
-{
-    struct cred_item *item;
-    char psk_stored[64];
-    ssize_t r;
-
-    r = creds_get_psk(creds, SOL_STR_SLICE_STR(id, id_len),
-        psk_stored, sizeof(psk_stored));
-    if (r > 0) {
-        struct sol_str_slice stored = SOL_STR_SLICE_STR(psk_stored, r);
-        struct sol_str_slice passed = SOL_STR_SLICE_STR(psk, psk_len);
-
-        if (sol_str_slice_eq(stored, passed))
-            return true;
-
-        SOL_WRN("Attempting to add PSK for ID=%.*s, but it's already"
-            " registered and different from the supplied key",
-            (int)id_len, id);
-        return false;
-    } else if (r < 0 && r != -ENOENT) {
-        SOL_WRN("Error while adding credentials: %s", sol_util_strerrora(-r));
-        return false;
-    }
-
-    item = sol_vector_append(&creds->items);
-    SOL_NULL_CHECK(item, false);
-
-    item->id.data = sol_util_memdup(id, id_len);
-    SOL_NULL_CHECK_GOTO(item->id.data, no_id);
-
-    item->psk.data = sol_util_memdup(psk, psk_len);
-    SOL_NULL_CHECK_GOTO(item->psk.data, no_psk);
-
-    item->id.slice = SOL_STR_SLICE_STR(item->id.data, id_len);
-    item->psk.slice = SOL_STR_SLICE_STR(item->psk.data, psk_len);
-
-    return true;
-
-no_psk:
-    sol_util_clear_memory_secure(item->id.data, id_len);
-    free(item->id.data);
-no_id:
-    sol_util_clear_memory_secure(item, sizeof(*item));
-    sol_vector_del(&creds->items, creds->items.len - 1);
-
-    return false;
-}
-
-static void
-creds_clear(void *data)
-{
-    struct creds *creds = data;
-    struct cred_item *iter;
-    uint16_t idx;
-
-    SOL_VECTOR_FOREACH_IDX (&creds->items, iter, idx) {
-        sol_util_clear_memory_secure(iter->id.data, iter->id.slice.len);
-        sol_util_clear_memory_secure(iter->psk.data, iter->psk.slice.len);
-
-        free(iter->id.data);
-        free(iter->psk.data);
-    }
-    sol_vector_clear(&creds->items);
-
-    sol_util_clear_memory_secure(creds, sizeof(*creds));
-    free(creds);
-}
-
-static struct sol_str_slice
-remove_quotes(struct sol_str_slice slice)
-{
-    if (slice.len < 2)
-        return SOL_STR_SLICE_STR(NULL, 0);
-
-    slice.len -= 2;
-    slice.data++;
-
-    return slice;
-}
-
-static bool
-creds_add_json_token(struct creds *creds, struct sol_json_scanner *scanner,
-    struct sol_json_token *token)
-{
-    struct sol_json_token key, value;
-    enum sol_json_loop_reason reason;
-    struct sol_str_slice psk = SOL_STR_SLICE_EMPTY;
-    struct sol_str_slice id = SOL_STR_SLICE_EMPTY;
-    struct sol_buffer id_buf, psk_buf;
-
-    SOL_JSON_SCANNER_OBJECT_LOOP_NEST (scanner, token, &key, &value, reason) {
-        if (SOL_JSON_TOKEN_STR_LITERAL_EQ(&key, "id")) {
-            id = remove_quotes(sol_json_token_to_slice(&value));
-        } else if (SOL_JSON_TOKEN_STR_LITERAL_EQ(&key, "psk")) {
-            psk = remove_quotes(sol_json_token_to_slice(&value));
-        }
-    }
-
-    if (id.len && psk.len) {
-        char id_buf_backing[SOL_DTLS_PSK_ID_LEN],
-            psk_buf_backing[SOL_DTLS_PSK_KEY_LEN];
-        bool result = false;
-
-        sol_buffer_init_flags(&id_buf, id_buf_backing, sizeof(id_buf_backing),
-            SOL_BUFFER_FLAGS_CLEAR_MEMORY | SOL_BUFFER_FLAGS_NO_NUL_BYTE |
-            SOL_BUFFER_FLAGS_MEMORY_NOT_OWNED);
-        sol_buffer_init_flags(&psk_buf, psk_buf_backing, sizeof(psk_buf_backing),
-            SOL_BUFFER_FLAGS_CLEAR_MEMORY | SOL_BUFFER_FLAGS_NO_NUL_BYTE |
-            SOL_BUFFER_FLAGS_MEMORY_NOT_OWNED);
-
-        if (sol_buffer_append_from_base64(&id_buf, id, SOL_BASE64_MAP) < 0)
-            goto finish_bufs;
-        if (sol_buffer_append_from_base64(&psk_buf, psk, SOL_BASE64_MAP) < 0)
-            goto finish_bufs;
-
-        result = creds_add(creds, id_buf.data, id_buf.used,
-            psk_buf.data, psk_buf.used);
-
-finish_bufs:
-        sol_buffer_fini(&psk_buf);
-        sol_buffer_fini(&id_buf);
-
-        return result;
-    }
-
-    return false;
-}
-
-static bool
-generate_file_name(const char *prefix, char *filename, size_t len)
-{
-    struct sol_buffer buf;
-    int r;
-    struct sol_str_slice id = SOL_STR_SLICE_STR((char *)sol_platform_get_machine_id_as_bytes(), 16);
-
-    sol_buffer_init_flags(&buf, filename, len,
-        SOL_BUFFER_FLAGS_MEMORY_NOT_OWNED);
-
-    r = sol_buffer_append_printf(&buf, "%s", prefix);
-    SOL_INT_CHECK(r, < 0, false);
-    r = sol_buffer_append_as_base64(&buf, id, SOL_BASE64_MAP);
-    SOL_INT_CHECK(r, < 0, false);
-    r = sol_buffer_append_printf(&buf, "%s", ".json");
-    SOL_INT_CHECK(r, < 0, false);
-
-    return true;
-}
-
-static void *
-creds_init(const void *data)
-{
-    struct creds *creds;
-    struct sol_json_scanner scanner;
-    struct sol_json_token token;
-    enum sol_json_loop_reason reason;
-    char *file_data;
-    size_t length;
-    char file_name[256];
-
-    if (!generate_file_name("/tmp/oic-creds-", file_name, sizeof(file_name)))
-        return NULL;
-
-    creds = calloc(1, sizeof(*creds));
-    SOL_NULL_CHECK(creds, NULL);
-
-    creds->security = data;
-    sol_vector_init(&creds->items, sizeof(struct cred_item));
-
-    file_data = sol_util_load_file_string(file_name, &length);
-    if (!file_data)
-        return creds;
-
-    sol_json_scanner_init(&scanner, file_data, length);
-    SOL_JSON_SCANNER_ARRAY_LOOP (&scanner, &token, SOL_JSON_TYPE_OBJECT_START, reason) {
-        if (!creds_add_json_token(creds, &scanner, &token)) {
-            creds_clear(creds);
-            creds = NULL;
-            goto out;
-        }
-    }
-
-    if (reason != SOL_JSON_LOOP_REASON_OK) {
-        creds_clear(creds);
-        creds = NULL;
-    }
-
-out:
-    sol_util_clear_memory_secure(&scanner, sizeof(scanner));
-    sol_util_clear_memory_secure(&token, sizeof(token));
-    sol_util_clear_memory_secure(&reason, sizeof(reason));
-
-    sol_util_clear_memory_secure(file_data, length);
-    free(file_data);
-
-    return creds;
 }
 
 static void
@@ -326,8 +139,6 @@ sol_oic_security_add_full(struct sol_coap_server *server,
 
     security->callbacks = (struct sol_socket_dtls_credential_cb) {
         .data = security,
-        .init = creds_init,
-        .clear = creds_clear,
         .get_id = creds_get_id,
         .get_psk = creds_get_psk
     };
