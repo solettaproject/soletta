@@ -52,6 +52,7 @@ soletta_config := $(thisdir)/.config
 # touching the OS build system
 $(soletta_target) $(soletta_config): private override MAKEFLAGS=""
 $(soletta_target) $(soletta_config): private export PYTHON=python3
+$(soletta_target) $(soletta_config): private export BOARD_NAME:=$(BOARD_NAME)
 
 $(soletta_target): $(soletta_config)
 	@echo "Building Soletta..."
