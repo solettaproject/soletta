@@ -65,6 +65,8 @@ extern "C" {
  * @li @ref Utils
  * @li @ref WorkerThread
  *
+ * Also a lot of examples may be found at @ref examples page.
+ *
  * Please see the @ref authors page for contact details.
  */
 

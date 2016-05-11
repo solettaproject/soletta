@@ -158,6 +158,9 @@ $(DOXYGEN_GENERATED): $(DOXYGEN_RESOURCES) $(shell find $(top_srcdir)src/ -name 
 	$(Q)$(MKDIR) -p $(build_doxygen_targetdir)
 	$(Q)$(RM) $(build_doxygen_logfile)
 	$(Q)$(RM) -rf $(build_doxygen_targetdir)/*
+	$(Q) cat $(top_srcdir)doc/doxygen/examples_head.dox >> $(build_doxygen_targetdir)/examples.dox
+	$(Q) find $(top_srcdir)src/samples -type f -name *.c -printf "@example %h/%f\n" | sort >> $(build_doxygen_targetdir)/examples.dox
+	$(Q) cat $(top_srcdir)doc/doxygen/examples_foot.dox >> $(build_doxygen_targetdir)/examples.dox
 	$(Q)$(DOXYGEN) doc/doxygen/Doxyfile
 	$(Q) test `du $(build_doxygen_logfile) | cut -f1` -eq 0 || (echo "Failed to build doc" && cat $(build_doxygen_logfile) && exit 1)
 
