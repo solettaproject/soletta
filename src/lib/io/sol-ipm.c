@@ -289,7 +289,7 @@ sol_ipm_send(uint32_t id, struct sol_blob *message)
     blob = calloc(1, sizeof(struct sol_blob_ipm_sent));
     SOL_NULL_CHECK(blob, -ENOMEM);
 
-    sol_blob_setup(&blob->base, SOL_BLOB_TYPE_NO_FREE, message->mem, message->size);
+    sol_blob_setup(&blob->base, &SOL_BLOB_TYPE_NO_FREE_DATA, message->mem, message->size);
     sol_blob_set_parent(&blob->base, message);
     blob->id = id;
 
