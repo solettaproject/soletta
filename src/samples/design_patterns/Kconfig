@@ -1,0 +1,8 @@
+config DESIGN_PATTERN_SAMPLES
+	bool "Design patterns samples"
+	default y
+
+config STREAM_SAMPLE
+	bool "I/O Stream Sample"
+	depends on DESIGN_PATTERN_SAMPLES
+	default y
