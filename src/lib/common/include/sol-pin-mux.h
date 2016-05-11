@@ -89,18 +89,17 @@ int sol_pin_mux_map(const char *label, const enum sol_io_protocol prot, ...);
 int sol_pin_mux_setup_aio(const int device, const int pin);
 
 /**
- * @brief Setup the given pin to operate as GPIO in the given direction (in or out).
+ * @brief Setup the given pin to operate in the given GPIO configuration.
  *
  * If a pin multiplexer is loaded (from a successfully call to sol_pin_mux_select_mux),
- * execute the instructions needed to configure 'pin' to operate as GPIO in direction
- * 'dir'.
+ * execute the instructions needed to configure 'pin' to operate as configured by 'config'.
  *
  * @param pin the gpio pin number.
- * @param dir direction (in or out) that the pin should operate.
+ * @param config Desired configuration for the pin.
  *
  * @return '0' on success, error code (always negative) otherwise.
  */
-int sol_pin_mux_setup_gpio(const uint32_t pin, const enum sol_gpio_direction dir);
+int sol_pin_mux_setup_gpio(const uint32_t pin, const struct sol_gpio_config *config);
 
 /**
  * @brief Setup the pins used of the given i2c bus number to operate in I2C mode.
