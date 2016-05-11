@@ -1268,7 +1268,7 @@ blob_from_buffer(struct sol_flow_node *node, struct sol_buffer *buf)
     void *data;
 
     data = sol_buffer_steal_or_copy(buf, &size);
-    blob = sol_blob_new(SOL_BLOB_TYPE_DEFAULT, NULL, data, size);
+    blob = sol_blob_new(&SOL_BLOB_TYPE_DEFAULT, NULL, data, size);
     if (!blob) {
         sol_flow_send_error_packet(node, ENOMEM,
             "Could not alloc memory for the response");

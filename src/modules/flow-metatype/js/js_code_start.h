@@ -209,7 +209,7 @@
     "    cpy = malloc(size);\n" \
     "    SOL_NULL_CHECK(cpy, NULL);\n" \
     "    memcpy(cpy, mem, size);\n" \
-    "    blob = sol_blob_new(SOL_BLOB_TYPE_DEFAULT, NULL, cpy, size);\n" \
+    "    blob = sol_blob_new(&SOL_BLOB_TYPE_DEFAULT, NULL, cpy, size);\n" \
     "    if (!blob) {\n" \
     "        free(cpy);\n" \
     "        return NULL;\n" \
@@ -270,7 +270,7 @@
     "    cpy = malloc(size);\n" \
     "    SOL_NULL_CHECK(cpy, NULL);\n" \
     "    memcpy(cpy, mem, size);\n" \
-    "    content = sol_blob_new(SOL_BLOB_TYPE_DEFAULT, NULL, cpy, size);\n" \
+    "    content = sol_blob_new(&SOL_BLOB_TYPE_DEFAULT, NULL, cpy, size);\n" \
     "    SOL_NULL_CHECK_GOTO(content, err_exit);\n" \
     "    packet = sol_flow_packet_new_http_response(code, url,\n" \
     "        content_type, content, &cookies, &headers);\n" \
@@ -294,7 +294,7 @@
     "    char *cpy;\n" \
     "    value = duk_require_string(ctx, -1);\n" \
     "    cpy = strdup(value);\n" \
-    "    blob = sol_blob_new(SOL_BLOB_TYPE_DEFAULT, NULL, cpy, strlen(cpy));\n" \
+    "    blob = sol_blob_new(&SOL_BLOB_TYPE_DEFAULT, NULL, cpy, strlen(cpy));\n" \
     "    if (!blob) {\n" \
     "        free(cpy);\n" \
     "        return NULL;\n" \

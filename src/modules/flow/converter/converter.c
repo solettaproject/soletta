@@ -2096,7 +2096,7 @@ get_string_convert_blob(struct sol_converter_string_blob *mdata, const struct so
         memcpy(mem, str, len);
     }
 
-    blob = sol_blob_new(SOL_BLOB_TYPE_DEFAULT, NULL, mem, len);
+    blob = sol_blob_new(&SOL_BLOB_TYPE_DEFAULT, NULL, mem, len);
     if (!blob) {
         free(mem);
         return NULL;

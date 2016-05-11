@@ -139,7 +139,7 @@ on_stdin_hash(void *data, int fd, uint32_t flags)
             fputs("ERROR: cannot allocate memory to read stdin.\n", stderr);
             return true;
         }
-        b = sol_blob_new(SOL_BLOB_TYPE_DEFAULT, NULL, mem, PATH_MAX);
+        b = sol_blob_new(&SOL_BLOB_TYPE_DEFAULT, NULL, mem, PATH_MAX);
         if (!b) {
             fputs("ERROR: cannot allocate blob for stdin.\n", stderr);
             free(mem);
@@ -166,7 +166,7 @@ on_stdin_hash(void *data, int fd, uint32_t flags)
     }
 
     if (flags & (SOL_FD_FLAGS_ERR | SOL_FD_FLAGS_HUP | SOL_FD_FLAGS_NVAL) && !is_last) {
-        b = sol_blob_new(SOL_BLOB_TYPE_DEFAULT, NULL, NULL, 0);
+        b = sol_blob_new(&SOL_BLOB_TYPE_DEFAULT, NULL, NULL, 0);
         if (!b) {
             fputs("ERROR: cannot allocate blob for stdin.\n", stderr);
             return true;

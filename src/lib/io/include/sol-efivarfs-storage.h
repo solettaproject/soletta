@@ -97,7 +97,7 @@ int sol_efivars_read_raw(const char *name, struct sol_buffer *buffer);
     void *v = malloc(_s); \
     SOL_NULL_CHECK(v, -ENOMEM); \
     memcpy(v, _val, _s); \
-    blob = sol_blob_new(SOL_BLOB_TYPE_DEFAULT, NULL, v, _s); \
+    blob = sol_blob_new(&SOL_BLOB_TYPE_DEFAULT, NULL, v, _s); \
     if (!blob) { \
         free(v); \
         return -EINVAL; \
@@ -264,7 +264,7 @@ sol_efivars_write_string(const char *name, const char *value,
     string = strdup(value);
     SOL_NULL_CHECK(string, -ENOMEM);
 
-    blob = sol_blob_new(SOL_BLOB_TYPE_DEFAULT, NULL, string, strlen(value));
+    blob = sol_blob_new(&SOL_BLOB_TYPE_DEFAULT, NULL, string, strlen(value));
     SOL_NULL_CHECK_GOTO(blob, error);
 
     r = sol_efivars_write_raw(name, blob, cb, data);

@@ -161,7 +161,7 @@ sol_cert_get_contents(const struct sol_cert *cert)
     data = sol_util_load_file_string(cert->filename, &size);
     SOL_NULL_CHECK(data, NULL);
 
-    blob = sol_blob_new(SOL_BLOB_TYPE_DEFAULT, NULL, data, size);
+    blob = sol_blob_new(&SOL_BLOB_TYPE_DEFAULT, NULL, data, size);
     if (!blob) {
         SOL_WRN("Could not allocate memory for sol_blob");
         free(data);

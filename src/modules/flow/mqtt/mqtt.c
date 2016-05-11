@@ -135,7 +135,7 @@ on_message(void *data, struct sol_mqtt *mqtt, const struct sol_mqtt_message *mes
     payload = sol_util_memdup(message->payload->data, message->payload->used);
     SOL_NULL_CHECK(payload);
 
-    blob = sol_blob_new(SOL_BLOB_TYPE_DEFAULT, NULL, payload, message->payload->used);
+    blob = sol_blob_new(&SOL_BLOB_TYPE_DEFAULT, NULL, payload, message->payload->used);
     SOL_NULL_CHECK_GOTO(blob, error);
 
     sol_flow_send_blob_packet(mdata->node, SOL_FLOW_NODE_TYPE_MQTT_CLIENT__OUT__OUTDATA, blob);

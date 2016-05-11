@@ -588,7 +588,7 @@ static int
 empty_writer_process(struct sol_flow_node *node, void *data, uint16_t port, uint16_t conn_id, const struct sol_flow_packet *packet)
 {
     struct ipm_data *mdata = data;
-    struct sol_blob *blob = sol_blob_new(SOL_BLOB_TYPE_DEFAULT, NULL, NULL, 0);
+    struct sol_blob *blob = sol_blob_new(&SOL_BLOB_TYPE_DEFAULT, NULL, NULL, 0);
     int r;
 
     SOL_NULL_CHECK(blob, -ENOMEM);

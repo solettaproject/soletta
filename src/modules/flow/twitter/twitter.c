@@ -124,7 +124,7 @@ twitter_request_finished(void *data,
         response->content.used);
 
     r = ENOMEM;
-    blob = sol_blob_new(SOL_BLOB_TYPE_DEFAULT, NULL,
+    blob = sol_blob_new(&SOL_BLOB_TYPE_DEFAULT, NULL,
         sol_buffer_steal(&response->content, NULL), response->content.used);
     SOL_NULL_CHECK_GOTO(blob, err);
 
@@ -354,7 +354,7 @@ post_status(struct sol_flow_node *node, const char *status)
         (int)buf.used, (char *)buf.data);
     SOL_INT_CHECK_GOTO(r, < 0, err_signature);
 
-    blob = sol_blob_new(SOL_BLOB_TYPE_DEFAULT, NULL,
+    blob = sol_blob_new(&SOL_BLOB_TYPE_DEFAULT, NULL,
         signature, strlen(signature));
     SOL_NULL_CHECK_GOTO(blob, err_blob);
 
@@ -517,7 +517,7 @@ timeline_process(struct sol_flow_node *node, void *data, uint16_t port, uint16_t
     sol_buffer_fini(&buf);
     SOL_INT_CHECK_GOTO(r, < 0, err_signature);
 
-    blob = sol_blob_new(SOL_BLOB_TYPE_DEFAULT,
+    blob = sol_blob_new(&SOL_BLOB_TYPE_DEFAULT,
         NULL, signature, strlen(signature));
     SOL_NULL_CHECK_GOTO(blob, err_blob);
 

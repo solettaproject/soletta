@@ -375,7 +375,7 @@ _sol_message_digest_setup_receive_digest(struct sol_message_digest *handle)
     mem = malloc(handle->digest_size);
     SOL_NULL_CHECK(mem);
 
-    handle->digest = sol_blob_new(SOL_BLOB_TYPE_DEFAULT, NULL,
+    handle->digest = sol_blob_new(&SOL_BLOB_TYPE_DEFAULT, NULL,
         mem, handle->digest_size);
     SOL_NULL_CHECK_GOTO(handle->digest, error);
 
