@@ -783,7 +783,7 @@
             "name": "method"
           },
           {
-            "data_type": "int",
+            "data_type": "uint",
             "default": 0,
             "description": "The number of milliseconds to wait for the request to be completed",
             "name": "timeout"
@@ -1028,7 +1028,7 @@
             "name": "scheme"
           },
           {
-            "data_type": "int",
+            "data_type": "uint",
             "default": 0,
             "description": "The server port",
             "name": "port"

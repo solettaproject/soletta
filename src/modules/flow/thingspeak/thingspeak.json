@@ -34,7 +34,7 @@
             "name": "endpoint"
           },
           {
-            "data_type": "int",
+            "data_type": "uint",
             "default": 1000,
             "description": "Poll interval in milliseconds. Default to one request every 1000ms.",
             "name": "interval"

@@ -129,13 +129,8 @@ pwm_open(struct sol_flow_node *node, void *data, const struct sol_flow_node_opti
         SOL_FLOW_NODE_TYPE_PWM_OPTIONS_API_VERSION, -EINVAL);
 
     // Use values from options. Period = 0 considered invalid.
-    if (opts->period <= 0) {
+    if (opts->period == 0) {
         SOL_WRN("Invalid value for period - pwm (%s)", opts->pin);
-        return -EINVAL;
-    }
-
-    if (opts->duty_cycle < 0) {
-        SOL_WRN("Invalid value for duty_cycle - pwm (%s)", opts->pin);
         return -EINVAL;
     }
 

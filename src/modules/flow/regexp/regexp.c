@@ -30,7 +30,7 @@ struct string_regexp_search_data {
     size_t max_regexp_search;
     char *string;
     char *regexp;
-    int index;
+    uint32_t index;
 };
 
 struct string_regexp_replace_data {
@@ -38,7 +38,7 @@ struct string_regexp_replace_data {
     char *orig_string;
     char *regexp;
     char *to_regexp;
-    int32_t max_regexp_replace;
+    uint32_t max_regexp_replace;
     bool forward_on_no_match;
 };
 
@@ -183,7 +183,7 @@ static int
 send_regexp_substring(struct string_regexp_search_data *mdata)
 {
     struct sol_str_slice *sub_slice;
-    int len;
+    uint16_t len;
 
     len = mdata->substrings.len;
     if (!len)
@@ -357,16 +357,6 @@ string_regexp_search_open(struct sol_flow_node *node,
         -EINVAL);
     opts = (const struct sol_flow_node_type_regexp_search_options *)options;
 
-    if (opts->index < 0) {
-        SOL_WRN("Index (%" PRId32 ") must be a non-negative value",
-            opts->index);
-        return -EINVAL;
-    }
-    if (opts->max_regexp_search < 0) {
-        SOL_WRN("Max regexp matches (%" PRId32 ") must be"
-            " a non-negative value", opts->max_regexp_search);
-        return -EINVAL;
-    }
     if (!opts->regexp || !strlen(opts->regexp)) {
         SOL_WRN("A non-empty regular expression string must be provided");
         return -EINVAL;
@@ -514,11 +504,6 @@ string_regexp_replace_open(struct sol_flow_node *node,
     mdata->node = node;
     mdata->forward_on_no_match = opts->forward_on_no_match;
 
-    if (opts->max_regexp_replace < 0) {
-        SOL_WRN("Max regexp matches (%" PRId32 ") must be"
-            " a non-negative value", opts->max_regexp_replace);
-        return -EINVAL;
-    }
     mdata->max_regexp_replace = opts->max_regexp_replace > 0 ?
         (size_t)opts->max_regexp_replace : INT32_MAX;
 

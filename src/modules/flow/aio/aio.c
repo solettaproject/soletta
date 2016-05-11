@@ -129,12 +129,12 @@ aio_reader_open(struct sol_flow_node *node, void *data, const struct sol_flow_no
         return -EINVAL;
     }
 
-    if (opts->mask <= 0) {
+    if (opts->mask == 0) {
         SOL_WRN("aio (%s): Invalid bit mask value=%" PRId32 ".", opts->pin, opts->mask);
         return -EINVAL;
     }
 
-    if (opts->poll_timeout <= 0) {
+    if (opts->poll_timeout == 0) {
         SOL_WRN("aio (%s): Invalid polling time=%" PRId32 ".", opts->pin, opts->poll_timeout);
         return -EINVAL;
     }

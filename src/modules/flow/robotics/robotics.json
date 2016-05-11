@@ -96,7 +96,7 @@
         "version": 1,
         "members": [
           {
-            "data_type": "int",
+            "data_type": "uint",
             "description": "Time to wait before sending the tick delta, in ms. Default is 100ms.",
             "name": "period",
             "default": 100
@@ -158,7 +158,7 @@
             "name": "axle_length"
           },
           {
-            "data_type": "int",
+            "data_type": "uint",
             "description": "Update period, in ms. Default is 100ms.",
             "name": "update_period",
             "default": 100

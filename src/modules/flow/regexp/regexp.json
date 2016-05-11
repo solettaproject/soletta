@@ -55,13 +55,13 @@
       "options": {
         "members": [
           {
-            "data_type": "int",
+            "data_type": "uint",
             "default": 0,
             "description": "This value defines which substring match (by index, starting from 0) inside the one that was fed to the 'IN' port should be output in the 'OUT' port. It must be non-negative. It can be overriden by values received on 'INDEX' port.",
             "name": "index"
           },
           {
-            "data_type": "int",
+            "data_type": "uint",
             "default": 0,
             "description": "The regular expression matching against the input string can result in various substring matches. This value defines the maximum number of them to generate and make available for selection by the 'INDEX' port. This option can be overriden by values received on the 'MAX_REGEXP_SEARCH' port. The value of zero (default one) will be interpreted as to generate all possible matches.",
             "name": "max_regexp_search"
@@ -137,7 +137,7 @@
       "options": {
         "members": [
           {
-            "data_type": "int",
+            "data_type": "uint",
             "default": 0,
             "description": "The regular expression matching against the input string can result in various substring matches. This value defines the maximum number of them to replace for the string given in the 'to' option. This option can be overriden by values received on the 'MAX_REGEXP_REPLACE' port. The value of zero (default one) will be interpreted as to replace all possible matches.",
             "name": "max_regexp_replace"

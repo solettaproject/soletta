@@ -77,10 +77,7 @@ boolean_generator_open(
     mdata->it = mdata->sequence = strdup(opts->sequence);
     SOL_NULL_CHECK(mdata->sequence, -errno);
 
-    if (opts->interval < 0)
-        SOL_WRN("Option 'interval' < 0, setting it to 0.");
-
-    mdata->interval = opts->interval >= 0 ? opts->interval : 0;
+    mdata->interval = opts->interval;
     mdata->timer = sol_timeout_add(mdata->interval, timer_tick, node);
     SOL_NULL_CHECK_GOTO(mdata->timer, error);
 

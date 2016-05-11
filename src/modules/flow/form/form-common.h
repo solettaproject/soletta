@@ -89,7 +89,7 @@ int format_post_value(struct sol_buffer *buf, size_t n_rows, size_t n_cols, size
 
 int format_send(struct sol_flow_node *node, struct sol_buffer *buf, uint16_t out_port);
 
-int common_form_init(struct sol_buffer *buf, int32_t in_rows, size_t *out_rows,  int32_t in_cols, size_t *out_cols, const char *in_format, char **out_format, const char *in_title, char **out_title, char **out_title_tag, char **out_value_tag, char **out_text_mem);
+int common_form_init(struct sol_buffer *buf, uint32_t in_rows, size_t *out_rows,  uint32_t in_cols, size_t *out_cols, const char *in_format, char **out_format, const char *in_title, char **out_title, char **out_title_tag, char **out_value_tag, char **out_text_mem);
 
 int go_to_new_line(struct sol_buffer *buf, size_t n_rows, size_t n_cols, size_t *row, size_t *col);
 

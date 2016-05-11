@@ -1601,7 +1601,6 @@ request_node_open(struct sol_flow_node *node, void *data,
 
     SOL_FLOW_NODE_OPTIONS_SUB_API_CHECK(options, SOL_FLOW_NODE_TYPE_HTTP_CLIENT_REQUEST_OPTIONS_API_VERSION,
         -EINVAL);
-    SOL_INT_CHECK(opts->timeout, < 0, -EINVAL);
     mdata->timeout = opts->timeout;
 
     sol_http_params_init(&mdata->base.url_params);
@@ -2081,7 +2080,6 @@ create_url_open(struct sol_flow_node *node, void *data,
         -EINVAL);
 
     mdata->params = SOL_HTTP_REQUEST_PARAMS_INIT;
-    SOL_INT_CHECK(opts->port, < 0, -EINVAL);
     mdata->port = opts->port;
     r = -ENOMEM;
 

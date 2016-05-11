@@ -26,7 +26,7 @@
       "options": {
         "members": [
           {
-            "data_type": "int",
+            "data_type": "uint",
             "description": "ID of message. Readers will use this ID to receive messages. Must be greater than 0 and smaller than platform maximum id number.",
             "name": "id"
           }
@@ -64,7 +64,7 @@
       "options": {
         "members": [
           {
-            "data_type": "int",
+            "data_type": "uint",
             "description": "ID of message. Only messages written with this ID will be received. Must be greater than 0 and smaller than platform maximum id number.",
             "name": "id"
           }
@@ -100,7 +100,7 @@
       "options": {
         "members": [
           {
-            "data_type": "int",
+            "data_type": "uint",
             "description": "ID of message. Readers will use this ID to receive messages. Must be greater than 0 and smaller than platform maximum id number.",
             "name": "id"
           }
@@ -138,7 +138,7 @@
       "options": {
         "members": [
           {
-            "data_type": "int",
+            "data_type": "uint",
             "description": "ID of message. Only messages written with this ID will be received. Must be greater than 0 and smaller than platform maximum id number.",
             "name": "id"
           }
@@ -174,7 +174,7 @@
       "options": {
         "members": [
           {
-            "data_type": "int",
+            "data_type": "uint",
             "description": "ID of message. Readers will use this ID to receive messages. Must be greater than 0 and smaller than platform maximum id number.",
             "name": "id"
           }
@@ -212,7 +212,7 @@
       "options": {
         "members": [
           {
-            "data_type": "int",
+            "data_type": "uint",
             "description": "ID of message. Only messages written with this ID will be received. Must be greater than 0 and smaller than platform maximum id number.",
             "name": "id"
           }
@@ -248,7 +248,7 @@
       "options": {
         "members": [
           {
-            "data_type": "int",
+            "data_type": "uint",
             "description": "ID of message. Readers will use this ID to receive messages. Must be greater than 0 and smaller than platform maximum id number.",
             "name": "id"
           }
@@ -286,7 +286,7 @@
       "options": {
         "members": [
           {
-            "data_type": "int",
+            "data_type": "uint",
             "description": "ID of message. Only messages written with this ID will be received. Must be greater than 0 and smaller than platform maximum id number.",
             "name": "id"
           }
@@ -322,7 +322,7 @@
       "options": {
         "members": [
           {
-            "data_type": "int",
+            "data_type": "uint",
             "description": "ID of message. Readers will use this ID to receive messages. Must be greater than 0 and smaller than platform maximum id number.",
             "name": "id"
           }
@@ -360,7 +360,7 @@
       "options": {
         "members": [
           {
-            "data_type": "int",
+            "data_type": "uint",
             "description": "ID of message. Only messages written with this ID will be received. Must be greater than 0 and smaller than platform maximum id number.",
             "name": "id"
           }
@@ -396,7 +396,7 @@
       "options": {
         "members": [
           {
-            "data_type": "int",
+            "data_type": "uint",
             "description": "ID of message. Readers will use this ID to receive messages. Must be greater than 0 and smaller than platform maximum id number.",
             "name": "id"
           }
@@ -434,7 +434,7 @@
       "options": {
         "members": [
           {
-            "data_type": "int",
+            "data_type": "uint",
             "description": "ID of message. Only messages written with this ID will be received. Must be greater than 0 and smaller than platform maximum id number.",
             "name": "id"
           }
@@ -470,7 +470,7 @@
       "options": {
         "members": [
           {
-            "data_type": "int",
+            "data_type": "uint",
             "description": "ID of message. Readers will use this ID to receive messages. Must be greater than 0 and smaller than platform maximum id number.",
             "name": "id"
           }
@@ -508,7 +508,7 @@
       "options": {
         "members": [
           {
-            "data_type": "int",
+            "data_type": "uint",
             "description": "ID of message. Only messages written with this ID will be received. Must be greater than 0 and smaller than platform maximum id number.",
             "name": "id"
           }
@@ -544,7 +544,7 @@
       "options": {
         "members": [
           {
-            "data_type": "int",
+            "data_type": "uint",
             "description": "ID of message. Readers will use this ID to receive messages. Must be greater than 0 and smaller than platform maximum id number.",
             "name": "id"
           }
@@ -582,7 +582,7 @@
       "options": {
         "members": [
           {
-            "data_type": "int",
+            "data_type": "uint",
             "description": "ID of message. Only messages written with this ID will be received. Must be greater than 0 and smaller than platform maximum id number.",
             "name": "id"
           }

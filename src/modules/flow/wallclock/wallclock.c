@@ -46,7 +46,7 @@ enum sol_flow_node_wallclock_type {
 struct wallclock_timeblock_data {
     struct sol_timeout *timer;
     struct sol_flow_node *node;
-    int interval;
+    uint16_t interval;
 };
 
 struct wallclock_data {

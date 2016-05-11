@@ -146,7 +146,7 @@ struct string_formatted_data {
     struct sol_buffer text_grid, formatted_value;
     struct sol_vector chunks;
     struct sol_timeout *timer;
-    int blink_time;
+    uint32_t blink_time;
     bool circular : 1;
     bool enabled : 1;
     bool blink_on : 1;
@@ -571,11 +571,6 @@ string_formatted_open(struct sol_flow_node *node,
     mdata->enabled = true;
 
     mdata->blink_time = opts->blink_time;
-    if (opts->blink_time < 0) {
-        SOL_WRN("Invalid blink_time (%" PRId32 "), that must be positive. "
-            "Setting to 1ms.", opts->blink_time);
-        mdata->blink_time = 1;
-    }
 
     mdata->blink_on = true;
     mdata->state_changed = true;

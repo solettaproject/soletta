@@ -1117,10 +1117,7 @@ integer_custom_open(struct sol_flow_node *node,
     int n_max, n_min;
     struct integer_custom_data *mdata = data;
     const struct sol_flow_node_type_form_int_custom_options *opts =
-        (const struct sol_flow_node_type_form_int_custom_options *)options,
-    *def_opts;
-
-    def_opts = node->type->default_options;
+        (const struct sol_flow_node_type_form_int_custom_options *)options;
 
     SOL_FLOW_NODE_OPTIONS_SUB_API_CHECK(options,
         SOL_FLOW_NODE_TYPE_FORM_INT_OPTIONS_API_VERSION, -EINVAL);
@@ -1131,11 +1128,6 @@ integer_custom_open(struct sol_flow_node *node,
     SOL_INT_CHECK_GOTO(r, < 0, err);
 
     mdata->blink_time = opts->blink_time;
-    if (opts->blink_time < 0) {
-        SOL_WRN("Invalid blink_time (%" PRId32 "), that must be positive. "
-            "Setting to %" PRId32 ".", opts->blink_time, def_opts->blink_time);
-        mdata->blink_time = def_opts->blink_time;
-    }
 
     mdata->blink_on = true;
 
@@ -1726,27 +1718,9 @@ string_open(struct sol_flow_node *node,
     mdata->enabled = true;
 
     mdata->blink_time = opts->blink_time;
-    if (opts->blink_time < 0) {
-        SOL_WRN("Invalid blink_time (%" PRId32 "), that must be positive. "
-            "Setting to %" PRId32 "", opts->blink_time, def_opts->blink_time);
-        mdata->blink_time = def_opts->blink_time;
-    }
 
     mdata->min_length = opts->min_length;
-    if (opts->min_length < 0) {
-        SOL_WRN("Invalid minimum output size (%" PRId32 "), "
-            "that must be positive. Setting to %" PRId32 ".",
-            opts->min_length, def_opts->min_length);
-        mdata->min_length = def_opts->min_length;
-    }
-
     mdata->max_length = opts->max_length;
-    if (opts->max_length < 0) {
-        SOL_WRN("Invalid maximum output size (%" PRId32 "), "
-            "that must be positive. Setting to %" PRId32 ".",
-            opts->max_length, def_opts->max_length);
-        mdata->max_length = def_opts->max_length;
-    }
 
     if (mdata->max_length && mdata->max_length < mdata->min_length) {
         SOL_WRN("Invalid maximum output size (%" PRId32 "), "

@@ -26,7 +26,7 @@
 struct timer_data {
     struct sol_flow_node *node;
     struct sol_timeout *timer;
-    int32_t interval;
+    uint32_t interval;
 };
 
 static bool
@@ -75,7 +75,7 @@ timer_interval_process(struct sol_flow_node *node, void *data, uint16_t port, ui
     r = sol_flow_packet_get_irange(packet, &val);
     SOL_INT_CHECK(r, < 0, r);
 
-    if (mdata->interval == val.val)
+    if ((int32_t)mdata->interval == val.val)
         return 0;
 
     mdata->interval = val.val;
