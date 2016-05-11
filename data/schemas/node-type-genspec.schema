@@ -9,6 +9,16 @@
       ]
     },
 
+    "uint_or_limit": {
+      "oneOf": [
+        {
+          "type": "integer",
+          "minimum": 0
+        },
+        { "enum": [ "UINT32_MAX" ] }
+      ]
+    },
+
     "float_or_limit": {
       "oneOf": [
         { "type": "number" },
@@ -67,7 +77,8 @@
         "int",
         "irange-spec",
         "rgb",
-        "string"
+        "string",
+        "uint"
       ]
     },
 
@@ -322,6 +333,13 @@
       }
     },
 
+    "options_members_uint": {
+      "properties": {
+        "data_type": { "enum": [ "uint" ] },
+        "default": { "$ref": "#/definitions/uint_or_limit" }
+      }
+    },
+
     "options_members_by_type": {
       "allOf": [
         { "$ref": "#/definitions/options_members_common" },
@@ -336,7 +354,8 @@
             { "$ref": "#/definitions/options_members_int" },
             { "$ref": "#/definitions/options_members_irange_spec" },
             { "$ref": "#/definitions/options_members_rgb" },
-            { "$ref": "#/definitions/options_members_string" }
+            { "$ref": "#/definitions/options_members_string" },
+            { "$ref": "#/definitions/options_members_uint" }
           ]
         }
       ]

@@ -35,6 +35,8 @@ static const char INT_MAX_STR[] = "INT32_MAX";
 static const char INT_MIN_STR[] = "INT32_MIN";
 static const size_t INT_LIMIT_STR_LEN = sizeof(INT_MAX_STR) - 1;
 
+static const char UINT_MAX_STR[] = "UINT32_MAX";
+
 static const char DBL_MAX_STR[] = "DBL_MAX";
 static const char DBL_MIN_STR[] = "-DBL_MAX";
 static const size_t DBL_MAX_STR_LEN = sizeof(DBL_MAX_STR) - 1;
@@ -511,6 +513,31 @@ int_parse(const char *value, struct sol_flow_node_named_options_member *m)
     return 0;
 }
 
+static int
+uint_parse(const char *value, struct sol_flow_node_named_options_member *m)
+{
+    char *endptr;
+    int64_t v;
+
+    if (streq(UINT_MAX_STR, value)) {
+        m->u = UINT32_MAX;
+        return 0;
+    }
+
+    errno = 0;
+    v = strtoll(value, &endptr, 0);
+
+    if (value == endptr)
+        return -EINVAL;
+    if (errno != 0)
+        return -errno;
+    if (v < 0 || v > UINT32_MAX)
+        return -ERANGE;
+
+    m->u = v;
+    return 0;
+}
+
 static int(*const options_parse_functions[]) (const char *, struct sol_flow_node_named_options_member *) = {
     [SOL_FLOW_NODE_OPTIONS_MEMBER_UNKNOWN] = NULL,
     [SOL_FLOW_NODE_OPTIONS_MEMBER_BOOLEAN] = boolean_parse,
@@ -522,6 +549,7 @@ static int(*const options_parse_functions[]) (const char *, struct sol_flow_node
     [SOL_FLOW_NODE_OPTIONS_MEMBER_IRANGE_SPEC] = irange_spec_parse,
     [SOL_FLOW_NODE_OPTIONS_MEMBER_RGB] = rgb_parse,
     [SOL_FLOW_NODE_OPTIONS_MEMBER_STRING] = string_parse,
+    [SOL_FLOW_NODE_OPTIONS_MEMBER_UINT] = uint_parse
 };
 
 /* Options with suboptions may have only some fields overriden.
@@ -649,6 +677,10 @@ set_member(
         s = mem;
         free(*s);
         *s = strdup(m->string);
+        break;
+    case SOL_FLOW_NODE_OPTIONS_MEMBER_UINT:
+        *(uint32_t *)mem = m->u;
+        break;
     default:
         /* Not reached. */
         /* TODO: Create ASSERT_NOT_REACHED() macro.*/
@@ -666,6 +698,7 @@ static const struct sol_str_table member_str_to_type[] = {
     SOL_STR_TABLE_ITEM("irange-spec", SOL_FLOW_NODE_OPTIONS_MEMBER_IRANGE_SPEC),
     SOL_STR_TABLE_ITEM("rgb", SOL_FLOW_NODE_OPTIONS_MEMBER_RGB),
     SOL_STR_TABLE_ITEM("string", SOL_FLOW_NODE_OPTIONS_MEMBER_STRING),
+    SOL_STR_TABLE_ITEM("uint", SOL_FLOW_NODE_OPTIONS_MEMBER_UINT),
     {}
 };
 
