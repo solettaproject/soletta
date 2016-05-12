@@ -80,7 +80,7 @@ location_changed_cb(void *data,
     struct sol_lwm2m_server *server,
     struct sol_lwm2m_client_info *cinfo,
     const char *path,
-    sol_coap_responsecode_t response_code,
+    enum sol_coap_response_code_t response_code,
     enum sol_lwm2m_content_type content_type,
     struct sol_str_slice content)
 {
@@ -90,8 +90,8 @@ location_changed_cb(void *data,
     uint16_t i;
     struct sol_lwm2m_tlv *tlv;
 
-    if (response_code != SOL_COAP_RSPCODE_CHANGED &&
-        response_code != SOL_COAP_RSPCODE_CONTENT) {
+    if (response_code != SOL_COAP_RESPONSE_CODE_CHANGED &&
+        response_code != SOL_COAP_RESPONSE_CODE_CONTENT) {
         fprintf(stderr, "Could not get the location object value from"
             " client %s\n", name);
         return;
@@ -155,11 +155,11 @@ static void
 create_cb(void *data,
     struct sol_lwm2m_server *server,
     struct sol_lwm2m_client_info *cinfo, const char *path,
-    sol_coap_responsecode_t response_code)
+    enum sol_coap_response_code_t response_code)
 {
     const char *name = sol_lwm2m_client_info_get_name(cinfo);
 
-    if (response_code != SOL_COAP_RSPCODE_CREATED) {
+    if (response_code != SOL_COAP_RESPONSE_CODE_CREATED) {
         fprintf(stderr, "The client %s could not create the location object.\n",
             name);
         return;

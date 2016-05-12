@@ -32,7 +32,7 @@ theResource = soletta.sol_oic_server_register_resource( {
 			testUtils.assert( "deepEqual", input, { uuid: process.argv[ 2 ] },
 				"Server: PUT request payload is as expected" );
 			output.putRequests = ++putRequests;
-			return soletta.sol_coap_responsecode_t.SOL_COAP_RSPCODE_OK;
+			return soletta.sol_coap_response_code_t.SOL_COAP_RESPONSE_CODE_OK;
 		}
 	}, soletta.sol_oic_resource_flag.SOL_OIC_FLAG_DISCOVERABLE |
 		soletta.sol_oic_resource_flag.SOL_OIC_FLAG_ACTIVE );

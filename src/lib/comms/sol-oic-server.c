@@ -146,12 +146,12 @@ _sol_oic_server_d(void *data, struct sol_oic_request *request)
     SOL_INT_CHECK_GOTO(r, < 0, error);
 
     return sol_oic_server_send_response(request, response,
-        SOL_COAP_RSPCODE_CONTENT);
+        SOL_COAP_RESPONSE_CODE_CONTENT);
 
 error:
     sol_oic_server_response_free(response);
     return sol_oic_server_send_response(request, NULL,
-        SOL_COAP_RSPCODE_INTERNAL_ERROR);
+        SOL_COAP_RESPONSE_CODE_INTERNAL_ERROR);
 }
 
 static int
@@ -197,12 +197,12 @@ _sol_oic_server_p(void *data, struct sol_oic_request *request)
     SOL_INT_CHECK_GOTO(r, < 0, error);
 
     return sol_oic_server_send_response(request, response,
-        SOL_COAP_RSPCODE_CONTENT);
+        SOL_COAP_RESPONSE_CODE_CONTENT);
 
 error:
     sol_oic_server_response_free(response);
     return sol_oic_server_send_response(request, NULL,
-        SOL_COAP_RSPCODE_INTERNAL_ERROR);
+        SOL_COAP_RESPONSE_CODE_INTERNAL_ERROR);
 }
 
 #undef APPEND_KEY_VALUE
@@ -377,7 +377,7 @@ _sol_oic_server_res(void *data, struct sol_coap_server *server,
     const struct sol_network_link_addr *cliaddr)
 {
     SOL_BUFFER_DECLARE_STATIC(dev_id, 37);
-    const uint8_t format_cbor = SOL_COAP_CONTENTTYPE_APPLICATION_CBOR;
+    const uint8_t format_cbor = SOL_COAP_CONTENT_TYPE_APPLICATION_CBOR;
     const uint8_t *encoder_start;
     struct sol_coap_packet *resp;
     struct sol_str_slice query[QUERY_LEN];
@@ -406,7 +406,7 @@ _sol_oic_server_res(void *data, struct sol_coap_server *server,
             }
         }
         SOL_WRN("Invalid query parameter: %.*s", SOL_STR_SLICE_PRINT(query[idx]));
-        return SOL_COAP_RSPCODE_BAD_REQUEST;
+        return SOL_COAP_RESPONSE_CODE_BAD_REQUEST;
     }
 
     r = sol_util_uuid_string_from_bytes(true, true,
@@ -451,9 +451,9 @@ err:
             oic_server.server, SOL_STR_SLICE_PRINT(sol_buffer_get_slice(&addr)),
             cbor_error_string(err));
 
-        sol_coap_header_set_code(resp, SOL_COAP_RSPCODE_INTERNAL_ERROR);
+        sol_coap_header_set_code(resp, SOL_COAP_RESPONSE_CODE_INTERNAL_ERROR);
     } else {
-        sol_coap_header_set_code(resp, SOL_COAP_RSPCODE_CONTENT);
+        sol_coap_header_set_code(resp, SOL_COAP_RESPONSE_CODE_CONTENT);
         /* Ugly, but since tinycbor operates on memory slices
          * directly, we have to resort to that */
         buf->used += encoder.ptr - encoder_start;
@@ -752,14 +752,14 @@ _sol_oic_resource_type_handle(
 {
     struct sol_coap_packet *response_pkt = NULL;
     struct sol_oic_server_request *request = NULL;
-    sol_coap_responsecode_t code = SOL_COAP_RSPCODE_INTERNAL_ERROR;
+    enum sol_coap_response_code_t code = SOL_COAP_RESPONSE_CODE_INTERNAL_ERROR;
     CborParser parser;
     int r;
 
     OIC_SERVER_CHECK(-ENOTCONN);
 
     if (!handle_fn) {
-        code = SOL_COAP_RSPCODE_NOT_IMPLEMENTED;
+        code = SOL_COAP_RESPONSE_CODE_NOT_IMPLEMENTED;
         goto error;
     }
 
@@ -769,12 +769,12 @@ _sol_oic_resource_type_handle(
 
     if (expect_payload) {
         if (!sol_oic_pkt_has_cbor_content(req)) {
-            code = SOL_COAP_RSPCODE_BAD_REQUEST;
+            code = SOL_COAP_RESPONSE_CODE_BAD_REQUEST;
             goto error;
         }
         if (sol_oic_packet_cbor_extract_repr_map(req, &parser,
             (CborValue *)&request->reader) != CborNoError) {
-            code = SOL_COAP_RSPCODE_BAD_REQUEST;
+            code = SOL_COAP_RESPONSE_CODE_BAD_REQUEST;
             goto error;
         }
     } else
@@ -816,7 +816,7 @@ sol_oic_server_request_get_reader(struct sol_oic_request *request)
 }
 
 SOL_API int
-sol_oic_server_send_response(struct sol_oic_request *request, struct sol_oic_response *response, sol_coap_responsecode_t code)
+sol_oic_server_send_response(struct sol_oic_request *request, struct sol_oic_response *response, enum sol_coap_response_code_t code)
 {
     struct sol_coap_packet *pkt;
     struct sol_oic_server_request *req = (struct sol_oic_server_request *)request;
@@ -1055,14 +1055,14 @@ static int
 send_notification_to_server(struct sol_oic_response *notification,
     struct sol_coap_server *server)
 {
-    uint8_t code = SOL_COAP_RSPCODE_INTERNAL_ERROR;
+    uint8_t code = SOL_COAP_RESPONSE_CODE_INTERNAL_ERROR;
     CborError err;
     int r;
 
     err = sol_oic_packet_cbor_close(notification->pkt, &notification->writer);
     SOL_INT_CHECK_GOTO(err, != CborNoError, end);
 
-    code = SOL_COAP_RSPCODE_CONTENT;
+    code = SOL_COAP_RESPONSE_CODE_CONTENT;
 end:
     r = sol_coap_header_set_code(notification->pkt, code);
     SOL_INT_CHECK_GOTO(r, < 0, error);
@@ -1085,7 +1085,7 @@ sol_oic_server_notification_new(struct sol_oic_server_resource *resource)
     SOL_NULL_CHECK(notification, NULL);
 
     notification->resource = resource;
-    notification->pkt = sol_coap_packet_notification_new(oic_server.server,
+    notification->pkt = sol_coap_packet_new_notification(oic_server.server,
         resource->coap);
     SOL_NULL_CHECK_GOTO(notification->pkt, error);
     sol_oic_packet_cbor_create(notification->pkt, &notification->writer);

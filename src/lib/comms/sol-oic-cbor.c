@@ -44,7 +44,7 @@ initialize_cbor_payload(struct sol_oic_map_writer *encoder)
     size_t offset;
     struct sol_buffer *buf;
     uint8_t *old_ptr, *new_ptr;
-    const uint8_t format_cbor = SOL_COAP_CONTENTTYPE_APPLICATION_CBOR;
+    const uint8_t format_cbor = SOL_COAP_CONTENT_TYPE_APPLICATION_CBOR;
 
     r = sol_coap_add_option(encoder->pkt, SOL_COAP_OPTION_CONTENT_FORMAT,
         &format_cbor, sizeof(format_cbor));
@@ -360,11 +360,11 @@ bool
 sol_oic_pkt_has_cbor_content(const struct sol_coap_packet *pkt)
 {
     const uint8_t *ptr;
-    uint16_t len;
+    size_t len;
 
     ptr = sol_coap_find_first_option(pkt, SOL_COAP_OPTION_CONTENT_FORMAT, &len);
 
-    return ptr && len == 1 && *ptr == SOL_COAP_CONTENTTYPE_APPLICATION_CBOR;
+    return ptr && len == 1 && *ptr == SOL_COAP_CONTENT_TYPE_APPLICATION_CBOR;
 }
 
 int

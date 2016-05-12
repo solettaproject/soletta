@@ -93,7 +93,7 @@ public:
 static int entityHandler(ENTITY_HANDLER_SIGNATURE,
     enum OicServerMethod method) {
     Nan::HandleScope scope;
-    sol_coap_responsecode_t returnValue = SOL_COAP_RSPCODE_NOT_IMPLEMENTED;
+    enum sol_coap_response_code_t returnValue = SOL_COAP_RESPONSE_CODE_NOT_IMPLEMENTED;
     struct ResourceInfo *info = (struct ResourceInfo *)data;
     struct sol_oic_response *response = NULL;
     Local<Object> outputPayload = Nan::New<Object>();
@@ -107,7 +107,7 @@ static int entityHandler(ENTITY_HANDLER_SIGNATURE,
         Local<Value> jsReturnValue = callback->Call(2, arguments);
         VALIDATE_CALLBACK_RETURN_VALUE_TYPE(jsReturnValue, IsUint32,
             "entity handler", returnValue);
-        returnValue = (sol_coap_responsecode_t)
+        returnValue = (enum sol_coap_response_code_t)
             Nan::To<uint32_t>(jsReturnValue).FromJust();
 
         response = sol_oic_server_response_new(request);
