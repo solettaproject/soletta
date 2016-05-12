@@ -91,7 +91,7 @@ static Local<Value> do_request(
     struct sol_oic_client *client = 0;
     struct sol_oic_resource *resource = 0;
     struct sol_oic_request *oic_request;
-    bool result = false;
+    struct sol_oic_pending *pending;
 
     if (!request_setup(jsClient, jsResource, &client, &resource)) {
         return Nan::Undefined();
@@ -116,7 +116,7 @@ static Local<Value> do_request(
     if (oic_request &&
         oic_map_writer_callback(persistentPayload,
         sol_oic_client_request_get_writer(oic_request))) {
-        result = sol_oic_client_request(client, oic_request,
+        pending = sol_oic_client_request(client, oic_request,
             requestAnswered, request) == 0;
     }
 
@@ -125,11 +125,12 @@ static Local<Value> do_request(
         delete persistentPayload;
     }
 
-    if (!result) {
+    if (!pending) {
         delete request;
     }
 
-    return Nan::New(result);
+    //FIXME: properly expose pending handle to JS
+    return Nan::New(pending);
 }
 
 #define DO_REQUEST(info, cAPI) \

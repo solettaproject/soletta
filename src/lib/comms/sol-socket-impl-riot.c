@@ -348,10 +348,14 @@ sol_socket_ip_default_new(const struct sol_socket_options *options)
         .del = sol_socket_riot_del
     };
 
-    SOL_INT_CHECK_GOTO(opts->family, != SOL_NETWORK_FAMILY_INET6, unsupported_family);
+    SOL_INT_CHECK_ERRNO(opts->family, != SOL_NETWORK_FAMILY_INET6,
+        EAFNOSUPPORT);
 
     socket = calloc(1, sizeof(*socket));
-    SOL_NULL_CHECK_GOTO(socket, socket_error);
+    if (!socket) {
+        errno = ENOMEM;
+        goto socket_error;
+    }
 
     socket->base.type = &type;
     socket->type = GNRC_NETTYPE_UDP;
@@ -364,10 +368,5 @@ sol_socket_ip_default_new(const struct sol_socket_options *options)
     return &socket->base;
 
 socket_error:
-    errno = ENOMEM;
-    return NULL;
-
-unsupported_family:
-    errno = EAFNOSUPPORT;
     return NULL;
 }

@@ -427,7 +427,7 @@ sol_socket_linux_set_write_monitor(struct sol_socket *s, bool on)
 struct sol_socket *
 sol_socket_ip_default_new(const struct sol_socket_options *options)
 {
-    int ret;
+    int ret = 0;
     struct sol_socket_linux *s;
     int fd, socktype = SOCK_DGRAM;
     struct sol_socket_ip_options *opts;
@@ -457,6 +457,7 @@ sol_socket_ip_default_new(const struct sol_socket_options *options)
     if (!sol_fd_add_flags(fd, FD_CLOEXEC | O_NONBLOCK)) {
         SOL_WRN("Failed to set the socket to FD_CLOEXEC or O_NONBLOCK, %s",
             sol_util_strerrora(errno));
+        ret = -EINVAL;
         goto calloc_error;
     }
 #endif
@@ -474,7 +475,10 @@ sol_socket_ip_default_new(const struct sol_socket_options *options)
     }
 
     s = calloc(1, sizeof(*s));
-    SOL_NULL_CHECK_GOTO(s, calloc_error);
+    if (!s) {
+        ret = -ENOMEM;
+        goto calloc_error;
+    }
 
     s->base.type = &type;
     s->fd = fd;
@@ -483,7 +487,10 @@ sol_socket_ip_default_new(const struct sol_socket_options *options)
     s->on_can_read = options->on_can_read;
 
     s->watch = sol_fd_add(fd, SOL_FD_FLAGS_NONE, on_socket_event, s);
-    SOL_NULL_CHECK_GOTO(s->watch, watch_error);
+    if (!s->watch) {
+        ret = -errno;
+        goto watch_error;
+    }
 
     return &s->base;
 
@@ -492,5 +499,6 @@ watch_error:
 options_err:
 calloc_error:
     close(fd);
+    errno = -ret;
     return NULL;
 }

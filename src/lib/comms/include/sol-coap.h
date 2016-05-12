@@ -370,8 +370,9 @@ int sol_coap_header_get_type(const struct sol_coap_packet *pkt, uint8_t *type);
  * @param pkt The packet with the token.
  * @param len Pointer where to store the length in bytes of the token.
  *
- * @return @c NULL in case of error, otherwise a pointer to an internal
- * buffer containint the token. It must not be modified.
+ * @return @c NULL in case of error (when @errno will be set to @c
+ * EINVAL), otherwise a pointer to an internal buffer containint the
+ * token. It must not be modified.
  */
 uint8_t *sol_coap_header_get_token(const struct sol_coap_packet *pkt, uint8_t *len);
 
@@ -721,6 +722,13 @@ int sol_coap_send_packet(struct sol_coap_server *server, struct sol_coap_packet 
  * for its return: if @c true, @a server will issue a new timeout and
  * continue waiting responses until it ends, otherwise @a server will
  * terminate response waiting.
+ *
+ * @warning If @a pkt has the #SOL_COAP_OPTION_OBSERVE option and at
+ * least one response arrives before the internal timeout and @a
+ * reply_cb returns @c true, that will be interpreted as if the user
+ * wishes to wait for responses indefinetely and no timeout will apply
+ * anymore. The user is then responsible for cancelling the request
+ * with sol_coap_cancel_send_packet().
  *
  * @note This function will take the reference of the given @a pkt.
  *

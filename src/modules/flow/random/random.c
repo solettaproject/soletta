@@ -65,9 +65,11 @@ random_int_generate(struct sol_flow_node *node, void *data, uint16_t port, uint1
 {
     struct sol_irange value = { 0, 0, INT32_MAX, 1 };
     struct random_node_data *mdata = data;
+    int r;
 
-    if (!sol_random_get_int32(mdata->engine, &value.val))
-        return -EINVAL;
+    r = sol_random_get_int32(mdata->engine, &value.val);
+    if (r < 0)
+        return r;
 
     return sol_flow_send_irange_packet(node,
         SOL_FLOW_NODE_TYPE_RANDOM_INT__OUT__OUT,
@@ -82,9 +84,11 @@ random_float_generate(struct sol_flow_node *node, void *data, uint16_t port, uin
 {
     struct random_node_data *mdata = data;
     struct sol_drange out_value = { 0, 0, INT32_MAX, 1 };
+    int r;
 
-    if (!sol_random_get_double(mdata->engine, &out_value.val))
-        return -EINVAL;
+    r = sol_random_get_double(mdata->engine, &out_value.val);
+    if (r < 0)
+        return r;
 
     return sol_flow_send_drange_packet(node,
         SOL_FLOW_NODE_TYPE_RANDOM_FLOAT__OUT__OUT,
@@ -99,9 +103,11 @@ random_byte_generate(struct sol_flow_node *node, void *data, uint16_t port, uint
 {
     struct random_node_data *mdata = data;
     uint8_t value;
+    int r;
 
-    if (!sol_random_get_byte(mdata->engine, &value))
-        return -EINVAL;
+    r = sol_random_get_byte(mdata->engine, &value);
+    if (r < 0)
+        return r;
 
     return sol_flow_send_byte_packet(node,
         SOL_FLOW_NODE_TYPE_RANDOM_BYTE__OUT__OUT,
@@ -116,9 +122,11 @@ random_boolean_generate(struct sol_flow_node *node, void *data, uint16_t port, u
 {
     struct random_node_data *mdata = data;
     bool value;
+    int r;
 
-    if (!sol_random_get_bool(mdata->engine, &value))
-        return -EINVAL;
+    r = sol_random_get_bool(mdata->engine, &value);
+    if (r < 0)
+        return r;
 
     return sol_flow_send_boolean_packet(node,
         SOL_FLOW_NODE_TYPE_RANDOM_BOOLEAN__OUT__OUT,

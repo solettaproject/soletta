@@ -150,26 +150,28 @@ sol_mainloop_contiki_event_set(process_event_t ev, process_data_t data)
     event_data = data;
 }
 
-bool
+int
 sol_mainloop_contiki_event_handler_add(const process_event_t *ev, const process_data_t ev_data, void (*cb)(void *user_data, process_event_t ev, process_data_t ev_data), const void *data)
 {
     struct sol_event_handler_contiki *event_handler =
         malloc(sizeof(struct sol_event_handler_contiki));
+    int r;
 
     if (!event_handler)
-        return false;
+        return -ENOMEM;
     event_handler->ev = ev;
     event_handler->ev_data = ev_data;
     event_handler->cb = cb;
     event_handler->user_data = data;
     event_handler->delete_me = false;
 
-    if (sol_ptr_vector_append(&event_handler_vector, event_handler)) {
+    r = sol_ptr_vector_append(&event_handler_vector, event_handler);
+    if (r < 0) {
         free(event_handler);
-        return false;
+        return r;
     }
 
-    return true;
+    return 0;
 }
 
 bool

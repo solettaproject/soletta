@@ -99,6 +99,11 @@ struct pending_reply {
         const struct sol_network_link_addr *cliaddr);
     const void *data;
     char *path;
+    struct sol_coap_packet *pkt; /* We may need a week ref to the
+                                  * original packet to address the
+                                  * sol_coap_cancel_send_packet() case
+                                  * on NONCON packets sent with
+                                  * replies. */
     bool observing;
     uint16_t id;
     uint8_t tkl;
@@ -123,8 +128,7 @@ struct sol_socket *sol_coap_server_get_socket(const struct sol_coap_server *serv
 struct sol_socket *
 sol_coap_server_get_socket(const struct sol_coap_server *server)
 {
-
-    SOL_NULL_CHECK(server, NULL);
+    SOL_NULL_CHECK_ERRNO(server, EINVAL, NULL);
 
     return server->socket;
 }
@@ -162,15 +166,17 @@ sol_coap_header_get_token(const struct sol_coap_packet *pkt, uint8_t *len)
 {
     struct coap_header *hdr;
 
-    SOL_NULL_CHECK(pkt, NULL);
+    SOL_NULL_CHECK_ERRNO(pkt, EINVAL, NULL);
 
     hdr = (struct coap_header *)pkt->buf.data;
 
     if (len)
         *len = hdr->tkl;
 
-    if (hdr->tkl == 0)
+    if (hdr->tkl == 0) {
+        errno = EINVAL;
         return NULL;
+    }
 
     return (uint8_t *)pkt->buf.data + sizeof(*hdr);
 }
@@ -497,10 +503,10 @@ static struct sol_coap_packet *
 packet_new(struct sol_buffer *buf)
 {
     struct sol_coap_packet *pkt;
-    int r;
+    int r = 0;
 
     pkt = calloc(1, sizeof(struct sol_coap_packet));
-    SOL_NULL_CHECK(pkt, NULL);
+    SOL_NULL_CHECK_ERRNO(pkt, ENOMEM, NULL);
 
     pkt->refcnt = 1;
     pkt->buf = buf ? *buf :
@@ -521,6 +527,7 @@ packet_new(struct sol_buffer *buf)
 err:
     sol_buffer_fini(&pkt->buf);
     free(pkt);
+    errno = r;
     return NULL;
 }
 
@@ -647,9 +654,6 @@ pending_timeout_cb(void *data)
         return true;
 
     sol_ptr_vector_remove(&server->pending, reply);
-
-    /* Timeout will be free'd when 'false' is returned */
-    reply->timeout = NULL;
 
     pending_reply_free(reply);
 
@@ -893,6 +897,7 @@ sol_coap_send_packet_with_reply(struct sol_coap_server *server, struct sol_coap_
     reply->observing = observing;
     reply->tkl = tkl;
     reply->server = server;
+    reply->pkt = pkt;
     reply->timeout = sol_timeout_add(MAX_PKT_TIMEOUT_MS,
         pending_timeout_cb, reply);
 
@@ -1051,7 +1056,7 @@ sol_coap_packet_request_new(sol_coap_method_t method, sol_coap_msgtype_t type)
 {
     static uint16_t request_id;
     struct sol_coap_packet *pkt;
-    int r;
+    int r = 0;
 
     pkt = sol_coap_packet_new(NULL);
     SOL_NULL_CHECK(pkt, NULL);
@@ -1741,18 +1746,19 @@ sol_coap_server_new_full(struct sol_socket_ip_options *options, const struct sol
     struct sol_network_link *link;
     struct sol_coap_server *server;
     struct sol_socket *s;
+    int ret = 0;
     uint16_t i;
-    int ret;
 
     SOL_LOG_INTERNAL_INIT_ONCE;
 
     server = calloc(1, sizeof(*server));
-    SOL_NULL_CHECK(server, NULL);
+    SOL_NULL_CHECK_ERRNO(server, ENOMEM, NULL);
 
     options->base.data = server;
     s = sol_socket_ip_new(&options->base);
     if (!s) {
         SOL_WRN("Could not create socket (%d): %s", errno, sol_util_strerrora(errno));
+        ret = -errno;
         goto err;
     }
 
@@ -1813,6 +1819,7 @@ err_bind:
     sol_socket_del(s);
 err:
     free(server);
+    errno = -ret;
     return NULL;
 }
 
@@ -1945,27 +1952,31 @@ sol_coap_server_unregister_resource(struct sol_coap_server *server,
 SOL_API int
 sol_coap_cancel_send_packet(struct sol_coap_server *server, struct sol_coap_packet *pkt, struct sol_network_link_addr *cliaddr)
 {
-    uint16_t id, i, cancel = 0;
     struct pending_reply *reply;
+    uint16_t i, cancel = 0;
     struct outgoing *o;
     int r;
 
     SOL_NULL_CHECK(server, -EINVAL);
     SOL_NULL_CHECK(pkt, -EINVAL);
 
-    sol_coap_header_get_id(pkt, &id);
     SOL_PTR_VECTOR_FOREACH_REVERSE_IDX (&server->outgoing, o, i) {
+        uint16_t id;
+
         if (o->pkt != pkt)
             continue;
 
-        SOL_DBG("packet id %d canceled", id);
+        sol_coap_header_get_id(pkt, &id);
+        SOL_DBG("Packet with ID %d canceled", id);
         sol_ptr_vector_del(&server->outgoing, i);
         outgoing_free(o);
         cancel++;
     }
 
     SOL_PTR_VECTOR_FOREACH_REVERSE_IDX (&server->pending, reply, i) {
-        if (!match_reply(reply, pkt))
+        /* match by pkt ref, here, once pkt may point to already freed
+         * memory */
+        if (reply->pkt != pkt)
             continue;
 
         sol_ptr_vector_del(&server->pending, i);
@@ -1976,6 +1987,7 @@ sol_coap_cancel_send_packet(struct sol_coap_server *server, struct sol_coap_pack
                 SOL_WRN("Could not unobserve packet.");
         }
         pending_reply_free(reply);
+        cancel++;
     }
 
     return cancel ? 0 : -ENOENT;

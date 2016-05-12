@@ -676,7 +676,7 @@ main(int argc, char *argv[])
         sol_oic_client_get_server_info_by_addr(client, &cliaddr,
             server_info_cb, NULL);
     else
-        sol_oic_client_find_resource(client, &cliaddr, resource_type,
+        sol_oic_client_find_resources(client, &cliaddr, resource_type,
             interface_type, found_resource_cb, &ctx);
 
     ret = sol_run();

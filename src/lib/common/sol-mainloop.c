@@ -347,7 +347,7 @@ sol_idle_del(struct sol_idle *handle)
 SOL_API struct sol_fd *
 sol_fd_add(int fd, uint32_t flags, bool (*cb)(void *data, int fd, uint32_t active_flags), const void *data)
 {
-    SOL_NULL_CHECK(cb, NULL);
+    SOL_NULL_CHECK_ERRNO(cb, EINVAL, NULL);
     return mainloop_impl->fd_add(fd, flags, cb, data);
 }
 

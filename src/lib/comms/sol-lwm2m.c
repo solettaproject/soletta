@@ -1514,9 +1514,9 @@ setup_coap_packet(sol_coap_method_t method,
     r = -ENOMEM;
     SOL_NULL_CHECK_GOTO(*pkt, exit);
 
-    if (!sol_random_get_int64(random, &t)) {
+    r = sol_random_get_int64(random, &t);
+    if (r < 0) {
         SOL_WRN("Could not generate a random number");
-        r = -ECANCELED;
         goto exit;
     }
 

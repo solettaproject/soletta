@@ -313,12 +313,16 @@ sol_oic_security_add_full(struct sol_coap_server *server,
 {
     struct sol_oic_security *security;
     struct sol_socket *socket_dtls;
+    int r = 0;
 
     security = malloc(sizeof(*security));
-    SOL_NULL_CHECK(security, NULL);
+    SOL_NULL_CHECK_ERRNO(security, ENOMEM, NULL);
 
     socket_dtls = sol_coap_server_get_socket(server_dtls);
-    SOL_NULL_CHECK_GOTO(socket_dtls, error_sec);
+    if (!socket_dtls) {
+        r = -errno;
+        goto error_sec;
+    }
 
     security->callbacks = (struct sol_socket_dtls_credential_cb) {
         .data = security,
@@ -327,7 +331,9 @@ sol_oic_security_add_full(struct sol_coap_server *server,
         .get_id = creds_get_id,
         .get_psk = creds_get_psk
     };
-    if (sol_socket_dtls_set_credentials_callbacks(socket_dtls, &security->callbacks) < 0) {
+    r = sol_socket_dtls_set_credentials_callbacks(socket_dtls,
+        &security->callbacks);
+    if (r < 0) {
         SOL_WRN("Passed DTLS socket is not a valid sol_socket_dtls");
         goto error_sec;
     }
@@ -339,6 +345,7 @@ sol_oic_security_add_full(struct sol_coap_server *server,
 
 error_sec:
     free(security);
+    errno = -r;
     return NULL;
 }
 #endif
