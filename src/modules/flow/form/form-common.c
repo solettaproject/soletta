@@ -273,9 +273,9 @@ format_send(struct sol_flow_node *node,
 
 int
 common_form_init(struct sol_buffer *buf,
-    int32_t in_rows,
+    uint32_t in_rows,
     size_t *out_rows,
-    int32_t in_cols,
+    uint32_t in_cols,
     size_t *out_cols,
     const char *in_format,
     char **out_format,
@@ -290,7 +290,7 @@ common_form_init(struct sol_buffer *buf,
 
     SOL_NULL_CHECK(in_format, -EINVAL);
 
-    if (in_rows <= 0) {
+    if (in_rows == 0) {
         SOL_WRN("Form rows number must be a positive integer, "
             "but %" PRId32 " was given. Fallbacking to minimum value of 1.",
             in_rows);
@@ -298,7 +298,7 @@ common_form_init(struct sol_buffer *buf,
     } else
         *out_rows = in_rows;
 
-    if (in_cols <= 0) {
+    if (in_cols == 0) {
         SOL_WRN("Boolean columns number must be a positive integer, "
             "but %" PRId32 " was given. Fallbacking to minimum value of 1.",
             in_cols);
