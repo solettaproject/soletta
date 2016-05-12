@@ -9,7 +9,7 @@ Web IDL
 -------
 ```javascript
 // require returns an I2C object
-// var i2c = require('i2c');
+// var i2c = require('soletta/i2c');
 
 [NoInterfaceObject]
 interface I2C {
@@ -63,7 +63,7 @@ The ```writeBit()``` method writes only one bit, and maps to the [```sol_i2c_wri
 
 #### Example
 ```javascript
-  var i2c = require('i2c');
+  var i2c = require('soletta/i2c');
 
   // generic read
   i2c.open({ bus: 0x08, speed: "400kbps"})

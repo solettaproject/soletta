@@ -9,7 +9,7 @@ Web IDL
 -------
 ```javascript
 // require returns a PWM object
-// var pwm = require('pwm');
+// var pwm = require('soletta/pwm');
 
 [NoInterfaceObject]
 interface PWM {
@@ -53,7 +53,7 @@ When ```period``` is specified, ```dutyCycle``` SHOULD be also specified.
 
 #### Example
 ```javascript
-  var pwm = require('pwm');
+  var pwm = require('soletta/pwm');
 
   pwm.open({ device: 0, channel: 1, period: 1000, dutyCycle: 500 })
   .then((pin) => {

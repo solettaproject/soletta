@@ -9,7 +9,7 @@ Web IDL
 -------
 ```javascript
 // require returns an AIO object
-// var aio = require('aio');
+// var aio = require('soletta/aio');
 
 [NoInterfaceObject]
 interface AIO {
@@ -44,7 +44,7 @@ The ```abort()``` method cancels the current pending read operation on a given p
 
 #### Example
 ```javascript
-  var aio = require('aio');
+  var aio = require('soletta/aio');
 
   aio.open({ device: 0, pin: 1})
   .then((pin) => {
