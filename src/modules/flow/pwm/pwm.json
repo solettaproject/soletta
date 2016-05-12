@@ -76,7 +76,6 @@
    },
    {
     "data_type": "uint",
-    "default": 0,
     "description": "Initial duty cycle",
     "name": "duty_cycle"
    }
