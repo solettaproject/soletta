@@ -849,7 +849,7 @@ end:
     return r;
 
 error_server:
-    server_request_free(request);
+    server_request_free(req);
     sol_oic_server_response_free(response);
     return -ENOTCONN;
 }
