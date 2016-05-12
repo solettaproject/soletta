@@ -18,6 +18,7 @@
 
 #pragma once
 
+#include <sol-common-buildopts.h>
 #include <sol-certificate.h>
 #include <sol-http.h>
 #include <sol-network.h>
@@ -183,7 +184,7 @@ int sol_http_server_add_dir(struct sol_http_server *server, const char *basename
  */
 int sol_http_server_remove_dir(struct sol_http_server *server, const char *basename, const char *rootdir);
 
-#ifdef FEATURE_FILESYSTEM
+#ifdef SOL_FEATURE_FILESYSTEM
 
 /**
  * @brief Add a  page for a specific error code
@@ -210,7 +211,7 @@ int sol_http_server_set_error_page(struct sol_http_server *server,
 int sol_http_server_remove_error_page(struct sol_http_server *server,
     const enum sol_http_status_code error);
 
-#endif /*FEATURE_FILESYSTEM*/
+#endif /*SOL_FEATURE_FILESYSTEM*/
 
 /**
  * @brief Set the last time the specified path had its value modified.

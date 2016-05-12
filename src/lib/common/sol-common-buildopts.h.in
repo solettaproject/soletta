@@ -23,6 +23,7 @@ st.on_value("PLATFORM_LINUX", "y", "#define SOL_PLATFORM_LINUX 1", "")
 st.on_value("PLATFORM_RIOTOS", "y", "#define SOL_PLATFORM_RIOT 1", "")
 st.on_value("PLATFORM_CONTIKI", "y", "#define SOL_PLATFORM_CONTIKI 1", "")
 st.on_value("PLATFORM_ZEPHYR", "y", "#define SOL_PLATFORM_ZEPHYR 1", "")
+st.on_value("FEATURE_FILESYSTEM", "y", "#define SOL_FEATURE_FILESYSTEM 1", "")
 }}
 
 {{
