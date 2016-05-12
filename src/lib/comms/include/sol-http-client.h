@@ -91,7 +91,7 @@ struct sol_http_request_interface {
      *       inside this callback.
      */
     ssize_t (*recv_cb)(void *userdata, const struct sol_http_client_connection *connection,
-        struct sol_buffer *buffer);
+        const struct sol_buffer *buffer);
     /**
      * This callback is called data should be written, it's commonly used for @c POST.
      * When it's used, it's @b MANDATORY either the header @c Content-Length with the correct
@@ -127,6 +127,11 @@ struct sol_http_request_interface {
      */
     void (*response_cb)(void *userdata, const struct sol_http_client_connection *connection,
         struct sol_http_response *response);
+
+    /**
+     * The recv buffer size - 0 for the default size (4096 for linux), SIZE_MAX for unlimited.
+     */
+    size_t recv_buffer_size;
 };
 
 /**

@@ -39,6 +39,8 @@ void sol_http_client_shutdown(void);
 static int sol_http_client_init_lazy(void);
 static void sol_http_client_shutdown_lazy(void);
 
+#define RECV_DEFAULT_SIZE (4096)
+
 static struct {
     CURLM *multi;
     struct sol_timeout *multi_perform_timeout;
@@ -558,6 +560,8 @@ perform_multi(CURL *curl, struct curl_slist *headers,
     const void *data)
 {
     struct sol_http_client_connection *connection;
+    void *buf;
+    size_t recv_size;
     int running;
 
     SOL_INT_CHECK(global.ref, <= 0, NULL);
@@ -574,7 +578,18 @@ perform_multi(CURL *curl, struct curl_slist *headers,
     connection->error = false;
     sol_vector_init(&connection->watches, sizeof(struct connection_watch));
 
-    sol_buffer_init(&connection->buffer);
+    recv_size = interface->recv_buffer_size;
+    if (recv_size != SIZE_MAX) {
+        recv_size = RECV_DEFAULT_SIZE;
+
+        buf = malloc(recv_size);
+        SOL_NULL_CHECK_GOTO(buf, err_buf);
+
+        sol_buffer_init_flags(&connection->buffer, buf, recv_size,
+            SOL_BUFFER_FLAGS_NO_NUL_BYTE | SOL_BUFFER_FLAGS_FIXED_CAPACITY);
+    } else
+        sol_buffer_init_flags(&connection->buffer, NULL, 0,
+            SOL_BUFFER_FLAGS_NO_NUL_BYTE | SOL_BUFFER_FLAGS_DEFAULT);
     sol_http_params_init(&connection->response_params);
 
     curl_easy_setopt(curl, CURLOPT_WRITEFUNCTION, write_cb);
@@ -635,6 +650,7 @@ remove_handle:
 
 free_buffer:
     sol_buffer_fini(&connection->buffer);
+err_buf:
     free(connection);
     return NULL;
 }
@@ -1045,7 +1061,8 @@ sol_http_client_request(enum sol_http_method method,
     const struct sol_http_request_interface *interface =
         &(struct sol_http_request_interface) {
         SOL_SET_API_VERSION(.api_version = SOL_HTTP_REQUEST_INTERFACE_API_VERSION, )
-        .response_cb = cb
+        .response_cb = cb,
+        .recv_buffer_size = SIZE_MAX
     };
 
     pending = client_request_internal(method, url, params, interface, data);

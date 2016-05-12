@@ -876,3 +876,24 @@ sol_buffer_fini(struct sol_buffer *buf)
     buf->used = 0;
     buf->capacity = 0;
 }
+
+SOL_API struct sol_blob *
+sol_buffer_to_blob(struct sol_buffer *buf)
+{
+    struct sol_blob *blob;
+    size_t s;
+    void *v;
+
+    SOL_NULL_CHECK(buf, NULL);
+
+    v = sol_buffer_steal_or_copy(buf, &s);
+    SOL_NULL_CHECK(v, NULL);
+
+    blob = sol_blob_new(&SOL_BLOB_TYPE_DEFAULT, NULL, v, s);
+    SOL_NULL_CHECK_GOTO(blob, err_blob);
+    return blob;
+
+err_blob:
+    free(v);
+    return NULL;
+}
