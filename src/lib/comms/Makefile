@@ -92,6 +92,10 @@ obj-networking-$(OIC)-extra-cflags += \
     -DOIC_SUPPORT_URL=$(OIC_SERVER_SUPPORT_URL) \
     -DOIC_DEVICE_NAME=$(OIC_SERVER_DEVICE_NAME)
 
+ifeq (y,$(OIC_SERVER_COMPAT_1_0))
+COMMON_CFLAGS += -DOIC_SERVER_COMPAT_1_0
+endif
+
 obj-networking-$(HTTP) += \
     sol-http-common.o
 
