@@ -67,7 +67,7 @@ async.series( [
 			soletta.sol_coap_method_t.SOL_COAP_METHOD_PUT, { uuid: process.argv[ 2 ] },
 				function( code, client, address, response ) {
 					testUtils.assert( "strictEqual", code,
-						soletta.sol_coap_responsecode_t.SOL_COAP_RSPCODE_OK,
+						soletta.sol_coap_response_code_t.SOL_COAP_RESPONSE_CODE_OK,
 						messagePrefix + "server acknowledged PUT request" );
 
 					// If the server has heard from all of us clients, we can conclude the test

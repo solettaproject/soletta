@@ -326,7 +326,7 @@ int sol_oic_client_get_server_info_by_addr(struct sol_oic_client *client,
  */
 int sol_oic_client_request(struct sol_oic_client *client,
     struct sol_oic_request *request,
-    void (*callback)(void *data, sol_coap_responsecode_t response_code,
+    void (*callback)(void *data, sol_coap_response_code_t response_code,
     struct sol_oic_client *cli, const struct sol_network_link_addr *addr,
     const struct sol_oic_map_reader *repr_vec), const void *callback_data);
 
@@ -401,7 +401,7 @@ struct sol_oic_map_writer *sol_oic_client_request_get_writer(struct sol_oic_requ
  * @return @c 0 on success or a negative number on errors.
  */
 int sol_oic_client_resource_set_observable(struct sol_oic_client *client, struct sol_oic_resource *res,
-    void (*callback)(void *data, sol_coap_responsecode_t response_code, struct sol_oic_client *cli, const struct sol_network_link_addr *addr,
+    void (*callback)(void *data, sol_coap_response_code_t response_code, struct sol_oic_client *cli, const struct sol_network_link_addr *addr,
     const struct sol_oic_map_reader *repr_map),
     const void *data, bool observe);
 
@@ -440,7 +440,7 @@ int sol_oic_client_resource_set_observable(struct sol_oic_client *client, struct
  * @return @c 0 on success or a negative number on errors.
  */
 int sol_oic_client_resource_set_observable_non_confirmable(struct sol_oic_client *client, struct sol_oic_resource *res,
-    void (*callback)(void *data, sol_coap_responsecode_t response_code, struct sol_oic_client *cli, const struct sol_network_link_addr *addr,
+    void (*callback)(void *data, sol_coap_response_code_t response_code, struct sol_oic_client *cli, const struct sol_network_link_addr *addr,
     const struct sol_oic_map_reader *repr_map),
     const void *data, bool observe);
 

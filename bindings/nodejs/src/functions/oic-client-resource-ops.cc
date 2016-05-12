@@ -44,7 +44,7 @@ public:
     bool isOneShot;
 };
 
-static void requestAnswered(void *data, sol_coap_responsecode_t code,
+static void requestAnswered(void *data, sol_coap_response_code_t code,
     struct sol_oic_client *client,
     const struct sol_network_link_addr *address,
     const struct sol_oic_map_reader *response) {
@@ -160,7 +160,7 @@ typedef int (*ObserveAPI)(
     struct sol_oic_resource *res,
     void(*callback)(
         void *data,
-        sol_coap_responsecode_t response_code,
+        sol_coap_response_code_t response_code,
         struct sol_oic_client *cli,
         const struct sol_network_link_addr *addr,
         const struct sol_oic_map_reader *repr_map),

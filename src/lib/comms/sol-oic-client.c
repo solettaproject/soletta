@@ -94,7 +94,7 @@ struct sol_oic_client_request {
 struct resource_request_ctx {
     struct sol_oic_client *client;
     struct sol_oic_resource *res;
-    void (*cb)(void *data, sol_coap_responsecode_t response_code, struct sol_oic_client *cli, const struct sol_network_link_addr *addr, const struct sol_oic_map_reader *repr_vec);
+    void (*cb)(void *data, sol_coap_response_code_t response_code, struct sol_oic_client *cli, const struct sol_network_link_addr *addr, const struct sol_oic_map_reader *repr_vec);
     const void *data;
     int64_t token;
 };
@@ -475,7 +475,7 @@ client_get_info(struct sol_oic_client *client,
     }, sizeof(*ctx));
     SOL_NULL_CHECK(ctx, -ENOMEM);
 
-    req = sol_coap_packet_request_new(SOL_COAP_METHOD_GET, SOL_COAP_TYPE_CON);
+    req = sol_coap_packet_new_request(SOL_COAP_METHOD_GET, SOL_COAP_TYPE_CON);
     if (!req) {
         SOL_WRN("Could not create CoAP packet");
         r = -errno;
@@ -829,7 +829,7 @@ sol_oic_client_find_resource(struct sol_oic_client *client,
     SOL_NULL_CHECK(ctx, -ENOMEM);
 
     /* Multicast discovery should be non-confirmable */
-    req = sol_coap_packet_request_new(SOL_COAP_METHOD_GET, SOL_COAP_TYPE_NONCON);
+    req = sol_coap_packet_new_request(SOL_COAP_METHOD_GET, SOL_COAP_TYPE_NON_CON);
     if (!req) {
         SOL_WRN("Could not create CoAP packet");
         r = -errno;
@@ -949,14 +949,14 @@ _resource_request_unobserve(struct sol_oic_client *client, struct sol_oic_resour
     struct sol_network_link_addr addr;
 
     server = _best_server_for_resource(client, res, &addr);
-    return sol_coap_unobserve_server(server, &addr,
+    return sol_coap_unobserve_by_token(server, &addr,
         (uint8_t *)&res->observe.token, (uint8_t)sizeof(res->observe.token));
 }
 
 static int
 _resource_request(struct sol_oic_client_request *request,
     struct sol_oic_client *client,
-    void (*callback)(void *data, sol_coap_responsecode_t response_code,
+    void (*callback)(void *data, sol_coap_response_code_t response_code,
     struct sol_oic_client *cli, const struct sol_network_link_addr *addr,
     const struct sol_oic_map_reader *repr_vec),
     void *data)
@@ -1009,8 +1009,8 @@ request_new(sol_coap_method_t method, sol_coap_msgtype_t type, struct sol_oic_re
     struct sol_oic_client_request *request;
     char *path;
 
-    if (type != SOL_COAP_TYPE_CON && type != SOL_COAP_TYPE_NONCON) {
-        SOL_WRN("Only SOL_COAP_TYPE_CON and SOL_COAP_TYPE_NONCON requests are"
+    if (type != SOL_COAP_TYPE_CON && type != SOL_COAP_TYPE_NON_CON) {
+        SOL_WRN("Only SOL_COAP_TYPE_CON and SOL_COAP_TYPE_NON_CON requests are"
             " supported");
         return NULL;
     }
@@ -1019,7 +1019,7 @@ request_new(sol_coap_method_t method, sol_coap_msgtype_t type, struct sol_oic_re
     SOL_NULL_CHECK(request, NULL);
 
     request->res = res;
-    request->base.pkt = sol_coap_packet_request_new(method, type);
+    request->base.pkt = sol_coap_packet_new_request(method, type);
     SOL_NULL_CHECK_GOTO(request->base.pkt, error_pkt);
 
     if (_set_token_and_mid(request->base.pkt, &request->token) < 0)
@@ -1065,7 +1065,7 @@ sol_oic_client_non_confirmable_request_new(sol_coap_method_t method, struct sol_
 {
     OIC_RESOURCE_CHECK_API(res, NULL);
 
-    return request_new(method, SOL_COAP_TYPE_NONCON, res, false);
+    return request_new(method, SOL_COAP_TYPE_NON_CON, res, false);
 }
 
 SOL_API void
@@ -1088,7 +1088,7 @@ sol_oic_client_request_get_writer(struct sol_oic_request *request)
 SOL_API int
 sol_oic_client_request(struct sol_oic_client *client,
     struct sol_oic_request *request,
-    void (*callback)(void *data, sol_coap_responsecode_t response_code,
+    void (*callback)(void *data, sol_coap_response_code_t response_code,
     struct sol_oic_client *cli, const struct sol_network_link_addr *addr,
     const struct sol_oic_map_reader *repr_vec),
     const void *callback_data)
@@ -1129,7 +1129,7 @@ error:
 
 static bool
 _observe_with_polling(struct sol_oic_client *client, struct sol_oic_resource *res,
-    void (*callback)(void *data, sol_coap_responsecode_t response_code, struct sol_oic_client *cli, const struct sol_network_link_addr *addr,
+    void (*callback)(void *data, sol_coap_response_code_t response_code, struct sol_oic_client *cli, const struct sol_network_link_addr *addr,
     const struct sol_oic_map_reader *repr_vec),
     void *data)
 {
@@ -1170,7 +1170,7 @@ _stop_observing_with_polling(struct sol_oic_resource *res)
 
 static int
 client_resource_set_observable(struct sol_oic_client *client, struct sol_oic_resource *res,
-    void (*callback)(void *data, sol_coap_responsecode_t response_code, struct sol_oic_client *cli, const struct sol_network_link_addr *addr,
+    void (*callback)(void *data, sol_coap_response_code_t response_code, struct sol_oic_client *cli, const struct sol_network_link_addr *addr,
     const struct sol_oic_map_reader *repr_vec),
     void *data, bool observe, bool non_confirmable)
 {
@@ -1192,7 +1192,7 @@ client_resource_set_observable(struct sol_oic_client *client, struct sol_oic_res
             struct sol_oic_request *request;
 
             request = request_new(SOL_COAP_METHOD_GET,
-                non_confirmable ? SOL_COAP_TYPE_NONCON : SOL_COAP_TYPE_CON,
+                non_confirmable ? SOL_COAP_TYPE_NON_CON : SOL_COAP_TYPE_CON,
                 res, true);
             SOL_NULL_CHECK(request, -ENOMEM);
 
@@ -1218,7 +1218,7 @@ client_resource_set_observable(struct sol_oic_client *client, struct sol_oic_res
 
 SOL_API int
 sol_oic_client_resource_set_observable(struct sol_oic_client *client, struct sol_oic_resource *res,
-    void (*callback)(void *data, sol_coap_responsecode_t response_code, struct sol_oic_client *cli, const struct sol_network_link_addr *addr,
+    void (*callback)(void *data, sol_coap_response_code_t response_code, struct sol_oic_client *cli, const struct sol_network_link_addr *addr,
     const struct sol_oic_map_reader *repr_vec),
     const void *data, bool observe)
 {
@@ -1228,7 +1228,7 @@ sol_oic_client_resource_set_observable(struct sol_oic_client *client, struct sol
 
 SOL_API int
 sol_oic_client_resource_set_observable_non_confirmable(struct sol_oic_client *client, struct sol_oic_resource *res,
-    void (*callback)(void *data, sol_coap_responsecode_t response_code, struct sol_oic_client *cli, const struct sol_network_link_addr *addr,
+    void (*callback)(void *data, sol_coap_response_code_t response_code, struct sol_oic_client *cli, const struct sol_network_link_addr *addr,
     const struct sol_oic_map_reader *repr_vec),
     const void *data, bool observe)
 {

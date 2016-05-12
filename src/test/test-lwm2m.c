@@ -382,20 +382,20 @@ static void
 execute_cb(void *data,
     struct sol_lwm2m_server *server,
     struct sol_lwm2m_client_info *client, const char *path,
-    sol_coap_responsecode_t response_code)
+    sol_coap_response_code_t response_code)
 {
-    ASSERT(response_code == SOL_COAP_RSPCODE_CHANGED);
+    ASSERT(response_code == SOL_COAP_RESPONSE_CODE_CHANGED);
 }
 
 static void
 write_cb(void *data,
     struct sol_lwm2m_server *server,
     struct sol_lwm2m_client_info *client, const char *path,
-    sol_coap_responsecode_t response_code)
+    sol_coap_response_code_t response_code)
 {
     int r;
 
-    ASSERT(response_code == SOL_COAP_RSPCODE_CHANGED);
+    ASSERT(response_code == SOL_COAP_RESPONSE_CODE_CHANGED);
 
     r = sol_lwm2m_server_execute_resource(server, client, "/999/0/8",
         EXECUTE_ARGS, execute_cb, NULL);
@@ -407,7 +407,7 @@ read_cb(void *data,
     struct sol_lwm2m_server *server,
     struct sol_lwm2m_client_info *client,
     const char *path,
-    sol_coap_responsecode_t response_code,
+    sol_coap_response_code_t response_code,
     enum sol_lwm2m_content_type content_type,
     struct sol_str_slice content)
 {
@@ -415,7 +415,7 @@ read_cb(void *data,
     int r;
     struct sol_lwm2m_resource res;
 
-    ASSERT(response_code == SOL_COAP_RSPCODE_CONTENT);
+    ASSERT(response_code == SOL_COAP_RESPONSE_CODE_CONTENT);
     ASSERT(content_type == SOL_LWM2M_CONTENT_TYPE_TLV);
 
     r = sol_lwm2m_parse_tlv(content, &tlvs);
@@ -437,7 +437,7 @@ observe_res_cb(void *data,
     struct sol_lwm2m_server *server,
     struct sol_lwm2m_client_info *client,
     const char *path,
-    sol_coap_responsecode_t response_code,
+    sol_coap_response_code_t response_code,
     enum sol_lwm2m_content_type content_type,
     struct sol_str_slice content)
 {
@@ -447,8 +447,8 @@ observe_res_cb(void *data,
     int64_t v;
     int r;
 
-    ASSERT(response_code == SOL_COAP_RSPCODE_CHANGED ||
-        response_code == SOL_COAP_RSPCODE_CONTENT);
+    ASSERT(response_code == SOL_COAP_RESPONSE_CODE_CHANGED ||
+        response_code == SOL_COAP_RESPONSE_CODE_CONTENT);
 
     r = sol_lwm2m_parse_tlv(content, &tlvs);
     ASSERT(r == 0);
@@ -473,11 +473,11 @@ static void
 create_cb(void *data,
     struct sol_lwm2m_server *server,
     struct sol_lwm2m_client_info *client, const char *path,
-    sol_coap_responsecode_t response_code)
+    sol_coap_response_code_t response_code)
 {
     int r;
 
-    ASSERT(response_code == SOL_COAP_RSPCODE_CREATED);
+    ASSERT(response_code == SOL_COAP_RESPONSE_CODE_CREATED);
 
     r = sol_lwm2m_server_read(server, client, "/999/0",
         read_cb, NULL);
@@ -532,9 +532,9 @@ static void
 delete_cb(void *data,
     struct sol_lwm2m_server *server,
     struct sol_lwm2m_client_info *client, const char *path,
-    sol_coap_responsecode_t response_code)
+    sol_coap_response_code_t response_code)
 {
-    ASSERT(response_code == SOL_COAP_RSPCODE_DELETED);
+    ASSERT(response_code == SOL_COAP_RESPONSE_CODE_DELETED);
     sol_quit();
 }
 
