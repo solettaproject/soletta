@@ -573,7 +573,7 @@ void sol_blob_set_parent(struct sol_blob *blob, struct sol_blob *parent);
  * @param mem memory that blob will duplicate and refers to
  * @param size size of memory block
  *
- * @return new sol_blob on sucess. @c NULL on failure
+ * @return new sol_blob on success. @c NULL on failure
  */
 static inline struct sol_blob *
 sol_blob_new_dup(const void *mem, size_t size)
@@ -612,7 +612,7 @@ fail:
  *
  * @param str string to be duplicated in a blob.
  *
- * @return new sol_blob on sucess. @c NULL on failure
+ * @return new sol_blob on success. @c NULL on failure
  */
 static inline struct sol_blob *
 sol_blob_new_dup_str(const char *str)

@@ -174,7 +174,7 @@ choice
 	default MAINLOOP_ZEPHYR if ZEPHYR
 	help
             The main loop is used to provide uniform event delivering
-            accross multiple operating systems.
+            across multiple operating systems.
 
             Some operating systems will deliver events from an
             userspace handle (ie: Linux does so via file descriptors),

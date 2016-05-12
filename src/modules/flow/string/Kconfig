@@ -12,7 +12,7 @@ config FLOW_NODE_TYPE_STRING
 		 - check if a string is empty
 		 - compare/concatenate two strings
 		 - replace a substring in a string
-		 - measure the lenght of the string
+		 - measure the length of the string
 		 - change a string to lower/uppercase
 		 - check whether a string stards/ends with another
 

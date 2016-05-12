@@ -19,7 +19,7 @@
 # This is a sample where you have the attendee (that will call the next in line)
 # and two different lines, common and preferential (that has higher priority).
 #
-# Everytime the a line button is pressed (common or preferential) it generates
+# Every time the a line button is pressed (common or preferential) it generates
 # a new number to be called, preferential numbers are 1-99 and common are 101-999.
 #
 # In order to do so we created our custom JS node type, MyAttendee from attendee.js

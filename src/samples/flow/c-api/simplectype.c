@@ -76,7 +76,7 @@ isodd(struct sol_flow_node *node, const struct sol_flow_simplectype_event *ev, v
  * It will take options at node open, keep context and handle all
  * events.
  *
- * It stores an integer and a boolean, initially set throught options
+ * It stores an integer and a boolean, initially set through options
  * and then modified via input ports, then from time to time (every
  * 500ms) it will create a string with both values and send on its
  * output port.

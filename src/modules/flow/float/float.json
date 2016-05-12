@@ -47,7 +47,7 @@
       "in_ports": [
         {
           "data_type": "float",
-          "description": "Recieves dividend value.",
+          "description": "Receives dividend value.",
           "methods": {
             "process": "operator_process"
           },

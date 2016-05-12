@@ -119,7 +119,7 @@
       "out_ports": [
         {
           "data_type": "boolean",
-          "description": "If FETCH was successfuly completed",
+          "description": "If FETCH was successfully completed",
           "name": "SUCCESS"
         },
         {
@@ -175,7 +175,7 @@
       "out_ports": [
         {
           "data_type": "boolean",
-          "description": "If install completed successfuly, sends true, false otherwise. Note that errors packet may be sent in case of failure",
+          "description": "If install completed successfully, sends true, false otherwise. Note that errors packet may be sent in case of failure",
           "name": "SUCCESS"
         },
         {

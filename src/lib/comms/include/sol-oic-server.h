@@ -211,7 +211,7 @@ int sol_oic_server_send_notification_to_observers(struct sol_oic_response *notif
 struct sol_oic_response *sol_oic_server_notification_new(struct sol_oic_server_resource *resource);
 
 /**
- * @brief Send a reponse as a reply to a request.
+ * @brief Send a response as a reply to a request.
  *
  * After sending the response, response and request elements memory are released
  * even on errors.

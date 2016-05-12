@@ -70,7 +70,7 @@ extern "C" {
  *
  * @note One can not override a current receiver callback. To change current
  * callback for a given id, one must first set callback to @c NULL. This is so
- * to avoid accidentaly changing callback.
+ * to avoid accidentally changing callback.
  *
  * @attention Soletta reserves id 0 - do not use it.
  */
@@ -114,7 +114,7 @@ int sol_ipm_send(uint32_t id, struct sol_blob *message);
  *
  * @note One can not override a current consumed callback. To change current
  * callback for a given id, one must first set callback to @c NULL. This is so
- * to avoid accidentaly changing callback.
+ * to avoid accidentally changing callback.
  *
  * @attention Soletta reserves id 0 - do not use it.
  */

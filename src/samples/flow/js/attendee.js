@@ -22,10 +22,10 @@
  * This node has three in/out ports representing common line, preferential line
  * and attendee.
  *
- * Everytime we receive a number from 'IN_COMMON' or 'IN_PREFERENTIAL' we'll append
+ * Every time we receive a number from 'IN_COMMON' or 'IN_PREFERENTIAL' we'll append
  * to the respective vector (representing the line).
  *
- * Everytime we receive a boolean from 'IN_ATTENDEE' we'll return the next in line
+ * Every time we receive a boolean from 'IN_ATTENDEE' we'll return the next in line
  * (considering that preferential line has higher priority).
  */
 
