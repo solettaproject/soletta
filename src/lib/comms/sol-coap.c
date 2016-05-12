@@ -1047,7 +1047,7 @@ sol_coap_send_packet(struct sol_coap_server *server,
 }
 
 SOL_API struct sol_coap_packet *
-sol_coap_packet_new_request(sol_coap_method_t method, sol_coap_msgtype_t type)
+sol_coap_packet_new_request(enum sol_coap_method_t method, enum sol_coap_msgtype_t type)
 {
     static uint16_t request_id;
     struct sol_coap_packet *pkt;

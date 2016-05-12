@@ -382,7 +382,7 @@ static void
 execute_cb(void *data,
     struct sol_lwm2m_server *server,
     struct sol_lwm2m_client_info *client, const char *path,
-    sol_coap_response_code_t response_code)
+    enum sol_coap_response_code_t response_code)
 {
     ASSERT(response_code == SOL_COAP_RESPONSE_CODE_CHANGED);
 }
@@ -391,7 +391,7 @@ static void
 write_cb(void *data,
     struct sol_lwm2m_server *server,
     struct sol_lwm2m_client_info *client, const char *path,
-    sol_coap_response_code_t response_code)
+    enum sol_coap_response_code_t response_code)
 {
     int r;
 
@@ -407,7 +407,7 @@ read_cb(void *data,
     struct sol_lwm2m_server *server,
     struct sol_lwm2m_client_info *client,
     const char *path,
-    sol_coap_response_code_t response_code,
+    enum sol_coap_response_code_t response_code,
     enum sol_lwm2m_content_type content_type,
     struct sol_str_slice content)
 {
@@ -437,7 +437,7 @@ observe_res_cb(void *data,
     struct sol_lwm2m_server *server,
     struct sol_lwm2m_client_info *client,
     const char *path,
-    sol_coap_response_code_t response_code,
+    enum sol_coap_response_code_t response_code,
     enum sol_lwm2m_content_type content_type,
     struct sol_str_slice content)
 {
@@ -473,7 +473,7 @@ static void
 create_cb(void *data,
     struct sol_lwm2m_server *server,
     struct sol_lwm2m_client_info *client, const char *path,
-    sol_coap_response_code_t response_code)
+    enum sol_coap_response_code_t response_code)
 {
     int r;
 
@@ -532,7 +532,7 @@ static void
 delete_cb(void *data,
     struct sol_lwm2m_server *server,
     struct sol_lwm2m_client_info *client, const char *path,
-    sol_coap_response_code_t response_code)
+    enum sol_coap_response_code_t response_code)
 {
     ASSERT(response_code == SOL_COAP_RESPONSE_CODE_DELETED);
     sol_quit();

@@ -44,7 +44,7 @@ public:
     bool isOneShot;
 };
 
-static void requestAnswered(void *data, sol_coap_response_code_t code,
+static void requestAnswered(void *data, enum sol_coap_response_code_t code,
     struct sol_oic_client *client,
     const struct sol_network_link_addr *address,
     const struct sol_oic_map_reader *response) {
@@ -83,9 +83,9 @@ static bool request_setup(Local<Object> jsClient, Local<Object> jsResource,
 
 static Local<Value> do_request(
     struct sol_oic_request *(*create_request_cAPI)(
-        sol_coap_method_t method,
+        enum sol_coap_method_t method,
         struct sol_oic_resource *res),
-    Local<Object> jsClient, Local<Object> jsResource, sol_coap_method_t method,
+    Local<Object> jsClient, Local<Object> jsResource, enum sol_coap_method_t method,
     Local<Value> jsPayload, Local<Function> jsCallback) {
     Nan::Persistent<Object> *persistentPayload = 0;
     struct sol_oic_client *client = 0;
@@ -143,7 +143,7 @@ static Local<Value> do_request(
         info.GetReturnValue().Set(do_request((cAPI), \
             Nan::To<Object>(info[0]).ToLocalChecked(), \
             Nan::To<Object>(info[1]).ToLocalChecked(), \
-            (sol_coap_method_t)Nan::To<uint32_t>(info[2]).FromJust(), \
+            (enum sol_coap_method_t)Nan::To<uint32_t>(info[2]).FromJust(), \
             info[3], Local<Function>::Cast(info[4]))); \
     } while(0)
 
@@ -160,7 +160,7 @@ typedef int (*ObserveAPI)(
     struct sol_oic_resource *res,
     void(*callback)(
         void *data,
-        sol_coap_response_code_t response_code,
+        enum sol_coap_response_code_t response_code,
         struct sol_oic_client *cli,
         const struct sol_network_link_addr *addr,
         const struct sol_oic_map_reader *repr_map),

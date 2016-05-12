@@ -834,7 +834,7 @@ int sol_lwm2m_server_add_observer(struct sol_lwm2m_server *server,
     struct sol_lwm2m_server *server,
     struct sol_lwm2m_client_info *client,
     const char *path,
-    sol_coap_response_code_t response_code,
+    enum sol_coap_response_code_t response_code,
     enum sol_lwm2m_content_type content_type,
     struct sol_str_slice content),
     const void *data);
@@ -859,7 +859,7 @@ int sol_lwm2m_server_del_observer(struct sol_lwm2m_server *server,
     struct sol_lwm2m_server *server,
     struct sol_lwm2m_client_info *client,
     const char *path,
-    sol_coap_response_code_t response_code,
+    enum sol_coap_response_code_t response_code,
     enum sol_lwm2m_content_type content_type,
     struct sol_str_slice content),
     const void *data);
@@ -884,7 +884,7 @@ int sol_lwm2m_server_write(struct sol_lwm2m_server *server,
     void (*sol_lwm2m_server_management_status_response_cb)(void *data,
     struct sol_lwm2m_server *server,
     struct sol_lwm2m_client_info *client, const char *path,
-    sol_coap_response_code_t response_code),
+    enum sol_coap_response_code_t response_code),
     const void *data);
 
 /**
@@ -902,7 +902,7 @@ int sol_lwm2m_server_delete_object_instance(struct sol_lwm2m_server *server,
     void (*sol_lwm2m_server_management_status_response_cb)(void *data,
     struct sol_lwm2m_server *server,
     struct sol_lwm2m_client_info *client, const char *path,
-    sol_coap_response_code_t response_code),
+    enum sol_coap_response_code_t response_code),
     const void *data);
 
 /**
@@ -921,7 +921,7 @@ int sol_lwm2m_server_execute_resource(struct sol_lwm2m_server *server,
     void (*sol_lwm2m_server_management_status_response_cb)(void *data,
     struct sol_lwm2m_server *server,
     struct sol_lwm2m_client_info *client, const char *path,
-    sol_coap_response_code_t response_code),
+    enum sol_coap_response_code_t response_code),
     const void *data);
 
 /**
@@ -944,7 +944,7 @@ int sol_lwm2m_server_create_object_instance(struct sol_lwm2m_server *server,
     void (*sol_lwm2m_server_management_status_response_cb)(void *data,
     struct sol_lwm2m_server *server,
     struct sol_lwm2m_client_info *client, const char *path,
-    sol_coap_response_code_t response_code),
+    enum sol_coap_response_code_t response_code),
     const void *data);
 
 /**
@@ -964,7 +964,7 @@ int sol_lwm2m_server_read(struct sol_lwm2m_server *server,
     struct sol_lwm2m_server *server,
     struct sol_lwm2m_client_info *client,
     const char *path,
-    sol_coap_response_code_t response_code,
+    enum sol_coap_response_code_t response_code,
     enum sol_lwm2m_content_type content_type,
     struct sol_str_slice content),
     const void *data);

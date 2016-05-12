@@ -1154,7 +1154,7 @@ client_resource_implements_type(struct sol_oic_resource *oic_res, const char *re
 }
 
 static void
-state_changed(void *data, sol_coap_response_code_t response_code, struct sol_oic_client *oic_cli, const struct sol_network_link_addr *cliaddr,
+state_changed(void *data, enum sol_coap_response_code_t response_code, struct sol_oic_client *oic_cli, const struct sol_network_link_addr *cliaddr,
     const struct sol_oic_map_reader *repr_vec)
 {
     struct client_resource *resource = data;
@@ -1405,7 +1405,7 @@ server_resource_schedule_update(struct server_resource *resource)
 static int
 server_handle_update(void *data, struct sol_oic_request *request)
 {
-    sol_coap_response_code_t code;
+    enum sol_coap_response_code_t code;
     struct server_resource *resource = (struct server_resource *)data;
     struct sol_oic_map_reader *input;
     int r;
@@ -1604,7 +1604,7 @@ client_resource_close(struct client_resource *resource)
 }
 
 static void
-client_resource_update_ack(void *data, sol_coap_response_code_t response_code, struct sol_oic_client *cli, const struct sol_network_link_addr *addr,
+client_resource_update_ack(void *data, enum sol_coap_response_code_t response_code, struct sol_oic_client *cli, const struct sol_network_link_addr *addr,
     const struct sol_oic_map_reader *repr_vec)
 {
     struct client_resource *resource = data;

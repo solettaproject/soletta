@@ -222,7 +222,7 @@ struct sol_oic_response *sol_oic_server_notification_new(struct sol_oic_server_r
  *
  * @return @c 0 on success or a negative number on errors.
  */
-int sol_oic_server_send_response(struct sol_oic_request *request, struct sol_oic_response *response, sol_coap_response_code_t code);
+int sol_oic_server_send_response(struct sol_oic_request *request, struct sol_oic_response *response, enum sol_coap_response_code_t code);
 
 /**
  * @brief Create a new response to send a reply to @a request.

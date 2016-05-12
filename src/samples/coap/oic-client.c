@@ -24,7 +24,7 @@
 #include "sol-oic-client.h"
 
 static void
-got_get_response(void *data, sol_coap_response_code_t response_code, struct sol_oic_client *cli, const struct sol_network_link_addr *srv_addr, const struct sol_oic_map_reader *map_reader)
+got_get_response(void *data, enum sol_coap_response_code_t response_code, struct sol_oic_client *cli, const struct sol_network_link_addr *srv_addr, const struct sol_oic_map_reader *map_reader)
 {
     struct sol_oic_repr_field field;
     enum sol_oic_map_loop_status end_status;

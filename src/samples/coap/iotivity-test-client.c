@@ -155,7 +155,7 @@ fill_info(const struct sol_oic_map_reader *map_reader, bool *state, int32_t *pow
 }
 
 static void
-check_delete_request(void *data, sol_coap_response_code_t response_code, struct sol_oic_client *cli, const struct sol_network_link_addr *cliaddr, const struct sol_oic_map_reader *map_reader)
+check_delete_request(void *data, enum sol_coap_response_code_t response_code, struct sol_oic_client *cli, const struct sol_network_link_addr *cliaddr, const struct sol_oic_map_reader *map_reader)
 {
     if (response_code == SOL_COAP_RESPONSE_CODE_NOT_FOUND)
         sol_quit();
@@ -166,7 +166,7 @@ check_delete_request(void *data, sol_coap_response_code_t response_code, struct 
 }
 
 static void
-check_put_request(void *data, sol_coap_response_code_t response_code, struct sol_oic_client *cli, const struct sol_network_link_addr *cliaddr, const struct sol_oic_map_reader *map_reader)
+check_put_request(void *data, enum sol_coap_response_code_t response_code, struct sol_oic_client *cli, const struct sol_network_link_addr *cliaddr, const struct sol_oic_map_reader *map_reader)
 {
     bool state = false;
     int32_t power = -1;
@@ -187,7 +187,7 @@ check_put_request(void *data, sol_coap_response_code_t response_code, struct sol
 }
 
 static void
-check_post_request(void *data, sol_coap_response_code_t response_code, struct sol_oic_client *cli, const struct sol_network_link_addr *cliaddr, const struct sol_oic_map_reader *map_reader)
+check_post_request(void *data, enum sol_coap_response_code_t response_code, struct sol_oic_client *cli, const struct sol_network_link_addr *cliaddr, const struct sol_oic_map_reader *map_reader)
 {
     int32_t power = -1;
 
@@ -214,7 +214,7 @@ post_fill_repr_map(struct sol_oic_map_writer *repr_map)
 }
 
 static bool
-check_response_code(sol_coap_response_code_t response_code, int test_number)
+check_response_code(enum sol_coap_response_code_t response_code, int test_number)
 {
     switch (test_number) {
     case TEST_NON_CONFIRMABLE_GET:
@@ -238,7 +238,7 @@ check_response_code(sol_coap_response_code_t response_code, int test_number)
 }
 
 static void
-resource_notify(void *data, sol_coap_response_code_t response_code, struct sol_oic_client *cli, const struct sol_network_link_addr *cliaddr,
+resource_notify(void *data, enum sol_coap_response_code_t response_code, struct sol_oic_client *cli, const struct sol_network_link_addr *cliaddr,
     const struct sol_oic_map_reader *map_reader)
 {
     struct Context *ctx = data;
@@ -288,7 +288,7 @@ dump_byte_string(struct sol_buffer *buf, const struct sol_str_slice bytes)
 }
 
 static void
-print_response(void *data, sol_coap_response_code_t response_code, struct sol_oic_client *cli, const struct sol_network_link_addr *cliaddr,
+print_response(void *data, enum sol_coap_response_code_t response_code, struct sol_oic_client *cli, const struct sol_network_link_addr *cliaddr,
     const struct sol_oic_map_reader *map_reader)
 {
     struct sol_oic_repr_field field;
@@ -466,7 +466,7 @@ found_resource(void *data, struct sol_oic_client *cli, struct sol_oic_resource *
     struct Context *ctx = data;
     bool non_confirmable = false, observe = false;
     const char *method_str = "GET";
-    sol_coap_method_t method = SOL_COAP_METHOD_GET;
+    enum sol_coap_method_t method = SOL_COAP_METHOD_GET;
 
     int (*fill_repr_map)(struct sol_oic_map_writer *repr_map) = NULL;
     struct sol_str_slice path;

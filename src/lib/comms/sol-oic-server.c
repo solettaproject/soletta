@@ -752,7 +752,7 @@ _sol_oic_resource_type_handle(
 {
     struct sol_coap_packet *response_pkt = NULL;
     struct sol_oic_server_request *request = NULL;
-    sol_coap_response_code_t code = SOL_COAP_RESPONSE_CODE_INTERNAL_ERROR;
+    enum sol_coap_response_code_t code = SOL_COAP_RESPONSE_CODE_INTERNAL_ERROR;
     CborParser parser;
     int r;
 
@@ -816,7 +816,7 @@ sol_oic_server_request_get_reader(struct sol_oic_request *request)
 }
 
 SOL_API int
-sol_oic_server_send_response(struct sol_oic_request *request, struct sol_oic_response *response, sol_coap_response_code_t code)
+sol_oic_server_send_response(struct sol_oic_request *request, struct sol_oic_response *response, enum sol_coap_response_code_t code)
 {
     struct sol_coap_packet *pkt;
     struct sol_oic_server_request *req = (struct sol_oic_server_request *)request;

@@ -125,7 +125,7 @@ light_method_put(void *data, struct sol_coap_server *server,
     const struct sol_coap_resource *resource, struct sol_coap_packet *req,
     const struct sol_network_link_addr *cliaddr)
 {
-    sol_coap_response_code_t code = SOL_COAP_RESPONSE_CODE_CONTENT;
+    enum sol_coap_response_code_t code = SOL_COAP_RESPONSE_CODE_CONTENT;
     struct sol_coap_packet *resp;
     struct sol_buffer *buf;
     char *sub = NULL;

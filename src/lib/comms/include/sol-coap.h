@@ -78,7 +78,7 @@ extern "C" {
  *
  * Refer to RFC 7252, section 12.2 for more information.
  */
-typedef enum {
+enum sol_coap_option_num_t {
     SOL_COAP_OPTION_IF_MATCH = 1,
     SOL_COAP_OPTION_URI_HOST = 3,
     SOL_COAP_OPTION_ETAG = 4,
@@ -94,14 +94,14 @@ typedef enum {
     SOL_COAP_OPTION_LOCATION_QUERY = 20,
     SOL_COAP_OPTION_PROXY_URI = 35,
     SOL_COAP_OPTION_PROXY_SCHEME = 39
-} sol_coap_option_num_t;
+};
 
 /**
  * @brief Available request methods.
  *
  * To be used with sol_coap_header_set_code() when crafting a request.
  */
-typedef enum {
+enum sol_coap_method_t {
     /** @brief A GET request. */
     SOL_COAP_METHOD_GET = 1,
     /** @brief A POST request. */
@@ -110,7 +110,7 @@ typedef enum {
     SOL_COAP_METHOD_PUT = 3,
     /** @brief A DELETE request. */
     SOL_COAP_METHOD_DELETE = 4,
-} sol_coap_method_t;
+};
 
 /**
  * @brief Mask of CoAP requests
@@ -132,7 +132,7 @@ typedef enum {
 /**
  * @brief CoAP packets may be of one of these types.
  */
-typedef enum {
+enum sol_coap_msgtype_t {
     /**
      * Confirmable messsage.
      *
@@ -166,7 +166,7 @@ typedef enum {
      * type with the @c id of the corresponding source message.
      */
     SOL_COAP_TYPE_RESET = 3
-} sol_coap_msgtype_t;
+};
 
 /**
  * @brief Macro to create a response code.
@@ -184,7 +184,7 @@ typedef enum {
  *
  * To be used with sol_coap_header_set_code() when crafting a reply.
  */
-typedef enum {
+enum sol_coap_response_code_t {
     SOL_COAP_RESPONSE_CODE_OK = sol_coap_make_response_code(2, 0),
     SOL_COAP_RESPONSE_CODE_CREATED = sol_coap_make_response_code(2, 1),
     SOL_COAP_RESPONSE_CODE_DELETED = sol_coap_make_response_code(2, 2),
@@ -206,7 +206,7 @@ typedef enum {
     SOL_COAP_RESPONSE_CODE_SERVICE_UNAVAILABLE = sol_coap_make_response_code(5, 3),
     SOL_COAP_RESPONSE_CODE_GATEWAY_TIMEOUT = sol_coap_make_response_code(5, 4),
     SOL_COAP_RESPONSE_CODE_PROXYING_NOT_SUPPORTED = sol_coap_make_response_code(5, 5)
-} sol_coap_response_code_t;
+};
 
 /**
  * @brief Macro to indicates that the header code was not set.
@@ -220,13 +220,13 @@ typedef enum {
  *
  * Refer to RFC 7252, section 12.3 for more information.
  */
-typedef enum {
+enum sol_coap_content_type_t {
     SOL_COAP_CONTENT_TYPE_NONE = -1,
     SOL_COAP_CONTENT_TYPE_TEXT_PLAIN = 0,
     SOL_COAP_CONTENT_TYPE_APPLICATION_LINK_FORMAT = 40,
     SOL_COAP_CONTENT_TYPE_APPLICATION_CBOR = 60, /* RFC7049 */
     SOL_COAP_CONTENT_TYPE_APPLICATION_JSON = 50,
-} sol_coap_content_type_t;
+};
 
 /**
  * @brief Flags accepted by a #sol_coap_resource.
@@ -550,7 +550,7 @@ struct sol_coap_packet *sol_coap_packet_new(struct sol_coap_packet *old);
  *
  * @return A new packet, with @c id, @c method and @c type already set.
  */
-struct sol_coap_packet *sol_coap_packet_new_request(sol_coap_method_t method, sol_coap_msgtype_t type);
+struct sol_coap_packet *sol_coap_packet_new_request(enum sol_coap_method_t method, enum sol_coap_msgtype_t type);
 
 /**
  * @brief Convenience function to create a packet suitable to send as a notification.

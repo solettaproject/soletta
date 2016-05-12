@@ -997,7 +997,7 @@ observer_entry_add_monitor(struct observer_entry *entry,
     struct sol_lwm2m_server *server,
     struct sol_lwm2m_client_info *client,
     const char *path,
-    sol_coap_response_code_t response_code,
+    enum sol_coap_response_code_t response_code,
     enum sol_lwm2m_content_type content_type,
     struct sol_str_slice content),
     const void *data)
@@ -1015,7 +1015,7 @@ observer_entry_del_monitor(struct observer_entry *entry,
     struct sol_lwm2m_server *server,
     struct sol_lwm2m_client_info *client,
     const char *path,
-    sol_coap_response_code_t response_code,
+    enum sol_coap_response_code_t response_code,
     enum sol_lwm2m_content_type content_type,
     struct sol_str_slice content),
     const void *data)
@@ -1464,7 +1464,7 @@ exit:
 
 static int
 add_coap_int_option(struct sol_coap_packet *pkt,
-    sol_coap_option_num_t opt, const void *data, size_t len)
+    enum sol_coap_option_num_t opt, const void *data, size_t len)
 {
     uint8_t buf[sizeof(int64_t)] = { };
 
@@ -1475,7 +1475,7 @@ add_coap_int_option(struct sol_coap_packet *pkt,
 
 static int
 get_coap_int_option(struct sol_coap_packet *pkt,
-    sol_coap_option_num_t opt, uint16_t *value)
+    enum sol_coap_option_num_t opt, uint16_t *value)
 {
     const void *v;
     size_t len;
@@ -1491,8 +1491,8 @@ get_coap_int_option(struct sol_coap_packet *pkt,
 }
 
 static int
-setup_coap_packet(sol_coap_method_t method,
-    sol_coap_msgtype_t type, const char *objects_path, const char *path,
+setup_coap_packet(enum sol_coap_method_t method,
+    enum sol_coap_msgtype_t type, const char *objects_path, const char *path,
     uint8_t *obs, int64_t *token, struct sol_lwm2m_resource *resources,
     size_t len,
     const char *execute_args,
@@ -1641,7 +1641,7 @@ observation_request_reply(void *data, struct sol_coap_server *coap_server,
         ((void (*)(void *, struct sol_lwm2m_server *,
         struct sol_lwm2m_client_info *,
         const char *,
-        sol_coap_response_code_t,
+        enum sol_coap_response_code_t,
         enum sol_lwm2m_content_type,
         struct sol_str_slice))m->cb)((void *)m->data, entry->server,
             entry->cinfo, entry->path, code, type, content);
@@ -1657,7 +1657,7 @@ sol_lwm2m_server_add_observer(struct sol_lwm2m_server *server,
     struct sol_lwm2m_server *server,
     struct sol_lwm2m_client_info *client,
     const char *path,
-    sol_coap_response_code_t response_code,
+    enum sol_coap_response_code_t response_code,
     enum sol_lwm2m_content_type content_type,
     struct sol_str_slice content),
     const void *data)
@@ -1702,7 +1702,7 @@ sol_lwm2m_server_del_observer(struct sol_lwm2m_server *server,
     struct sol_lwm2m_server *server,
     struct sol_lwm2m_client_info *client,
     const char *path,
-    sol_coap_response_code_t response_code,
+    enum sol_coap_response_code_t response_code,
     enum sol_lwm2m_content_type content_type,
     struct sol_str_slice content),
     const void *data)
@@ -1813,7 +1813,7 @@ management_reply(void *data, struct sol_coap_server *server,
         ((void (*)(void *,
         struct sol_lwm2m_server *,
         struct sol_lwm2m_client_info *, const char *,
-        sol_coap_response_code_t))ctx->cb)
+        enum sol_coap_response_code_t))ctx->cb)
             ((void *)ctx->data, ctx->server, ctx->cinfo, ctx->path, code);
         break;
     default: //Read
@@ -1822,7 +1822,7 @@ management_reply(void *data, struct sol_coap_server *server,
         ((void (*)(void *, struct sol_lwm2m_server *,
         struct sol_lwm2m_client_info *,
         const char *,
-        sol_coap_response_code_t,
+        enum sol_coap_response_code_t,
         enum sol_lwm2m_content_type,
         struct sol_str_slice))ctx->cb)((void *)ctx->data, ctx->server,
             ctx->cinfo, ctx->path, code, content_type, content);
@@ -1840,7 +1840,7 @@ static int
 send_management_packet(struct sol_lwm2m_server *server,
     struct sol_lwm2m_client_info *client, const char *path,
     enum management_type type, void *cb, const void *data,
-    sol_coap_method_t method,
+    enum sol_coap_method_t method,
     struct sol_lwm2m_resource *resources, size_t len, const char *execute_args)
 {
     int r;
@@ -1904,10 +1904,10 @@ sol_lwm2m_server_write(struct sol_lwm2m_server *server,
     void (*cb)(void *data,
     struct sol_lwm2m_server *server,
     struct sol_lwm2m_client_info *client, const char *path,
-    sol_coap_response_code_t response_code),
+    enum sol_coap_response_code_t response_code),
     const void *data)
 {
-    sol_coap_method_t method = SOL_COAP_METHOD_PUT;
+    enum sol_coap_method_t method = SOL_COAP_METHOD_PUT;
 
     SOL_NULL_CHECK(server, -EINVAL);
     SOL_NULL_CHECK(client, -EINVAL);
@@ -1927,7 +1927,7 @@ sol_lwm2m_server_execute_resource(struct sol_lwm2m_server *server,
     void (*cb)(void *data,
     struct sol_lwm2m_server *server,
     struct sol_lwm2m_client_info *client, const char *path,
-    sol_coap_response_code_t response_code),
+    enum sol_coap_response_code_t response_code),
     const void *data)
 {
     SOL_NULL_CHECK(server, -EINVAL);
@@ -1944,7 +1944,7 @@ sol_lwm2m_server_delete_object_instance(struct sol_lwm2m_server *server,
     void (*cb)(void *data,
     struct sol_lwm2m_server *server,
     struct sol_lwm2m_client_info *client, const char *path,
-    sol_coap_response_code_t response_code),
+    enum sol_coap_response_code_t response_code),
     const void *data)
 {
     SOL_NULL_CHECK(server, -EINVAL);
@@ -1962,7 +1962,7 @@ sol_lwm2m_server_create_object_instance(struct sol_lwm2m_server *server,
     void (*cb)(void *data,
     struct sol_lwm2m_server *server,
     struct sol_lwm2m_client_info *client, const char *path,
-    sol_coap_response_code_t response_code),
+    enum sol_coap_response_code_t response_code),
     const void *data)
 {
     SOL_NULL_CHECK(server, -EINVAL);
@@ -1982,7 +1982,7 @@ sol_lwm2m_server_read(struct sol_lwm2m_server *server,
     struct sol_lwm2m_server *server,
     struct sol_lwm2m_client_info *client,
     const char *path,
-    sol_coap_response_code_t response_code,
+    enum sol_coap_response_code_t response_code,
     enum sol_lwm2m_content_type content_type,
     struct sol_str_slice content),
     const void *data)

@@ -94,7 +94,7 @@ struct sol_oic_client_request {
 struct resource_request_ctx {
     struct sol_oic_client *client;
     struct sol_oic_resource *res;
-    void (*cb)(void *data, sol_coap_response_code_t response_code, struct sol_oic_client *cli, const struct sol_network_link_addr *addr, const struct sol_oic_map_reader *repr_vec);
+    void (*cb)(void *data, enum sol_coap_response_code_t response_code, struct sol_oic_client *cli, const struct sol_network_link_addr *addr, const struct sol_oic_map_reader *repr_vec);
     const void *data;
     int64_t token;
 };
@@ -956,7 +956,7 @@ _resource_request_unobserve(struct sol_oic_client *client, struct sol_oic_resour
 static int
 _resource_request(struct sol_oic_client_request *request,
     struct sol_oic_client *client,
-    void (*callback)(void *data, sol_coap_response_code_t response_code,
+    void (*callback)(void *data, enum sol_coap_response_code_t response_code,
     struct sol_oic_client *cli, const struct sol_network_link_addr *addr,
     const struct sol_oic_map_reader *repr_vec),
     void *data)
@@ -1004,7 +1004,7 @@ error:
 }
 
 static struct sol_oic_request *
-request_new(sol_coap_method_t method, sol_coap_msgtype_t type, struct sol_oic_resource *res, bool is_observe)
+request_new(enum sol_coap_method_t method, enum sol_coap_msgtype_t type, struct sol_oic_resource *res, bool is_observe)
 {
     struct sol_oic_client_request *request;
     char *path;
@@ -1053,7 +1053,7 @@ error_pkt:
 }
 
 SOL_API struct sol_oic_request *
-sol_oic_client_request_new(sol_coap_method_t method, struct sol_oic_resource *res)
+sol_oic_client_request_new(enum sol_coap_method_t method, struct sol_oic_resource *res)
 {
     OIC_RESOURCE_CHECK_API(res, NULL);
 
@@ -1061,7 +1061,7 @@ sol_oic_client_request_new(sol_coap_method_t method, struct sol_oic_resource *re
 }
 
 SOL_API struct sol_oic_request *
-sol_oic_client_non_confirmable_request_new(sol_coap_method_t method, struct sol_oic_resource *res)
+sol_oic_client_non_confirmable_request_new(enum sol_coap_method_t method, struct sol_oic_resource *res)
 {
     OIC_RESOURCE_CHECK_API(res, NULL);
 
@@ -1088,7 +1088,7 @@ sol_oic_client_request_get_writer(struct sol_oic_request *request)
 SOL_API int
 sol_oic_client_request(struct sol_oic_client *client,
     struct sol_oic_request *request,
-    void (*callback)(void *data, sol_coap_response_code_t response_code,
+    void (*callback)(void *data, enum sol_coap_response_code_t response_code,
     struct sol_oic_client *cli, const struct sol_network_link_addr *addr,
     const struct sol_oic_map_reader *repr_vec),
     const void *callback_data)
@@ -1129,7 +1129,7 @@ error:
 
 static bool
 _observe_with_polling(struct sol_oic_client *client, struct sol_oic_resource *res,
-    void (*callback)(void *data, sol_coap_response_code_t response_code, struct sol_oic_client *cli, const struct sol_network_link_addr *addr,
+    void (*callback)(void *data, enum sol_coap_response_code_t response_code, struct sol_oic_client *cli, const struct sol_network_link_addr *addr,
     const struct sol_oic_map_reader *repr_vec),
     void *data)
 {
@@ -1170,7 +1170,7 @@ _stop_observing_with_polling(struct sol_oic_resource *res)
 
 static int
 client_resource_set_observable(struct sol_oic_client *client, struct sol_oic_resource *res,
-    void (*callback)(void *data, sol_coap_response_code_t response_code, struct sol_oic_client *cli, const struct sol_network_link_addr *addr,
+    void (*callback)(void *data, enum sol_coap_response_code_t response_code, struct sol_oic_client *cli, const struct sol_network_link_addr *addr,
     const struct sol_oic_map_reader *repr_vec),
     void *data, bool observe, bool non_confirmable)
 {
@@ -1218,7 +1218,7 @@ client_resource_set_observable(struct sol_oic_client *client, struct sol_oic_res
 
 SOL_API int
 sol_oic_client_resource_set_observable(struct sol_oic_client *client, struct sol_oic_resource *res,
-    void (*callback)(void *data, sol_coap_response_code_t response_code, struct sol_oic_client *cli, const struct sol_network_link_addr *addr,
+    void (*callback)(void *data, enum sol_coap_response_code_t response_code, struct sol_oic_client *cli, const struct sol_network_link_addr *addr,
     const struct sol_oic_map_reader *repr_vec),
     const void *data, bool observe)
 {
@@ -1228,7 +1228,7 @@ sol_oic_client_resource_set_observable(struct sol_oic_client *client, struct sol
 
 SOL_API int
 sol_oic_client_resource_set_observable_non_confirmable(struct sol_oic_client *client, struct sol_oic_resource *res,
-    void (*callback)(void *data, sol_coap_response_code_t response_code, struct sol_oic_client *cli, const struct sol_network_link_addr *addr,
+    void (*callback)(void *data, enum sol_coap_response_code_t response_code, struct sol_oic_client *cli, const struct sol_network_link_addr *addr,
     const struct sol_oic_map_reader *repr_vec),
     const void *data, bool observe)
 {

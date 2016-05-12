@@ -80,7 +80,7 @@ location_changed_cb(void *data,
     struct sol_lwm2m_server *server,
     struct sol_lwm2m_client_info *cinfo,
     const char *path,
-    sol_coap_response_code_t response_code,
+    enum sol_coap_response_code_t response_code,
     enum sol_lwm2m_content_type content_type,
     struct sol_str_slice content)
 {
@@ -155,7 +155,7 @@ static void
 create_cb(void *data,
     struct sol_lwm2m_server *server,
     struct sol_lwm2m_client_info *cinfo, const char *path,
-    sol_coap_response_code_t response_code)
+    enum sol_coap_response_code_t response_code)
 {
     const char *name = sol_lwm2m_client_info_get_name(cinfo);
 

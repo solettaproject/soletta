@@ -109,7 +109,7 @@ error:
 static int
 user_handle_put(void *data, struct sol_oic_request *request)
 {
-    sol_coap_response_code_t code = SOL_COAP_RESPONSE_CODE_BAD_REQUEST;
+    enum sol_coap_response_code_t code = SOL_COAP_RESPONSE_CODE_BAD_REQUEST;
     enum sol_oic_map_loop_status reason;
     struct sol_oic_repr_field field;
     struct sol_oic_map_reader iter;
