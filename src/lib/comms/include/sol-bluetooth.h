@@ -155,6 +155,15 @@ const struct sol_network_link_addr *sol_bt_conn_get_addr(
     const struct sol_bt_conn *conn);
 
 /**
+ * @brief Returns the device info associated with a connection.
+ *
+ * @param conn The reference to a connection.
+ *
+ * @return Information about the device connected
+ */
+const struct sol_bt_device_info *sol_bt_conn_get_device_info(const struct sol_bt_conn *conn);
+
+/**
  * @brief Attempts to establish a connection with a remote device.
  *
  * @param addr The network link address of the remote device,
@@ -334,6 +343,205 @@ struct sol_bt_scan_pending *sol_bt_start_scan(
  * @return 0 on success, -errno otherwise.
  */
 int sol_bt_stop_scan(struct sol_bt_scan_pending *handle);
+
+/**
+ * @brief Initiates a pairing procedure with an device
+ *
+ * The callback will not be called if sol_bt_conn_pair_cancel() is called
+ * and returns successfully.
+ *
+ * @param conn Connection with the device to pair
+ * @param cb Callback to be called when the pairing finishes.
+ *
+ * @return 0 on success, -errno otherwise.
+ */
+int sol_bt_conn_pair(struct sol_bt_conn *conn,
+    void (*on_pair)(void *user_data, bool success, struct sol_bt_conn *conn),
+    void *user_data);
+
+/**
+ * @brief Cancels a pairing attempt
+ *
+ * @param conn Connection in which the pairing was initiated
+ *
+ * @return 0 on success, -errno otherwise.
+ */
+int sol_bt_conn_pair_cancel(struct sol_bt_conn *conn);
+
+/**
+ * @brief Forgets a device, removing any stored security key
+ *
+ * Removes any security key saved in permanent stoorage associated with
+ * a device.
+ *
+ * @param addr Address of the device to be removed
+ *
+ * @return 0 on success, -errno otherwise.
+ */
+int sol_bt_forget_device(const struct sol_network_link_addr *addr);
+
+/**
+ * @brief Represents an Bluetooth agent
+ *
+ * The agent is used when user input is necessary, when pairing, for example, we
+ * may request a passkey to be displayed to the user.
+ *
+ * When pairing with devices, the input and output capabilities are taken into account,
+ * the callbacks not set to NULL are used to determine the input/output capabilities
+ * of the system.
+ */
+struct sol_bt_agent {
+    /**
+     * @brief Called when a pairing procedure needs to display a passkey.
+     *
+     * Indicates that the @a passkey should be displayed to the user.
+     *
+     * @param data User data
+     * @param conn Connection being authenticated
+     * @param passkey The passkey that needs to be displayed
+     */
+    void (*passkey_display)(void *data, struct sol_bt_conn *conn, uint32_t passkey);
+
+    /**
+     * @brief Called when a pairing procedure needs a passkey to be input.
+     *
+     * Indicates that the user needs to input a passkey. sol_bt_agent_reply_passkey_entry()
+     * should be called with the input passkey.
+     *
+     * @param data User data
+     * @param conn Connection being authenticated
+     */
+    void (*passkey_entry)(void *data, struct sol_bt_conn *conn);
+
+    /**
+     * @brief Called when a pairing procedure needs a passkey to be confirmed.
+     *
+     * Indicates that the user needs confirm a passkey. sol_bt_agent_reply_passkey_confirm()
+     * should be called with the input passkey, sol_bt_agent_reply_cancel() should be called
+     * otherwise.
+     *
+     * @param data User data
+     * @param conn Connection being authenticated
+     * @param passkey The passkey that needs to be confirmed
+     */
+    void (*passkey_confirm)(void *data, struct sol_bt_conn *conn, uint32_t passkey);
+
+    /**
+     * @brief Called when the pairing procedure is cancelled by the other party.
+     *
+     * @param data User data
+     * @param conn Connection being authenticated
+     */
+    void (*cancel)(void *data, struct sol_bt_conn *conn);
+
+    /**
+     * @brief Called when a pairing attempt needs to be confirmed.
+     *
+     * Indicates that the user needs to confirm a pairing attempt.
+     * sol_bt_agent_reply_pairing_confirm() should be called if the pairing is
+     * confirmed, sol_bt_agent_reply_cancel() otherwise.
+     *
+     * @param data User data
+     * @param conn Connection being authenticated
+     */
+    void (*pairing_confirm)(void *data, struct sol_bt_conn *conn);
+
+    /**
+     * @brief Called when a pairing procedure needs a pincode to be entered.
+     *
+     * Indicates that the user needs to input a pincode. sol_bt_agent_reply_pincode_entry()
+     * should be called with the input pincode, sol_bt_agent_reply_cancel() otherwise.
+     *
+     * This is only used when pairing with legacy Bluetooth devices.
+     *
+     * @param data User data
+     * @param conn Connection being authenticated
+     * @param highsec Informs that the pincode needs to be 16 digits long.
+     *
+     */
+    void (*pincode_entry)(void *data, struct sol_bt_conn *conn, bool highsec);
+};
+
+/**
+ * @brief Registers an agent for the system
+ *
+ * It is only possible to have one agent at a time. Pass NULL to unregister the
+ * current agent.
+ *
+ * @param agent The agent to be registered
+ * @param data The user data to be passed to each agent callback
+ * @return 0 on sucess, -errno otherwise
+ */
+int sol_bt_register_agent(const struct sol_bt_agent *agent, const void *data);
+
+/**
+ * @brief Replies to a request to the user to enter a passkey
+ *
+ * This should be called after passkey_entry() is called with the passkey
+ * entered by the user.
+ *
+ * @param conn The connection to be authenticated
+ * @param passkey The passkey entered by the user
+ * @return 0 on sucess, -errno otherwise
+ */
+int sol_bt_agent_finish_passkey_entry(struct sol_bt_conn *conn, uint32_t passkey);
+
+/**
+ * @brief Informs that the passkey was displayed to the user
+ *
+ * This should be called after passkey_display() is called to inform that
+ * it is no longer displayed.
+ *
+ * @param conn The connection to be authenticated
+ * @return 0 on sucess, -errno otherwise
+ */
+int sol_bt_agent_finish_passkey_display(struct sol_bt_conn *conn);
+
+/**
+ * @brief Cancels an attempt to authenticate a connection
+ *
+ * Rejects the pairing the attempt.
+ *
+ * @param conn The connection to be authenticated
+ * @param passkey The passkey entered by the user
+ * @return 0 on sucess, -errno otherwise
+ */
+int sol_bt_agent_finish_cancel(struct sol_bt_conn *conn);
+
+/**
+ * @brief Confirms that the same passkey is display in both devices
+ *
+ * This should be called after passkey_confirm() is called with the passkey
+ * to be displayed and confirmed
+ *
+ * @param conn The connection to be authenticated
+ * @param passkey The passkey entered by the user
+ * @return 0 on sucess, -errno otherwise
+ */
+int sol_bt_agent_finish_passkey_confirm(struct sol_bt_conn *conn);
+
+/**
+ * @brief Confirms the pairing attempt
+ *
+ * This should be called after pairing_confirm() indicates a pairing attempt.
+ *
+ * @param conn The connection to be authenticated
+ * @param passkey The passkey entered by the user
+ * @return 0 on sucess, -errno otherwise
+ */
+int sol_bt_agent_finish_pairing_confirm(struct sol_bt_conn *conn);
+
+/**
+ * @brief Replies to a request to the user to enter a pincode
+ *
+ * This should be called after pincode_entry() is called with the pincode
+ * entered by the user.
+ *
+ * @param conn The connection to be authenticated
+ * @param passkey The passkey entered by the user
+ * @return 0 on sucess, -errno otherwise
+ */
+int sol_bt_agent_finish_pincode_entry(struct sol_bt_conn *conn, const char *pin);
 
 /**
  * @}
