@@ -9,7 +9,7 @@ Web IDL
 -------
 ```javascript
 // require returns an SPI object
-// var spi = require('spi');
+// var spi = require('soletta/spi');
 
 [NoInterfaceObject]
 interface SPI {
@@ -53,7 +53,7 @@ The promise the ```transfer()``` method returns resolves with the received data 
 
 #### Example
 ```javascript
-  var spi = require('spi');
+  var spi = require('soletta/spi');
 
   spi.open({ bus: 0, frequency: 10000000 })
   .then((bus) => {
