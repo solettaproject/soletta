@@ -360,7 +360,7 @@ bool
 sol_oic_pkt_has_cbor_content(const struct sol_coap_packet *pkt)
 {
     const uint8_t *ptr;
-    uint16_t len;
+    size_t len;
 
     ptr = sol_coap_find_first_option(pkt, SOL_COAP_OPTION_CONTENT_FORMAT, &len);
 

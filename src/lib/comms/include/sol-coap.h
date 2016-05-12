@@ -643,7 +643,7 @@ bool sol_coap_packet_has_payload(struct sol_coap_packet *pkt);
  *
  * @return 0 on success, -errno on failure.
  */
-int sol_coap_add_option(struct sol_coap_packet *pkt, uint16_t code, const void *value, uint16_t len);
+int sol_coap_add_option(struct sol_coap_packet *pkt, uint16_t code, const void *value, size_t len);
 
 /**
  * @brief Convenience function to add the the #SOL_COAP_OPTION_URI_PATH from a string.
@@ -664,7 +664,7 @@ int sol_coap_packet_add_uri_path_option(struct sol_coap_packet *pkt, const char 
  *
  * @return Pointer to the option's value, or NULL if not found.
  */
-const void *sol_coap_find_first_option(const struct sol_coap_packet *pkt, uint16_t code, uint16_t *len);
+const void *sol_coap_find_first_option(const struct sol_coap_packet *pkt, uint16_t code, size_t *len);
 
 /**
  * @brief Gets a number of specified option in a packet.
@@ -676,7 +676,7 @@ const void *sol_coap_find_first_option(const struct sol_coap_packet *pkt, uint16
  *
  * @return The number of options found, negative errno otherwise.
  */
-int sol_coap_find_options(const struct sol_coap_packet *pkt, uint16_t code, struct sol_str_slice *vec, uint16_t veclen);
+int sol_coap_find_options(const struct sol_coap_packet *pkt, uint16_t code, struct sol_str_slice *vec, size_t veclen);
 
 /**
  * @brief Sends a packet to the given address.

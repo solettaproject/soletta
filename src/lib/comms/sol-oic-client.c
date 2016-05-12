@@ -591,7 +591,7 @@ static bool
 _has_observable_option(struct sol_coap_packet *pkt)
 {
     const uint8_t *ptr;
-    uint16_t len;
+    size_t len;
 
     ptr = sol_coap_find_first_option(pkt, SOL_COAP_OPTION_OBSERVE, &len);
 

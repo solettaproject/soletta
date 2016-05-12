@@ -339,7 +339,7 @@ uri_path_eq(const struct sol_coap_packet *req, const struct sol_str_slice path[]
     struct sol_str_slice options[16];
     unsigned int i;
     int r;
-    uint16_t count = 16;
+    size_t count = 16;
 
     SOL_NULL_CHECK(req, false);
     SOL_NULL_CHECK(path, false);
@@ -1072,7 +1072,7 @@ err:
 }
 
 SOL_API int
-sol_coap_add_option(struct sol_coap_packet *pkt, uint16_t code, const void *value, uint16_t len)
+sol_coap_add_option(struct sol_coap_packet *pkt, uint16_t code, const void *value, size_t len)
 {
     struct option_context context = { .delta = 0,
                                       .used = 0 };
@@ -1141,10 +1141,10 @@ sol_coap_packet_add_uri_path_option(struct sol_coap_packet *pkt, const char *uri
 }
 
 SOL_API const void *
-sol_coap_find_first_option(const struct sol_coap_packet *pkt, uint16_t code, uint16_t *len)
+sol_coap_find_first_option(const struct sol_coap_packet *pkt, uint16_t code, size_t *len)
 {
     struct sol_str_slice option = {};
-    uint16_t count = 1;
+    size_t count = 1;
 
     SOL_NULL_CHECK(pkt, NULL);
     SOL_NULL_CHECK(len, NULL);
@@ -1159,11 +1159,12 @@ sol_coap_find_first_option(const struct sol_coap_packet *pkt, uint16_t code, uin
 
 SOL_API int
 sol_coap_find_options(const struct sol_coap_packet *pkt, uint16_t code,
-    struct sol_str_slice *vec, uint16_t veclen)
+    struct sol_str_slice *vec, size_t veclen)
 {
     struct option_context context = { .delta = 0,
                                       .used = 0 };
-    int used, count = 0;
+    int used;
+    unsigned int count = 0;
     int hdrlen;
     uint16_t len;
 
@@ -1175,6 +1176,10 @@ sol_coap_find_options(const struct sol_coap_packet *pkt, uint16_t code,
 
     context.buf = (struct sol_buffer *)&pkt->buf;
     context.pos = hdrlen;
+
+    /* avoid int overflow */
+    if (veclen > INT_MAX)
+        veclen = INT_MAX;
 
     while (context.delta <= code && count < veclen) {
         used = coap_parse_option(&context, (uint8_t **)&vec[count].data,
@@ -2027,7 +2032,8 @@ sol_coap_packet_debug(struct sol_coap_packet *pkt)
 {
     int r;
     uint8_t type, code;
-    uint16_t query_len, id;
+    uint16_t id;
+    size_t query_len;
     char *path = NULL, *query;
 
 
@@ -2045,7 +2051,7 @@ sol_coap_packet_debug(struct sol_coap_packet *pkt)
     sol_coap_header_get_id(pkt, &id);
     sol_coap_header_get_code(pkt, &code);
     SOL_DBG("{id: %d, href: '%s', type: %d, header_code: %d, query: '%.*s'}",
-        id, r == 0 ? path : "", type, code, query_len, query);
+        id, r == 0 ? path : "", type, code, (int)query_len, query);
     if (r == 0)
         free(path);
 }

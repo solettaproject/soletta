@@ -1464,7 +1464,7 @@ exit:
 
 static int
 add_coap_int_option(struct sol_coap_packet *pkt,
-    sol_coap_option_num_t opt, const void *data, uint16_t len)
+    sol_coap_option_num_t opt, const void *data, size_t len)
 {
     uint8_t buf[sizeof(int64_t)] = { };
 
@@ -1478,7 +1478,7 @@ get_coap_int_option(struct sol_coap_packet *pkt,
     sol_coap_option_num_t opt, uint16_t *value)
 {
     const void *v;
-    uint16_t len;
+    size_t len;
 
     v = sol_coap_find_first_option(pkt, opt, &len);
 
@@ -2942,7 +2942,7 @@ static bool
 is_observe_request(struct sol_coap_packet *req)
 {
     const void *obs;
-    uint16_t len;
+    size_t len;
 
     obs = sol_coap_find_first_option(req, SOL_COAP_OPTION_OBSERVE, &len);
 
