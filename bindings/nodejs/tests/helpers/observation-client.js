@@ -81,7 +81,7 @@ async.series( [
 
 	function maybeQuit( callback ) {
 		var result = soletta.sol_oic_client_request( client, theResource,
-			soletta.sol_coap_method_t.SOL_COAP_METHOD_PUT, { finished: uuid },
+			soletta.sol_coap_method.SOL_COAP_METHOD_PUT, { finished: uuid },
 			function( code, client, address, response ) {
 				if ( response && response.clientsFinished === clientCount ) {
 					console.log( JSON.stringify( { killPeer: true } ) );

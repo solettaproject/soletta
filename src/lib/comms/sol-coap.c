@@ -130,7 +130,7 @@ sol_coap_server_get_socket(const struct sol_coap_server *server)
 }
 
 SOL_API int
-sol_coap_header_get_ver(const struct sol_coap_packet *pkt, uint8_t *version)
+sol_coap_header_get_version(const struct sol_coap_packet *pkt, uint8_t *version)
 {
     struct coap_header *hdr;
 
@@ -207,27 +207,27 @@ sol_coap_header_get_code(const struct sol_coap_packet *pkt, uint8_t *code)
     case SOL_COAP_METHOD_DELETE:
 
     /* All the defined response codes */
-    case SOL_COAP_RSPCODE_OK:
-    case SOL_COAP_RSPCODE_CREATED:
-    case SOL_COAP_RSPCODE_DELETED:
-    case SOL_COAP_RSPCODE_VALID:
-    case SOL_COAP_RSPCODE_CHANGED:
-    case SOL_COAP_RSPCODE_CONTENT:
-    case SOL_COAP_RSPCODE_BAD_REQUEST:
-    case SOL_COAP_RSPCODE_UNAUTHORIZED:
-    case SOL_COAP_RSPCODE_BAD_OPTION:
-    case SOL_COAP_RSPCODE_FORBIDDEN:
-    case SOL_COAP_RSPCODE_NOT_FOUND:
-    case SOL_COAP_RSPCODE_NOT_ALLOWED:
-    case SOL_COAP_RSPCODE_NOT_ACCEPTABLE:
-    case SOL_COAP_RSPCODE_PRECONDITION_FAILED:
-    case SOL_COAP_RSPCODE_REQUEST_TOO_LARGE:
-    case SOL_COAP_RSPCODE_INTERNAL_ERROR:
-    case SOL_COAP_RSPCODE_NOT_IMPLEMENTED:
-    case SOL_COAP_RSPCODE_BAD_GATEWAY:
-    case SOL_COAP_RSPCODE_SERVICE_UNAVAILABLE:
-    case SOL_COAP_RSPCODE_GATEWAY_TIMEOUT:
-    case SOL_COAP_RSPCODE_PROXYING_NOT_SUPPORTED:
+    case SOL_COAP_RESPONSE_CODE_OK:
+    case SOL_COAP_RESPONSE_CODE_CREATED:
+    case SOL_COAP_RESPONSE_CODE_DELETED:
+    case SOL_COAP_RESPONSE_CODE_VALID:
+    case SOL_COAP_RESPONSE_CODE_CHANGED:
+    case SOL_COAP_RESPONSE_CODE_CONTENT:
+    case SOL_COAP_RESPONSE_CODE_BAD_REQUEST:
+    case SOL_COAP_RESPONSE_CODE_UNAUTHORIZED:
+    case SOL_COAP_RESPONSE_CODE_BAD_OPTION:
+    case SOL_COAP_RESPONSE_CODE_FORBIDDEN:
+    case SOL_COAP_RESPONSE_CODE_NOT_FOUND:
+    case SOL_COAP_RESPONSE_CODE_NOT_ALLOWED:
+    case SOL_COAP_RESPONSE_CODE_NOT_ACCEPTABLE:
+    case SOL_COAP_RESPONSE_CODE_PRECONDITION_FAILED:
+    case SOL_COAP_RESPONSE_CODE_REQUEST_TOO_LARGE:
+    case SOL_COAP_RESPONSE_CODE_INTERNAL_ERROR:
+    case SOL_COAP_RESPONSE_CODE_NOT_IMPLEMENTED:
+    case SOL_COAP_RESPONSE_CODE_BAD_GATEWAY:
+    case SOL_COAP_RESPONSE_CODE_SERVICE_UNAVAILABLE:
+    case SOL_COAP_RESPONSE_CODE_GATEWAY_TIMEOUT:
+    case SOL_COAP_RESPONSE_CODE_PROXYING_NOT_SUPPORTED:
     case SOL_COAP_CODE_EMPTY:
         *code = hdr->code;
         break;
@@ -243,7 +243,7 @@ sol_coap_header_get_code(const struct sol_coap_packet *pkt, uint8_t *code)
  * buffer operation, that can lead to reallocs */
 
 SOL_API int
-sol_coap_header_set_ver(struct sol_coap_packet *pkt, uint8_t ver)
+sol_coap_header_set_version(struct sol_coap_packet *pkt, uint8_t ver)
 {
     struct coap_header *hdr;
     int r;
@@ -359,7 +359,7 @@ uri_path_eq(const struct sol_coap_packet *req, const struct sol_str_slice path[]
 }
 
 SOL_API int
-sol_coap_uri_path_to_buf(const struct sol_str_slice path[],
+sol_coap_path_to_buffer(const struct sol_str_slice path[],
     struct sol_buffer *buf, size_t offset, size_t *size)
 {
     size_t cur, new_cur;
@@ -418,7 +418,7 @@ packet_extract_path(const struct sol_coap_packet *req, char **path_str)
     }
     path[count] = SOL_STR_SLICE_STR(NULL, 0);
 
-    r = sol_coap_uri_path_to_buf(path, &buf, 0, NULL);
+    r = sol_coap_path_to_buffer(path, &buf, 0, NULL);
     SOL_INT_CHECK_GOTO(r, < 0, error);
 
     *path_str = sol_buffer_steal(&buf, NULL);
@@ -511,7 +511,7 @@ packet_new(struct sol_buffer *buf)
 
     memset(pkt->buf.data, 0, sizeof(struct coap_header));
 
-    r = sol_coap_header_set_ver(pkt, COAP_VERSION);
+    r = sol_coap_header_set_version(pkt, COAP_VERSION);
     SOL_INT_CHECK_GOTO(r, < 0, err);
 
     pkt->buf.used = sizeof(struct coap_header);
@@ -546,8 +546,8 @@ sol_coap_packet_new(struct sol_coap_packet *old)
         sol_coap_header_get_type(old, &type);
         if (type == SOL_COAP_TYPE_CON)
             r = sol_coap_header_set_type(pkt, SOL_COAP_TYPE_ACK);
-        else if (type == SOL_COAP_TYPE_NONCON)
-            r = sol_coap_header_set_type(pkt, SOL_COAP_TYPE_NONCON);
+        else if (type == SOL_COAP_TYPE_NON_CON)
+            r = sol_coap_header_set_type(pkt, SOL_COAP_TYPE_NON_CON);
         SOL_INT_CHECK_GOTO(r, < 0, err);
         token = sol_coap_header_get_token(old, &tkl);
         if (token) {
@@ -1004,7 +1004,7 @@ err:
 }
 
 SOL_API struct sol_coap_packet *
-sol_coap_packet_notification_new(struct sol_coap_server *server, struct sol_coap_resource *resource)
+sol_coap_packet_new_notification(struct sol_coap_server *server, struct sol_coap_resource *resource)
 {
     struct resource_context *c;
     struct sol_coap_packet *pkt;
@@ -1025,7 +1025,7 @@ sol_coap_packet_notification_new(struct sol_coap_server *server, struct sol_coap
     pkt = sol_coap_packet_new(NULL);
     SOL_NULL_CHECK(pkt, NULL);
 
-    r = sol_coap_header_set_type(pkt, SOL_COAP_TYPE_NONCON);
+    r = sol_coap_header_set_type(pkt, SOL_COAP_TYPE_NON_CON);
     SOL_INT_CHECK_GOTO(r, < 0, err_exit);
 
     r = sol_coap_add_option(pkt, SOL_COAP_OPTION_OBSERVE, &id, sizeof(id));
@@ -1047,7 +1047,7 @@ sol_coap_send_packet(struct sol_coap_server *server,
 }
 
 SOL_API struct sol_coap_packet *
-sol_coap_packet_request_new(sol_coap_method_t method, sol_coap_msgtype_t type)
+sol_coap_packet_new_request(enum sol_coap_method method, enum sol_coap_msgtype type)
 {
     static uint16_t request_id;
     struct sol_coap_packet *pkt;
@@ -1213,7 +1213,7 @@ well_known_get(void *data, struct sol_coap_server *server,
         return -EINVAL;
     }
 
-    r = sol_coap_header_set_code(resp, SOL_COAP_RSPCODE_CONTENT);
+    r = sol_coap_header_set_code(resp, SOL_COAP_RESPONSE_CODE_CONTENT);
     if (r < 0) {
         SOL_WRN("Failed to set header code on packet %p", resp);
         sol_coap_packet_unref(resp);
@@ -1237,7 +1237,7 @@ well_known_get(void *data, struct sol_coap_server *server,
         r = sol_buffer_insert_char(buf, offset++, '<');
         SOL_INT_CHECK_GOTO(r, < 0, error);
 
-        r = sol_coap_uri_path_to_buf(res->path, buf, offset, &tmp);
+        r = sol_coap_path_to_buffer(res->path, buf, offset, &tmp);
         SOL_INT_CHECK_GOTO(r, < 0, error);
         offset += tmp;
 
@@ -1253,7 +1253,7 @@ well_known_get(void *data, struct sol_coap_server *server,
     return sol_coap_send_packet(server, resp, cliaddr);
 
 error:
-    sol_coap_header_set_code(resp, SOL_COAP_RSPCODE_INTERNAL_ERROR);
+    sol_coap_header_set_code(resp, SOL_COAP_RESPONSE_CODE_INTERNAL_ERROR);
     return sol_coap_send_packet(server, resp, cliaddr);
 }
 
@@ -1372,7 +1372,7 @@ resource_not_found(struct sol_coap_packet *req,
     resp = sol_coap_packet_new(req);
     SOL_NULL_CHECK(resp, -ENOMEM);
 
-    r = sol_coap_header_set_code(resp, SOL_COAP_RSPCODE_NOT_FOUND);
+    r = sol_coap_header_set_code(resp, SOL_COAP_RESPONSE_CODE_NOT_FOUND);
     SOL_INT_CHECK_GOTO(r, < 0, err);
 
     return sol_coap_send_packet(server, resp, cliaddr);
@@ -1416,7 +1416,7 @@ send_unobserve_packet(struct sol_coap_server *server, const struct sol_network_l
     uint8_t reg = 1;
     int r;
 
-    req = sol_coap_packet_request_new(SOL_COAP_METHOD_GET, SOL_COAP_TYPE_CON);
+    req = sol_coap_packet_new_request(SOL_COAP_METHOD_GET, SOL_COAP_TYPE_CON);
     SOL_NULL_CHECK(req, -ENOMEM);
 
     r = sol_coap_header_set_token(req, token, tkl);
@@ -1982,7 +1982,7 @@ sol_coap_cancel_send_packet(struct sol_coap_server *server, struct sol_coap_pack
 }
 
 SOL_API int
-sol_coap_unobserve_server(struct sol_coap_server *server, const struct sol_network_link_addr *cliaddr, uint8_t *token, uint8_t tkl)
+sol_coap_unobserve_by_token(struct sol_coap_server *server, const struct sol_network_link_addr *cliaddr, uint8_t *token, uint8_t tkl)
 {
     int r;
     uint16_t i;

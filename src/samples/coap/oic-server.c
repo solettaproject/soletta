@@ -97,19 +97,19 @@ user_handle_get(void *data, struct sol_oic_request *request)
     SOL_INT_CHECK_GOTO(r, < 0, error);
 
     return sol_oic_server_send_response(request, response,
-        SOL_COAP_RSPCODE_CONTENT);
+        SOL_COAP_RESPONSE_CODE_CONTENT);
 
 error:
     if (response)
         sol_oic_server_response_free(response);
     return sol_oic_server_send_response(request, NULL,
-        SOL_COAP_RSPCODE_INTERNAL_ERROR);
+        SOL_COAP_RESPONSE_CODE_INTERNAL_ERROR);
 }
 
 static int
 user_handle_put(void *data, struct sol_oic_request *request)
 {
-    sol_coap_responsecode_t code = SOL_COAP_RSPCODE_BAD_REQUEST;
+    enum sol_coap_response_code code = SOL_COAP_RESPONSE_CODE_BAD_REQUEST;
     enum sol_oic_map_loop_status reason;
     struct sol_oic_repr_field field;
     struct sol_oic_map_reader iter;
@@ -119,9 +119,9 @@ user_handle_put(void *data, struct sol_oic_request *request)
     SOL_OIC_MAP_LOOP(input, &field, &iter, reason) {
         if (!strcmp(field.key, "state") && field.type == SOL_OIC_REPR_TYPE_BOOLEAN) {
             if (set_scrolllock_led(field.v_boolean))
-                code = SOL_COAP_RSPCODE_OK;
+                code = SOL_COAP_RESPONSE_CODE_OK;
             else
-                code = SOL_COAP_RSPCODE_INTERNAL_ERROR;
+                code = SOL_COAP_RESPONSE_CODE_INTERNAL_ERROR;
 
             sol_oic_repr_field_clear(&field);
             goto end;

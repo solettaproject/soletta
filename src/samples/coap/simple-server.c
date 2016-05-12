@@ -89,7 +89,7 @@ light_resource_to_rep(const struct sol_coap_resource *resource,
     SOL_BUFFER_DECLARE_STATIC(buffer, 64);
     int r;
 
-    r = sol_coap_uri_path_to_buf(resource->path, &buffer, 0, NULL);
+    r = sol_coap_path_to_buffer(resource->path, &buffer, 0, NULL);
     SOL_INT_CHECK(r, < 0, r);
 
     r = sol_buffer_append_printf(buf,
@@ -125,7 +125,7 @@ light_method_put(void *data, struct sol_coap_server *server,
     const struct sol_coap_resource *resource, struct sol_coap_packet *req,
     const struct sol_network_link_addr *cliaddr)
 {
-    sol_coap_responsecode_t code = SOL_COAP_RSPCODE_CONTENT;
+    enum sol_coap_response_code code = SOL_COAP_RESPONSE_CODE_CONTENT;
     struct sol_coap_packet *resp;
     struct sol_buffer *buf;
     char *sub = NULL;
@@ -138,7 +138,7 @@ light_method_put(void *data, struct sol_coap_server *server,
     if (buf)
         sub = strstr((char *)sol_buffer_at(buf, offset), "state\":");
     if (!sub) {
-        code = SOL_COAP_RSPCODE_BAD_REQUEST;
+        code = SOL_COAP_RESPONSE_CODE_BAD_REQUEST;
         goto done;
     }
 
@@ -178,10 +178,10 @@ update_light(void *data)
 
     SOL_INF("Emitting notification");
 
-    pkt = sol_coap_packet_notification_new(server, resource);
+    pkt = sol_coap_packet_new_notification(server, resource);
     SOL_NULL_CHECK(pkt, false);
 
-    r = sol_coap_header_set_code(pkt, SOL_COAP_RSPCODE_CONTENT);
+    r = sol_coap_header_set_code(pkt, SOL_COAP_RESPONSE_CODE_CONTENT);
     SOL_INT_CHECK_GOTO(r, < 0, err);
     r = sol_coap_packet_get_payload(pkt, &buf, NULL);
     SOL_INT_CHECK_GOTO(r, < 0, err);
@@ -211,7 +211,7 @@ light_method_get(void *data, struct sol_coap_server *server,
     }
     r = sol_coap_header_set_type(resp, SOL_COAP_TYPE_ACK);
     SOL_INT_CHECK_GOTO(r, < 0, err);
-    r = sol_coap_header_set_code(resp, SOL_COAP_RSPCODE_CONTENT);
+    r = sol_coap_header_set_code(resp, SOL_COAP_RESPONSE_CODE_CONTENT);
     SOL_INT_CHECK_GOTO(r, < 0, err);
     r = sol_coap_packet_get_payload(resp, &buf, NULL);
     SOL_INT_CHECK_GOTO(r, < 0, err);

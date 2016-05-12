@@ -42,12 +42,12 @@ theResource = soletta.sol_oic_server_register_resource( _.extend( {
 			if ( observationCount >= 2 && !setObservable ) {
 				clearInterval(theInterval);
 			}
-			return soletta.sol_coap_responsecode_t.SOL_COAP_RSPCODE_OK;
+			return soletta.sol_coap_response_code.SOL_COAP_RESPONSE_CODE_OK;
 		},
 	}, setObservable ? {} : {
 		get: function getHandler( input, output ) {
 			_.extend( output, payload.generate() );
-			return soletta.sol_coap_responsecode_t.SOL_COAP_RSPCODE_OK;
+			return soletta.sol_coap_response_code.SOL_COAP_RESPONSE_CODE_OK;
 		}
 	} ),
 		soletta.sol_oic_resource_flag.SOL_OIC_FLAG_DISCOVERABLE |

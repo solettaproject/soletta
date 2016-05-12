@@ -1154,7 +1154,7 @@ client_resource_implements_type(struct sol_oic_resource *oic_res, const char *re
 }
 
 static void
-state_changed(void *data, sol_coap_responsecode_t response_code, struct sol_oic_client *oic_cli, const struct sol_network_link_addr *cliaddr,
+state_changed(void *data, enum sol_coap_response_code response_code, struct sol_oic_client *oic_cli, const struct sol_network_link_addr *cliaddr,
     const struct sol_oic_map_reader *repr_vec)
 {
     struct client_resource *resource = data;
@@ -1405,13 +1405,13 @@ server_resource_schedule_update(struct server_resource *resource)
 static int
 server_handle_update(void *data, struct sol_oic_request *request)
 {
-    sol_coap_responsecode_t code;
+    enum sol_coap_response_code code;
     struct server_resource *resource = (struct server_resource *)data;
     struct sol_oic_map_reader *input;
     int r;
 
     if (!resource->funcs->from_repr_vec) {
-        code = SOL_COAP_RSPCODE_NOT_IMPLEMENTED;
+        code = SOL_COAP_RESPONSE_CODE_NOT_IMPLEMENTED;
         goto end;
     }
 
@@ -1419,11 +1419,11 @@ server_handle_update(void *data, struct sol_oic_request *request)
     r = resource->funcs->from_repr_vec(resource, input);
     if (r > 0) {
         server_resource_schedule_update(resource);
-        code = SOL_COAP_RSPCODE_CHANGED;
+        code = SOL_COAP_RESPONSE_CODE_CHANGED;
     } else if (r == 0)
-        code = SOL_COAP_RSPCODE_OK;
+        code = SOL_COAP_RESPONSE_CODE_OK;
     else
-        code = SOL_COAP_RSPCODE_PRECONDITION_FAILED;
+        code = SOL_COAP_RESPONSE_CODE_PRECONDITION_FAILED;
 
 end:
     return sol_oic_server_send_response(request, NULL, code);
@@ -1438,7 +1438,7 @@ server_handle_get(void *data, struct sol_oic_request *request)
 
     if (!resource->funcs->to_repr_vec)
         return sol_oic_server_send_response(request, NULL,
-            SOL_COAP_RSPCODE_NOT_IMPLEMENTED);
+            SOL_COAP_RESPONSE_CODE_NOT_IMPLEMENTED);
 
     response = sol_oic_server_response_new(request);
     SOL_NULL_CHECK_GOTO(response, error);
@@ -1448,12 +1448,12 @@ server_handle_get(void *data, struct sol_oic_request *request)
         goto error;
 
     return sol_oic_server_send_response(request, response,
-        SOL_COAP_RSPCODE_CONTENT);
+        SOL_COAP_RESPONSE_CODE_CONTENT);
 
 error:
     sol_oic_server_response_free(response);
     return sol_oic_server_send_response(request, NULL,
-        SOL_COAP_RSPCODE_INTERNAL_ERROR);
+        SOL_COAP_RESPONSE_CODE_INTERNAL_ERROR);
 }
 
 // log_init() implementation happens within oic-gen.c
@@ -1604,7 +1604,7 @@ client_resource_close(struct client_resource *resource)
 }
 
 static void
-client_resource_update_ack(void *data, sol_coap_responsecode_t response_code, struct sol_oic_client *cli, const struct sol_network_link_addr *addr,
+client_resource_update_ack(void *data, enum sol_coap_response_code response_code, struct sol_oic_client *cli, const struct sol_network_link_addr *addr,
     const struct sol_oic_map_reader *repr_vec)
 {
     struct client_resource *resource = data;

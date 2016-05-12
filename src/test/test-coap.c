@@ -50,7 +50,7 @@ test_coap_parse_empty_pdu(void)
 
     ASSERT(!coap_packet_parse(pkt));
 
-    sol_coap_header_get_ver(pkt, &ver);
+    sol_coap_header_get_version(pkt, &ver);
     sol_coap_header_get_type(pkt, &type);
     sol_coap_header_get_code(pkt, &code);
     sol_coap_header_get_id(pkt, &id);
@@ -90,11 +90,11 @@ test_coap_parse_simple_pdu(void)
 
     ASSERT(!coap_packet_parse(pkt));
 
-    sol_coap_header_get_ver(pkt, &ver);
+    sol_coap_header_get_version(pkt, &ver);
     sol_coap_header_get_type(pkt, &type);
 
     ASSERT_INT_EQ(ver, 1);
-    ASSERT_INT_EQ(type, SOL_COAP_TYPE_NONCON);
+    ASSERT_INT_EQ(type, SOL_COAP_TYPE_NON_CON);
 
     token = sol_coap_header_get_token(pkt, &tkl);
     ASSERT(token);
@@ -103,7 +103,7 @@ test_coap_parse_simple_pdu(void)
 
     sol_coap_header_get_code(pkt, &code);
     sol_coap_header_get_id(pkt, &id);
-    ASSERT_INT_EQ(code, SOL_COAP_RSPCODE_PROXYING_NOT_SUPPORTED);
+    ASSERT_INT_EQ(code, SOL_COAP_RESPONSE_CODE_PROXYING_NOT_SUPPORTED);
     ASSERT_INT_EQ(id, 0x1234);
 
     count = sol_coap_find_options(pkt, SOL_COAP_OPTION_CONTENT_FORMAT, options, count);

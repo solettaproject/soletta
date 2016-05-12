@@ -123,7 +123,7 @@ main(int argc, char *argv[])
         return -1;
     }
 
-    req = sol_coap_packet_request_new(SOL_COAP_METHOD_GET, SOL_COAP_TYPE_CON);
+    req = sol_coap_packet_new_request(SOL_COAP_METHOD_GET, SOL_COAP_TYPE_CON);
     if (!req) {
         SOL_WRN("Could not make a GET request to resource %s", argv[2]);
         return -1;

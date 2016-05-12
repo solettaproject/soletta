@@ -738,12 +738,12 @@ update_client(void *data, struct sol_coap_server *coap,
     dispatch_registration_event(cinfo->server, cinfo,
         SOL_LWM2M_REGISTRATION_EVENT_UPDATE);
 
-    r = sol_coap_header_set_code(response, SOL_COAP_RSPCODE_CHANGED);
+    r = sol_coap_header_set_code(response, SOL_COAP_RESPONSE_CODE_CHANGED);
     SOL_INT_CHECK_GOTO(r, < 0, err_update);
     return sol_coap_send_packet(coap, response, cliaddr);
 
 err_update:
-    sol_coap_header_set_code(response, SOL_COAP_RSPCODE_BAD_REQUEST);
+    sol_coap_header_set_code(response, SOL_COAP_RESPONSE_CODE_BAD_REQUEST);
     (void)sol_coap_send_packet(coap, response, cliaddr);
     return r;
 }
@@ -776,7 +776,7 @@ delete_client(void *data, struct sol_coap_server *coap,
     dispatch_registration_event(cinfo->server, cinfo,
         SOL_LWM2M_REGISTRATION_EVENT_UNREGISTER);
 
-    r = sol_coap_header_set_code(response, SOL_COAP_RSPCODE_DELETED);
+    r = sol_coap_header_set_code(response, SOL_COAP_RESPONSE_CODE_DELETED);
     SOL_INT_CHECK_GOTO(r, < 0, err);
     return sol_coap_send_packet(coap, response, cliaddr);
 
@@ -896,7 +896,7 @@ registration_request(void *data, struct sol_coap_server *coap,
         SOL_COAP_OPTION_LOCATION_PATH, cinfo->location, strlen(cinfo->location));
     SOL_INT_CHECK_GOTO(r, < 0, err_exit_unregister);
 
-    r = sol_coap_header_set_code(response, SOL_COAP_RSPCODE_CREATED);
+    r = sol_coap_header_set_code(response, SOL_COAP_RESPONSE_CODE_CREATED);
     SOL_INT_CHECK_GOTO(r, < 0, err_exit_unregister);
 
     SOL_DBG("Client %s registered. Location: %s, SMS: %s, binding: %u,"
@@ -915,7 +915,7 @@ err_exit_unregister:
 err_exit_del_client:
     client_info_del(cinfo);
 err_exit:
-    sol_coap_header_set_code(response, SOL_COAP_RSPCODE_BAD_REQUEST);
+    sol_coap_header_set_code(response, SOL_COAP_RESPONSE_CODE_BAD_REQUEST);
     (void)sol_coap_send_packet(coap, response, cliaddr);
     return r;
 }
@@ -997,7 +997,7 @@ observer_entry_add_monitor(struct observer_entry *entry,
     struct sol_lwm2m_server *server,
     struct sol_lwm2m_client_info *client,
     const char *path,
-    sol_coap_responsecode_t response_code,
+    enum sol_coap_response_code response_code,
     enum sol_lwm2m_content_type content_type,
     struct sol_str_slice content),
     const void *data)
@@ -1015,7 +1015,7 @@ observer_entry_del_monitor(struct observer_entry *entry,
     struct sol_lwm2m_server *server,
     struct sol_lwm2m_client_info *client,
     const char *path,
-    sol_coap_responsecode_t response_code,
+    enum sol_coap_response_code response_code,
     enum sol_lwm2m_content_type content_type,
     struct sol_str_slice content),
     const void *data)
@@ -1464,7 +1464,7 @@ exit:
 
 static int
 add_coap_int_option(struct sol_coap_packet *pkt,
-    sol_coap_option_num_t opt, const void *data, uint16_t len)
+    enum sol_coap_option_num opt, const void *data, uint16_t len)
 {
     uint8_t buf[sizeof(int64_t)] = { };
 
@@ -1475,7 +1475,7 @@ add_coap_int_option(struct sol_coap_packet *pkt,
 
 static int
 get_coap_int_option(struct sol_coap_packet *pkt,
-    sol_coap_option_num_t opt, uint16_t *value)
+    enum sol_coap_option_num opt, uint16_t *value)
 {
     const void *v;
     uint16_t len;
@@ -1491,8 +1491,8 @@ get_coap_int_option(struct sol_coap_packet *pkt,
 }
 
 static int
-setup_coap_packet(sol_coap_method_t method,
-    sol_coap_msgtype_t type, const char *objects_path, const char *path,
+setup_coap_packet(enum sol_coap_method method,
+    enum sol_coap_msgtype type, const char *objects_path, const char *path,
     uint8_t *obs, int64_t *token, struct sol_lwm2m_resource *resources,
     size_t len,
     const char *execute_args,
@@ -1510,7 +1510,7 @@ setup_coap_packet(sol_coap_method_t method,
     random = sol_random_new(SOL_RANDOM_DEFAULT, 0);
     SOL_NULL_CHECK(random, -ENOMEM);
 
-    *pkt = sol_coap_packet_request_new(method, type);
+    *pkt = sol_coap_packet_new_request(method, type);
     r = -ENOMEM;
     SOL_NULL_CHECK_GOTO(*pkt, exit);
 
@@ -1620,7 +1620,7 @@ observation_request_reply(void *data, struct sol_coap_server *coap_server,
     struct sol_str_slice content = SOL_STR_SLICE_EMPTY;
     enum sol_lwm2m_content_type type = SOL_LWM2M_CONTENT_TYPE_TEXT;
     uint16_t i;
-    uint8_t code = SOL_COAP_RSPCODE_GATEWAY_TIMEOUT;
+    uint8_t code = SOL_COAP_RESPONSE_CODE_GATEWAY_TIMEOUT;
     bool keep_alive = true;
 
     if (!cliaddr && !req) {
@@ -1641,7 +1641,7 @@ observation_request_reply(void *data, struct sol_coap_server *coap_server,
         ((void (*)(void *, struct sol_lwm2m_server *,
         struct sol_lwm2m_client_info *,
         const char *,
-        sol_coap_responsecode_t,
+        enum sol_coap_response_code,
         enum sol_lwm2m_content_type,
         struct sol_str_slice))m->cb)((void *)m->data, entry->server,
             entry->cinfo, entry->path, code, type, content);
@@ -1657,7 +1657,7 @@ sol_lwm2m_server_add_observer(struct sol_lwm2m_server *server,
     struct sol_lwm2m_server *server,
     struct sol_lwm2m_client_info *client,
     const char *path,
-    sol_coap_responsecode_t response_code,
+    enum sol_coap_response_code response_code,
     enum sol_lwm2m_content_type content_type,
     struct sol_str_slice content),
     const void *data)
@@ -1702,7 +1702,7 @@ sol_lwm2m_server_del_observer(struct sol_lwm2m_server *server,
     struct sol_lwm2m_server *server,
     struct sol_lwm2m_client_info *client,
     const char *path,
-    sol_coap_responsecode_t response_code,
+    enum sol_coap_response_code response_code,
     enum sol_lwm2m_content_type content_type,
     struct sol_str_slice content),
     const void *data)
@@ -1727,7 +1727,7 @@ sol_lwm2m_server_del_observer(struct sol_lwm2m_server *server,
     entry->removed = true;
     token = entry->token;
 
-    return sol_coap_unobserve_server(server->coap, &entry->cinfo->cliaddr,
+    return sol_coap_unobserve_by_token(server->coap, &entry->cinfo->cliaddr,
         (uint8_t *)&token, sizeof(token));
 }
 
@@ -1801,7 +1801,7 @@ management_reply(void *data, struct sol_coap_server *server,
     struct sol_str_slice content = SOL_STR_SLICE_EMPTY;
 
     if (!cliaddr && !req)
-        code = SOL_COAP_RSPCODE_GATEWAY_TIMEOUT;
+        code = SOL_COAP_RESPONSE_CODE_GATEWAY_TIMEOUT;
 
     switch (ctx->type) {
     case MANAGEMENT_DELETE:
@@ -1813,7 +1813,7 @@ management_reply(void *data, struct sol_coap_server *server,
         ((void (*)(void *,
         struct sol_lwm2m_server *,
         struct sol_lwm2m_client_info *, const char *,
-        sol_coap_responsecode_t))ctx->cb)
+        enum sol_coap_response_code))ctx->cb)
             ((void *)ctx->data, ctx->server, ctx->cinfo, ctx->path, code);
         break;
     default: //Read
@@ -1822,14 +1822,14 @@ management_reply(void *data, struct sol_coap_server *server,
         ((void (*)(void *, struct sol_lwm2m_server *,
         struct sol_lwm2m_client_info *,
         const char *,
-        sol_coap_responsecode_t,
+        enum sol_coap_response_code,
         enum sol_lwm2m_content_type,
         struct sol_str_slice))ctx->cb)((void *)ctx->data, ctx->server,
             ctx->cinfo, ctx->path, code, content_type, content);
         break;
     }
 
-    if (code != SOL_COAP_RSPCODE_GATEWAY_TIMEOUT)
+    if (code != SOL_COAP_RESPONSE_CODE_GATEWAY_TIMEOUT)
         send_ack_if_needed(server, req, cliaddr);
     free(ctx->path);
     free(ctx);
@@ -1840,7 +1840,7 @@ static int
 send_management_packet(struct sol_lwm2m_server *server,
     struct sol_lwm2m_client_info *client, const char *path,
     enum management_type type, void *cb, const void *data,
-    sol_coap_method_t method,
+    enum sol_coap_method method,
     struct sol_lwm2m_resource *resources, size_t len, const char *execute_args)
 {
     int r;
@@ -1904,10 +1904,10 @@ sol_lwm2m_server_write(struct sol_lwm2m_server *server,
     void (*cb)(void *data,
     struct sol_lwm2m_server *server,
     struct sol_lwm2m_client_info *client, const char *path,
-    sol_coap_responsecode_t response_code),
+    enum sol_coap_response_code response_code),
     const void *data)
 {
-    sol_coap_method_t method = SOL_COAP_METHOD_PUT;
+    enum sol_coap_method method = SOL_COAP_METHOD_PUT;
 
     SOL_NULL_CHECK(server, -EINVAL);
     SOL_NULL_CHECK(client, -EINVAL);
@@ -1927,7 +1927,7 @@ sol_lwm2m_server_execute_resource(struct sol_lwm2m_server *server,
     void (*cb)(void *data,
     struct sol_lwm2m_server *server,
     struct sol_lwm2m_client_info *client, const char *path,
-    sol_coap_responsecode_t response_code),
+    enum sol_coap_response_code response_code),
     const void *data)
 {
     SOL_NULL_CHECK(server, -EINVAL);
@@ -1944,7 +1944,7 @@ sol_lwm2m_server_delete_object_instance(struct sol_lwm2m_server *server,
     void (*cb)(void *data,
     struct sol_lwm2m_server *server,
     struct sol_lwm2m_client_info *client, const char *path,
-    sol_coap_responsecode_t response_code),
+    enum sol_coap_response_code response_code),
     const void *data)
 {
     SOL_NULL_CHECK(server, -EINVAL);
@@ -1962,7 +1962,7 @@ sol_lwm2m_server_create_object_instance(struct sol_lwm2m_server *server,
     void (*cb)(void *data,
     struct sol_lwm2m_server *server,
     struct sol_lwm2m_client_info *client, const char *path,
-    sol_coap_responsecode_t response_code),
+    enum sol_coap_response_code response_code),
     const void *data)
 {
     SOL_NULL_CHECK(server, -EINVAL);
@@ -1982,7 +1982,7 @@ sol_lwm2m_server_read(struct sol_lwm2m_server *server,
     struct sol_lwm2m_server *server,
     struct sol_lwm2m_client_info *client,
     const char *path,
-    sol_coap_responsecode_t response_code,
+    enum sol_coap_response_code response_code,
     enum sol_lwm2m_content_type content_type,
     struct sol_str_slice content),
     const void *data)
@@ -2501,13 +2501,13 @@ handle_delete(struct sol_lwm2m_client *client,
     if (!obj_instance) {
         SOL_WRN("Object instance was not provided to delete! (object id: %"
             PRIu16 "", obj_ctx->obj->id);
-        return SOL_COAP_RSPCODE_BAD_REQUEST;
+        return SOL_COAP_RESPONSE_CODE_BAD_REQUEST;
     }
 
     if (!obj_ctx->obj->del) {
         SOL_WRN("The object %" PRIu16 " does not implement the delete method",
             obj_ctx->obj->id);
-        return SOL_COAP_RSPCODE_NOT_ALLOWED;
+        return SOL_COAP_RESPONSE_CODE_NOT_ALLOWED;
     }
 
     r = obj_ctx->obj->del((void *)obj_instance->data,
@@ -2516,11 +2516,11 @@ handle_delete(struct sol_lwm2m_client *client,
         SOL_WRN("Could not properly delete object id %"
             PRIu16 " instance id: %" PRIu16 " reason:%d",
             obj_ctx->obj->id, obj_instance->id, r);
-        return SOL_COAP_RSPCODE_NOT_ALLOWED;
+        return SOL_COAP_RESPONSE_CODE_NOT_ALLOWED;
     }
 
     obj_instance->should_delete = true;
-    return SOL_COAP_RSPCODE_DELETED;
+    return SOL_COAP_RESPONSE_CODE_DELETED;
 }
 
 static bool
@@ -2598,18 +2598,18 @@ handle_execute(struct sol_lwm2m_client *client,
     if (!obj_instance) {
         SOL_WRN("Object instance was not provided to execute the path"
             "/%" PRIu16 "/?/%" PRIu16 "", obj_ctx->obj->id, resource);
-        return SOL_COAP_RSPCODE_BAD_REQUEST;
+        return SOL_COAP_RESPONSE_CODE_BAD_REQUEST;
     }
 
     if (!obj_ctx->obj->execute) {
         SOL_WRN("Obj id %" PRIu16 " does not implemet the execute",
             obj_ctx->obj->id);
-        return SOL_COAP_RSPCODE_NOT_ALLOWED;
+        return SOL_COAP_RESPONSE_CODE_NOT_ALLOWED;
     }
 
     if (!is_valid_args(args)) {
         SOL_WRN("Invalid arguments. Args: %.*s", SOL_STR_SLICE_PRINT(args));
-        return SOL_COAP_RSPCODE_BAD_REQUEST;
+        return SOL_COAP_RESPONSE_CODE_BAD_REQUEST;
     }
 
     r = obj_ctx->obj->execute((void *)obj_instance->data,
@@ -2619,10 +2619,10 @@ handle_execute(struct sol_lwm2m_client *client,
         SOL_WRN("Could not execute the path /%" PRIu16
             "/%" PRIu16 "/%" PRIu16 " with args: %.*s", obj_ctx->obj->id,
             obj_instance->id, resource, SOL_STR_SLICE_PRINT(args));
-        return SOL_COAP_RSPCODE_NOT_ALLOWED;
+        return SOL_COAP_RESPONSE_CODE_NOT_ALLOWED;
     }
 
-    return SOL_COAP_RSPCODE_CHANGED;
+    return SOL_COAP_RESPONSE_CODE_CHANGED;
 }
 
 static uint8_t
@@ -2637,35 +2637,35 @@ handle_write(struct sol_lwm2m_client *client,
     if (!obj_ctx->obj->write_resource) {
         SOL_WRN("Object %" PRIu16 " does not support the write method",
             obj_ctx->obj->id);
-        return SOL_COAP_RSPCODE_NOT_ALLOWED;
+        return SOL_COAP_RESPONSE_CODE_NOT_ALLOWED;
     }
 
     if (!content_format) {
         SOL_WRN("Content format was not set."
             " Impossible to create object instance");
-        return SOL_COAP_RSPCODE_BAD_REQUEST;
+        return SOL_COAP_RESPONSE_CODE_BAD_REQUEST;
     }
 
     if (!payload.len) {
         SOL_WRN("Payload to write on object instance /%"
             PRIu16 "/%" PRIu16 " is empty", obj_ctx->obj->id, obj_instance->id);
-        return SOL_COAP_RSPCODE_BAD_REQUEST;
+        return SOL_COAP_RESPONSE_CODE_BAD_REQUEST;
     }
 
     if (!obj_instance) {
         SOL_WRN("Object instance was not provided."
             " Can not complete the write operation");
-        return SOL_COAP_RSPCODE_BAD_REQUEST;
+        return SOL_COAP_RESPONSE_CODE_BAD_REQUEST;
     }
 
     if (content_format == SOL_LWM2M_CONTENT_TYPE_TLV) {
         struct sol_vector tlvs;
         r = sol_lwm2m_parse_tlv(payload, &tlvs);
-        SOL_INT_CHECK(r, < 0, SOL_COAP_RSPCODE_BAD_REQUEST);
+        SOL_INT_CHECK(r, < 0, SOL_COAP_RESPONSE_CODE_BAD_REQUEST);
         r = obj_ctx->obj->write_tlv((void *)obj_instance->data,
             (void *)client->user_data, client, obj_instance->id, &tlvs);
         sol_lwm2m_tlv_list_clear(&tlvs);
-        SOL_INT_CHECK(r, < 0, SOL_COAP_RSPCODE_BAD_REQUEST);
+        SOL_INT_CHECK(r, < 0, SOL_COAP_RESPONSE_CODE_BAD_REQUEST);
     } else if (content_format == SOL_LWM2M_CONTENT_TYPE_TEXT ||
         content_format == SOL_LWM2M_CONTENT_TYPE_OPAQUE) {
         struct sol_lwm2m_resource res;
@@ -2673,7 +2673,7 @@ handle_write(struct sol_lwm2m_client *client,
         if (resource < 0) {
             SOL_WRN("Unexpected content format (%" PRIu16
                 "). It must be TLV", content_format);
-            return SOL_COAP_RSPCODE_BAD_REQUEST;
+            return SOL_COAP_RESPONSE_CODE_BAD_REQUEST;
         }
 
         SOL_SET_API_VERSION(res.api_version = SOL_LWM2M_RESOURCE_API_VERSION; )
@@ -2682,18 +2682,18 @@ handle_write(struct sol_lwm2m_client *client,
             SOL_LWM2M_RESOURCE_DATA_TYPE_STRING :
             SOL_LWM2M_RESOURCE_DATA_TYPE_OPAQUE,
             payload);
-        SOL_INT_CHECK(r, < 0, SOL_COAP_RSPCODE_BAD_REQUEST);
+        SOL_INT_CHECK(r, < 0, SOL_COAP_RESPONSE_CODE_BAD_REQUEST);
         r = obj_ctx->obj->write_resource((void *)obj_instance->data,
             (void *)client->user_data, client, obj_instance->id, res.id, &res);
         sol_lwm2m_resource_clear(&res);
-        SOL_INT_CHECK(r, < 0, SOL_COAP_RSPCODE_BAD_REQUEST);
+        SOL_INT_CHECK(r, < 0, SOL_COAP_RESPONSE_CODE_BAD_REQUEST);
     } else {
         SOL_WRN("Only TLV, string or opaque is supported for writing."
             " Received: %" PRIu16 "", content_format);
-        return SOL_COAP_RSPCODE_BAD_REQUEST;
+        return SOL_COAP_RESPONSE_CODE_BAD_REQUEST;
     }
 
-    return SOL_COAP_RSPCODE_CHANGED;
+    return SOL_COAP_RESPONSE_CODE_CHANGED;
 }
 
 static uint8_t
@@ -2707,11 +2707,11 @@ handle_create(struct sol_lwm2m_client *client,
     if (!obj_ctx->obj->create) {
         SOL_WRN("Object %" PRIu16 " does not support the create method",
             obj_ctx->obj->id);
-        return SOL_COAP_RSPCODE_NOT_ALLOWED;
+        return SOL_COAP_RESPONSE_CODE_NOT_ALLOWED;
     }
 
     obj_instance = sol_vector_append(&obj_ctx->instances);
-    SOL_NULL_CHECK(obj_instance, SOL_COAP_RSPCODE_BAD_REQUEST);
+    SOL_NULL_CHECK(obj_instance, SOL_COAP_RESPONSE_CODE_BAD_REQUEST);
 
     if (instance_id < 0)
         obj_instance->id = obj_ctx->instances.len - 1;
@@ -2727,11 +2727,11 @@ handle_create(struct sol_lwm2m_client *client,
     r = setup_instance_resource(client, obj_ctx, obj_instance, true);
     SOL_INT_CHECK_GOTO(r, < 0, err_exit);
 
-    return SOL_COAP_RSPCODE_CREATED;
+    return SOL_COAP_RESPONSE_CODE_CREATED;
 
 err_exit:
     obj_instance_clear(client, obj_ctx, obj_instance);
-    return SOL_COAP_RSPCODE_BAD_REQUEST;
+    return SOL_COAP_RESPONSE_CODE_BAD_REQUEST;
 }
 
 static int
@@ -2789,12 +2789,12 @@ handle_read(struct sol_lwm2m_client *client,
     if (!obj_ctx->obj->read) {
         SOL_WRN("Object %" PRIu16 " does not support the read method",
             obj_ctx->obj->id);
-        return SOL_COAP_RSPCODE_NOT_ALLOWED;
+        return SOL_COAP_RESPONSE_CODE_NOT_ALLOWED;
     }
 
     if (obj_instance && resource_id >= 0) {
         res = sol_vector_append(&resources);
-        SOL_NULL_CHECK(res, SOL_COAP_RSPCODE_BAD_REQUEST);
+        SOL_NULL_CHECK(res, SOL_COAP_RESPONSE_CODE_BAD_REQUEST);
 
         r = obj_ctx->obj->read((void *)obj_instance->data,
             (void *)client->user_data, client,
@@ -2802,7 +2802,7 @@ handle_read(struct sol_lwm2m_client *client,
 
         if (r == -ENOENT || r == -EINVAL) {
             sol_vector_clear(&resources);
-            return SOL_COAP_RSPCODE_NOT_FOUND;
+            return SOL_COAP_RESPONSE_CODE_NOT_FOUND;
         }
 
         SOL_INT_CHECK_GOTO(r, < 0, err_exit);
@@ -2836,14 +2836,14 @@ handle_read(struct sol_lwm2m_client *client,
 
     sol_buffer_fini(&buf);
     sol_vector_clear(&resources);
-    return SOL_COAP_RSPCODE_CONTENT;
+    return SOL_COAP_RESPONSE_CODE_CONTENT;
 
 err_exit:
     SOL_VECTOR_FOREACH_IDX (&resources, res, i)
         sol_lwm2m_resource_clear(res);
     sol_buffer_fini(&buf);
     sol_vector_clear(&resources);
-    return SOL_COAP_RSPCODE_BAD_REQUEST;
+    return SOL_COAP_RESPONSE_CODE_BAD_REQUEST;
 }
 
 static bool
@@ -2855,15 +2855,15 @@ send_notification_pkt(struct sol_lwm2m_client *client,
     uint8_t ret;
     int r;
 
-    pkt = sol_coap_packet_notification_new(client->coap_server, resource);
+    pkt = sol_coap_packet_new_notification(client->coap_server, resource);
     SOL_NULL_CHECK(pkt, false);
 
     r = sol_coap_header_set_type(pkt, SOL_COAP_TYPE_CON);
     SOL_INT_CHECK_GOTO(r, < 0, err_exit);
-    r = sol_coap_header_set_code(pkt, SOL_COAP_RSPCODE_CHANGED);
+    r = sol_coap_header_set_code(pkt, SOL_COAP_RESPONSE_CODE_CHANGED);
     SOL_INT_CHECK_GOTO(r, < 0, err_exit);
     ret = handle_read(client, obj_ctx, obj_instance, resource_id, pkt);
-    SOL_INT_CHECK_GOTO(ret, != SOL_COAP_RSPCODE_CONTENT, err_exit);
+    SOL_INT_CHECK_GOTO(ret, != SOL_COAP_RESPONSE_CODE_CONTENT, err_exit);
 
     return sol_coap_packet_send_notification(client->coap_server,
         resource, pkt) == 0;
@@ -2955,9 +2955,9 @@ is_observe_request(struct sol_coap_packet *req)
 static bool
 should_dispatch_notifications(uint8_t code, bool is_execute)
 {
-    if (code == SOL_COAP_RSPCODE_CREATED ||
-        code == SOL_COAP_RSPCODE_DELETED ||
-        (code == SOL_COAP_RSPCODE_CHANGED && !is_execute))
+    if (code == SOL_COAP_RESPONSE_CODE_CREATED ||
+        code == SOL_COAP_RESPONSE_CODE_DELETED ||
+        (code == SOL_COAP_RESPONSE_CODE_CHANGED && !is_execute))
         return true;
     return false;
 }
@@ -2989,11 +2989,11 @@ handle_resource(void *data, struct sol_coap_server *server,
         content_format = SOL_LWM2M_CONTENT_TYPE_TEXT;
 
     r = extract_path(client, req, path, &path_size);
-    header_code = SOL_COAP_RSPCODE_BAD_REQUEST;
+    header_code = SOL_COAP_RESPONSE_CODE_BAD_REQUEST;
     SOL_INT_CHECK_GOTO(r, < 0, exit);
 
     obj_ctx = find_object_ctx_by_id(client, path[0]);
-    header_code = SOL_COAP_RSPCODE_NOT_FOUND;
+    header_code = SOL_COAP_RESPONSE_CODE_NOT_FOUND;
     SOL_NULL_CHECK_GOTO(obj_ctx, exit);
 
     if (path_size >= 2)
@@ -3004,7 +3004,7 @@ handle_resource(void *data, struct sol_coap_server *server,
         size_t offset;
 
         r = sol_coap_packet_get_payload(req, &buf, &offset);
-        header_code = SOL_COAP_RSPCODE_BAD_REQUEST;
+        header_code = SOL_COAP_RESPONSE_CODE_BAD_REQUEST;
         SOL_INT_CHECK_GOTO(r, < 0, exit);
         payload.len = buf->used - offset;
         payload.data = sol_buffer_at(buf, offset);
@@ -3049,7 +3049,7 @@ handle_resource(void *data, struct sol_coap_server *server,
             header_code = handle_write(client, obj_ctx, obj_instance,
                 path[2], content_format, payload);
         } else {
-            header_code = SOL_COAP_RSPCODE_BAD_REQUEST;
+            header_code = SOL_COAP_RESPONSE_CODE_BAD_REQUEST;
             SOL_WRN("Write request without full path specified!");
         }
         break;
@@ -3057,7 +3057,7 @@ handle_resource(void *data, struct sol_coap_server *server,
         header_code = handle_delete(client, obj_ctx, obj_instance);
         break;
     default:
-        header_code = SOL_COAP_RSPCODE_BAD_REQUEST;
+        header_code = SOL_COAP_RESPONSE_CODE_BAD_REQUEST;
         SOL_WRN("Unknown COAP method: %" PRIu8 "", method);
     }
 
@@ -3067,11 +3067,11 @@ exit:
 
     if (should_dispatch_notifications(header_code, is_execute) &&
         !dispatch_notifications(client, resource,
-        header_code == SOL_COAP_RSPCODE_DELETED)) {
+        header_code == SOL_COAP_RESPONSE_CODE_DELETED)) {
         SOL_WRN("Could not dispatch the observe notifications");
     }
 
-    if (header_code == SOL_COAP_RSPCODE_DELETED) {
+    if (header_code == SOL_COAP_RESPONSE_CODE_DELETED) {
         obj_instance_clear(client, obj_ctx, obj_instance);
         (void)sol_vector_del_element(&obj_ctx->instances, obj_instance);
     }
@@ -3507,7 +3507,7 @@ register_reply(void *data, struct sol_coap_server *server,
         SOL_WRN("Could not convert the server address to string");
 
     sol_coap_header_get_code(pkt, &code);
-    SOL_INT_CHECK_GOTO(code, != SOL_COAP_RSPCODE_CREATED, err_exit);
+    SOL_INT_CHECK_GOTO(code, != SOL_COAP_RESPONSE_CODE_CREATED, err_exit);
 
     r = sol_coap_find_options(pkt, SOL_COAP_OPTION_LOCATION_PATH, path,
         sol_util_array_size(path));
@@ -3541,7 +3541,7 @@ update_reply(void *data, struct sol_coap_server *server,
         goto err_exit;
 
     sol_coap_header_get_code(pkt, &code);
-    SOL_INT_CHECK_GOTO(code, != SOL_COAP_RSPCODE_CHANGED, err_exit);
+    SOL_INT_CHECK_GOTO(code, != SOL_COAP_RESPONSE_CODE_CHANGED, err_exit);
     return false;
 
 err_exit:
@@ -3554,7 +3554,7 @@ register_with_server(struct sol_lwm2m_client *client,
     struct server_conn_ctx *conn_ctx, bool is_update)
 {
     struct sol_buffer query = SOL_BUFFER_INIT_EMPTY, objs_payload;
-    uint8_t format = SOL_COAP_CONTENTTYPE_APPLICATION_LINKFORMAT;
+    uint8_t format = SOL_COAP_CONTENT_TYPE_APPLICATION_LINK_FORMAT;
     struct sol_str_slice binding = SOL_STR_SLICE_EMPTY;
     struct sol_coap_packet *pkt;
     struct sol_buffer *buf;
@@ -3577,7 +3577,7 @@ register_with_server(struct sol_lwm2m_client *client,
         &conn_ctx->lifetime, &binding);
     SOL_INT_CHECK_GOTO(r, < 0, err_exit);
 
-    pkt = sol_coap_packet_request_new(SOL_COAP_METHOD_POST, SOL_COAP_TYPE_CON);
+    pkt = sol_coap_packet_new_request(SOL_COAP_METHOD_POST, SOL_COAP_TYPE_CON);
     r = -ENOMEM;
     SOL_NULL_CHECK_GOTO(pkt, err_exit);
 
@@ -3816,8 +3816,8 @@ send_client_delete_request(struct sol_lwm2m_client *client,
         return r;
     }
 
-    pkt = sol_coap_packet_request_new(SOL_COAP_METHOD_DELETE,
-        SOL_COAP_TYPE_NONCON);
+    pkt = sol_coap_packet_new_request(SOL_COAP_METHOD_DELETE,
+        SOL_COAP_TYPE_NON_CON);
     SOL_NULL_CHECK(pkt, -ENOMEM);
 
     r = sol_coap_add_option(pkt, SOL_COAP_OPTION_URI_PATH, "rd", strlen("rd"));
