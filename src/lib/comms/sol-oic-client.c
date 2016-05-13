@@ -996,7 +996,7 @@ _resource_request(struct sol_oic_client_request *request,
 
 cbor_error:
     SOL_ERR("Could not encode CBOR representation: %s", cbor_error_string(err));
-    r = -ECOMM;
+    r = -ECANCELED;
 error:
     free(ctx);
     sol_oic_client_request_free((struct sol_oic_request *)request);
@@ -1187,7 +1187,7 @@ client_resource_set_observable(struct sol_oic_client *client, struct sol_oic_res
         if (!res->observable) {
             res->is_observed = _observe_with_polling(client, res, callback,
                 data);
-            r = res->is_observed ? 0 : -ECOMM;
+            r = res->is_observed ? 0 : -ECANCELED;
         } else {
             struct sol_oic_request *request;
 
@@ -1213,7 +1213,7 @@ client_resource_set_observable(struct sol_oic_client *client, struct sol_oic_res
     else if (res->observable)
         res->is_observed = (_resource_request_unobserve(client, res) == 0);
 
-    return res->is_observed ? -ECOMM : 0;
+    return res->is_observed ? -ECANCELED : 0;
 }
 
 SOL_API int
