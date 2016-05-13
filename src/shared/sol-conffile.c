@@ -907,10 +907,11 @@ static void
 _load_vector_defaults(void)
 {
     char *appdir = NULL, *appname = NULL, **argv;
-    char *dir_str = NULL, *name_str = NULL;
+    char *dir_str = NULL, *name_str = NULL, *sol_conf = NULL;
     const char *board_name;
     uint16_t i;
     struct sol_str_slice *slice;
+    struct sol_str_slice env;
     static bool first_call = true;
     struct sol_vector fallback_paths = SOL_VECTOR_INIT(struct sol_str_slice);
 
@@ -928,9 +929,17 @@ _load_vector_defaults(void)
     }
 
     _add_lookup_path(&fallback_paths, appname, appdir, board_name);
+    sol_conf = getenv("SOL_FLOW_MODULE_RESOLVER_CONFFILE");
+    if (sol_conf) {
+        env = sol_str_slice_from_str(sol_conf);
+        env = sol_str_slice_trim(env);
+    }
 
-    _fill_vector(getenv("SOL_FLOW_MODULE_RESOLVER_CONFFILE"),
-        &fallback_paths);
+    if (sol_conf && strlen(env.data) == 0) {
+        SOL_WRN("SOL_FLOW_MODULE_RESOLVER_CONFFILE is empty");
+    } else {
+        _fill_vector(sol_conf, &fallback_paths);
+    }
 
     SOL_VECTOR_FOREACH_IDX (&fallback_paths, slice, i) {
         free((char *)slice->data);
