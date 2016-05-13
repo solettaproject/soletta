@@ -73,16 +73,35 @@ struct sol_str_table {
     { .key = SOL_STR_STATIC_ASSERT_LITERAL(_key), .len = sizeof(_key) - 1, .val = _val }
 
 /**
+ * @brief Retrieves the table entry associated with a given key from
+ * the string/integer table.
+ *
+ * Searches @a table for @c key string and returns its table entry
+ * pointer. If @c key isn't found (or a bad @a table argument is
+ * passed), @c NULL is returned and @c errno is set (either to @c
+ * EINVAL or to @c ENOENT).
+ *
+ * @param table String/integer table
+ * @param key Key to search
+ *
+ * @return If @c key is found, it returns its table entry, otherwise
+ *         @c NULL is returned and errno is set to @c ENOENT if the
+ *         item was not found or to @c EINVAL if parameters were
+ *         invalid.
+ */
+const struct sol_str_table *sol_str_table_entry_lookup(const struct sol_str_table *table, const struct sol_str_slice key);
+
+/**
  * @brief Retrieves the value associated with a given key from the string table.
  *
- * Searches the string table for @c key and return its value, if @c key isn't found,
- * the value of @c fallback is returned.
+ * Searches the string table for @c key and returns its value. If @c
+ * key isn't found, @c fallback is returned.
  *
  * @param table String table
  * @param key Key to search
  * @param fallback Fallback value
  *
- * @return If @c key is found, return it's value, otherwise @c
+ * @return If @c key is found, return its value, otherwise @c
  *         fallback is returned and errno is set to @c ENOENT if item
  *         is not found of @c EINVAL if parameters were invalid.
  */
@@ -164,21 +183,40 @@ struct sol_str_table_ptr {
 /**
  * @brief Retrieves the value associated with a given key from the string/pointer table.
  *
- * Searches the table table for @c key string and return its pointer, if @c key isn't found,
- * the pointer @c fallback is returned.
+ * Searches @a table for @c key string and returns its pointer. If @c
+ * key isn't found, @c fallback is returned.
  *
  * @param table_ptr String/pointer table
  * @param key Key to search
  * @param fallback Fallback pointer
  *
- * @return If @c key is found, return it's value, otherwise @c
- *         fallback is returned is returned and errno is set to @c
+ * @return If @c key is found, return its value, otherwise @c
+ *         fallback is returned and errno is set to @c
  *         ENOENT if item is not found of @c EINVAL if parameters were
  *         invalid.
  */
 const void *sol_str_table_ptr_lookup_fallback(const struct sol_str_table_ptr *table_ptr,
     const struct sol_str_slice key,
     const void *fallback) SOL_ATTR_NON_NULL(1);
+
+/**
+ * @brief Retrieves the table entry associated with a given key from
+ * the string/pointer table.
+ *
+ * Searches @a table for @c key string and returns its table entry
+ * pointer. If @c key isn't found (or a bad @a table argument is
+ * passed), @c NULL is returned and @c errno is set (either to @c
+ * EINVAL or to @c ENOENT).
+ *
+ * @param table String/pointer table
+ * @param key Key to search
+ *
+ * @return If @c key is found, it returns its table entry, otherwise
+ *         @c NULL is returned and errno is set to @c ENOENT if the
+ *         item was not found or to @c EINVAL if parameters were
+ *         invalid.
+ */
+const struct sol_str_table_ptr *sol_str_table_ptr_entry_lookup(const struct sol_str_table_ptr *table, const struct sol_str_slice key);
 
 /**
  * @def sol_str_table_ptr_lookup(_table_ptr, _key, _pval)
@@ -250,16 +288,35 @@ struct sol_str_table_int64 {
       .val = _val }
 
 /**
+ * @brief Retrieves the table entry associated with a given key from
+ * the string/pointer table.
+ *
+ * Searches @a table for @c key string and returns its table entry
+ * pointer. If @c key isn't found (or a bad @a table argument is
+ * passed), @c NULL is returned and @c errno is set (either to @c
+ * EINVAL or to @c ENOENT).
+ *
+ * @param table String/pointer table
+ * @param key Key to search
+ *
+ * @return If @c key is found, it returns its table entry, otherwise
+ *         @c NULL is returned and errno is set to @c ENOENT if the
+ *         item was not found or to @c EINVAL if parameters were
+ *         invalid.
+ */
+const struct sol_str_table_int64 *sol_str_table_int64_entry_lookup(const struct sol_str_table_int64 *table, const struct sol_str_slice key);
+
+/**
  * @brief Retrieves the value associated with a given key from the string/int64_t table.
  *
- * Searches the table table for @c key string and return its int64_t, if @c key isn't found,
- * the int64_t @c fallback is returned.
+ * Searches @a table for @c key string and returns its int64_t value.
+ * If @c key isn't found, @c fallback is returned.
  *
  * @param table_int64 String/int64_t table
  * @param key Key to search
  * @param fallback Fallback int64_t
  *
- * @return If @c key is found, return it's value, otherwise @c
+ * @return If @c key is found, return its value, otherwise @c
  *         fallback is returned and errno is set to @c ENOENT if item
  *         is not found of @c EINVAL if parameters were invalid.
  */

@@ -1,25 +1,28 @@
-config FEATURE_DYNAMIC_LINKER
+config FEATURE_BLUETOOTH
     bool
 
-config FEATURE_RUNNABLE_PROGRAMS
-    bool
-
-config FEATURE_WORKER_THREADS
-    bool
-
-config FEATURE_UNIX_SOCKETS
-    bool
-
-config FEATURE_CRYPTO_MESSAGE_DIGEST
-    bool
-
-config FEATURE_NETWORK
+config FEATURE_CC_SANITIZE
     bool
 
 config FEATURE_COAP
     bool
 
-config FEATURE_BLUETOOTH
+config FEATURE_CRYPTO_MESSAGE_DIGEST
+    bool
+
+config FEATURE_DYNAMIC_LINKER
+    bool
+
+config FEATURE_EFI
+    bool
+
+config FEATURE_FILESYSTEM
+    bool
+
+config FEATURE_FLASH_MEM
+    bool
+
+config FEATURE_FLOW
     bool
 
 config FEATURE_HTTP_CLIENT
@@ -31,16 +34,7 @@ config FEATURE_HTTP_SERVER
 config FEATURE_HW_AIO
     bool
 
-config FEATURE_HW_PWM
-    bool
-
 config FEATURE_HW_GPIO
-    bool
-
-config FEATURE_HW_UART
-    bool
-
-config FEATURE_HW_SPI
     bool
 
 config FEATURE_HW_I2C
@@ -49,16 +43,28 @@ config FEATURE_HW_I2C
 config FEATURE_HW_IPM
     bool
 
-config FEATURE_FLOW
+config FEATURE_HW_PWM
     bool
 
-config FEATURE_FILESYSTEM
+config FEATURE_HW_SPI
     bool
 
-config FEATURE_CC_SANITIZE
+config FEATURE_HW_UART
+    bool
+
+config FEATURE_NETWORK
     bool
 
 config FEATURE_OIC
+    bool
+
+config FEATURE_RUNNABLE_PROGRAMS
+    bool
+
+config FEATURE_UNIX_SOCKETS
+    bool
+
+config FEATURE_WORKER_THREADS
     bool
 
 config FEATURE_PIN_MUX

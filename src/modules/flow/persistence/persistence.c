@@ -297,10 +297,11 @@ persist_open(struct sol_flow_node *node,
     const char *storage,
     const char *name)
 {
-    struct persist_data *mdata = data;
-    struct sol_str_slice storage_slice;
-    int r;
+    struct sol_buffer buf = SOL_BUFFER_INIT_EMPTY;
     const struct persistence_node_type *type;
+    struct sol_str_slice storage_slice;
+    struct persist_data *mdata = data;
+    int r;
 
     type = (const struct persistence_node_type *)
         sol_flow_node_get_type(node);
@@ -320,23 +321,31 @@ persist_open(struct sol_flow_node *node,
     SOL_NULL_CHECK(mdata->name, -ENOMEM);
 
     /* a zero packet_data_size means dynamic size content */
+    r = storage_read(mdata, &buf);
     if (mdata->packet_data_size) {
-        struct sol_buffer buf = SOL_BUFFER_INIT_FLAGS(mdata->value_ptr,
-            mdata->packet_data_size,
-            SOL_BUFFER_FLAGS_MEMORY_NOT_OWNED | SOL_BUFFER_FLAGS_NO_NUL_BYTE);
-
-        r = storage_read(mdata, &buf);
+        if (r >= 0) {
+            /* entry's total size may be bigger that actual
+             * packet_data_size (think bit fields). the useful data
+             * with be the leading bytes, on all cases */
+            r = sol_buffer_remove_data(&buf, mdata->packet_data_size,
+                buf.used - mdata->packet_data_size);
+            if (r >= 0)
+                mdata->value_ptr = sol_buffer_steal(&buf, NULL);
+        }
     } else {
-        struct sol_buffer buf = SOL_BUFFER_INIT_EMPTY;
-
-        r = storage_read(mdata, &buf);
-        if (r >= 0)
-            mdata->value_ptr = sol_buffer_steal(&buf, NULL);
-        else
-            sol_buffer_fini(&buf);
+        if (r >= 0) {
+            /* avoid reads of malformed strings */
+            if (!memchr(buf.data, '\0', buf.used))
+                r = -EINVAL;
+            else
+                mdata->value_ptr = sol_buffer_steal(&buf, NULL);
+        }
     }
-    if (r == -ENOENT) {
-        /* No file. Send default value */
+    sol_buffer_fini(&buf);
+
+    if (r < 0) {
+        SOL_WRN("Error reading previous storage (%s). Sending default value "
+            "on output port.", sol_util_strerrora(-r));
         r = persist_reset(mdata, node);
         SOL_INT_CHECK_GOTO(r, < 0, err);
         return r;

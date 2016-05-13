@@ -17,6 +17,7 @@
  */
 
 #include "sol-mainloop.h"
+#include "sol-log.h"
 #include "sol-memmap-storage.h"
 
 #include "test.h"

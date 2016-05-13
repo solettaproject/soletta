@@ -23,33 +23,65 @@
 #include "sol-str-table.h"
 #include "sol-util-internal.h"
 
+SOL_API const struct sol_str_table *
+sol_str_table_entry_lookup(const struct sol_str_table *table,
+    const struct sol_str_slice key)
+{
+    const struct sol_str_table *iter;
+
+    errno = EINVAL;
+    SOL_NULL_CHECK(table, NULL);
+
+    for (iter = table; iter->key; iter++) {
+        if (iter->len == key.len && memcmp(iter->key, key.data, key.len) == 0) {
+            errno = 0;
+            return iter;
+        }
+    }
+
+    errno = ENOENT;
+    return NULL;
+}
+
 SOL_API int16_t
 sol_str_table_lookup_fallback(const struct sol_str_table *table,
     const struct sol_str_slice key,
     int16_t fallback)
 {
-    const struct sol_str_table *iter;
-    uint16_t len;
-
-    errno = EINVAL;
-    SOL_NULL_CHECK(table, fallback);
+    const struct sol_str_table *entry;
 
     if (SOL_UNLIKELY(key.len > INT16_MAX)) {
         errno = EINVAL;
         return fallback;
     }
 
-    len = (uint16_t)key.len;
+    entry = sol_str_table_entry_lookup(table, key);
+    if (!entry) return fallback;
+
+    errno = EINVAL;
+    SOL_NULL_CHECK(table, fallback);
+
+    return entry->val;
+}
+
+SOL_API const struct sol_str_table_ptr *
+sol_str_table_ptr_entry_lookup(const struct sol_str_table_ptr *table,
+    const struct sol_str_slice key)
+{
+    const struct sol_str_table_ptr *iter;
+
+    errno = EINVAL;
+    SOL_NULL_CHECK(table, NULL);
 
     for (iter = table; iter->key; iter++) {
-        if (iter->len == len && memcmp(iter->key, key.data, len) == 0) {
+        if (iter->len == key.len && memcmp(iter->key, key.data, key.len) == 0) {
             errno = 0;
-            return iter->val;
+            return iter;
         }
     }
 
     errno = ENOENT;
-    return fallback;
+    return NULL;
 }
 
 SOL_API const void *
@@ -57,20 +89,32 @@ sol_str_table_ptr_lookup_fallback(const struct sol_str_table_ptr *table,
     const struct sol_str_slice key,
     const void *fallback)
 {
-    const struct sol_str_table_ptr *iter;
+    const struct sol_str_table_ptr *entry;
+
+    entry = sol_str_table_ptr_entry_lookup(table, key);
+    if (!entry) return fallback;
+
+    return entry->val;
+}
+
+SOL_API const struct sol_str_table_int64 *
+sol_str_table_int64_entry_lookup(const struct sol_str_table_int64 *table,
+    const struct sol_str_slice key)
+{
+    const struct sol_str_table_int64 *iter;
 
     errno = EINVAL;
-    SOL_NULL_CHECK(table, fallback);
+    SOL_NULL_CHECK(table, NULL);
 
     for (iter = table; iter->key; iter++) {
         if (iter->len == key.len && memcmp(iter->key, key.data, key.len) == 0) {
             errno = 0;
-            return iter->val;
+            return iter;
         }
     }
 
     errno = ENOENT;
-    return fallback;
+    return NULL;
 }
 
 SOL_API int64_t
@@ -78,18 +122,10 @@ sol_str_table_int64_lookup_fallback(const struct sol_str_table_int64 *table,
     const struct sol_str_slice key,
     int64_t fallback)
 {
-    const struct sol_str_table_int64 *iter;
+    const struct sol_str_table_int64 *entry;
 
-    errno = EINVAL;
-    SOL_NULL_CHECK(table, fallback);
+    entry = sol_str_table_int64_entry_lookup(table, key);
+    if (!entry) return fallback;
 
-    for (iter = table; iter->key; iter++) {
-        if (iter->len == key.len && memcmp(iter->key, key.data, key.len) == 0) {
-            errno = 0;
-            return iter->val;
-        }
-    }
-
-    errno = ENOENT;
-    return fallback;
+    return entry->val;
 }
