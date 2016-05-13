@@ -29,7 +29,7 @@ int sol_network_sol_to_af(enum sol_network_family snf);
 static inline struct sol_network_link_addr *
 sol_bluetooth_addr_from_str(struct sol_network_link_addr *addr, const char *str)
 {
-    unsigned int i;
+    int i;
     uint8_t *ba = addr->addr.bt_addr;
     const char *ptr;
     char *endptr = NULL;
@@ -40,7 +40,7 @@ sol_bluetooth_addr_from_str(struct sol_network_link_addr *addr, const char *str)
 
     ptr = str;
 
-    for (i = 0; i < sizeof(addr->addr.bt_addr); i++) {
+    for (i = sizeof(addr->addr.bt_addr) - 1; i >= 0; i--) {
         ba[i] = strtoul(ptr, &endptr, 16);
         ptr = endptr + 1;
         endptr = NULL;
