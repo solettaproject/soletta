@@ -54,7 +54,7 @@ get-json STRING -> INC response-count
 response-count OVERFLOW -> IN constant-client
 constant-client OUT -> POST post
 
-server-validator OUT -> RESULT test_server_output(test/result)
-string-compare EQUAL -> RESULT test_string_output(test/result)
-blob-compare EQUAL -> RESULT test_blob_output(test/result)
-json-compare EQUAL -> RESULT test_json_output(test/result)
+server-validator OUT -> RESULT test_server_output(test/result:timeout=6000)
+string-compare EQUAL -> RESULT test_string_output(test/result:timeout=6000)
+blob-compare EQUAL -> RESULT test_blob_output(test/result:timeout=6000)
+json-compare EQUAL -> RESULT test_json_output(test/result:timeout=6000)

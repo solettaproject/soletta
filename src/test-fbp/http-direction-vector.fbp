@@ -16,7 +16,7 @@
 
 HttpServer(http-server/direction-vector:port=8080,path="/dv") OUT -> IN direction_vector_to_float_server(converter/direction-vector-to-float)
 
-direction_vector_to_float_server X -> IN ServerValidator(test/float-validator:sequence="23.3 11.2 33.4") OUT -> RESULT TestServer(test/result)
+direction_vector_to_float_server X -> IN ServerValidator(test/float-validator:sequence="23.3 11.2 33.4") OUT -> RESULT TestServer(test/result:timeout=6000)
 direction_vector_to_float_server Y -> IN ServerValidator
 direction_vector_to_float_server Z -> IN ServerValidator
 
@@ -24,6 +24,6 @@ _(constant/direction-vector:value=23.3|11.2|33.4) OUT -> POST HttpClient(http-cl
 
 HttpClient OUT -> IN direction_vector_to_float_client(converter/direction-vector-to-float)
 
-direction_vector_to_float_client X -> IN GetValidator(test/float-validator:sequence="23.3 11.2 33.4") OUT -> RESULT TestClient(test/result)
+direction_vector_to_float_client X -> IN GetValidator(test/float-validator:sequence="23.3 11.2 33.4") OUT -> RESULT TestClient(test/result:timeout=6000)
 direction_vector_to_float_client Y -> IN GetValidator
 direction_vector_to_float_client Z -> IN GetValidator

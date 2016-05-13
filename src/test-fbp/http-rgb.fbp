@@ -17,7 +17,7 @@
 
 HttpServer(http-server/rgb:port=8080, path="/rgb") OUT -> IN rgb_to_int_server(converter/rgb-to-int)
 
-rgb_to_int_server RED -> IN ServerValidator(test/int-validator:sequence="125 122 63") OUT -> RESULT TestServer(test/result)
+rgb_to_int_server RED -> IN ServerValidator(test/int-validator:sequence="125 122 63") OUT -> RESULT TestServer(test/result:timeout=6000)
 rgb_to_int_server GREEN -> IN ServerValidator
 rgb_to_int_server BLUE -> IN ServerValidator
 
@@ -25,6 +25,6 @@ _(constant/rgb:value=125|122|63) OUT -> POST HttpClient(http-client/rgb:url="htt
 
 HttpClient OUT -> IN rgb_to_int_client(converter/rgb-to-int)
 
-rgb_to_int_client RED -> IN GetValidator(test/int-validator:sequence="125 122 63") OUT -> RESULT TestClient(test/result)
+rgb_to_int_client RED -> IN GetValidator(test/int-validator:sequence="125 122 63") OUT -> RESULT TestClient(test/result:timeout=6000)
 rgb_to_int_client GREEN -> IN GetValidator
 rgb_to_int_client BLUE -> IN GetValidator
