@@ -685,7 +685,6 @@ sol_mavlink_connect(const char *addr, const struct sol_mavlink_config *config, c
 
     SOL_NULL_CHECK(addr, NULL);
     SOL_NULL_CHECK(config, NULL);
-    SOL_NULL_CHECK(config->handlers, NULL);
 
 #ifndef SOL_NO_API_VERSION
     if (SOL_UNLIKELY(config->api_version !=
@@ -702,6 +701,8 @@ sol_mavlink_connect(const char *addr, const struct sol_mavlink_config *config, c
         return NULL;
     }
 #endif
+
+    SOL_NULL_CHECK(config->handlers, NULL);
 
     init = sol_mavlink_parse_addr_protocol(addr, &address, &port);
     SOL_NULL_CHECK(init, NULL);
