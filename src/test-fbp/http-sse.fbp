@@ -22,4 +22,4 @@ _(constant/int:value=20) OUT -> IN[0] stop(int/equal) OUT -> IN _(boolean/not) O
 
 accumulator OUT -> IN[1] stop
 
-_(constant/empty) OUT -> GET _(http-client/int:url="http://localhost:8080/int") OUT -> IN seq OUT -> RESULT _(test/result)
+_(constant/empty) OUT -> GET _(http-client/int:url="http://localhost:8080/int") OUT -> IN seq OUT -> RESULT _(test/result:timeout=6000)

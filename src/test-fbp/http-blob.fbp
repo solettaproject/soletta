@@ -19,8 +19,8 @@ post-validator(test/string-validator:sequence="Hi!|Bye!")
 
 _(constant/string:value="Hi!") OUT -> IN _(converter/string-to-blob) OUT -> IN server(http-server/blob:path="/test", port=8080)
 
-server OUT -> IN _(converter/blob-to-string) OUT -> IN post-validator OUT -> RESULT test-post(test/result)
+server OUT -> IN _(converter/blob-to-string) OUT -> IN post-validator OUT -> RESULT test-post(test/result:timeout=6000)
 
-_(constant/empty) OUT -> GET client(http-client/blob:url="http://localhost:8080/test") OUT -> IN _(converter/blob-to-string) OUT -> IN get-validator OUT -> RESULT test-get(test/result)
+_(constant/empty) OUT -> GET client(http-client/blob:url="http://localhost:8080/test") OUT -> IN _(converter/blob-to-string) OUT -> IN get-validator OUT -> RESULT test-get(test/result:timeout=6000)
 
 client OUT -> IN _(converter/empty-to-string:output_value="Bye!") OUT -> IN _(converter/string-to-blob) OUT -> POST client
