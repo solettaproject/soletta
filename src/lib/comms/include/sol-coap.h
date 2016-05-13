@@ -370,7 +370,7 @@ int sol_coap_header_get_type(const struct sol_coap_packet *pkt, uint8_t *type);
  * @param pkt The packet with the token.
  * @param len Pointer where to store the length in bytes of the token.
  *
- * @return @c NULL in case of error (when @errno will be set to @c
+ * @return @c NULL in case of error (when @c errno will be set to @c
  * EINVAL), otherwise a pointer to an internal buffer containint the
  * token. It must not be modified.
  */
@@ -476,7 +476,7 @@ int sol_coap_header_set_id(struct sol_coap_packet *pkt, uint16_t id);
  *
  * Creates a new, unsecured, CoAP server instance listening on address
  * @a addr. If the server cannot be created, NULL will be returned and
- * errno will be set to indicate the reason.
+ * @c errno will be set to indicate the reason.
  *
  * @param addr The address where the server will listen on.
  *
@@ -492,7 +492,7 @@ struct sol_coap_server *sol_coap_server_new(const struct sol_network_link_addr *
  * Creates a new, unsecured, CoAP server instance listening on address
  * @a addr. This server will encrypt communication with its endpoints
  * using DTLS. If the server cannot be created, NULL will be returned
- * and errno will be set to indicate the reason.
+ * and @c errno will be set to indicate the reason.
  *
  * @param addr The address where the server will listen on.
  *
@@ -774,7 +774,7 @@ int sol_coap_packet_send_notification(struct sol_coap_server *server,
  * @param resource The resource to register.
  * @param data User data pointer that will be passed to the requests callbacks.
  *
- * @return 0 on success, negative errno on error.
+ * @return 0 on success, negative @c errno on error.
  */
 int sol_coap_server_register_resource(struct sol_coap_server *server,
     const struct sol_coap_resource *resource, const void *data);
