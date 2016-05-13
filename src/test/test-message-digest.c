@@ -174,7 +174,7 @@ on_timeout_do_chunked_internal(void *data)
 }
 
 static void
-on_feed_done_chunked(void *data, struct sol_message_digest *handle, struct sol_blob *input)
+on_feed_done_chunked(void *data, struct sol_message_digest *handle, struct sol_blob *input, int status)
 {
     /* feed more after we're done with our previous data */
     on_timeout_do_chunked_internal(data);
