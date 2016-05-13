@@ -349,7 +349,7 @@ sol_socket_ip_default_new(const struct sol_socket_options *options)
     };
 
     SOL_INT_CHECK_ERRNO(opts->family, != SOL_NETWORK_FAMILY_INET6,
-        EAFNOSUPPORT);
+        EAFNOSUPPORT, NULL);
 
     socket = calloc(1, sizeof(*socket));
     if (!socket) {

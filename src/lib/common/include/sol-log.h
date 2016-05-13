@@ -74,6 +74,18 @@ template <> inline const char *sol_int_format<unsigned char>(unsigned char) { re
         } \
     } while (0)
 
+#define SOL_INT_CHECK_IMPL_ERRNO(var, exp, err, ...) \
+    do { \
+        if (SOL_UNLIKELY((var)exp)) { \
+            char *str = (char *)alloca(snprintf(NULL, 0, "%s (%s) %s", \
+                # var, sol_int_format(var),  # exp) + 1); \
+            sprintf(str, "%s (%s) %s", # var, sol_int_format(var), # exp); \
+            SOL_WRN(str, var); \
+            errno = err; \
+            return __VA_ARGS__; \
+        } \
+    } while (0)
+
 #else
 
 /**
@@ -145,6 +157,15 @@ template <> inline const char *sol_int_format<unsigned char>(unsigned char) { re
             SOL_WRN(_SOL_INT_CHECK_FMT(var), var, # exp); \
             errno = err; \
             goto label; \
+        } \
+    } while (0)
+
+#define SOL_INT_CHECK_IMPL_ERRNO(var, exp, err, ...) \
+    do { \
+        if (SOL_UNLIKELY((var)exp)) { \
+            SOL_WRN(_SOL_INT_CHECK_FMT(var), var, # exp); \
+            errno = err; \
+            return __VA_ARGS__; \
         } \
     } while (0)
 
@@ -295,6 +316,21 @@ extern "C" {
 #define SOL_INT_CHECK(var, exp, ...) \
     SOL_INT_CHECK_IMPL(var, exp, __VA_ARGS__)
 
+/**
+ * @brief Safety-check macro to check if integer @c var against @c exp
+ * (and set @c errno).
+ *
+ * This macro logs a warning message and returns if the integer @a var
+ * satisfies the expression @c exp. Additionally, it sets the @c errno variable
+ * to @a err.
+ *
+ * @param var Integer to be check
+ * @param exp Safety-check expression
+ * @param err @c errno value to set
+ * @param ... Optional return value
+ */
+#define SOL_INT_CHECK_ERRNO(var, exp, err, ...) \
+    SOL_INT_CHECK_IMPL_ERRNO(var, exp, err, __VA_ARGS__)
 
 /**
  * @brief Similar to @ref SOL_INT_CHECK but jumping to @c label instead of returning.
