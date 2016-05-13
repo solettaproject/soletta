@@ -82,7 +82,7 @@ sol_bluetooth_addr_to_str(const struct sol_network_link_addr *addr,
     int r;
 
     r = sol_buffer_append_printf(buffer, "%2.2X:%2.2X:%2.2X:%2.2X:%2.2X:%2.2X",
-        ba[0], ba[1], ba[2], ba[3], ba[4], ba[5]);
+        ba[5], ba[4], ba[3], ba[2], ba[1], ba[0]);
     if (r < 0)
         return NULL;
 
