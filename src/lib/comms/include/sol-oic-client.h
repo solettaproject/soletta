@@ -194,7 +194,7 @@ void sol_oic_pending_cancel(struct sol_oic_pending *pending);
  * @param data A pointer to user's data.
  *
  * @return @c A pending call handle on success, @c NULL otherwise
- *         (when @errno will be set to one of @c EINVAL, @c ENOMEM, @c
+ *         (when @c errno will be set to one of @c EINVAL, @c ENOMEM, @c
  *         EIO, @c EOVERFLOW, @c ERANGE). It will be valid until @a
  *         resource_found_cb returns @c false.
  */
@@ -231,7 +231,7 @@ struct sol_oic_pending *sol_oic_client_find_resources(struct sol_oic_client *cli
  * perform clean up operations.
  *
  * @return @c A pending call handle on success, @c NULL otherwise
- *         (when @errno will be set to one of @c EINVAL, @c ENOMEM, @c
+ *         (when @c errno will be set to one of @c EINVAL, @c ENOMEM, @c
  *         EIO, @c EOVERFLOW, @c ERANGE). It will be valid until @a
  *         info_received_cb is called.
  */
@@ -268,7 +268,7 @@ struct sol_oic_pending *sol_oic_client_get_platform_info(struct sol_oic_client *
  * perform clean up operations.
  *
  * @return @c A pending call handle on success, @c NULL otherwise.
- *         (when @errno will be set to one of @c EINVAL, @c ENOMEM, @c
+ *         (when @c errno will be set to one of @c EINVAL, @c ENOMEM, @c
  *         EIO, @c EOVERFLOW, @c ERANGE). It will be valid until @a
  *         info_received_cb is called.
  */
@@ -304,7 +304,7 @@ struct sol_oic_pending *sol_oic_client_get_platform_info_by_addr(struct sol_oic_
  * perform clean up operations.
  *
  * @return @c A pending call handle on success, @c NULL otherwise.
- *         (when @errno will be set to one of @c EINVAL, @c ENOMEM, @c
+ *         (when @c errno will be set to one of @c EINVAL, @c ENOMEM, @c
  *         EIO, @c EOVERFLOW, @c ERANGE). It will be valid until @a
  *         info_received_cb is called
  */
@@ -338,7 +338,7 @@ struct sol_oic_pending *sol_oic_client_get_server_info(struct sol_oic_client *cl
  * @param data A pointer to user's data.
  *
  * @return @c A pending call handle on success, @c NULL otherwise
- *         (when @errno will be set to one of @c EINVAL, @c ENOMEM, @c
+ *         (when @c errno will be set to one of @c EINVAL, @c ENOMEM, @c
  *         EIO, @c EOVERFLOW, @c ERANGE). It will be valid until @a
  *         info_received_cb is called.
  */
@@ -369,7 +369,7 @@ struct sol_oic_pending *sol_oic_client_get_server_info_by_addr(struct sol_oic_cl
  * @param callback_data User's data to be passed to @a callback.
  *
  * @return @c A pending call handle on success, @c NULL otherwise
- *         (when @errno will be set to one of @c EINVAL, @c ENOMEM, @c
+ *         (when @c errno will be set to one of @c EINVAL, @c ENOMEM, @c
  *         EIO, @c EOVERFLOW, @c ERANGE). It will be valid until @a
  *         callback is called.
  */
