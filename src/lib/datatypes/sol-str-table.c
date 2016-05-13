@@ -52,6 +52,26 @@ sol_str_table_lookup_fallback(const struct sol_str_table *table,
     return fallback;
 }
 
+SOL_API const struct sol_str_table_ptr *
+sol_str_table_ptr_entry_lookup(const struct sol_str_table_ptr *table,
+    const struct sol_str_slice key)
+{
+    const struct sol_str_table_ptr *iter;
+
+    errno = EINVAL;
+    SOL_NULL_CHECK(table, NULL);
+
+    for (iter = table; iter->key; iter++) {
+        if (iter->len == key.len && memcmp(iter->key, key.data, key.len) == 0) {
+            errno = 0;
+            return iter;
+        }
+    }
+
+    errno = ENOENT;
+    return NULL;
+}
+
 SOL_API const void *
 sol_str_table_ptr_lookup_fallback(const struct sol_str_table_ptr *table,
     const struct sol_str_slice key,

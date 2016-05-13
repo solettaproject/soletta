@@ -64,28 +64,28 @@ endif
 
 menuconfig USE_STORAGE
     bool "Persistence Storage Support"
-    depends on LINUX
+    depends on FEATURE_FILESYSTEM || FEATURE_EFI || FEATURE_FLASH_MEM
     default y
 
 config USE_FILESYSTEM
     bool "File system persistence storage"
-    depends on USE_STORAGE
+    depends on USE_STORAGE && FEATURE_FILESYSTEM
     default y
 
 config USE_EFIVARS
     bool "EFI vars persistence storage"
-    depends on USE_STORAGE
+    depends on USE_STORAGE && FEATURE_EFI
     default y
 
 config USE_MEMMAP
     bool "Memory map persistence storage"
-    depends on USE_STORAGE
+    depends on USE_STORAGE && (FEATURE_FILESYSTEM || FEATURE_FLASH_MEM)
     default y
     help
-        Provide persistence storage based on memory maps.
-        Users must provide a mapping - for instance, using a JSON
-        file - that will be used to define where on memory
-        entries will be saved. Examples of memory are NVRAM or EEPROM.
+        Provide persistence storage based on memory maps. Users must
+        provide a mapping - for instance, using a JSON file - that
+        will be used to define where on memory entries will be saved.
+        Examples of memory are NVRAM or EEPROM or even a file.
 
 config USE_IPM
     bool "Inter-processor messaging"

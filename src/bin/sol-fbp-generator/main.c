@@ -1679,7 +1679,8 @@ generate(struct sol_vector *fbp_data_vector)
     if (memmap_elems) {
         out("\n");
         for (i = 0; i < memmap_elems; i++)
-            out("    sol_memmap_add_map(&_memmap%d);\n", i);
+            out("    if (sol_memmap_add_map(&_memmap%d) < 0)\n"
+                "        return false;\n", i);
     }
     out(
         "    return true;\n"
