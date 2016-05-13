@@ -209,6 +209,8 @@ extern "C" {
  *    <ul>
  *    <li> sol_uart_feed()
  *    <li> struct sol_uart_config
+ *    <li> sol_message_digest_feed()
+ *    <li> struct sol_message_digest_config
  *    </ul>
  * </ul>
  */

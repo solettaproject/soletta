@@ -89,7 +89,7 @@ print_time(const struct feed_ctx *ctx, size_t amount, const char *prefix)
 }
 
 static void
-on_feed_done(void *data, struct sol_message_digest *handle, struct sol_blob *input)
+on_feed_done(void *data, struct sol_message_digest *handle, struct sol_blob *input, int status)
 {
     struct feed_ctx *ctx = data;
 
