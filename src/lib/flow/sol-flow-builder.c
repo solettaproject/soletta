@@ -1110,8 +1110,6 @@ error_desc_append:
     free(port_desc);
 
 error_desc:
-    free(name);
-
 error_name:
     return -ENOMEM;
 }
