@@ -1335,9 +1335,13 @@ register_observer(struct resource_context *c, struct sol_coap_packet *req,
     memcpy(&o->cliaddr, cliaddr, sizeof(*cliaddr));
 
     r = sol_ptr_vector_append(&c->observers, o);
-    SOL_INT_CHECK(r, < 0, -ENOMEM);
+    SOL_INT_CHECK_GOTO(r, < 0, error);
 
     return 0;
+
+error:
+    free(o);
+    return -ENOMEM;
 }
 
 static bool
