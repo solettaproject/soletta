@@ -2123,7 +2123,7 @@ get_integer_field(struct sol_flow_node *node,
     struct auto_number *auto_number)
 {
     int r;
-    ssize_t index;
+    ssize_t index = -1;
 
     r = field_name_get_integer_idx(node, input, &index, auto_number);
     SOL_INT_CHECK(r, < 0, r);
