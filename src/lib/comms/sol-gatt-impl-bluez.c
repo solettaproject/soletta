@@ -546,7 +546,7 @@ sol_gatt_register_attributes(struct sol_gatt_attr *attrs)
     struct context *ctx = bluetooth_get_context();
     struct sol_gatt_attr *attr;
     struct application *app;
-    const char *service, *service_path, *chr_path;
+    const char *service, *service_path = NULL, *chr_path = NULL;
     sd_bus_message *m = NULL;
     sd_bus *bus;
     sd_bus_slot **s;
@@ -601,7 +601,7 @@ sol_gatt_register_attributes(struct sol_gatt_attr *attrs)
 
 
         case SOL_GATT_ATTR_TYPE_CHARACTERISTIC:
-            if (previous == SOL_GATT_ATTR_TYPE_INVALID) {
+            if (previous == SOL_GATT_ATTR_TYPE_INVALID || !service_path) {
                 SOL_WRN("invalid type sequence %d -> %d", previous, attr->type);
                 r = -EINVAL;
                 goto error_vtable;
@@ -620,7 +620,7 @@ sol_gatt_register_attributes(struct sol_gatt_attr *attrs)
 
         case SOL_GATT_ATTR_TYPE_DESCRIPTOR:
             if (previous == SOL_GATT_ATTR_TYPE_INVALID
-                || previous == SOL_GATT_ATTR_TYPE_SERVICE) {
+                || previous == SOL_GATT_ATTR_TYPE_SERVICE || !chr_path) {
                 SOL_WRN("invalid type sequence %d -> %d", previous, attr->type);
                 r = -EINVAL;
                 goto error_vtable;
