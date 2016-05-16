@@ -66,7 +66,7 @@ response_func(void *userdata, struct sol_http_client_connection *connection,
 static const struct sol_http_request_interface iface = {
     SOL_SET_API_VERSION(.api_version = SOL_HTTP_REQUEST_INTERFACE_API_VERSION, )
     .on_data = on_data_func,
-    .response_cb = response_func
+    .on_response = response_func
 };
 
 static void

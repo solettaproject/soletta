@@ -112,7 +112,7 @@ struct sol_http_request_interface {
      * @note it is allowed to cancel the connection handle from
      *       inside this callback.
      */
-    ssize_t (*send_cb)(void *userdata, struct sol_http_client_connection *connection,
+    ssize_t (*on_send)(void *userdata, struct sol_http_client_connection *connection,
         struct sol_buffer *buffer);
     /**
      * This callback is called when the request finishes, the result of request is available on
@@ -125,7 +125,7 @@ struct sol_http_request_interface {
      * @note it is allowed to cancel the connection handle from
      *       inside this callback.
      */
-    void (*response_cb)(void *userdata, struct sol_http_client_connection *connection,
+    void (*on_response)(void *userdata, struct sol_http_client_connection *connection,
         struct sol_http_response *response);
 
     /**

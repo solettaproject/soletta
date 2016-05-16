@@ -512,7 +512,7 @@ common_get_process(struct sol_flow_node *node, void *data, uint16_t port,
     static const struct sol_http_request_interface req_iface = {
         SOL_SET_API_VERSION(.api_version = SOL_HTTP_REQUEST_INTERFACE_API_VERSION, )
         .on_data = sse_received_data_cb,
-        .response_cb = sse_response_end_cb,
+        .on_response = sse_response_end_cb,
     };
 
 

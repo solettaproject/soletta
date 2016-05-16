@@ -234,7 +234,7 @@ http_fetch(const char *url,
     struct sol_http_request_interface iface = {
         SOL_SET_API_VERSION(.api_version = SOL_HTTP_REQUEST_INTERFACE_API_VERSION, )
         .on_data = task_fetch_data,
-        .response_cb = task_fetch_response
+        .on_response = task_fetch_response
     };
 
     /* TODO handle resume stuff */
