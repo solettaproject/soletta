@@ -308,14 +308,19 @@ The OIC Client API provides functionality to access (CRUD) remote resources.
 [NoInterfaceObject]
 interface OicClient {
   Promise<OicResource> create(OicResourceInit resource);
-  Promise<void> retrieve(OicResourceId id, optional Dictionary parameters);
+  Promise<OicResource> retrieve(OicResourceId id, optional Dictionary parameters);
   Promise<void> update(OicResourceInit resource);  // partial dictionary
   Promise<void> delete(OicResourceId id);
 };
 ```
-The ```create()``` and ```update()``` methods take a resource dictionary, in which at least the ```id``` and one more property MUST be specified.
+The ```create()``` and ```update()``` methods take a resource dictionary, in which at least the ```id``` and one more property MUST be specified. It returns a Promise that gets resolved with the new resource object when  positive response from the "create" network operation is received.
 
 The ```retrieve()``` method can take an optional parameter representing the ```REST``` query parameters passed along with the ```GET``` request as a JSON-serializable dictionary. Implementations SHOULD validate this client input to fit OIC requirements. The semantics of the parameters are application specific (e.g. requesting a resource representation in metric or imperial units). Similarly, the properties of an OIC resource representation are application specific and are represented as a JSON-serializable dictionary.
+The ```retrieve()``` method returns a Promise that gets resolved with the retrieved resource object.
+
+The ```update()``` method takes a partial dictionary that contains the properties to be updated, or the whole object. It returns a Promise that gets resolved when positive response from the "update" network operation is received.
+
+The ```delete()``` method takes only a resource ID, and its Promise gets resolved when positive response from the "delete" network operation is received.
 
 ### OIC Server
 The server API provides functionality for handling requests.
