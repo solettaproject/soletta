@@ -62,6 +62,16 @@ SOL_LOG_INTERNAL_DECLARE(_sol_coap_log_domain, "coap");
             return __VA_ARGS__; \
         } \
     } while (0)
+#define COAP_RESOURCE_CHECK_API_GOTO(...) \
+    do { \
+        if (SOL_UNLIKELY(resource->api_version != \
+            SOL_COAP_RESOURCE_API_VERSION)) { \
+            SOL_WRN("Couldn't handle resource that has unsupported version " \
+                "'%u', expected version is '%u'", \
+                resource->api_version, SOL_COAP_RESOURCE_API_VERSION); \
+            goto __VA_ARGS__; \
+        } \
+    } while (0)
 #else
 #define COAP_RESOURCE_CHECK_API(...)
 #endif
@@ -858,17 +868,15 @@ sol_coap_send_packet_with_reply(struct sol_coap_server *server, struct sol_coap_
     struct sol_str_slice option = {};
     bool observing = false;
     uint8_t tkl, *token;
-    int err = 0, count;
+    int err = -EINVAL, count;
 
-    SOL_NULL_CHECK(server, -EINVAL);
     SOL_NULL_CHECK(pkt, -EINVAL);
-    SOL_NULL_CHECK(cliaddr, -EINVAL);
+    SOL_NULL_CHECK_GOTO(server, error_pkt);
+    SOL_NULL_CHECK_GOTO(cliaddr, error_pkt);
 
     count = sol_coap_find_options(pkt, SOL_COAP_OPTION_OBSERVE, &option, 1);
-    if (count < 0) {
-        sol_coap_packet_unref(pkt);
-        return -EINVAL;
-    }
+    if (count < 0)
+        goto error_pkt;
 
     /* Observing is enabled. */
     if (count == 1 && option.len == 1 && option.data[0] == 0)
@@ -877,8 +885,7 @@ sol_coap_send_packet_with_reply(struct sol_coap_server *server, struct sol_coap_
     if (!reply_cb) {
         if (observing) {
             SOL_WRN("Observing a resource without a callback.");
-            sol_coap_packet_unref(pkt);
-            return -EINVAL;
+            goto error_pkt;
         }
         goto done;
     }
@@ -887,8 +894,8 @@ sol_coap_send_packet_with_reply(struct sol_coap_server *server, struct sol_coap_
 
     reply = calloc(1, sizeof(*reply) + tkl);
     if (!reply) {
-        sol_coap_packet_unref(pkt);
-        return -ENOMEM;
+        err = -ENOMEM;
+        goto error_pkt;
     }
 
     sol_coap_header_get_id(pkt, &reply->id);
@@ -934,6 +941,7 @@ done:
 
 error:
     pending_reply_free(reply);
+error_pkt:
     sol_coap_packet_unref(pkt);
     return err;
 }
@@ -959,22 +967,30 @@ sol_coap_packet_send_notification(struct sol_coap_server *server,
     struct resource_context *c;
     struct sol_coap_packet *header;
     uint16_t i;
-    int r = 0;
+    int r = -EINVAL;
 
-    SOL_NULL_CHECK(server, -EINVAL);
-    SOL_NULL_CHECK(resource, -EINVAL);
     SOL_NULL_CHECK(pkt, -EINVAL);
+    SOL_NULL_CHECK_GOTO(server, error_pkt);
+    SOL_NULL_CHECK_GOTO(resource, error_pkt);
 
-    COAP_RESOURCE_CHECK_API(-EINVAL);
+    COAP_RESOURCE_CHECK_API_GOTO(error_pkt);
 
     c = find_context(server, resource);
-    SOL_NULL_CHECK(c, -ENOENT);
+    if (!c) {
+        SOL_WRN("Context not found for expecified resource");
+        r = -ENOENT;
+        goto error_pkt;
+    }
 
+    r = 0;
     SOL_PTR_VECTOR_FOREACH_IDX (&c->observers, o, i) {
         uint8_t type, code;
 
         header = sol_coap_packet_new(NULL);
-        SOL_NULL_CHECK(header, -ENOMEM);
+        if (!header) {
+            r = -ENOMEM;
+            goto error_pkt;
+        }
 
         sol_coap_header_get_code(pkt, &code);
         r = sol_coap_header_set_code(header, code);
@@ -992,18 +1008,18 @@ sol_coap_packet_send_notification(struct sol_coap_server *server,
             sol_network_link_addr_to_str(&o->cliaddr, &addr);
             SOL_WRN("Failed to enqueue packet %p to %.*s", header,
                 SOL_STR_SLICE_PRINT(sol_buffer_get_slice(&addr)));
-            goto done;
+            goto error_pkt;
         }
 
         sol_coap_packet_unref(header);
     }
 
-done:
     sol_coap_packet_unref(pkt);
     return r;
 
 err:
     sol_coap_packet_unref(header);
+error_pkt:
     sol_coap_packet_unref(pkt);
     return r;
 }

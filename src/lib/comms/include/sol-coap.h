@@ -688,7 +688,8 @@ int sol_coap_find_options(const struct sol_coap_packet *pkt, uint16_t code, stru
  * If a response is expected, then sol_coap_send_packet_with_reply() should
  * be used instead.
  *
- * @note This function will take the reference of the given @a pkt.
+ * @note This function will take the reference of the given @a pkt and do a
+ * release its memory even on errors.
  *
  * @param server The server through which the packet will be sent.
  * @param pkt The packet to send.
@@ -756,6 +757,9 @@ int sol_coap_send_packet_with_reply(struct sol_coap_server *server, struct sol_c
  * @param pkt The notification packet to send.
  *
  * @return 0 on success, -errno on failure.
+ *
+ * @note This function will take the reference of the given @a pkt and do a
+ * release its memory even on errors.
  *
  * @see sol_coap_send_packet()
  * @see sol_coap_send_packet_with_reply()
