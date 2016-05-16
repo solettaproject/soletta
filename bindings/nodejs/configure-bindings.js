@@ -94,13 +94,14 @@ for ( oneVariable in process.env ) {
 			] );
 			break;
 		case "USE_UART":
-			sources = sources.concat( [
+			/* FIXME: Remove this comment once uart bindings are fixed !
+                          sources = sources.concat( [
 				"../src/functions/uart.cc",
 				"../src/structures/sol-js-uart.cc"
 			] );
 			headers = headers.concat( [
 				"sol-uart.h"
-			] );
+			] );*/
 			break;
 		case "USE_PWM":
 			sources = sources.concat( [
