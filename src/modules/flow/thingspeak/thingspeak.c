@@ -57,16 +57,6 @@ struct thingspeak_channel_update_data {
     char *status;
 };
 
-#define RESPONSE_CHECK_API(response_, mdata_) \
-    do { \
-        if (SOL_UNLIKELY(!response_)) { \
-            sol_flow_send_error_packet(mdata_->node, EINVAL, \
-                "Error while reaching Thingspeak"); \
-            return; \
-        } \
-        SOL_HTTP_RESPONSE_CHECK_API(response); \
-    } while (0)
-
 static bool
 init_talkback(struct talkback *talkback, const char *api_key,
     const char *talkback_id, const char *endpoint, const char *suffix)
@@ -117,7 +107,7 @@ thingspeak_execute_poll_finished(void *data,
     struct thingspeak_execute_data *mdata = data;
     char *body;
 
-    RESPONSE_CHECK_API(response, mdata);
+    SOL_NULL_CHECK(response);
 
     if (response->response_code != SOL_HTTP_STATUS_OK) {
         sol_flow_send_error_packet(mdata->node, EINVAL,
@@ -220,7 +210,7 @@ thingspeak_add_request_finished(void *data,
 {
     struct thingspeak_add_data *mdata = data;
 
-    RESPONSE_CHECK_API(response, mdata);
+    SOL_NULL_CHECK(response);
 
     if (!response->content.used) {
         sol_flow_send_error_packet(mdata->node, EINVAL,
@@ -355,7 +345,7 @@ thingspeak_channel_update_finished(void *data,
 {
     struct thingspeak_channel_update_data *mdata = data;
 
-    RESPONSE_CHECK_API(response, mdata);
+    SOL_NULL_CHECK(response);
 
     if (!strncmp(response->content.data, "0", response->content.used)) {
         sol_flow_send_error_packet(mdata->node, EINVAL,

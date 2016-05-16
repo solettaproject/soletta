@@ -58,7 +58,6 @@ freegeoip_query_finished(void *data,
             "Error while reaching Freegeoip");
         return;
     }
-    SOL_HTTP_RESPONSE_CHECK_API(response);
 
     if (response->response_code != SOL_HTTP_STATUS_OK) {
         sol_flow_send_error_packet(mdata->node, EINVAL,

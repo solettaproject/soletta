@@ -130,7 +130,6 @@ on_message(void *data, struct sol_mqtt *mqtt, const struct sol_mqtt_message *mes
     char *payload;
 
     SOL_NULL_CHECK(message);
-    SOL_MQTT_MESSAGE_CHECK_API_VERSION(message);
 
     payload = sol_util_memdup(message->payload->data, message->payload->used);
     SOL_NULL_CHECK(payload);

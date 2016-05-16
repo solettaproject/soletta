@@ -45,7 +45,7 @@ static int init_ref;
         if (SOL_UNLIKELY(ptr->api_version != \
             SOL_MQTT_CONFIG_API_VERSION)) { \
             SOL_WRN("Couldn't handle mqtt handler that has unsupported " \
-                "version '%u', expected version is '%u'", \
+                "version '%" PRIu16 "', expected version is '%" PRIu16 "'", \
                 ptr->api_version, SOL_MQTT_CONFIG_API_VERSION); \
             return __VA_ARGS__; \
         } \
@@ -55,7 +55,7 @@ static int init_ref;
         if (SOL_UNLIKELY((ptr)->api_version != \
             SOL_MQTT_HANDLERS_API_VERSION)) { \
             SOL_WRN("Couldn't handle mqtt handler that has unsupported " \
-                "version '%u', expected version is '%u'", \
+                "version '%" PRIu16 "', expected version is '%" PRIu16 "'", \
                 (ptr)->api_version, SOL_MQTT_HANDLERS_API_VERSION); \
             return __VA_ARGS__; \
         } \
@@ -99,7 +99,7 @@ sol_mqtt_message_new(const char *topic, const struct sol_buffer *payload, sol_mq
     message = calloc(1, sizeof(struct sol_mqtt_message));
     SOL_NULL_CHECK(message, NULL);
 
-    SOL_SET_API_VERSION(message->api_version = SOL_MQTT_MESSAGE_API_VERSION, )
+    SOL_SET_API_VERSION(message->api_version = SOL_MQTT_MESSAGE_API_VERSION; )
 
     message->topic = sol_util_memdup(topic, strlen(topic) + 1);
     SOL_NULL_CHECK_GOTO(message->topic, topic_error);

@@ -131,8 +131,9 @@ sol_flow_packet_new(const struct sol_flow_packet_type *type, const void *value)
 
 #ifndef SOL_NO_API_VERSION
     if (SOL_UNLIKELY(type->api_version != SOL_FLOW_PACKET_TYPE_API_VERSION)) {
-        SOL_WRN("Couldn't create packet with type '%s' that has unsupported version '%u', expected version is '%u'",
-            type->name ? : "", type->api_version, SOL_FLOW_PACKET_TYPE_API_VERSION);
+        SOL_WRN("Couldn't create packet with type '%s' that has unsupported version '%" PRIu16
+            "', expected version is '%" PRIu16 "'", type->name ? : "",
+            type->api_version, SOL_FLOW_PACKET_TYPE_API_VERSION);
         return NULL;
     }
 #endif

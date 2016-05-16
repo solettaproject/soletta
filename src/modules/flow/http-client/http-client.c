@@ -275,7 +275,6 @@ check_response(struct http_data *mdata, struct sol_flow_node *node,
             "Error while reaching %s", mdata->url);
         return -EINVAL;
     }
-    SOL_HTTP_RESPONSE_CHECK_API(response, -EINVAL);
 
     if (response->response_code == SOL_HTTP_STATUS_NOT_MODIFIED)
         return 1;
@@ -1540,8 +1539,6 @@ request_node_http_response(void *data,
             mdata->url);
         return;
     }
-
-    SOL_HTTP_RESPONSE_CHECK_API_VERSION(response);
 
     blob = blob_from_buffer(node, &response->content);
     SOL_NULL_CHECK_GOTO(blob, err_blob);
