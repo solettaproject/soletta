@@ -188,17 +188,17 @@ call_connection_finish_cb(struct sol_http_client_connection *connection)
 
     response->param = connection->response_params;
 
-    if (connection->interface.response_cb) {
+    if (connection->interface.on_response) {
         connection->in_use = true;
-        connection->interface.response_cb((void *)connection->data, connection, response);
+        connection->interface.on_response((void *)connection->data, connection, response);
         connection->in_use = false;
     }
     goto end;
 
 err:
-    if (connection->interface.response_cb) {
+    if (connection->interface.on_response) {
         connection->in_use = true;
-        connection->interface.response_cb((void *)connection->data, connection, NULL);
+        connection->interface.on_response((void *)connection->data, connection, NULL);
         connection->in_use = false;
     }
 end:
@@ -253,7 +253,7 @@ read_cb(char *data, size_t size, size_t nitems, void *connp)
         SOL_BUFFER_FLAGS_MEMORY_NOT_OWNED | SOL_BUFFER_FLAGS_NO_NUL_BYTE);
 
     connection->in_use = true;
-    ret = connection->interface.send_cb((void *)connection->data,
+    ret = connection->interface.on_send((void *)connection->data,
         connection, &buffer);
     connection->in_use = false;
 
@@ -619,7 +619,7 @@ perform_multi(CURL *curl, struct curl_slist *headers,
     curl_easy_setopt(curl, CURLOPT_WRITEFUNCTION, write_cb);
     curl_easy_setopt(curl, CURLOPT_WRITEDATA, connection);
 
-    if (interface->send_cb) {
+    if (interface->on_send) {
         curl_easy_setopt(curl, CURLOPT_READFUNCTION, read_cb);
         curl_easy_setopt(curl, CURLOPT_READDATA, connection);
     }
@@ -1085,7 +1085,7 @@ sol_http_client_request(enum sol_http_method method,
     const struct sol_http_request_interface *interface =
         &(struct sol_http_request_interface) {
         SOL_SET_API_VERSION(.api_version = SOL_HTTP_REQUEST_INTERFACE_API_VERSION, )
-        .response_cb = cb
+        .on_response = cb
     };
 
     pending = client_request_internal(method, url, params, interface, data);
