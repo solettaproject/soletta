@@ -4,6 +4,7 @@ config FEATURE_ZEPHYR_MICROKERNEL
 config ZEPHYR
     def_bool y
     select FEATURE_COAP
+    select FEATURE_FLASH_MEM
     select FEATURE_FLOW
     select FEATURE_HW_AIO
     select FEATURE_HW_GPIO

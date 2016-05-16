@@ -87,6 +87,14 @@ config USE_MEMMAP
         will be used to define where on memory entries will be saved.
         Examples of memory are NVRAM or EEPROM or even a file.
 
+config FLASH_MEM_REGION_OFFSET
+    hex "Flash memory region offset"
+    depends on FEATURE_FLASH_MEM
+    default 0x0
+    help
+        Offset, from the beginning of the addressable memory of the
+        flash memory, where to do memory mappings.
+
 config USE_IPM
     bool "Inter-processor messaging"
     depends on FEATURE_HW_IPM

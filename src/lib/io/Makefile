@@ -94,8 +94,13 @@ obj-io-storage-$(USE_EFIVARS) += \
     sol-efivarfs-storage.o
 obj-io-storage-$(USE_MEMMAP) += \
     sol-memmap-storage.o
+
+ifeq (y,$(USE_MEMMAP))
 obj-io-storage-$(LINUX) += \
     sol-memmap-storage-impl-linux.o
+obj-io-storage-$(ZEPHYR) += \
+    sol-memmap-storage-impl-zephyr.o
+endif
 
 obj-io-ipm-$(USE_IPM) += \
     sol-ipm.o

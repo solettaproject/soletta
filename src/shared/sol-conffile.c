@@ -399,6 +399,7 @@ _parse_maps(struct sol_json_token token)
         map->timeout = timeout;
         r = sol_json_token_get_unescaped_string(&path, &path_buffer);
         SOL_INT_CHECK_GOTO(r, < 0, error);
+        /* FIXME: accept empty paths ("") later (for small OSes) */
         map->path = sol_arena_strdup_slice(str_arena,
             sol_buffer_get_slice(&path_buffer));
         sol_buffer_fini(&path_buffer);
