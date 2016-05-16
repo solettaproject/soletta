@@ -960,7 +960,7 @@ find_context(struct sol_coap_server *server, const struct sol_coap_resource *res
 }
 
 SOL_API int
-sol_coap_packet_send_notification(struct sol_coap_server *server,
+sol_coap_notify(struct sol_coap_server *server,
     struct sol_coap_resource *resource, struct sol_coap_packet *pkt)
 {
     struct resource_observer *o;

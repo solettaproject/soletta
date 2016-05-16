@@ -2865,7 +2865,7 @@ send_notification_pkt(struct sol_lwm2m_client *client,
     ret = handle_read(client, obj_ctx, obj_instance, resource_id, pkt);
     SOL_INT_CHECK_GOTO(ret, != SOL_COAP_RESPONSE_CODE_CONTENT, err_exit);
 
-    return sol_coap_packet_send_notification(client->coap_server,
+    return sol_coap_notify(client->coap_server,
         resource, pkt) == 0;
 
 err_exit:

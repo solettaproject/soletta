@@ -196,7 +196,7 @@ void sol_oic_server_unregister_resource(struct sol_oic_server_resource *resource
  *
  * @return @c 0 on success or a negative number on errors.
  */
-int sol_oic_server_send_notification_to_observers(struct sol_oic_response *notification);
+int sol_oic_server_notify(struct sol_oic_response *notification);
 
 /**
  * @brief Create a notification response to send to observing clients of
@@ -206,7 +206,7 @@ int sol_oic_server_send_notification_to_observers(struct sol_oic_response *notif
  *
  * @return A notification response on success or NULL on errors.
  *
- * @see sol_oic_server_send_notification_to_observers
+ * @see sol_oic_server_notify
  */
 struct sol_oic_response *sol_oic_server_notification_new(struct sol_oic_server_resource *resource);
 

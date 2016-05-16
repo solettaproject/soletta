@@ -370,7 +370,7 @@ struct sol_oic_repr_field {
  * This structure is used in callback parameters so users can add fields to an
  * oic packet using @ref sol_oic_map_append().
  *
- * @see sol_oic_server_send_notification_to_observers()
+ * @see sol_oic_server_notify()
  * @see sol_oic_client_resource_request()
  */
 struct sol_oic_map_writer;
@@ -504,7 +504,7 @@ bool sol_oic_map_loop_next(struct sol_oic_repr_field *repr, struct sol_oic_map_r
  *
  * @return @c 0 on success, error code (always negative) otherwise.
  *
- * @see sol_oic_server_send_notification_to_observers()
+ * @see sol_oic_server_notify()
  * @see sol_oic_client_resource_request()
  * @note As this function adds elements to @a oic_map_writer, it will update
  * its type to SOL_OIC_MAP_CONTENT when needed.
