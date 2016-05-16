@@ -132,7 +132,8 @@ write_cb(void *data, const char *name, struct sol_blob *blob, int status)
         if (status == -ECANCELED)
             SOL_INF("Writing to [%s] superseeded by another write", name);
         else
-            SOL_WRN("Could not write [%s], error: %d", name, status);
+            SOL_WRN("Could not write [%s], error: %s", name,
+                sol_util_strerrora(-status));
 
         goto end;
     }
@@ -211,7 +212,7 @@ persist_do(struct persist_data *mdata, struct sol_flow_node *node, void *value,
     if (mdata->packet_data_size)
         size = mdata->packet_data_size;
     else
-        size = strlen(value) + 1; //To include the null terminating char
+        size = strlen(value) + 1;  //To include the null terminating char
 
     if (mdata->value_ptr) {
         if (mdata->packet_data_size)

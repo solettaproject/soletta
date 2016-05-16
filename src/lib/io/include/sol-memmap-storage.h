@@ -99,10 +99,15 @@ struct sol_memmap_map {
                        * platform/80860F41:05, @arg @a devnumber is
                        * the device number on the bus, like @c 0x50,
                        * and @arg @a devname is the device name, the
-                       * one recognized by its driver. On small OSes
-                       * this field might be ignored, since the
-                       * storage will depend on the port (and SoC it
-                       * targets).
+                       * one recognized by its driver. On Zephyr, this
+                       * field must adhere to the form
+                       * <tt>\<driver_name\>,\<min_erase_size\>,\<max_rw_size\>,\<mem_offset\></tt>,
+                       * where: @arg @a driver_name is the driver name
+                       * string, @arg @a erase_size is the minimum
+                       * erasable section size, @arg @a max_rw_size is
+                       * the maximum read/write sizes allowed and @arg
+                       * @a mem_offset is the flash memory's starting
+                       * offset (all sizes in bytes).
                        */
     uint32_t timeout; /**< Timeout, in milliseconds, of writing operations. After a write is requested, a timer will run and group all
                        * writing operations until it expires, when real writing will be performed */
