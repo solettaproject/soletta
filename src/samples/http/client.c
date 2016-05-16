@@ -37,7 +37,7 @@
 static bool verbose = false;
 
 static void
-response_cb(void *userdata, const struct sol_http_client_connection *connection,
+response_cb(void *userdata, struct sol_http_client_connection *connection,
     struct sol_http_response *response)
 {
 

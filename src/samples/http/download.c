@@ -29,8 +29,8 @@ static FILE *fd;
 struct sol_http_client_connection *pending;
 
 static ssize_t
-recv_func(void *userdata, const struct sol_http_client_connection *connection,
-    struct sol_buffer *buffer)
+recv_func(void *userdata, struct sol_http_client_connection *connection,
+    const struct sol_buffer *buffer)
 {
     ssize_t ret;
 
@@ -44,7 +44,7 @@ recv_func(void *userdata, const struct sol_http_client_connection *connection,
 }
 
 static void
-response_func(void *userdata, const struct sol_http_client_connection *connection,
+response_func(void *userdata, struct sol_http_client_connection *connection,
     struct sol_http_response *response)
 {
     fclose(fd);
