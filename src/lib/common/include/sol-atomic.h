@@ -168,7 +168,18 @@
     || (defined(__clang__) && (__clang_major__ * 100 + __clang_minor__ >= 307)) \
     || defined(DOXYGEN_RUN)
 /* GCC 4.9, Clang 3.7 provide <stdatomic.h>, a C11 header */
+
+#ifdef __cplusplus
+#include <atomic>
+#define _Atomic(T) std::atomic<T>
+#define atomic_flag std::atomic_flag
+#define atomic_int std::atomic_int
+#define atomic_uint std::atomic_uint
+#define atomic_size_t std::atomic_size_t
+#define atomic_uintptr_t std::atomic_uintptr_t
+#else
 #include <stdatomic.h>
+#endif
 
 /* Initialization */
 #define SOL_ATOMIC_INIT         ATOMIC_VAR_INIT
