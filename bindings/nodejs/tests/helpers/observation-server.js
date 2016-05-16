@@ -58,7 +58,7 @@ console.log( JSON.stringify( { ready: true } ) );
 
 if ( !setObservable ) {
 	theInterval = setInterval( function() {
-		soletta.sol_oic_server_send_notification_to_observers( theResource, payload.generate() );
+		soletta.sol_oic_server_notify( theResource, payload.generate() );
 	}, 200 );
 }
 

@@ -1125,7 +1125,7 @@ error:
 }
 
 SOL_API int
-sol_oic_server_send_notification_to_observers(struct sol_oic_response *notification)
+sol_oic_server_notify(struct sol_oic_response *notification)
 {
     int r = -ENOTCONN;
 

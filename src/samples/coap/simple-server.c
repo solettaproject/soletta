@@ -188,7 +188,7 @@ update_light(void *data)
     r = light_resource_to_rep(resource, get_scrolllock_led(), buf);
     SOL_INT_CHECK_GOTO(r, < 0, err);
 
-    return !sol_coap_packet_send_notification(server, resource, pkt);
+    return !sol_coap_notify(server, resource, pkt);
 
 err:
     sol_coap_packet_unref(pkt);

@@ -560,7 +560,7 @@ struct sol_coap_packet *sol_coap_packet_new_request(enum sol_coap_method method,
  * simplifies the creation of the notification packet by handling the management
  * of the resource age (and setting the id) and type of the packet.
  *
- * It should be used along sol_coap_packet_send_notification() to ensure that
+ * It should be used along sol_coap_notify() to ensure that
  * the correct token is added to the packet sent to the clients.
  *
  * @param server The server holding the resource that changed.
@@ -568,7 +568,7 @@ struct sol_coap_packet *sol_coap_packet_new_request(enum sol_coap_method method,
  *
  * @return A new packet, with @c id and @c type set accordingly, or NULL on failure.
  *
- * @see sol_coap_packet_send_notification()
+ * @see sol_coap_notify()
  */
 struct sol_coap_packet *sol_coap_packet_new_notification(struct sol_coap_server *server,
     struct sol_coap_resource *resource);
@@ -764,7 +764,7 @@ int sol_coap_send_packet_with_reply(struct sol_coap_server *server, struct sol_c
  * @see sol_coap_send_packet()
  * @see sol_coap_send_packet_with_reply()
  */
-int sol_coap_packet_send_notification(struct sol_coap_server *server,
+int sol_coap_notify(struct sol_coap_server *server,
     struct sol_coap_resource *resource, struct sol_coap_packet *pkt);
 
 /**

@@ -230,7 +230,7 @@ NAN_METHOD(bind_sol_oic_server_unregister_resource) {
     Nan::SetInternalFieldPointer(jsResourceInfo, 0, 0);
 }
 
-NAN_METHOD(bind_sol_oic_server_send_notification_to_observers) {
+NAN_METHOD(bind_sol_oic_server_notify) {
     VALIDATE_ARGUMENT_COUNT(info, 2);
     VALIDATE_ARGUMENT_TYPE(info, 0, IsObject);
     VALIDATE_ARGUMENT_TYPE_OR_NULL(info, 1, IsObject);
@@ -260,7 +260,7 @@ NAN_METHOD(bind_sol_oic_server_send_notification_to_observers) {
     }
 
     if (result)
-        result = sol_oic_server_send_notification_to_observers(notification) == 0;
+        result = sol_oic_server_notify(notification) == 0;
     else
         sol_oic_server_response_free(notification);
     info.GetReturnValue().Set(Nan::New(result));
