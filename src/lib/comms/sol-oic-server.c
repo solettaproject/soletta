@@ -1078,31 +1078,6 @@ sol_oic_server_unregister_resource(struct sol_oic_server_resource *resource)
     sol_oic_server_unref();
 }
 
-static int
-send_notification_to_server(struct sol_oic_response *notification,
-    struct sol_coap_server *server)
-{
-    uint8_t code = SOL_COAP_RESPONSE_CODE_INTERNAL_ERROR;
-    CborError err;
-    int r;
-
-    err = sol_oic_packet_cbor_close(notification->pkt, &notification->writer);
-    SOL_INT_CHECK_GOTO(err, != CborNoError, end);
-
-    code = SOL_COAP_RESPONSE_CODE_CONTENT;
-end:
-    r = sol_coap_header_set_code(notification->pkt, code);
-    SOL_INT_CHECK_GOTO(r, < 0, error);
-    r = sol_coap_header_set_type(notification->pkt, SOL_COAP_TYPE_ACK);
-    SOL_INT_CHECK_GOTO(r, < 0, error);
-
-    return sol_coap_packet_send_notification(server,
-        notification->resource->coap, notification->pkt);
-
-error:
-    return r;
-}
-
 SOL_API struct sol_oic_response *
 sol_oic_server_notification_new(struct sol_oic_server_resource *resource)
 {
@@ -1128,6 +1103,8 @@ SOL_API int
 sol_oic_server_notify(struct sol_oic_response *notification)
 {
     int r = -ENOTCONN;
+    uint8_t code = SOL_COAP_RESPONSE_CODE_INTERNAL_ERROR;
+    CborError err;
 
     SOL_NULL_CHECK(notification, -EINVAL);
     OIC_SERVER_CHECK_GOTO(error);
@@ -1138,12 +1115,29 @@ sol_oic_server_notify(struct sol_oic_response *notification)
         goto error;
     }
 
-    r = send_notification_to_server(notification, oic_server.server);
-    SOL_INT_CHECK_GOTO(r, < 0, end);
-    if (oic_server.dtls_server)
-        r = send_notification_to_server(notification, oic_server.dtls_server);
+    err = sol_oic_packet_cbor_close(notification->pkt, &notification->writer);
+    SOL_INT_CHECK_GOTO(err, != CborNoError, close_error);
 
-end:
+    code = SOL_COAP_RESPONSE_CODE_CONTENT;
+close_error:
+    r = sol_coap_header_set_code(notification->pkt, code);
+    SOL_INT_CHECK_GOTO(r, < 0, error);
+    r = sol_coap_header_set_type(notification->pkt, SOL_COAP_TYPE_ACK);
+    SOL_INT_CHECK_GOTO(r, < 0, error);
+
+    //Keep reference to CoAP packet, because
+    //sol_coap_notify() release it's memory, even on errors
+    sol_coap_packet_ref(notification->pkt);
+    r = sol_coap_notify(oic_server.server,
+        notification->resource->coap, notification->pkt);
+    SOL_INT_CHECK_GOTO(r, < 0, error);
+
+    if (oic_server.dtls_server)
+        r = sol_coap_notify(oic_server.dtls_server,
+            notification->resource->coap, notification->pkt);
+    else
+        sol_coap_packet_unref(notification->pkt);
+
     notification->pkt = NULL;
 error:
     sol_oic_server_response_free(notification);
