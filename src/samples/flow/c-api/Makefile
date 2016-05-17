@@ -13,8 +13,8 @@ sample-lowlevel-$(FLOW_C_API_LOWLEVEL_SAMPLE) += custom-node-types.json
 sample-lowlevel-$(FLOW_C_API_LOWLEVEL_SAMPLE)-deps := \
 	sample-custom-node-types
 
-sample-$(FLOW_C_API_SIMPLECTYPE_SAMPLE) += simplectype
-sample-simplectype-$(FLOW_C_API_SIMPLECTYPE_SAMPLE) := simplectype.c
+sample-$(FLOW_C_API_SIMPLE_C_TYPE_SAMPLE) += simple-c-type
+sample-simple-c-type-$(FLOW_C_API_SIMPLE_C_TYPE_SAMPLE) := simple-c-type.c
 
 sample-$(FLOW_C_API_FIND_TYPE_SAMPLE) += find-type
 sample-find-type-$(FLOW_C_API_FIND_TYPE_SAMPLE) := find-type.c
