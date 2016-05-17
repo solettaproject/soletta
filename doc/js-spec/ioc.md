@@ -35,83 +35,25 @@ Some pins can be configured to map to GPIO, AIO or PWM, for instance on the Inte
 
 
 #### API design considerations
-This API attempts generalizing how to open, write and read HW. In principle the API provides an object constructed for a given HW pin or port, and high level read and write functions. After bein constructed, the object can be configured (opened) for read and write, using IO type (e.g. GPIO, I2C, etc) specific settings. The object can be reconfigured during its lifetime. Also, the object can be closed, after which read and write operations fail until the next configuration is successful.
+This API attempts generalizing how to open, write and read HW. In principle the API provides an object constructed for a given HW pin or port, and high level read and write functions. After being constructed, the object can be configured (opened), using IO type specific settings. The object can be reconfigured during its lifetime. Also, the object can be closed, after which read and write operations fail until the next configuration is successful.
 
 Each operation may take an ```options``` parameter that differentiates between the various HW IO types and their specific options.
 
 There can be only one pending asynchronous operation active at a time for a given IO type. Pending operations can be aborted by the client.
 
-To ease transition, the ```configure()``` method returns a low level IO type specific object, such as [```GPIOConnection```](./gpio.md), and from there one could use that given functionality. However, this API attempts to unify the IO API read and write operations exposed in the ```IOC``` objects.
-
-For instance, the following example will look similar for GPIO, or I2C, or SPI, only differing in the configuration parameters.
-
-```javascript
-var async = require('asyncawait/async');
-var await = require('asyncawait/await');
-var io = require("ioc");
-
-async function myTask() {
-  try {
-    let mydevice = new IOC({
-      name: "A0",  // board name for pin
-      mode: "pin",
-      type: "gpio",  // could also be "pwm", "i2c", "uart", "spi", "aio"
-    });
-
-    let lowlevelGPIO = await mydevice.configure({
-        direction: "in",
-        activeLow: true,
-        edge: "any",
-        pull: "up"});
-
-    // configure() returns a reference to the low level API object
-    console.log("lowlevelGPIO instanceof GPIOConnection":
-        lowlevelGPIO instanceof GPIOConnection);
-
-    // It is usable as described in the low-level APIs.
-    lowlevelGPIO.write(true);
-
-    // Now let's use the high level API defined in IOC.
-    mydevice.on("data", function(data, isLastChunk) {
-      console.log("Received 4 bytes: " + data + isLastChunk ? "." : "...");
-    };
-
-    // will generate read events
-    await mydevice.startRead({
-      leastPerSecond: 0,  // only when the value is changed
-      mostPerSecond: 10,  // at most 10 times per second
-    });
-
-    await mydevice.write(true);  // write bit (boolean)
-
-    await mydevice.write(0x1e);  // write byte (number)
-
-    await mydevice.write("Hello world");  // write DOMString
-
-    await mydevice.write( [ 0, 12, 0x45, 0xbf, 23 ] );  // write byte array
-
-    await mydevice.close();  // also remove listeners
-
-  } catch (err) {
-    console.log("Error: " + err);
-  }
-};
-```
 
 Web IDL
--------
+=======
+The API provides entry points for GPIO, AIO, PWM, SPI, I2C and UART. They are subclassed from a common ```AbstractIO``` class (except PWM) that defines the basic methods and events. All constructors take a HW type specific init dictionary, and may take HW type specific read and write options as dictionary parameters. The behavior of methods may be different depending on IO type.
 
 ```javascript
 // var ioc = require("ioc");
 
-[Constructor(IOCInit init)]
-interface IOC: EventTarget {
+[NoInterfaceObject]
+interface AbstractIO: EventTarget {
   readonly attribute USVString? name;
   readonly attribute IOCMode mode;
-  readonly attribute IOCType type;
 
-  // configure() accepts low level type specific dictionaries like GPIOInit
-  Promise<LowLevelIO> configure(optional OpenOptions options);
   Promise<void> write(IOCData, optional WriteOptions options);
   Promise<void> startRead(optional ReadOptions options);
   Promise<void> abort();  // abort all pending write and read operations
@@ -122,148 +64,314 @@ interface IOC: EventTarget {
 }
 
 dictionary IOCInit {
-  USVString? name;  // if null, raw pin/device must be provided to open()
-  IOCMode mode;  // "pin" or "port"
-  IOCType type;
+  USVString? name = null;  // if null, raw pin/device must be provided to open()
+  IOCMode mode = "pin";  // "pin" or "port"
 }
 
 enum IOCMode { "pin", "port" };
 
-enum IOCType { "gpio", "pwm", "aio", "uart", "spi", "i2c" };
-
-typedef (boolean or Number or USVString or ArrayBuffer) IOCData;
-
-typedef (GPIOInit or PWMInit or AIOInit or SPIInit or I2CInit or UARTInit ) OpenOptions;
-
-typedef (GPIOConnection or PWMConnection or AIOConnection or SPIConnection or
-         I2CConnection or UARTConnection) LowLevelIO;
+typedef (Number or USVString or sequence<octet> or ArrayBuffer) IOCData;
 
 dictionary ReadOptions {
-  unsigned long maxChunkSize;
-  unsigned long leastPerSecond = 0,  // notify only when there is a change
-  unsigned long mostPerSecond
+  unsigned long maxBitLength;  // Maximum bit length to trigger a read event.
+  unsigned long leastPerSecond = 0;  // Notify only when there is a change.
+  unsigned long mostPerSecond;
 }
 
 dictionary WriteOptions {
-  // no generic options, all options are HW-specific
+  // no generic options, all are HW-specific
 };
 
 interface ReadEvent: Event {
   readonly attribute IOCData data;
+  readonly attribute unsigned long bitLength;
   readonly attribute boolean isLastChunk;
 };
 
 interface ErrorEvent: Event {
   readonly attribute Error error;
 };
+```
+
+GPIO
+----
+```javascript
+[Constructor(IOCInit)]
+interface GPIO: AbstractIO {
+  Promise<void> configure(optional GPIOInit options);
+  // startRead(), write(), abort(), close(), ondata, onerror are inherited
+};
+
+// Taken from the low-level GPIO API
+dictionary GPIOInit {
+  unsigned long pin;
+  GPIOPinDirection direction = "out";
+  boolean activeLow = false;
+  GPIOActiveEdge edge = "any";  // on which edge interrupts are generated
+  // the polling interval in milliseconds, in case interrupts are not used
+  unsigned long long poll = 0;  // no polling
+  GPIOPull pull;
+  boolean raw = false;
+};
+
+enum GPIOPinDirection { "in", "out" };
+enum GPIOActiveEdge { "none", "rising", "falling", "any"};
+enum GPIOPull { "up", "down"};
+
+interface GPIOReadEvent: ReadEvent {
+  readonly attribute long data;  // Number
+  // bitLength and isLastChunk inherited
+};
+```
+
+AIO
+---
+```javascript
+[Constructor(IOCInit)]
+interface AIO : AbstractIO {
+  Promise<void> configure(optional AIOInit options);
+  // write() should reject with NotSupportedError
+};
+
+dictionary AIOInit {
+  unsigned long device;
+  unsigned long pin;
+  unsigned long precision = 12;
+};
+
+interface AIOReadEvent: ReadEvent {
+  readonly attribute long data;  // Number
+  // bitLength and isLastChunk inherited
+};
+```
+
+PWM
+---
+```javascript
+[Constructor(IOCInit)]
+interface PWM {
+  Promise<void> configure(optional PWMInit options);
+  Promise<void> close();
+  // No need for separate setPeriod() and setDutyCycle().
+};
+
+enum PWMPolarity { "normal", "inversed" };
+enum PWMAlignment { "left", "center", "right"};
+
+dictionary PWMInit {
+  DOMString name;
+  unsigned long device;
+  unsigned long channel;
+  boolean raw = false;
+  boolean enabled = true;
+  unsigned long period;     // nanoseconds
+  unsigned long dutyCycle;  // nanoseconds
+  PWMPolarity polarity = "normal";
+  PWMAlignment alignment = "left";
+};
+```
+
+SPI
+---
+```javascript
+[Constructor(IOCInit)]
+interface SPI : AbstractIO {
+  Promise<void> configure(optional SPIInit options);
+  // transceive() could be added here, but it can be done with read() and write().
+  // Read can only be triggered by write().
+  // startRead() should reject with NotSupportedError.
+};
+
+enum SPIMode {
+  "mode0",  // polarity normal, phase 0, i.e. sampled on leading clock
+  "mode1",  // polarity normal, phase 1, i.e. sampled on trailing clock
+  "mode2",  // polarity inverse, phase 0, i.e. sampled on leading clock
+  "mode3"   // polarity inverse, phase 1, i.e. sampled on trailing clock
+};
+
+dictionary SPIInit {
+  unsigned long bus;
+  SPIMode mode = "mode0";
+  unsigned long chipSelect = 0;
+  octet bitsPerWord = 8;
+  unsigned long frequency;  // in Hz
+};
+
+interface SPIReadEvent: ReadEvent {
+  readonly attribute ArrayBuffer data;
+  // bitLength and isLastChunk inherited
+};
+```
+
+I2C
+---
+```javascript
+[Constructor(IOCInit)]
+interface I2C : AbstractIO {
+  Promise<void> configure(optional I2CInit options);
+  readonly attribute boolean busy;  // implement a getter
+};
+
+enum I2CBusSpeed { "10kbps", "100kbps", "400kbps", "1000kbps", "3400kbps" };
+
+dictionary I2CInit {
+  octet bus;
+  octet device;
+  I2CBusSpeed speed;
+  boolean raw = false;
+};
+
+interface I2CReadEvent: ReadEvent {
+  readonly attribute ArrayBuffer data;
+  // bitLength and isLastChunk inherited
+};
+
+dictionary I2CReadOptions: ReadOptions {
+  unsigned long size;  // the number of octets to be read
+  octet register;  // optional register to read
+  unsigned long repetitions = 1  // optional number of reads
+};
+
+dictionary I2CWriteOptions: WriteOptions {
+  octet register;  // optional register address
+  boolean writeBit = false;  // if true, write one bit to 'device' and ignore 'register'
+};
 
 ```
 
+UART
+----
+```javascript
+[Constructor(IOCInit)]
+interface UART : AbstractIO {
+  Promise<void> configure(optional UARTInit options);
+};
+
+
+enum UARTBaud { "baud-9600", "baud-19200", "baud-38400", "baud-57600", "baud-115200" };
+enum UARTDataBits { "databits-5", "databits-6", "databits-7", "databits-8" };
+enum UARTStopBits { "stopbits-1", "stopbits-2" };
+enum UARTParity { "none", "even", "odd" };
+
+dictionary UARTInit {
+  DOMString port;
+  UARTBaud baud = "115200";
+  UARTDataBits dataBits = "8";
+  UARTStopBits stopBits = "1";
+  UARTParity parity = "none";
+  boolean flowControl = false;
+};
+
+interface UARTReadEvent: ReadEvent {
+  readonly attribute (USVString or sequence<octet> or ArrayBuffer) data;
+  // bitLength and isLastChunk inherited
+};
+```
+
 Constructing an IOC object
---------------------------
-Creating an IOC object requires a dictionary as argument with high level preferences (```name```, ```type```, ```mode```).
+==========================
+Creating an IOC object requires a dictionary as argument with high level preferences (```name```, ```mode```).
 - ```mode``` can be either ```"pin"``` or ```"port"```.
-- ```type``` can be ```"gpio"```, ```"i2c"```, ```"aio"```, ```"spi"```, ```"pwm"```, ```"uart"```.
 - ```name``` identifies the pin or the port to be open. It is considered as a *board name*, mapped to internal *raw pin number* (e.g. Linux GPIO pin), or to a device number and pin number (in the case of the IO types that require both a raw pin number and a device number).
 
 
-Opening and configuring HW IO
------------------------------
-In all examples the construction of the ```IOC``` object is followed by a call to ```configure()```. Configuration takes a dictionary parameter that contains the rest of the required initialization properties of the given IO type. When the ```name``` property is not provided to the constructor, the IO type is opened in "raw" mode, i.e. the low level addressing must be provided to the ```configure()``` method.
+Configuring HW IO
+=================
+In all examples *opening an object* means construction followed by a call to ```configure()```. Configuration takes a dictionary parameter that contains the rest of the required initialization properties of the given IO type. When the ```name``` property is not provided to the constructor, the IO type is opened in "raw" mode, i.e. the low level addressing must be provided to the ```configure()``` method.
 
 #### Opening GPIO with a label
 ```javascript
 var ioc = require("ioc");
 
-let device = new IOC( { name: "A0", mode: "pin", type: "gpio"});
+let gpio = new ioc.GPIO( { name: "A0" } );  // mode defaults to "pin"
 
-let ll = await device.configure();  // use the default GPIOInit low level options
+await gpio.configure();  // use the default GPIOInit low level options
 ```
 
 #### Opening GPIO with raw pin number
 ```javascript
 var ioc = require("ioc");
 
-let device = new IOC( { type: "gpio" });  // name defaults to null and mode defaults to "pin"
+let gpio = new ioc.GPIO();  // name defaults to null and mode defaults to "pin"
 
 // Provide the rest of the GPIOInit parameters to configure.
-let ll = await device.configure({ pin: 22 });
+await gpio.configure({ pin: 22 });
 ```
 
 #### Opening PWM with a label
 ```javascript
 var ioc = require("ioc");
 
-let device = new IOC( { type: "pwm", name: "3" });
+let pwm = new ioc.PWM( { name: "3" } );
 
 // Provide the rest of the PWMInit parameters to configure.
-let ll = await device.configure({ period: 1000, dutyCycle: 500 });
+await pwm.configure( { period: 1000, dutyCycle: 500 } );
 ```
 
 #### Opening PWM with device and channel number
 ```javascript
 var ioc = require("ioc");
 
-let device = new IOC( { type: "pwm" });  // name defaults to null
+let pwm = new ioc.PWM();  // name defaults to null
 
 // Provide the rest of the PWMInit parameters to configure.
-let ll = await device.configure({
+await pwm.configure( {
   device: 0,
   channel: 1,
   period: 1000,
-  dutyCycle: 500 });
+  dutyCycle: 500
+} );
 ```
 
 #### Opening AIO with a label
 ```javascript
 var ioc = require("ioc");
 
-let device = new IOC( { type: "aio", name: "A1" });
+let aio = new ioc.AIO( { name: "A1" } );
 
 // Provide the rest of the AIOInit parameters to configure.
-let ll = await device.configure({ precision: 10 });
+await aio.configure( { precision: 10 } );
 ```
 
 #### Opening AIO with a device and pin number
 ```javascript
 var ioc = require("ioc");
 
-let device = new IOC( { type: "aio" });
+let aio = new ioc.AIO();
 
 // Provide the rest of the AIOInit parameters to configure.
-let ll = await device.configure({ device: 0, pin: 1, precision: 10 });
+await aio.configure( { device: 0, pin: 1, precision: 10 } );
 ```
 
 #### Opening I2C with a label
 ```javascript
 var ioc = require("ioc");
 
-let device = new IOC( { type: "i2c", name: 8 });
+let i2c = new ioc.I2C( { name: 8 });
 
 // Provide the rest of the I2CInit parameters to configure.
-let ll = await device.configure({ speed = "400kbps" });
+await i2c.configure( { speed: "400kbps" } );
 ```
 
 #### Opening I2C with a bus number
 ```javascript
 var ioc = require("ioc");
 
-let device = new IOC( { type: "i2c" });  // name defaults to null
+let i2c = new ioc.I2C();  // name defaults to null
 
 // Provide the rest of the I2CInit parameters to configure.
-let ll = await device.configure({ bus: 8, speed = "400kbps" });
+await i2c.configure( { bus: 8, speed = "400kbps" } );
 ```
 Note that this example opens a different physical pin than when opening I2C with a label.
 
 #### Configuring I2C with a bus and a slave device number
-When also a device number is provided, that will be taken as the default value for ```write()``` and ```startRead()```.
 ```javascript
 var ioc = require("ioc");
 
-let device = new IOC( { type: "i2c" });  // name defaults to null
+let i2c = new ioc.I2C();  // name defaults to null
 
 // Provide the rest of the I2CInit parameters to configure.
-let ll = await device.configure({ bus: 8, device: 2, speed = "400kbps" });
+await i2c.configure( { bus: 8, device: 2, speed = "400kbps" } );
 ```
 
 #### Opening SPI
@@ -274,14 +382,15 @@ To be consistent with the other IO APIs, the recommended usage is not to use the
 ```javascript
 var ioc = require("ioc");
 
-let device = new IOC( { type: "spi" });  // SPI requires a bus number
+let spi = new ioc.SPI();
 
 // Provide the rest of the SPIInit parameters to configure.
-let ll = await device.configure({
+await spi.configure( {
     bus: 0,
     chipSelect:1,
     mode: "mode0",
-    frequency: 1000000 });
+    frequency: 1000000
+  } );
 ```
 
 #### Opening UART
@@ -289,59 +398,60 @@ The UART port can be specified either as ```name``` property during construction
 ```javascript
 var ioc = require("ioc");
 
-let device = new IOC( { type: "uart", name: "ttyS0" });
+let uart = new ioc.UART( { name: "ttyS0" } );
 
 // Provide the rest of the UARTInit parameters to configure.
-let ll = await device.configure({ baud: "57600" });
+await uart.configure( { baud: "57600" } );
 
 // ...
 
 // Reconfigure with a different port and baud rate.
-ll = await device.configure({ port:"ttyS1" });  // baud defaults to 115200
+await uart.configure( { port:"ttyS1" } );  // baud defaults to 115200
 ```
 
 
 Reading and writing data
-------------------------
+========================
 #### GPIO
 ```javascript
 var ioc = require("ioc");
 
 async function myTask() {
   try {
-    let device = new IOC( { name: "A0", mode: "pin", type: "gpio"});
-    let ll = await device.configure({
+    let gpio = new ioc.GPIO( { name: "A0" });
+    await gpio.configure( {
       direction: "in",
       activeLow: false,
-      pull:"down" });
+      pull:"down"
+    } );
 
     // Configure reads.
-    device.on("error") = function(event) {
+    gpio.on("error") = function(event) {
       console.log("GPIO error: " + event.error);
     };
 
-    device.on("data") = function(event) {
+    gpio.on("data") = function(event) {
       // For GPIO, data is Number: 0 or 1 in pin mode and higher in port mode.
       console.log("Data: " + event.data);
     };
 
-    await device.startRead({
+    await gpio.startRead( {
       leastPerSecond: 0,  // only when the value is changed
       mostPerSecond: 10,  // at most 10 times per second
-    });
+    } );
 
     // Write various data types. Implementations manage conversions and buffering.
 
-    await device.write(true);  // write bit (boolean)
+    await gpio.write(true);  // write bit (boolean)
 
-    await device.write(0x1e);  // write byte (number)
+    await gpio.write(0x1e);  // write byte (number)
 
-    await device.write("Hello world");  // write DOMString
+    await gpio.write("Hello world");  // write DOMString
 
-    await device.write( [ 0, 12, 0x45, 0xbf, 23 ] );  // write byte array
+    await gpio.write( [ 0, 12, 0x45, 0xbf, 23 ] );  // write byte array
 
     // Close the device. Reading and writing fails until next configure().
-    await device.close();  // also remove listeners
+    await gpio.close();  // also remove listeners
 
   } catch (err) {
     console.log("Error: " + err);
@@ -356,15 +466,15 @@ var ioc = require("ioc");
 
 async function myTask() {
   try {
-    let device = new IOC( { type: "pwm", name: "3" });
+    let pwm = new ioc.PWM( { name: "3" } );
 
     // Provide an error handler.
-    device.on("error") = function(event) {
+    pwm.on("error") = function(event) {
       console.log("PWM error: " + event.error);
     };
 
     // Provide the rest of the PWMInit parameters to configure.
-    let ll = await device.configure({ period: 1000, dutyCycle: 500 });
+    await pwm.configure( { period: 1000, dutyCycle: 500 } );
   } catch (err) {
     console.log("Error: " + err);
   }
@@ -378,23 +488,23 @@ var ioc = require("ioc");
 
 async function myTask() {
   try {
-    let device = new IOC( { type: "aio", name: "3" });
+    let aio = new ioc.AIO( { name: "3" } );
 
     // Provide an error handler.
-    device.on("error") = function(event) {
+    aio.on("error") = function(event) {
       console.log("AIO error: " + event.error);
     };
 
     // Provide the rest of the AIOInit parameters to configure.
-    let ll = await device.configure({ precision: 10 });
+    await aio.configure( { precision: 10 } );
 
     // Configure reads.
-    device.on("data") = function(event) {
+    aio.on("data") = function(event) {
       // For AIO, data is a Number.
       console.log("Data: " + event.data);
     };
 
-    await device.startRead();
+    await aio.startRead();
 
   } catch (err) {
     console.log("Error: " + err);
@@ -403,28 +513,13 @@ async function myTask() {
 ```
 
 #### I2C
-I2C ```startRead()``` and ```write``` methods take a dictionary parameter for options as described by the following IDL:
-```javascript
-dictionary I2CReadOptions: ReadOptions {
-  unsigned long size;  // the number of octets to be read
-  octet register;  // optional register to read
-  unsigned long repetitions = 1  // optional number of reads
-};
-
-dictionary I2CWriteOptions: WriteOptions {
-  octet register;  // optional register address
-  boolean writeBit = false;  // if true, write one bit to 'device' and ignore 'register'
-};
-```
-The data types accepted for ```write()``` are Number, or ArrayBuffer, or array of Numbers.
-The data type for reads is sequence of octets, i.e. ArrayBuffer.
 ```javascript
 var ioc = require("ioc");
 
 async function myTask() {
   try {
-    let device = new IOC( { type: "i2c"});
-    let ll = await device.configure({ bus: 8, device: 1, speed: "400kbps" });
+    let device = new ioc.I2C();
+    await device.configure( { bus: 8, device: 1, speed: "400kbps" } );
 
     // Configure error handling.
     device.on("error") = function(event) {
@@ -437,12 +532,12 @@ async function myTask() {
       console.log("Data: " + new Buffer(event.data));
     };
 
-    await device.startRead({
+    await device.startRead( {
       // device already provided by configure()
       register: 0x03,
       size: 4,
       repetitions: 4  // data still delivered in one read event
-    });
+    } );
 
     // Write various data types. Implementations manage conversions and buffering.
     let writeOptions = {
@@ -455,11 +550,9 @@ async function myTask() {
 
     await device.write( [ 0, 12, 0x45, 0xbf, 23 ], writeOptions);
 
-    let buf = new Buffer([0, 1, 3, 6 ]);
-    await device.write(buf, writeOptions);
+    await device.write(new Buffer([0, 1, 3, 6 ]), writeOptions);
 
-    // For telling whether the I2C device is busy, we need to use the low level API.
-    if (ll.busy) {
+    if (device.busy) {
       console.log("The I2C device is busy.");
     }
 
@@ -473,7 +566,7 @@ async function myTask() {
 ```
 
 #### SPI
-With SPI, read and write happens in one transaction. Clients need to register a read listener, then start a write. The data type accepted by ```write()``` is ```ArrayBuffer``` or array of Numbers or ```string```.
+With SPI, read and write happens in one transaction. Clients need to register a read listener, then start a write.
 
 When invoking ```startRead()```, implementations should reject it with ```NotSupportedError```.
 ```javascript
@@ -481,8 +574,12 @@ var ioc = require("ioc");
 
 async function myTask() {
   try {
-    let device = new IOC( { type: "spi"});
-    let ll = await device.configure({ bus: 0, chipSelect: 1, frequency: 10000000 });
+    let device = new ioc.SPI();
+    await device.configure( {
+      bus: 0,
+      chipSelect: 1,
+      frequency: 10000000
+    } );
 
     // Configure error handling.
     device.on("error") = function(event) {
@@ -500,9 +597,9 @@ async function myTask() {
 
     await device.write("Hello world");
 
-    await device.write( [ 0, 12, 0x45, 0xbf, 23 ]);
+    await device.write( [ 0, 12, 0x45, 0xbf, 23 ] );
 
-    await device.write(new Buffer([0, 1, 3, 6 ]));
+    await device.write(new Buffer([0, 1, 3, 6 ]) );
 
     // Close the device. Reading and writing fails until next configure().
     await device.close();  // also remove listeners
@@ -522,8 +619,8 @@ var ioc = require("ioc");
 
 async function myTask() {
   try {
-    let device = new IOC( { type: "uart", name: "ttyS0" });
-    let ll = await device.configure({ baud: "57600" });
+    let device = new ioc.UART( { name: "ttyS0" } );
+    await device.configure({ baud: "57600" } );
 
     // Configure error handling.
     device.on("error") = function(event) {
@@ -542,9 +639,9 @@ async function myTask() {
 
     await device.write("Hello world");
 
-    await device.write( [ 0, 12, 0x45, 0xbf, 23 ]);
+    await device.write( [ 0, 12, 0x45, 0xbf, 23 ] );
 
-    await device.write(new Buffer([0, 1, 3, 6 ]));
+    await device.write(new Buffer([0, 1, 3, 6 ]) );
 
     // Close the device. Reading and writing fails until next configure().
     await device.close();  // also remove listeners
