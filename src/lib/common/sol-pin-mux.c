@@ -17,7 +17,9 @@
  */
 
 #include <errno.h>
+#ifdef ENABLE_DYNAMIC_MODULES
 #include <dlfcn.h>
+#endif
 #include <limits.h>
 #include <stdarg.h>
 #include <stdbool.h>

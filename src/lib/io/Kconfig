@@ -35,7 +35,7 @@ config USE_IIO
 
 menuconfig USE_PIN_MUX
     bool "Pin Multiplexer"
-    depends on LINUX && USE_GPIO
+    depends on FEATURE_PIN_MUX
     default y
     help
           Pin Multiplexer is a feature that helps to setup
@@ -53,9 +53,11 @@ menuconfig USE_PIN_MUX
 
           If unsure, say Y.
 
+if LINUX && USE_GPIO
 source "src/modules/pin-mux/intel-galileo-rev-d/Kconfig"
 source "src/modules/pin-mux/intel-galileo-rev-g/Kconfig"
 source "src/modules/pin-mux/intel-edison-rev-c/Kconfig"
+endif
 
 menuconfig USE_STORAGE
     bool "Persistence Storage Support"
