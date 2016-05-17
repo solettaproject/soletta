@@ -60,3 +60,6 @@ config FEATURE_CC_SANITIZE
 
 config FEATURE_OIC
     bool
+
+config FEATURE_PIN_MUX
+    bool

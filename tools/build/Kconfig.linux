@@ -20,3 +20,4 @@ config LINUX
     select FEATURE_FILESYSTEM
     select FEATURE_CC_SANITIZE
     select FEATURE_OIC
+    select FEATURE_PIN_MUX
