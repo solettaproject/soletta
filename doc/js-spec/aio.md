@@ -13,10 +13,10 @@ Web IDL
 
 [NoInterfaceObject]
 interface AIO {
-  Promise<AIOPin> open(AIOPinInit init);
+  Promise<AIOPin> open(AIOInit init);
 };
 
-dictionary AIOPinInit {
+dictionary AIOInit {
   DOMString name;
   unsigned long device;
   unsigned long pin;
@@ -26,7 +26,7 @@ dictionary AIOPinInit {
 
 [NoInterfaceObject]
 interface AIOPin: {
-  // has all the properties of AIOPinInit as read-only attributes
+  // has all the properties of AIOInit as read-only attributes
   Promise<unsigned long> read();
   void abort();
   void close();
@@ -34,7 +34,7 @@ interface AIOPin: {
 
 ```
 
-In ```AIOPinInit```, either ```name``` (label) MUST be specified and map to a valid AIO path, or otherwise, ```device``` and ```pin``` MUST be specified.
+In ```AIOInit```, either ```name``` (label) MUST be specified and map to a valid AIO path, or otherwise, ```device``` and ```pin``` MUST be specified.
 
 When ```raw=true```, then ```device``` and ```pin``` MUST be specified, and the UA does not try to enable multiplexing if that is available.
 
