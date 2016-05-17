@@ -13,7 +13,7 @@ Web IDL
 
 [NoInterfaceObject]
 interface SPI {
-  Promise<SPIBus> open(SPIBusInit init);
+  Promise<SPIBus> open(SPIInit init);
 };
 
 typedef (sequence<octet> or ArrayBuffer) SPIData;
@@ -25,7 +25,7 @@ enum SPIMode {
   "mode3"   // polarity inverse, phase 1, i.e. sampled on trailing clock
 };
 
-dictionary SPIBusInit {
+dictionary SPIInit {
   unsigned long bus;
   SPIMode mode = "mode0";
   unsigned long chipSelect = 0;
@@ -35,7 +35,7 @@ dictionary SPIBusInit {
 
 [NoInterfaceObject]
 interface SPIBus {
-  // has all the properties of SPIBusInit as read-only attributes
+  // has all the properties of SPIInit as read-only attributes
   Promise<SPIData> transfer(SPIData txData);
   void close();
 };
@@ -44,7 +44,7 @@ interface SPIBus {
 
 The ```SPIData``` type refers to an array of octets (unsigned bytes) and MAY be represented as an array of numbers, or as ```ArrayBuffer``` or as ```Buffer```.
 
-The ```SPIBus``` interface has all the properties of ```SPIBusInit``` as read-only attributes.
+The ```SPIBus``` interface has all the properties of ```SPIInit``` as read-only attributes.
 
 _Note_: while SPI modes could have been broken up to polarity and phase, the native API uses symbolic modes, so there would be no gain for using polarity and phase instead of modes.
 
