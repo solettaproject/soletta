@@ -694,11 +694,42 @@ sol_flow_packet_new_location(const struct sol_location *location)
     return sol_flow_packet_new(SOL_FLOW_PACKET_TYPE_LOCATION, location);
 }
 
+SOL_API struct sol_flow_packet *
+sol_flow_packet_new_location_components(double lat, double lon, double alt)
+{
+    struct sol_location location = {
+        .lat = lat,
+        .lon = lon,
+        .alt = alt,
+    };
+    return sol_flow_packet_new(SOL_FLOW_PACKET_TYPE_LOCATION, &location);
+}
+
 SOL_API int
 sol_flow_packet_get_location(const struct sol_flow_packet *packet, struct sol_location *location)
 {
     SOL_FLOW_PACKET_CHECK(packet, SOL_FLOW_PACKET_TYPE_LOCATION, -EINVAL);
     return sol_flow_packet_get(packet, location);
+}
+
+SOL_API int
+sol_flow_packet_get_location_components(const struct sol_flow_packet *packet, double *lat, double *lon, double *alt)
+{
+    struct sol_location ret;
+    int ret_val;
+
+    SOL_FLOW_PACKET_CHECK(packet, SOL_FLOW_PACKET_TYPE_LOCATION, -EINVAL);
+    ret_val = sol_flow_packet_get(packet, &ret);
+    SOL_INT_CHECK(ret_val, < 0, ret_val);
+
+    if (lat)
+        *lat = ret.lat;
+    if (lon)
+        *lon = ret.lon;
+    if (alt)
+        *alt = ret.alt;
+
+    return ret_val;
 }
 
 static const struct sol_flow_packet_type _SOL_FLOW_PACKET_TYPE_TIMESTAMP = {

@@ -384,6 +384,21 @@ int sol_flow_send_direction_vector_components_packet(struct sol_flow_node *src, 
 int sol_flow_send_location_packet(struct sol_flow_node *src, uint16_t src_port, const struct sol_location *value);
 
 /**
+ * @bried Similar to sol_flow_send_location_packet(), but takes the location components as arguments.
+ *
+ * @param src The node that is to output the Location packet
+ * @param src_port The port where the packet will be output
+ * @param lat Latitude value
+ * @param lon Longitude value
+ * @param alt Altitude value
+ *
+ * @return @c 0 on success, a negative error code otherwise.
+ *
+ * @see sol_flow_send_location_packet
+ */
+int sol_flow_send_location_components_packet(struct sol_flow_node *src, uint16_t src_port, double lat, double lon, double alt);
+
+/**
  * @brief Convenience function to create and send a Timestamp packet.
  *
  * Similar to sol_flow_send_packet(), but specific for Timestamp packets.
