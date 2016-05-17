@@ -64,10 +64,153 @@ extern "C" {
  * @li @ref Update
  * @li @ref Utils
  * @li @ref WorkerThread
+ * @li @ref patterns
  *
  * Also a lot of examples may be found at @ref examples page.
  *
  * Please see the @ref authors page for contact details.
+ */
+
+/**
+ * @page patterns Design Patterns
+ * @tableofcontents
+ *
+ * This page will explain the common design patterns employed by Soletta.
+ *
+ * @section streams IO Streams
+ *
+ * Soletta has its own pattern for dealing with input/output streams. This
+ * section will describe how the soletta pattern is implemented and how to use it.
+ *
+ * The aim of this section is to guide the developer the to provide a unified API for all kind of streams, making
+ * it easier for a third party developer to migrate its application to any stream related IO, if necessary.
+ *
+ * The pattern is divided in three categories: The stream configuration, the write API and the read API.
+ *
+ * @subsection config Configuration
+ *
+ * The stream should configured using a struct during its creation, this struct should provide the following fields.
+ *
+ * <ul>
+ * <li> @c feed_size: The write buffer size - If @c 0 means that there is no limit (Data for this buffer is not necessary allocated).
+ * <li> @c data_buffer_size: The read buffer size. This buffer is always allocated and the @c on_data may be called with at most @c data_buffer_size bytes - If @c 0 means that there is not limit.
+ * <li> @c on_feed_done: The write callback - It will be called when data was fully written.
+ *    <ul>
+ *    <li> Respecting the interface:
+ *    @code{.c}
+ *    void (*on_feed_done)(void *user_data, my_stream_api_handle *handle, struct sol_blob *blob, int status);
+ *    @endcode
+ *    </ul>
+ * <li> @c on_data: The read callback - It will be called when there's data available to read.
+ *    <ul>
+ *    <li> Respecting the interface:
+ *    @code{.c}
+ *    ssize_t (*on_data)(void *user_data, my_stream_api_handle *handle, const struct sol_buffer *buf);
+ *    @endcode
+ *    </ul>
+ * <li> @c user_data: Data to @c on_data and @c on_feed_done.
+ * </ul>
+ *
+ * Below there's a example of a configuration struct.
+ * @snippet design_patterns/stream_sample.c stream config
+ *
+ * @subsection write Writing
+ *
+ * Write operations must be async and the data that will be transfered must be
+ * provided as a pointer to @ref sol_blob. One should follow the API below:
+ * @snippet design_patterns/stream_sample.c stream write api
+ *
+ * Every blob requested to be written, must be queued in order to be sent. If there's no more space
+ * to queue more blobs (sum of all queued blobs >= @c feed_size) the function write should return @c -ENOSPC.
+ *
+ * Everytime a blob is fully written the @c on_feed_done must be called in order to inform the user that
+ * the write operation was completed. The @c on_feed_done should have the following signature:
+ *
+ * @code{.c}
+ * void (*on_feed_done)(void *user_data, my_stream_api_handle *handle, struct sol_blob *blob, int status);
+ * @endcode
+ *
+ * One should warn the user that it's not necessary to use @ref sol_blob_unref(), because the stream
+ * API will already do that. The @c status variable should be 0 on success and @c -errno on error.
+ * The user should be able to cancel the stream operation from the @c on_feed_done.
+ *
+ * Below there's an example of a stream device write implementation.
+ *
+ * @snippet design_patterns/stream_sample.c stream handle
+ * @snippet design_patterns/stream_sample.c stream write
+ *
+ * @subsection read Reading
+ *
+ * Since this is a stream, there's no direct way for a third party developer to request a read operation.
+ * In order to be able to read from the stream, the third party developer must provide the @c on_data duration the
+ * stream configuration/creation. The @c on_data is provided during the stream creation, one must inform the user every time
+ * data is avaible to read.
+ * The @c on_data has the following signature:
+ *
+ * @code{.c}
+ * ssize_t (*on_data)(void *user_data, my_stream_api_handle *handle, const struct sol_buffer *buf);
+ * @endcode
+ *
+ * Note that the @c on_data returns a @c ssize_t, the returned value must be @c -errno if an error happened or the number
+ * of bytes consumed from @c buf (0 is valid). The consumed bytes will be removed from the @c buf.
+ * It's important to note that the @c buf should not be modified and any references to its data should not be kept
+ * after @c on_data returns.
+ * Also just like @c on_feed_done, the user should be able to close/delete the stream handle inside @c on_data. Extra care
+ * must be taken in order to do not crash.
+ *
+ * Below there's an example of the stream device read implementation.
+ *
+ * @snippet design_patterns/stream_sample.c stream read
+ *
+ * @subsection usage Usage Example
+ *
+ * In the following example, it will be demonstrated how one can correctly use a stream API.
+ * The example is consists in an UART producer producing more data than an UART consumer can read.
+ * By doing so, it will be demonstrated how flow control can be employed.
+ *
+ * First we start configuring the streams and creating the streams.
+ * @snippet common/uart.c uart configure
+ *
+ * The producer will create its data every 10 ms ticks and try to send it.
+ * Since the producer buffer is limited sol_uart_feed() will start to return -ENOSPC,
+ * because the sum of all blobs are limited to @c feed_size.
+ *
+ * Below we can see how the data is produced and sent.
+ * @snippet common/uart.c uart write
+ *
+ * It's important to note that every time sol_uart_feed() returns @c -ENOSPC the
+ * data production is ceased and the blob that could not be sent is stored at the
+ * @c pending_blob variable.
+ *
+ * Every time a blob is completely written, the @c on_feed_done is called, in this case
+ * @c producer_data_written function. In this function the @c pending_blob variable
+ * is checked to see if it's not @c NULL. In case it's not NULL, we try to send it.
+ *
+ * @snippet common/uart.c uart write completed
+ *
+ * By stopping the data production when sol_uart_feed() returns @c -ENOSPC we control
+ * the data input flow. After sol_uart_feed() starts to accept blobs, the data
+ * production can start once again.
+ *
+ * Now it's time to take a look at our consumer. It's a very naive consumer, it will
+ * just print the data to @c stdout every time the nul byte is found.
+ * In addiction it will close the UART input if it receives the "close" string.
+ * Note that is completely safe to close the UART from the @c on_data (the same applies to @c on_feed_done!)
+ *
+ * @snippet common/uart.c uart read
+ *
+ * Now that you have the stream usage basics, you can start coding your apps!
+ *
+ * @subsection implementations Implementations
+ *
+ * Soletta currently implements streams for the following modules:
+ * <ul>
+ * <li> @ref UART
+ *    <ul>
+ *    <li> sol_uart_feed()
+ *    <li> struct sol_uart_config
+ *    </ul>
+ * </ul>
  */
 
 /**
