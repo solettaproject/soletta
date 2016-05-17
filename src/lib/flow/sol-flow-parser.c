@@ -873,7 +873,7 @@ build_flow(struct parse_state *state)
             goto end;
         }
 
-        sol_flow_builder_export_in_port(
+        sol_flow_builder_export_port_in(
             state->builder, state->node_names[ep->node],
             dst_port_buf.data, ep->port_idx, exported_name);
     }
@@ -892,7 +892,7 @@ build_flow(struct parse_state *state)
             goto end;
         }
 
-        sol_flow_builder_export_out_port(
+        sol_flow_builder_export_port_out(
             state->builder, state->node_names[ep->node],
             src_port_buf.data, ep->port_idx, exported_name);
     }
