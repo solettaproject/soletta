@@ -608,6 +608,19 @@ int sol_flow_packet_get_direction_vector_components(const struct sol_flow_packet
 struct sol_flow_packet *sol_flow_packet_new_location(const struct sol_location *location);
 
 /**
+ * @brief Creates a new packet of type Location from the given @c lat, @c lon, @c alt components.
+ *
+ * @param lat Initial latitude value
+ * @param lon Initial longitude value
+ * @param alt Initial altitude value
+ *
+ * @return A new Location packet
+ *
+ * @see sol_flow_packet_new_location
+ */
+struct sol_flow_packet *sol_flow_packet_new_location_components(double lat, double lon, double alt);
+
+/**
  * @brief Retrieves the content of a Location packet.
  *
  * @param packet The packet
@@ -616,6 +629,20 @@ struct sol_flow_packet *sol_flow_packet_new_location(const struct sol_location *
  * @return @c 0 if the content was successfully retrieved, error code (always negative) otherwise.
  */
 int sol_flow_packet_get_location(const struct sol_flow_packet *packet, struct sol_location *location);
+
+/**
+ * @brief Retrieves the location components contained in a Location packet
+ *
+ * @param packet The packet
+ * @param lat Retrieved latitude component
+ * @param lon Retrieved longitutde component
+ * @param alt Retrieved altitude component
+ *
+ * @return @c 0 if the content was successfullu retrieved, error code (always negative) otherwise.
+ *
+ * @see sol_flow_packet_get_location
+ */
+int sol_flow_packet_get_location_components(const struct sol_flow_packet *packet, double *lat, double *lon, double *alt);
 
 /**
  * @brief Creates a new packet of type Timestamp.
