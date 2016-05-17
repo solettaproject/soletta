@@ -237,12 +237,12 @@ simple_c_type_dispose(struct sol_flow_node_type *type)
 }
 
 static int
-simple_c_type_port_in_process(struct sol_flow_node *node, void *data, uint16_t port, uint16_t conn_id, const struct sol_flow_packet *packet)
+simple_c_type_process_port_in(struct sol_flow_node *node, void *data, uint16_t port, uint16_t conn_id, const struct sol_flow_packet *packet)
 {
     const struct simple_c_type_type_data *type_data = node->type->type_data;
     struct simple_c_type_port_in *p = sol_vector_get(&(type_data->ports_in), port);
     struct sol_flow_simple_c_type_event ev = {
-        .type = SOL_FLOW_SIMPLE_C_TYPE_EVENT_TYPE_PORT_IN_PROCESS,
+        .type = SOL_FLOW_SIMPLE_C_TYPE_EVENT_TYPE_PROCESS_PORT_IN,
         .port = port,
         .conn_id = conn_id,
         .port_name = p->name,
@@ -253,12 +253,12 @@ simple_c_type_port_in_process(struct sol_flow_node *node, void *data, uint16_t p
 }
 
 static int
-simple_c_type_port_in_connect(struct sol_flow_node *node, void *data, uint16_t port, uint16_t conn_id)
+simple_c_type_connect_port_in(struct sol_flow_node *node, void *data, uint16_t port, uint16_t conn_id)
 {
     const struct simple_c_type_type_data *type_data = node->type->type_data;
     struct simple_c_type_port_in *p = sol_vector_get(&(type_data->ports_in), port);
     struct sol_flow_simple_c_type_event ev = {
-        .type = SOL_FLOW_SIMPLE_C_TYPE_EVENT_TYPE_PORT_IN_CONNECT,
+        .type = SOL_FLOW_SIMPLE_C_TYPE_EVENT_TYPE_CONNECT_PORT_IN,
         .port = port,
         .conn_id = conn_id,
         .port_name = p->name,
@@ -268,12 +268,12 @@ simple_c_type_port_in_connect(struct sol_flow_node *node, void *data, uint16_t p
 }
 
 static int
-simple_c_type_port_in_disconnect(struct sol_flow_node *node, void *data, uint16_t port, uint16_t conn_id)
+simple_c_type_disconnect_port_in(struct sol_flow_node *node, void *data, uint16_t port, uint16_t conn_id)
 {
     const struct simple_c_type_type_data *type_data = node->type->type_data;
     struct simple_c_type_port_in *p = sol_vector_get(&(type_data->ports_in), port);
     struct sol_flow_simple_c_type_event ev = {
-        .type = SOL_FLOW_SIMPLE_C_TYPE_EVENT_TYPE_PORT_IN_DISCONNECT,
+        .type = SOL_FLOW_SIMPLE_C_TYPE_EVENT_TYPE_DISCONNECT_PORT_IN,
         .port = port,
         .conn_id = conn_id,
         .port_name = p->name,
@@ -283,12 +283,12 @@ simple_c_type_port_in_disconnect(struct sol_flow_node *node, void *data, uint16_
 }
 
 static int
-simple_c_type_port_out_connect(struct sol_flow_node *node, void *data, uint16_t port, uint16_t conn_id)
+simple_c_type_connect_port_out(struct sol_flow_node *node, void *data, uint16_t port, uint16_t conn_id)
 {
     const struct simple_c_type_type_data *type_data = node->type->type_data;
     struct simple_c_type_port_out *p = sol_vector_get(&(type_data->ports_out), port);
     struct sol_flow_simple_c_type_event ev = {
-        .type = SOL_FLOW_SIMPLE_C_TYPE_EVENT_TYPE_PORT_OUT_CONNECT,
+        .type = SOL_FLOW_SIMPLE_C_TYPE_EVENT_TYPE_CONNECT_PORT_OUT,
         .port = port,
         .conn_id = conn_id,
         .port_name = p->name,
@@ -298,12 +298,12 @@ simple_c_type_port_out_connect(struct sol_flow_node *node, void *data, uint16_t 
 }
 
 static int
-simple_c_type_port_out_disconnect(struct sol_flow_node *node, void *data, uint16_t port, uint16_t conn_id)
+simple_c_type_disconnect_port_out(struct sol_flow_node *node, void *data, uint16_t port, uint16_t conn_id)
 {
     const struct simple_c_type_type_data *type_data = node->type->type_data;
     struct simple_c_type_port_out *p = sol_vector_get(&(type_data->ports_out), port);
     struct sol_flow_simple_c_type_event ev = {
-        .type = SOL_FLOW_SIMPLE_C_TYPE_EVENT_TYPE_PORT_OUT_DISCONNECT,
+        .type = SOL_FLOW_SIMPLE_C_TYPE_EVENT_TYPE_DISCONNECT_PORT_OUT,
         .port = port,
         .conn_id = conn_id,
         .port_name = p->name,
@@ -346,9 +346,9 @@ simple_c_type_new_full_inner(const char *name, size_t private_data_size, uint16_
 
             SOL_SET_API_VERSION(port_in->base.api_version = SOL_FLOW_PORT_TYPE_IN_API_VERSION; )
             port_in->base.packet_type = pt;
-            port_in->base.connect = simple_c_type_port_in_connect;
-            port_in->base.disconnect = simple_c_type_port_in_disconnect;
-            port_in->base.process = simple_c_type_port_in_process;
+            port_in->base.connect = simple_c_type_connect_port_in;
+            port_in->base.disconnect = simple_c_type_disconnect_port_in;
+            port_in->base.process = simple_c_type_process_port_in;
         } else if (direction == SOL_FLOW_SIMPLE_C_TYPE_PORT_TYPE_OUT) {
             port_out = sol_vector_append(&ports_out);
             SOL_NULL_CHECK_GOTO(port_out, error);
@@ -358,8 +358,8 @@ simple_c_type_new_full_inner(const char *name, size_t private_data_size, uint16_
 
             SOL_SET_API_VERSION(port_out->base.api_version = SOL_FLOW_PORT_TYPE_OUT_API_VERSION; )
             port_out->base.packet_type = pt;
-            port_out->base.connect = simple_c_type_port_out_connect;
-            port_out->base.disconnect = simple_c_type_port_out_disconnect;
+            port_out->base.connect = simple_c_type_connect_port_out;
+            port_out->base.disconnect = simple_c_type_disconnect_port_out;
         } else {
             SOL_WRN("'%s' port '%s' (type %p %s) unexpected direction %d",
                 name, port_name, pt, pt->name ? pt->name : "?", direction);

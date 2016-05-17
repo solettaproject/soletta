@@ -75,11 +75,11 @@ struct sol_flow_simple_c_type_event {
     enum sol_flow_simple_c_type_event_type {
         SOL_FLOW_SIMPLE_C_TYPE_EVENT_TYPE_OPEN, /**< @brief Node is being open (instantiated) */
         SOL_FLOW_SIMPLE_C_TYPE_EVENT_TYPE_CLOSE, /**< @brief Node is being closed (deleted) */
-        SOL_FLOW_SIMPLE_C_TYPE_EVENT_TYPE_PORT_IN_CONNECT, /**< @brief The input port defined by @c port index and @c port_name name is being connected */
-        SOL_FLOW_SIMPLE_C_TYPE_EVENT_TYPE_PORT_IN_DISCONNECT, /**< @brief The input port defined by @c port index and @c port_name name is being disconnected */
-        SOL_FLOW_SIMPLE_C_TYPE_EVENT_TYPE_PORT_IN_PROCESS, /**< @brief The input port defined by @c port index and @c port_name name received an incoming @c packet */
-        SOL_FLOW_SIMPLE_C_TYPE_EVENT_TYPE_PORT_OUT_CONNECT,  /**< @brief The output port defined by @c port index and @c port_name name is being connected */
-        SOL_FLOW_SIMPLE_C_TYPE_EVENT_TYPE_PORT_OUT_DISCONNECT,  /**< @brief The output port defined by @c port index and @c port_name name is being disconnected */
+        SOL_FLOW_SIMPLE_C_TYPE_EVENT_TYPE_CONNECT_PORT_IN, /**< @brief The input port defined by @c port index and @c port_name name is being connected */
+        SOL_FLOW_SIMPLE_C_TYPE_EVENT_TYPE_DISCONNECT_PORT_IN, /**< @brief The input port defined by @c port index and @c port_name name is being disconnected */
+        SOL_FLOW_SIMPLE_C_TYPE_EVENT_TYPE_PROCESS_PORT_IN, /**< @brief The input port defined by @c port index and @c port_name name received an incoming @c packet */
+        SOL_FLOW_SIMPLE_C_TYPE_EVENT_TYPE_CONNECT_PORT_OUT,  /**< @brief The output port defined by @c port index and @c port_name name is being connected */
+        SOL_FLOW_SIMPLE_C_TYPE_EVENT_TYPE_DISCONNECT_PORT_OUT,  /**< @brief The output port defined by @c port index and @c port_name name is being disconnected */
     } type;
     uint16_t port; /**< @brief If type is one of SOL_FLOW_SIMPLE_C_TYPE_EVENT_TYPE_PORT_* events, the reference port index */
     uint16_t conn_id; /**< @brief If type is one of SOL_FLOW_SIMPLE_C_TYPE_EVENT_TYPE_PORT_* events, the reference connection identifier */

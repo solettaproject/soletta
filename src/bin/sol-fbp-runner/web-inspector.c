@@ -691,7 +691,7 @@ web_inspector_did_connect_port(const struct sol_flow_inspector *inspector, const
     if (r < 0)
         goto end;
 
-    port_desc = sol_flow_node_get_port_out_description(sol_flow_node_get_type(src_node), src_port);
+    port_desc = sol_flow_node_get_description_port_out(sol_flow_node_get_type(src_node), src_port);
     r = web_inspector_add_node_port_conn_id(&buf, src_node, src_port, src_conn_id, port_desc);
     if (r < 0)
         goto end;
@@ -700,7 +700,7 @@ web_inspector_did_connect_port(const struct sol_flow_inspector *inspector, const
     if (r < 0)
         goto end;
 
-    port_desc = sol_flow_node_get_port_in_description(sol_flow_node_get_type(dst_node), dst_port);
+    port_desc = sol_flow_node_get_description_port_in(sol_flow_node_get_type(dst_node), dst_port);
     r = web_inspector_add_node_port_conn_id(&buf, dst_node, dst_port, dst_conn_id, port_desc);
     if (r < 0)
         goto end;
@@ -744,7 +744,7 @@ web_inspector_will_disconnect_port(const struct sol_flow_inspector *inspector, c
     if (r < 0)
         goto end;
 
-    port_desc = sol_flow_node_get_port_out_description(sol_flow_node_get_type(src_node), src_port);
+    port_desc = sol_flow_node_get_description_port_out(sol_flow_node_get_type(src_node), src_port);
     r = web_inspector_add_node_port_conn_id(&buf, src_node, src_port, src_conn_id, port_desc);
     if (r < 0)
         goto end;
@@ -753,7 +753,7 @@ web_inspector_will_disconnect_port(const struct sol_flow_inspector *inspector, c
     if (r < 0)
         goto end;
 
-    port_desc = sol_flow_node_get_port_in_description(sol_flow_node_get_type(dst_node), dst_port);
+    port_desc = sol_flow_node_get_description_port_in(sol_flow_node_get_type(dst_node), dst_port);
     r = web_inspector_add_node_port_conn_id(&buf, dst_node, dst_port, dst_conn_id, port_desc);
     if (r < 0)
         goto end;
@@ -1306,7 +1306,7 @@ web_inspector_will_send_packet(const struct sol_flow_inspector *inspector, const
     if (r < 0)
         goto end;
 
-    port_desc = sol_flow_node_get_port_out_description(sol_flow_node_get_type(src_node), src_port);
+    port_desc = sol_flow_node_get_description_port_out(sol_flow_node_get_type(src_node), src_port);
     if (port_desc && port_desc->name) {
         r = sol_buffer_append_char(&buf, ',');
         if (r < 0)
@@ -1376,7 +1376,7 @@ web_inspector_will_deliver_packet(const struct sol_flow_inspector *web_inspector
     if (r < 0)
         goto end;
 
-    port_desc = sol_flow_node_get_port_in_description(sol_flow_node_get_type(dst_node), dst_port);
+    port_desc = sol_flow_node_get_description_port_in(sol_flow_node_get_type(dst_node), dst_port);
     if (port_desc && port_desc->name) {
         r = sol_buffer_append_char(&buf, ',');
         if (r < 0)

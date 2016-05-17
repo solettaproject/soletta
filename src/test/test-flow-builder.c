@@ -80,14 +80,14 @@ clear_events(void)
 }
 
 static int
-test_port_in_connect(struct sol_flow_node *node, void *data, uint16_t port, uint16_t conn_id)
+test_connect_port_in(struct sol_flow_node *node, void *data, uint16_t port, uint16_t conn_id)
 {
     add_event(node, EVENT_PORT_CONNECT);
     return 0;
 }
 
 static int
-test_port_out_connect(struct sol_flow_node *node, void *data, uint16_t port, uint16_t conn_id)
+test_connect_port_out(struct sol_flow_node *node, void *data, uint16_t port, uint16_t conn_id)
 {
     add_event(node, EVENT_PORT_CONNECT);
     return 0;
@@ -103,14 +103,14 @@ test_port_disconnect(struct sol_flow_node *node, void *data, uint16_t port, uint
 static struct sol_flow_port_type_out test_port_out = {
     SOL_SET_API_VERSION(.api_version = SOL_FLOW_PORT_TYPE_OUT_API_VERSION, )
     .packet_type = NULL, /* placeholder for SOL_FLOW_PACKET_TYPE_EMTPY */
-    .connect = test_port_out_connect,
+    .connect = test_connect_port_out,
     .disconnect = test_port_disconnect,
 };
 
 static struct sol_flow_port_type_in test_port_in = {
     SOL_SET_API_VERSION(.api_version = SOL_FLOW_PORT_TYPE_IN_API_VERSION, )
     .packet_type = NULL, /* placeholder for SOL_FLOW_PACKET_TYPE_EMTPY */
-    .connect = test_port_in_connect,
+    .connect = test_connect_port_in,
     .disconnect = test_port_disconnect,
 };
 

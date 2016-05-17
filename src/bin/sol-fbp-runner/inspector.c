@@ -75,7 +75,7 @@ inspector_show_in_port(const struct sol_flow_node *node, uint16_t port_idx)
 {
     const struct sol_flow_port_description *port;
 
-    port = sol_flow_node_get_port_in_description(sol_flow_node_get_type(node), port_idx);
+    port = sol_flow_node_get_description_port_in(sol_flow_node_get_type(node), port_idx);
     if (port) {
         if (port->name) {
             inspector_print_port_name(port_idx, port);
@@ -97,7 +97,7 @@ inspector_show_out_port(const struct sol_flow_node *node, uint16_t port_idx)
         return;
     }
 
-    port = sol_flow_node_get_port_out_description(sol_flow_node_get_type(node), port_idx);
+    port = sol_flow_node_get_description_port_out(sol_flow_node_get_type(node), port_idx);
     if (port) {
         if (port->name) {
             inspector_print_port_name(port_idx, port);

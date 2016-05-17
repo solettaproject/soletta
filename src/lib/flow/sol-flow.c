@@ -645,7 +645,7 @@ sol_flow_node_type_get_port_description(const struct sol_flow_port_description *
 }
 
 SOL_API const struct sol_flow_port_description *
-sol_flow_node_get_port_in_description(const struct sol_flow_node_type *type, uint16_t port)
+sol_flow_node_get_description_port_in(const struct sol_flow_node_type *type, uint16_t port)
 {
     SOL_NULL_CHECK(type, NULL);
 
@@ -664,7 +664,7 @@ static const struct sol_flow_port_description port_error_desc = {
 };
 
 SOL_API const struct sol_flow_port_description *
-sol_flow_node_get_port_out_description(const struct sol_flow_node_type *type, uint16_t port)
+sol_flow_node_get_description_port_out(const struct sol_flow_node_type *type, uint16_t port)
 {
     SOL_NULL_CHECK(type, NULL);
 
