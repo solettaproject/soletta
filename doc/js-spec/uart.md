@@ -9,7 +9,7 @@ Web IDL
 -------
 ```javascript
 // require returns an UART object
-// var uart = require('uart');
+// var uart = require('soletta/uart');
 
 [NoInterfaceObject]
 interface UART {
@@ -51,7 +51,7 @@ The callback provided to the Soletta C API for [write()](http://solettaproject.g
 
 #### Example
 ```javascript
-  var uart = require('uart');
+  var uart = require('soletta/uart');
   uart.open({ port: "ttyS0" }).then( conn => {
     conn.onread = function(event) {
       console.log("UART data: " + event.data);

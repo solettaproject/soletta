@@ -11,7 +11,7 @@ Web IDL
 -------
 ```javascript
 // require returns a GPIO object
-// var gpio = require('gpio');
+// var gpio = require('soletta/gpio');
 
 [NoInterfaceObject]
 interface GPIO: {
@@ -71,7 +71,7 @@ The API implementation should register a callback with  the Soletta function ```
 
 #### Example
 ```javascript
-  var gpio = require("gpio");
+  var gpio = require('soletta/gpio');
   var pin3 = null;
 
   gpio.open({
