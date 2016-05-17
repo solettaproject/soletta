@@ -35,7 +35,7 @@ timer_tick(void *data)
 {
     struct sol_flow_node *node = data;
     struct byte_generator_data *mdata = sol_flow_node_get_private_data(node);
-    unsigned char *val;
+    uint8_t *val;
 
     val = sol_vector_get(&mdata->values, mdata->next_index);
     sol_flow_send_byte_packet(node,
@@ -55,7 +55,7 @@ byte_generator_open(struct sol_flow_node *node, void *data,
         (const struct sol_flow_node_type_test_byte_generator_options *)options;
     const char *it;
     char *tail;
-    unsigned char *val;
+    uint8_t *val;
 
     SOL_FLOW_NODE_OPTIONS_SUB_API_CHECK(options,
         SOL_FLOW_NODE_TYPE_TEST_BYTE_GENERATOR_OPTIONS_API_VERSION,
@@ -73,7 +73,7 @@ byte_generator_open(struct sol_flow_node *node, void *data,
     mdata->interval = opts->interval >= 0 ? opts->interval : 0;
     mdata->next_index = 0;
 
-    sol_vector_init(&mdata->values, sizeof(unsigned char));
+    sol_vector_init(&mdata->values, sizeof(uint8_t));
     do {
         int int_val;
 
