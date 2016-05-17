@@ -1189,7 +1189,7 @@ setup_composed_packet(struct sol_buffer *out, const struct sol_str_slice prefix,
 
     SOL_VECTOR_FOREACH_IDX (&tokens, token, i) {
         r = sol_buffer_append_printf(out, "%s,",
-            sol_flow_packet_get_packet_type_as_string(*token));
+            sol_flow_get_packet_type_name(*token));
         SOL_INT_CHECK_GOTO(r, < 0, exit);
     }
 
@@ -1226,7 +1226,7 @@ setup_packet_type(struct sol_buffer *out, struct sol_vector *ports,
             r = sol_buffer_append_printf(out,
                 "        http_composed_server_%.*s_%s_port.base.packet_type = %s;\n",
                 SOL_STR_SLICE_PRINT(prefix), port->name,
-                sol_flow_packet_get_packet_type_as_string(
+                sol_flow_get_packet_type_name(
                 sol_str_slice_from_str(port->type)));
         }
         SOL_INT_CHECK(r, < 0, r);
