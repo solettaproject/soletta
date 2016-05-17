@@ -3,7 +3,7 @@ obj-$(USE_FLOW) += flow.mod
 obj-flow-$(USE_FLOW) := \
     sol-flow-node-options.o \
     sol-flow-packet.o \
-    sol-flow-simplectype.o \
+    sol-flow-simple-c-type.o \
     sol-flow-single.o \
     sol-flow-static.o \
     sol-flow.o
@@ -34,7 +34,7 @@ headers-$(USE_FLOW) := \
     include/sol-flow-inspector.h \
     include/sol-flow-metatype.h \
     include/sol-flow-packet.h \
-    include/sol-flow-simplectype.h \
+    include/sol-flow-simple-c-type.h \
     include/sol-flow-single.h \
     include/sol-flow-static.h \
     sol-flow-buildopts.h.in
