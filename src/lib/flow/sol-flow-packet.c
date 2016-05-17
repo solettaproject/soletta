@@ -1128,7 +1128,7 @@ exit:
 }
 
 SOL_API const char *
-sol_flow_packet_get_packet_type_as_string(const struct sol_str_slice type)
+sol_flow_get_packet_type_name(const struct sol_str_slice type)
 {
     static const struct sol_str_table_ptr map[] = {
         SOL_STR_TABLE_PTR_ITEM("any", "SOL_FLOW_PACKET_TYPE_ANY"),
