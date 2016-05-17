@@ -70,7 +70,7 @@ get_int32_packet_and_log(const struct sol_flow_node *n, uint16_t port, const str
      * description from its index. with that we can get the port name.
      */
     type = sol_flow_node_get_type(n);
-    port_desc = sol_flow_node_get_port_out_description(type, port);
+    port_desc = sol_flow_node_get_description_port_out(type, port);
     if (!port_desc) {
         fprintf(stderr, "ERROR: no output port description for index %" PRIu16
             " of node %p\n",
@@ -112,11 +112,11 @@ on_minutes_packet(void *data, struct sol_flow_node *n, uint16_t port, const stru
         return; /* first time let it go */
     if (i % 2 == 0) {
         puts("stop seconds and disconnect output port, will change in 1 minute");
-        sol_flow_single_port_out_disconnect(seconds, seconds_port_out);
+        sol_flow_single_disconnect_port_out(seconds, seconds_port_out);
         sol_flow_send_boolean_packet(seconds, seconds_port_enabled, false);
     } else {
         puts("start seconds and connect output port, will change in 1 minute");
-        sol_flow_single_port_out_connect(seconds, seconds_port_out);
+        sol_flow_single_connect_port_out(seconds, seconds_port_out);
         sol_flow_send_boolean_packet(seconds, seconds_port_enabled, true);
     }
 }
@@ -239,8 +239,8 @@ create_minutes(void)
      * Note that ports you want to send (in) or receive (out) packets
      * must be connected with the connected_ports_in and
      * connected_ports_out parameters, or later with
-     * sol_flow_single_port_in_connect() and
-     * sol_flow_single_port_out_connect().
+     * sol_flow_single_connect_port_in() and
+     * sol_flow_single_connect_port_out().
      */
     minutes = sol_flow_single_new("minutes", *type, opts,
         SOL_FLOW_SINGLE_CONNECTIONS(minutes_port_enabled),

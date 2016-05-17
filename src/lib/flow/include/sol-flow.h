@@ -907,7 +907,7 @@ void sol_flow_foreach_builtin_node_type(bool (*cb)(void *data, const struct sol_
  *
  * @return The port description for the given port
  */
-const struct sol_flow_port_description *sol_flow_node_get_port_in_description(const struct sol_flow_node_type *type, uint16_t port);
+const struct sol_flow_port_description *sol_flow_node_get_description_port_in(const struct sol_flow_node_type *type, uint16_t port);
 
 /**
  * @brief Get the port description associated with a given output port index.
@@ -917,7 +917,7 @@ const struct sol_flow_port_description *sol_flow_node_get_port_in_description(co
  *
  * @return The port description for the given port
  */
-const struct sol_flow_port_description *sol_flow_node_get_port_out_description(const struct sol_flow_node_type *type, uint16_t port);
+const struct sol_flow_port_description *sol_flow_node_get_description_port_out(const struct sol_flow_node_type *type, uint16_t port);
 
 /**
  * @brief Find the input port index given its name.

@@ -234,7 +234,7 @@ runner_attach_simulation(struct runner *r)
 
     for (i = 0; i < in_count; i++) {
         port_in = sol_flow_node_type_get_port_in(r->root_type, i);
-        port_desc = sol_flow_node_get_port_in_description(r->root_type, i);
+        port_desc = sol_flow_node_get_description_port_in(r->root_type, i);
         SOL_NULL_CHECK_GOTO(port_desc, inval);
 
         idx = port_desc->array_size > 0 ? i - port_desc->base_port_idx : -1;
@@ -262,7 +262,7 @@ runner_attach_simulation(struct runner *r)
 
     for (i = 0; i < out_count; i++) {
         port_out = sol_flow_node_type_get_port_out(r->root_type, i);
-        port_desc = sol_flow_node_get_port_out_description(r->root_type, i);
+        port_desc = sol_flow_node_get_description_port_out(r->root_type, i);
         SOL_NULL_CHECK_GOTO(port_desc, inval);
 
         idx = port_desc->array_size > 0 ? i - port_desc->base_port_idx : -1;
