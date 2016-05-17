@@ -415,10 +415,10 @@ ports_can_be_exported(void)
     sol_flow_builder_add_node(builder, "other", &test_node_type, NULL);
     sol_flow_builder_connect(builder, "node", "OUT2", -1, "other", "IN2", -1);
 
-    ret = sol_flow_builder_export_in_port(builder, "node", "IN1", -1, in_name);
+    ret = sol_flow_builder_export_port_in(builder, "node", "IN1", -1, in_name);
     ASSERT(ret >= 0);
 
-    ret = sol_flow_builder_export_out_port(builder, "other", "OUT2", -1, out_name);
+    ret = sol_flow_builder_export_port_out(builder, "other", "OUT2", -1, out_name);
     ASSERT(ret >= 0);
 
     type = sol_flow_builder_get_node_type(builder);
