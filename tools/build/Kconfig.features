@@ -22,6 +22,9 @@ config FEATURE_COAP
 config FEATURE_BLUETOOTH
     bool
 
+config FEATURE_NETCTL
+    bool
+
 config FEATURE_HTTP_CLIENT
     bool
 
