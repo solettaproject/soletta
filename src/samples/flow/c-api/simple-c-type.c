@@ -58,7 +58,7 @@ isodd(struct sol_flow_node *node, const struct sol_flow_simple_c_type_event *ev,
     int r;
 
     /* we only handle events for port input. */
-    if (ev->type != SOL_FLOW_SIMPLE_C_TYPE_EVENT_TYPE_PORT_IN_PROCESS)
+    if (ev->type != SOL_FLOW_SIMPLE_C_TYPE_EVENT_TYPE_PROCESS_PORT_IN)
         return 0;
 
     /* get the integer value from irange and check if it worked */
@@ -148,7 +148,7 @@ mytype_func(struct sol_flow_node *node, const struct sol_flow_simple_c_type_even
         sol_timeout_del(ctx->timer);
         return 0;
     }
-    case SOL_FLOW_SIMPLE_C_TYPE_EVENT_TYPE_PORT_IN_PROCESS: {
+    case SOL_FLOW_SIMPLE_C_TYPE_EVENT_TYPE_PROCESS_PORT_IN: {
         /* this is to show the port names, ideally one would keep the
          * indexes and use them here, doing integer comparisons
          * instead of strcmp()
@@ -173,19 +173,19 @@ mytype_func(struct sol_flow_node *node, const struct sol_flow_simple_c_type_even
         printf("simple_c_type port '%s' got unexpected data!\n", ev->port_name);
         return -EINVAL;
     }
-    case SOL_FLOW_SIMPLE_C_TYPE_EVENT_TYPE_PORT_IN_CONNECT:
+    case SOL_FLOW_SIMPLE_C_TYPE_EVENT_TYPE_CONNECT_PORT_IN:
         printf("simple_c_type port IN '%s' id=%d conn=%d connected ctx=%p\n",
             ev->port_name, ev->port, ev->conn_id, ctx);
         return 0;
-    case SOL_FLOW_SIMPLE_C_TYPE_EVENT_TYPE_PORT_IN_DISCONNECT:
+    case SOL_FLOW_SIMPLE_C_TYPE_EVENT_TYPE_DISCONNECT_PORT_IN:
         printf("simple_c_type port IN '%s' id=%d conn=%d disconnected ctx=%p\n",
             ev->port_name, ev->port, ev->conn_id, ctx);
         return 0;
-    case SOL_FLOW_SIMPLE_C_TYPE_EVENT_TYPE_PORT_OUT_CONNECT:
+    case SOL_FLOW_SIMPLE_C_TYPE_EVENT_TYPE_CONNECT_PORT_OUT:
         printf("simple_c_type port OUT '%s' id=%d conn=%d connected ctx=%p\n",
             ev->port_name, ev->port, ev->conn_id, ctx);
         return 0;
-    case SOL_FLOW_SIMPLE_C_TYPE_EVENT_TYPE_PORT_OUT_DISCONNECT:
+    case SOL_FLOW_SIMPLE_C_TYPE_EVENT_TYPE_DISCONNECT_PORT_OUT:
         printf("simple_c_type port OUT '%s' id=%d conn=%d disconnected ctx=%p\n",
             ev->port_name, ev->port, ev->conn_id, ctx);
         return 0;

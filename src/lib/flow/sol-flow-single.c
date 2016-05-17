@@ -126,7 +126,7 @@ port_disconnect(struct sol_vector *vector, uint16_t port_idx, const void **ret_p
 }
 
 static int32_t
-sol_flow_single_port_in_connect_internal(struct sol_flow_node *node, uint16_t port_idx)
+sol_flow_single_connect_port_in_internal(struct sol_flow_node *node, uint16_t port_idx)
 {
     const struct sol_flow_node_type *type = node->type;
     struct sol_flow_single_data *mdata = (void *)node->data;
@@ -155,7 +155,7 @@ sol_flow_single_port_in_connect_internal(struct sol_flow_node *node, uint16_t po
 }
 
 static int32_t
-sol_flow_single_port_in_disconnect_internal(struct sol_flow_node *node, uint16_t port_idx)
+sol_flow_single_disconnect_port_in_internal(struct sol_flow_node *node, uint16_t port_idx)
 {
     struct sol_flow_single_data *mdata = (void *)node->data;
     const struct sol_flow_port_type_in *port_type;
@@ -173,7 +173,7 @@ sol_flow_single_port_in_disconnect_internal(struct sol_flow_node *node, uint16_t
 }
 
 static int32_t
-sol_flow_single_port_out_connect_internal(struct sol_flow_node *node, uint16_t port_idx)
+sol_flow_single_connect_port_out_internal(struct sol_flow_node *node, uint16_t port_idx)
 {
     const struct sol_flow_node_type *type = node->type;
     struct sol_flow_single_data *mdata = (void *)node->data;
@@ -202,7 +202,7 @@ sol_flow_single_port_out_connect_internal(struct sol_flow_node *node, uint16_t p
 }
 
 static int32_t
-sol_flow_single_port_out_disconnect_internal(struct sol_flow_node *node, uint16_t port_idx)
+sol_flow_single_disconnect_port_out_internal(struct sol_flow_node *node, uint16_t port_idx)
 {
     struct sol_flow_single_data *mdata = (void *)node->data;
     const struct sol_flow_port_type_out *port_type;
@@ -317,14 +317,14 @@ sol_flow_single_open(struct sol_flow_node *node, void *data, const struct sol_fl
 
     if (opts->connected_ports_in) {
         for (itr = opts->connected_ports_in; *itr != UINT16_MAX; itr++) {
-            r = sol_flow_single_port_in_connect_internal(node, *itr);
+            r = sol_flow_single_connect_port_in_internal(node, *itr);
             SOL_INT_CHECK_GOTO(r, < 0, failed_ports_in);
         }
     }
 
     if (opts->connected_ports_out) {
         for (itr = opts->connected_ports_out; *itr != UINT16_MAX; itr++) {
-            r = sol_flow_single_port_out_connect_internal(node, *itr);
+            r = sol_flow_single_connect_port_out_internal(node, *itr);
             SOL_INT_CHECK_GOTO(r, < 0, failed_ports_out);
         }
     }
@@ -333,7 +333,7 @@ sol_flow_single_open(struct sol_flow_node *node, void *data, const struct sol_fl
 
 failed_ports_out:
     for (; itr >= opts->connected_ports_out; itr--)
-        sol_flow_single_port_out_disconnect_internal(node, *itr);
+        sol_flow_single_disconnect_port_out_internal(node, *itr);
 
     if (opts->connected_ports_in) {
         for (itr = opts->connected_ports_in; *itr != UINT16_MAX; itr++) {
@@ -343,7 +343,7 @@ failed_ports_out:
 
 failed_ports_in:
     for (; itr >= opts->connected_ports_in; itr--)
-        sol_flow_single_port_in_disconnect_internal(node, *itr);
+        sol_flow_single_disconnect_port_in_internal(node, *itr);
 
     return r;
 
@@ -592,31 +592,31 @@ sol_flow_single_new_type(const struct sol_flow_node_type *base_type)
 }
 
 SOL_API int32_t
-sol_flow_single_port_in_connect(struct sol_flow_node *node, uint16_t port_idx)
+sol_flow_single_connect_port_in(struct sol_flow_node *node, uint16_t port_idx)
 {
     SOL_FLOW_SINGLE_CHECK(node, -EINVAL);
-    return sol_flow_single_port_in_connect_internal(node, port_idx);
+    return sol_flow_single_connect_port_in_internal(node, port_idx);
 }
 
 SOL_API int32_t
-sol_flow_single_port_in_disconnect(struct sol_flow_node *node, uint16_t port_idx)
+sol_flow_single_disconnect_port_in(struct sol_flow_node *node, uint16_t port_idx)
 {
     SOL_FLOW_SINGLE_CHECK(node, -EINVAL);
-    return sol_flow_single_port_in_disconnect_internal(node, port_idx);
+    return sol_flow_single_disconnect_port_in_internal(node, port_idx);
 }
 
 SOL_API int32_t
-sol_flow_single_port_out_connect(struct sol_flow_node *node, uint16_t port_idx)
+sol_flow_single_connect_port_out(struct sol_flow_node *node, uint16_t port_idx)
 {
     SOL_FLOW_SINGLE_CHECK(node, -EINVAL);
-    return sol_flow_single_port_out_connect_internal(node, port_idx);
+    return sol_flow_single_connect_port_out_internal(node, port_idx);
 }
 
 SOL_API int32_t
-sol_flow_single_port_out_disconnect(struct sol_flow_node *node, uint16_t port_idx)
+sol_flow_single_disconnect_port_out(struct sol_flow_node *node, uint16_t port_idx)
 {
     SOL_FLOW_SINGLE_CHECK(node, -EINVAL);
-    return sol_flow_single_port_out_disconnect_internal(node, port_idx);
+    return sol_flow_single_disconnect_port_out_internal(node, port_idx);
 }
 
 SOL_API struct sol_flow_node *
