@@ -15,10 +15,10 @@ Web IDL
 
 [NoInterfaceObject]
 interface GPIO: {
-  Promise<GPIOPin> open(GPIOPinInit init);
+  Promise<GPIOPin> open(GPIOInit init);
 };
 
-dictionary GPIOPinInit {
+dictionary GPIOInit {
   unsigned long pin;
   DOMString name;
   GPIOPinDirection direction = "out";
@@ -36,7 +36,7 @@ enum GPIOPull { "up", "down"};
 
 [NoInterfaceObject]
 interface GPIOPin: EventTarget {
-  // has all the properties of GPIOPinInit as read-only attributes
+  // has all the properties of GPIOInit as read-only attributes
   Promise<boolean> read();
   Promise<void> write(boolean value);
   Promise<void> close();
@@ -51,15 +51,15 @@ This API transparently uses the underlying platform's GPIO numbering and does no
 
 The ```open()``` method returns a ```GPIOPin``` object, enabling the possibility to set listeners to each pin, to read, write and close the pin.
 
-In ```GPIOPinInit```, either ```pin``` or ```name``` MUST be specified. The latter only works if a pin multiplexer module is present.
+In ```GPIOInit```, either ```pin``` or ```name``` MUST be specified. The latter only works if a pin multiplexer module is present.
 
-The ```GPIOPin``` interface has all the properties of ```GPIOPinInit``` as read-only attributes.
+The ```GPIOPin``` interface has all the properties of ```GPIOInit``` as read-only attributes.
 
 There is one instance of ```GPIOPin``` object for every pin id.
 
 The ```pull``` property of ```GPIOPin``` represents the default pin value: if ```pull == 'up'```, then the default pin value is logical 1, if ```pull == 'down'```, the default pin value is logical 0, and if ```pull === undefined```, then the implementation does not set an internal pullup or pulldown resistor, so it will rely on the existence of an external one to set the default state, or otherwise fail opening the pin.
 
-The ```raw``` property of ```GPIOPinInit``` when ```true```, then the pin can be opened only using a ping number, not a name, and a pin multiplexer is not used, i.e. the [```sol_gpio_open_raw()```](http://solettaproject.github.io/docs/c-api/group__GPIO.html#gaaa42e7c282343b6b59a6080d6958818c) method is used.
+The ```raw``` property of ```GPIOInit``` when ```true```, then the pin can be opened only using a ping number, not a name, and a pin multiplexer is not used, i.e. the [```sol_gpio_open_raw()```](http://solettaproject.github.io/docs/c-api/group__GPIO.html#gaaa42e7c282343b6b59a6080d6958818c) method is used.
 
 Closing a pin will discard its ```GPIOPin``` object, i.e. clear all its listeners and properties.
 

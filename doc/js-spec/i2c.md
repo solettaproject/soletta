@@ -13,12 +13,12 @@ Web IDL
 
 [NoInterfaceObject]
 interface I2C {
-  Promise<I2CBus> open(I2CBusInit init);
+  Promise<I2CBus> open(I2CInit init);
 };
 
 enum I2CBusSpeed { "10kbps", "100kbps", "400kbps", "1000kbps", "3400kbps" };
 
-dictionary I2CBusInit {
+dictionary I2CInit {
   octet bus;
   I2CBusSpeed speed;
   boolean raw = false;
@@ -26,7 +26,7 @@ dictionary I2CBusInit {
 
 [NoInterfaceObject]
 interface I2CBus {
-  // has all the properties of I2CBusInit as read-only attributes
+  // has all the properties of I2CInit as read-only attributes
   readonly attribute boolean busy;  // implement a getter
   Promise<sequence<octet>> read(octet device,
                                 unsigned long size,
@@ -39,7 +39,7 @@ interface I2CBus {
 };
 
 ```
-The ```I2CBus``` object has all the properties of ```I2CBusInit``` as readonly attributes.
+The ```I2CBus``` object has all the properties of ```I2CInit``` as readonly attributes.
 
 I2C allows only one operation at a time on a given bus, either read or write. The ```abort()``` method cancels the current ongoing pending operation on the bus (either a read or a write), and their ```Promise``` SHOULD be rejected with ```AbortError```.
 
