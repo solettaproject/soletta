@@ -603,6 +603,7 @@ SOL_API struct sol_iio_device *
 sol_iio_open(int device_id, const struct sol_iio_config *config)
 {
     bool r;
+    bool buffer_existence;
     char path[PATH_MAX];
     struct sol_iio_device *device = NULL;
 
@@ -639,7 +640,18 @@ sol_iio_open(int device_id, const struct sol_iio_config *config)
         goto error;
     }
 
+    buffer_existence = false;
+    if (check_file_existence(BUFFER_ENABLE_DEVICE_PATH, device->device_id)) {
+        buffer_existence = true;
+    }
+
     if (config->buffer_size > -1) {
+        if (!buffer_existence) {
+            SOL_WRN("Buffer is enabled but device%d does not support Buffer.",
+                device->device_id);
+            goto error;
+        }
+
         if (!config->sol_iio_reader_cb) {
             SOL_WRN("Buffer is enabled for device%d but no 'sol_iio_reader_cb'"
                 " was defined.'", device->device_id);
@@ -677,8 +689,10 @@ sol_iio_open(int device_id, const struct sol_iio_config *config)
     } else {
         /* buffer_size == -1 means that user doesn't want to use the buffer */
         device->buffer_enabled = false;
-        if (!set_buffer_enabled(device, false)) {
-            SOL_WRN("Could not disable buffer for device%d", device->device_id);
+        if (buffer_existence) {
+            if (!set_buffer_enabled(device, false)) {
+                SOL_WRN("Could not disable buffer for device%d", device->device_id);
+            }
         }
     }
 
