@@ -1,0 +1,7 @@
+config PIN_MUX_CONTIKI_QMSI_QUARK_SE
+    bool
+    default y if BOARD_NAME = "quark-se-devboard"
+
+config PIN_MUX_CONTIKI_QMSI_QUARK_D2000
+    bool
+    default y if BOARD_NAME = "quark-d2000-devboard"

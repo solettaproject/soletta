@@ -58,6 +58,9 @@ source "src/modules/pin-mux/intel-galileo-rev-d/Kconfig"
 source "src/modules/pin-mux/intel-galileo-rev-g/Kconfig"
 source "src/modules/pin-mux/intel-edison-rev-c/Kconfig"
 endif
+if PLATFORM_CONTIKI_QMSI
+source "src/modules/pin-mux/contiki-qmsi/Kconfig"
+endif
 
 menuconfig USE_STORAGE
     bool "Persistence Storage Support"
