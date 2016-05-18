@@ -46,14 +46,14 @@ Web IDL
 =======
 The API provides entry points for GPIO, AIO, PWM, SPI, I2C and UART. They are subclassed from a common ```AbstractIO``` class (except PWM) that defines the basic methods and events. All constructors take a HW type specific init dictionary, and may take HW type specific read and write options as dictionary parameters. The behavior of methods may be different depending on IO type.
 
+This section presents only the Web IDL of the IO objects. Examples for configuring and using these objects are presented later.
+
 ```javascript
 // var ioc = require("ioc");
 
 [NoInterfaceObject]
 interface AbstractIO: EventTarget {
-  readonly attribute USVString? name;
-  readonly attribute IOCMode mode;
-
+  Promise<Dictionary> configure(optional Dictionary configuration);  // to be overridden
   Promise<void> write(IOCData, optional WriteOptions options);
   Promise<void> startRead(optional ReadOptions options);
   Promise<void> abort();  // abort all pending write and read operations
@@ -63,18 +63,12 @@ interface AbstractIO: EventTarget {
   attribute EventHandler<ErrorEvent> onerror;
 }
 
-dictionary IOCInit {
-  USVString? name = null;  // if null, raw pin/device must be provided to open()
-  IOCMode mode = "pin";  // "pin" or "port"
-}
-
-enum IOCMode { "pin", "port" };
-
 typedef (Number or USVString or sequence<octet> or ArrayBuffer) IOCData;
 
 dictionary ReadOptions {
+  unsigned long minBitLength = 1;  // Minimum bit length to trigger a read event.
   unsigned long maxBitLength;  // Maximum bit length to trigger a read event.
-  unsigned long leastPerSecond = 0;  // Notify only when there is a change.
+  unsigned long leastPerSecond = 0;  // By default notify only when there is a change.
   unsigned long mostPerSecond;
 }
 
@@ -85,33 +79,32 @@ dictionary WriteOptions {
 interface ReadEvent: Event {
   readonly attribute IOCData data;
   readonly attribute unsigned long bitLength;
-  readonly attribute boolean isLastChunk;
 };
 
 interface ErrorEvent: Event {
   readonly attribute Error error;
 };
 ```
+In continuation each IO type define behavior for configuration, read, write, abort and close.
+If any given method does not work with a specific IO type, it should reject with ```NotSupportedError``` or other, more specific Error type.
 
 GPIO
 ----
 ```javascript
-[Constructor(IOCInit)]
 interface GPIO: AbstractIO {
-  Promise<void> configure(optional GPIOInit options);
+  Promise<GPIOInit> configure(optional GPIOInit options);
   // startRead(), write(), abort(), close(), ondata, onerror are inherited
 };
 
-// Taken from the low-level GPIO API
 dictionary GPIOInit {
-  unsigned long pin;
-  GPIOPinDirection direction = "out";
+  USVString? name = null;  // Board GPIO name.
+  unsigned long pin;  // If name is null, raw pin number must be specified.
+  GPIOPinDirection direction = "in";  // By default writeable.
   boolean activeLow = false;
   GPIOActiveEdge edge = "any";  // on which edge interrupts are generated
   // the polling interval in milliseconds, in case interrupts are not used
-  unsigned long long poll = 0;  // no polling
+  unsigned long long poll = 0;  // by default no polling
   GPIOPull pull;
-  boolean raw = false;
 };
 
 enum GPIOPinDirection { "in", "out" };
@@ -120,49 +113,56 @@ enum GPIOPull { "up", "down"};
 
 interface GPIOReadEvent: ReadEvent {
   readonly attribute long data;  // Number
-  // bitLength and isLastChunk inherited
+  // bitLength inherited
 };
 ```
+GPIO ```configure()``` resolves with the actual values of the configuration properties.
+
+GPIO writes by default accept all data types: ```0``` and ```1``` will write one bit, higher value numbers, ```USVString``` and ```ArrayBuffer``` arguments will map to multiple consecutive write operations.
+
+GPIO reads are by default one bit (by default ```bitLength``` is ```1```), but with ```startRead()``` it can be configured to wait for multiple bits before generating a read event.
 
 AIO
 ---
 ```javascript
-[Constructor(IOCInit)]
 interface AIO : AbstractIO {
-  Promise<void> configure(optional AIOInit options);
+  Promise<AIOInit> configure(optional AIOInit options);
   // write() should reject with NotSupportedError
 };
 
 dictionary AIOInit {
+  USVString? name = null;  // Board AIO name.
   unsigned long device;
   unsigned long pin;
-  unsigned long precision = 12;
+  unsigned long precision = 12;  // Number of bits after A/D conversion.
 };
 
 interface AIOReadEvent: ReadEvent {
   readonly attribute long data;  // Number
-  // bitLength and isLastChunk inherited
+  // bitLength inherited
 };
 ```
+AIO ```configure()``` resolves with the actual values of the configuration properties.
+
+Invoking the ```write()``` method on an AIO object should reject with ```NotSupportedError```.
+
 
 PWM
 ---
+PWM does not extend ```AbstractIO```, it works by configuration with a dictionary comprising at least the properties that are changed from last configuration call.
 ```javascript
-[Constructor(IOCInit)]
 interface PWM {
-  Promise<void> configure(optional PWMInit options);
+  Promise<PWMInit> configure(optional PWMInit options);
   Promise<void> close();
-  // No need for separate setPeriod() and setDutyCycle().
 };
 
 enum PWMPolarity { "normal", "inversed" };
 enum PWMAlignment { "left", "center", "right"};
 
 dictionary PWMInit {
-  DOMString name;
+  USVString? name = null;  // Board PWM name.
   unsigned long device;
   unsigned long channel;
-  boolean raw = false;
   boolean enabled = true;
   unsigned long period;     // nanoseconds
   unsigned long dutyCycle;  // nanoseconds
@@ -170,13 +170,14 @@ dictionary PWMInit {
   PWMAlignment alignment = "left";
 };
 ```
+PWM ```configure()``` resolves with the actual values of the configuration properties.
+
 
 SPI
 ---
 ```javascript
-[Constructor(IOCInit)]
 interface SPI : AbstractIO {
-  Promise<void> configure(optional SPIInit options);
+  Promise<SPIInit> configure(optional SPIInit options);
   // transceive() could be added here, but it can be done with read() and write().
   // Read can only be triggered by write().
   // startRead() should reject with NotSupportedError.
@@ -191,24 +192,29 @@ enum SPIMode {
 
 dictionary SPIInit {
   unsigned long bus;
-  SPIMode mode = "mode0";
   unsigned long chipSelect = 0;
+  SPIMode mode = "mode0";
   octet bitsPerWord = 8;
   unsigned long frequency;  // in Hz
 };
 
 interface SPIReadEvent: ReadEvent {
   readonly attribute ArrayBuffer data;
-  // bitLength and isLastChunk inherited
+  // bitLength inherited
 };
 ```
+SPI ```configure()``` resolves with the actual values of the configuration properties.
+
+Invoking the ```startRead()``` method on an SPI object should reject with ```NotSupportedError```.
+
+GPIO writes by default accept all ```IOCData``` data types, and will trigger a read operation.
+
 
 I2C
 ---
 ```javascript
-[Constructor(IOCInit)]
 interface I2C : AbstractIO {
-  Promise<void> configure(optional I2CInit options);
+  Promise<I2CInit> configure(optional I2CInit options);
   readonly attribute boolean busy;  // implement a getter
 };
 
@@ -223,7 +229,7 @@ dictionary I2CInit {
 
 interface I2CReadEvent: ReadEvent {
   readonly attribute ArrayBuffer data;
-  // bitLength and isLastChunk inherited
+  // bitLength inherited
 };
 
 dictionary I2CReadOptions: ReadOptions {
@@ -238,13 +244,14 @@ dictionary I2CWriteOptions: WriteOptions {
 };
 
 ```
+I2C ```configure()``` resolves with the actual values of the configuration properties.
+
 
 UART
 ----
 ```javascript
-[Constructor(IOCInit)]
 interface UART : AbstractIO {
-  Promise<void> configure(optional UARTInit options);
+  Promise<UARTInit> configure(optional UARTInit options);
 };
 
 
@@ -264,7 +271,7 @@ dictionary UARTInit {
 
 interface UARTReadEvent: ReadEvent {
   readonly attribute (USVString or sequence<octet> or ArrayBuffer) data;
-  // bitLength and isLastChunk inherited
+  // bitLength inherited
 };
 ```
 
