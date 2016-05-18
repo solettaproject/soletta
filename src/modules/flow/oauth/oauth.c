@@ -50,30 +50,32 @@ struct v1_request_data {
     char *timestamp, *nonce, *callback_url;
 };
 
-struct oauth_node_type {
-    struct sol_flow_node_type base;
+static struct {
     struct sol_http_server *server;
     uint16_t server_ref;
-};
+} oauth;
 
 static int
-server_ref(struct oauth_node_type *oauth)
+server_ref(void)
 {
-    if (!oauth->server) {
-        oauth->server = sol_http_server_new(HTTP_SERVER_PORT);
-        SOL_NULL_CHECK(oauth->server, -ENOMEM);
+    if (!oauth.server) {
+        oauth.server = sol_http_server_new(&(struct sol_http_server_config) {
+            SOL_SET_API_VERSION(.api_version = SOL_HTTP_SERVER_CONFIG_API_VERSION, )
+            .port = HTTP_SERVER_PORT,
+        });
+        SOL_NULL_CHECK(oauth.server, -ENOMEM);
     }
-    oauth->server_ref++;
+    oauth.server_ref++;
     return 0;
 }
 
 static void
-server_unref(struct oauth_node_type *oauth)
+server_unref(void)
 {
-    oauth->server_ref--;
-    if (!oauth->server_ref) {
-        sol_http_server_del(oauth->server);
-        oauth->server = NULL;
+    oauth.server_ref--;
+    if (!oauth.server_ref) {
+        sol_http_server_del(oauth.server);
+        oauth.server = NULL;
     }
 }
 
@@ -103,7 +105,6 @@ v1_access_finished(void *data,
         SOL_WRN("Failed to find pending connection %p", connection);
 
     SOL_NULL_CHECK_GOTO(response, end);
-    SOL_HTTP_RESPONSE_CHECK_API_GOTO(response, end);
 
     if (response->response_code == SOL_HTTP_STATUS_OK)
         SOL_INT_CHECK_GOTO(response->content.used, == 0, end);
@@ -170,8 +171,8 @@ v1_authorize_response_cb(void *data, struct sol_http_request *request)
         }
     }
 
-    SOL_NULL_CHECK_GOTO(verifier, err);
-    SOL_NULL_CHECK_GOTO(token, err);
+    SOL_NULL_CHECK_GOTO(verifier, err_params);
+    SOL_NULL_CHECK_GOTO(token, err_params);
 
     req_data->request = request;
     req_data->node = node;
@@ -199,12 +200,12 @@ err_append:
 err_connection:
 err_params:
     sol_http_params_clear(&params);
-err:
     free(req_data->timestamp);
     free(req_data->nonce);
     free(req_data);
     free(token);
     free(verifier);
+err:
     r = sol_http_server_send_response(request, &((struct sol_http_response) {
             SOL_SET_API_VERSION(.api_version = SOL_HTTP_RESPONSE_API_VERSION, )
             .content = SOL_BUFFER_INIT_EMPTY,
@@ -219,15 +220,12 @@ v1_close(struct sol_flow_node *node, void *data)
 {
     struct sol_http_client_connection *connection;
     struct sol_message_digest *digest;
-    struct oauth_node_type *type;
     struct v1_data *mdata = data;
     uint16_t i;
 
-    type = (struct oauth_node_type *)sol_flow_node_get_type(node);
-
-    sol_http_server_unregister_handler(type->server, mdata->start_handler_url);
-    sol_http_server_unregister_handler(type->server, mdata->callback_handler_url);
-    server_unref(type);
+    sol_http_server_unregister_handler(oauth.server, mdata->start_handler_url);
+    sol_http_server_unregister_handler(oauth.server, mdata->callback_handler_url);
+    server_unref();
 
     free(mdata->start_handler_url);
     free(mdata->callback_handler_url);
@@ -260,8 +258,6 @@ v1_parse_response(struct v1_request_data *req_data, const struct sol_http_respon
         .param = SOL_HTTP_REQUEST_PARAMS_INIT,
         .response_code = SOL_HTTP_STATUS_FOUND,
     };
-
-    SOL_HTTP_RESPONSE_CHECK_API(response, -EINVAL);
 
     tokens = sol_str_slice_split(
         sol_str_slice_from_str(response->content.data), "&", 0);
@@ -308,7 +304,6 @@ v1_request_finished(void *data,
         SOL_WRN("Failed to find pending connection %p", connection);
 
     SOL_NULL_CHECK_GOTO(response, err);
-    SOL_HTTP_RESPONSE_CHECK_API_GOTO(response, err);
 
     if (response->response_code == SOL_HTTP_STATUS_OK)
         SOL_INT_CHECK_GOTO(response->content.used, == 0, err);
@@ -530,7 +525,7 @@ v1_request_start_cb(void *data, struct sol_http_request *request)
         SOL_STR_SLICE_PRINT(sol_buffer_get_slice(&escaped_params)));
     SOL_INT_CHECK_GOTO(r, < 0, err_signature);
 
-    blob = sol_blob_new(SOL_BLOB_TYPE_DEFAULT, NULL, signature, strlen(signature));
+    blob = sol_blob_new(&SOL_BLOB_TYPE_DEFAULT, NULL, signature, strlen(signature));
     SOL_NULL_CHECK_GOTO(blob, err_blob);
 
     r = sol_message_digest_feed(digest, blob, true);
@@ -583,7 +578,6 @@ v1_open(struct sol_flow_node *node, void *data, const struct sol_flow_node_optio
 {
     int r;
     struct v1_data *mdata = data;
-    struct oauth_node_type *type;
     struct sol_flow_node_type_oauth_v1_options *opts =
         (struct sol_flow_node_type_oauth_v1_options *)options;
 
@@ -591,9 +585,7 @@ v1_open(struct sol_flow_node *node, void *data, const struct sol_flow_node_optio
         SOL_FLOW_NODE_TYPE_OAUTH_V1_OPTIONS_API_VERSION,
         -EINVAL);
 
-    type = (struct oauth_node_type *)sol_flow_node_get_type(node);
-
-    r = server_ref(type);
+    r = server_ref();
     SOL_INT_CHECK(r, < 0, r);
 
     mdata->request_token_url = strdup(opts->request_token_url);
@@ -623,18 +615,18 @@ v1_open(struct sol_flow_node *node, void *data, const struct sol_flow_node_optio
     r = asprintf(&mdata->callback_handler_url, "%s/oauth_callback", mdata->basename);
     SOL_INT_CHECK_GOTO(r, < 0, err_callback);
 
-    r = sol_http_server_register_handler(type->server, mdata->start_handler_url,
+    r = sol_http_server_register_handler(oauth.server, mdata->start_handler_url,
         v1_request_start_cb, node);
     SOL_INT_CHECK_GOTO(r, < 0, err_register_handler);
 
-    r = sol_http_server_register_handler(type->server, mdata->callback_handler_url,
+    r = sol_http_server_register_handler(oauth.server, mdata->callback_handler_url,
         v1_authorize_response_cb, node);
     SOL_INT_CHECK_GOTO(r, < 0, err);
 
     return 0;
 
 err:
-    sol_http_server_unregister_handler(type->server,
+    sol_http_server_unregister_handler(oauth.server,
         mdata->start_handler_url);
 err_register_handler:
     free(mdata->callback_handler_url);
@@ -653,7 +645,7 @@ access_err:
 authorize_err:
     free(mdata->request_token_url);
 url_err:
-    server_unref(type);
+    server_unref();
     return r;
 }
 

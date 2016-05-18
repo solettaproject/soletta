@@ -16,6 +16,33 @@ config DTLS
 
 	    If unsure, say N.
 
+config BLUETOOTH
+       bool
+
+choice
+	prompt "Bluetooth"
+	depends on FEATURE_BLUETOOTH && NETWORK
+	default BLUETOOTH_BLUEZ if LINUX && HAVE_SYSTEMD
+	help
+	    Bluetooth is a standardized technology for exchanging data over
+	    short distances and building personal area networks.
+
+config BLUETOOTH_BLUEZ
+	bool "BlueZ"
+	depends on FEATURE_BLUETOOTH && LINUX && HAVE_SYSTEMD
+	select BLUETOOTH
+	help
+            This implementation will use BlueZ via its D-Bus API.
+
+config BLUETOOTH_NONE
+       bool "None"
+       depends on FEATURE_BLUETOOTH
+       select BLUETOOTH
+       help
+           No implementation is to be used, all functions will return error.
+
+endchoice
+
 config COAP
 	bool "CoAP"
 	default y
@@ -60,6 +87,80 @@ config OIC
             operating system or service provider.
 
             Both client and server sides are covered by this library.
+
+menu "OIC Config"
+depends on OIC
+
+config OIC_SERVER_COMPAT_1_0
+	bool "OIC_SERVER_COMPAT_1_0"
+	default false
+	help
+    Uses payload defined in OIC 1.0 spec. Only select this option if using OIC
+    server with clients that doesn't support OIC 1.1 spec.
+
+config OIC_SERVER_MANUFACTURER_NAME
+	string "OIC_SERVER_MANUFACTURER_NAME"
+	default "Soletta"
+	help
+    Name of the manufacturer of the device. Used when clients retrieve server
+    platform information.
+
+config OIC_SERVER_MANUFACTURER_URL
+	string "OIC_SERVER_MANUFACTURER_URL"
+	default "https://soletta-project.org"
+	help
+    URL to manufacturer web site.
+
+config OIC_SERVER_MODEL_NUMBER
+	string "OIC_SERVER_MODEL_NUMBER"
+	default "Unknown"
+	help
+    Model number as designated by manufacturer. Used when clients retrieve
+    server platform information.
+
+config OIC_SERVER_MANUFACTURE_DATE
+	string "OIC_SERVER_MANUFACTURE_DATE"
+	default "2015-01-01"
+	help
+    Date that the device was manufactured. Used when clients retrieve
+    server platform information.
+
+config OIC_SERVER_PLATFORM_VERSION
+	string "OIC_SERVER_PLATFORM_VERSION"
+	default "Unknown"
+	help
+    Version of the platform as defined by manufacturer. Used when clients
+    retrieve server platform information.
+
+config OIC_SERVER_HARDWARE_VERSION
+	string "OIC_SERVER_HARDWARE_VERSION"
+	default "Unknown"
+	help
+    Hardware Version as defined by manufacturer. Used when clients retrieve
+    server platform information.
+
+config OIC_SERVER_FIRMWARE_VERSION
+	string "OIC_SERVER_FIRMWARE_VERSION"
+	default "Unknown"
+	help
+    Firmware version as defined by manufacturer. Used when clients retrieve
+    server platform information.
+
+config OIC_SERVER_SUPPORT_URL
+	string "OIC_SERVER_SUPPORT_URL"
+	default "Unknown"
+	help
+    URL for manufacturer support. Used when clients retrieve server platform
+    information.
+
+config OIC_SERVER_DEVICE_NAME
+	string "OIC_SERVER_DEVICE_NAME"
+	default "Unknown"
+	help
+    The name of this device. Used when clients retrieve server device
+    information.
+
+endmenu
 
 config HTTP
 	bool "HTTP Common"

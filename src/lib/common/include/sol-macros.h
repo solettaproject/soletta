@@ -59,6 +59,15 @@
  */
 
 /**
+ * @def SOL_ATTR_STRFTIME(fmt)
+ *
+ * @brief Specifies that a function takes @c strftime style arguments
+ * which should be type-checked against a format string.
+ *
+ * @param fmt Index of the format string
+ */
+
+/**
  * @def SOL_ATTR_SCANF(fmt, arg)
  *
  * @brief Specifies that a function takes scanf style arguments
@@ -161,6 +170,7 @@
 #define SOL_ATTR_CONST __attribute__((__const__))
 #define SOL_ATTR_PRINTF(fmt, arg) __attribute__((format(printf, fmt, arg)))
 #define SOL_ATTR_SCANF(fmt, arg) __attribute__((format(scanf, fmt, arg)))
+#define SOL_ATTR_STRFTIME(fmt) __attribute__((format(strftime, fmt, 0)))
 #define SOL_ATTR_NOINSTRUMENT __attribute__((no_instrument_function))
 #define SOL_ATTR_NONNULL(...) __attribute__((nonnull(__VA_ARGS__)))
 #define SOL_ATTR_SECTION(secname) __attribute__((section(secname)))
@@ -178,6 +188,7 @@
 #define SOL_ATTR_CONST
 #define SOL_ATTR_PRINTF(fmt, arg)
 #define SOL_ATTR_SCANF(fmt, arg)
+#define SOL_ATTR_STRFTIME(fmt)
 #define SOL_ATTR_NOINSTRUMENT
 #define SOL_ATTR_NONNULL(...)
 #define SOL_ATTR_SECTION(secname)

@@ -18,6 +18,7 @@
 
 #define JS_CODE_START \
     "#include \"duktape.h\"\n" \
+    "#include \"sol-macros.h\"\n" \
     "struct js_metatype_port_in {\n" \
     "    struct sol_flow_port_type_in base;\n" \
     "    const char *name;\n" \
@@ -208,7 +209,7 @@
     "    cpy = malloc(size);\n" \
     "    SOL_NULL_CHECK(cpy, NULL);\n" \
     "    memcpy(cpy, mem, size);\n" \
-    "    blob = sol_blob_new(SOL_BLOB_TYPE_DEFAULT, NULL, cpy, size);\n" \
+    "    blob = sol_blob_new(&SOL_BLOB_TYPE_DEFAULT, NULL, cpy, size);\n" \
     "    if (!blob) {\n" \
     "        free(cpy);\n" \
     "        return NULL;\n" \
@@ -269,7 +270,7 @@
     "    cpy = malloc(size);\n" \
     "    SOL_NULL_CHECK(cpy, NULL);\n" \
     "    memcpy(cpy, mem, size);\n" \
-    "    content = sol_blob_new(SOL_BLOB_TYPE_DEFAULT, NULL, cpy, size);\n" \
+    "    content = sol_blob_new(&SOL_BLOB_TYPE_DEFAULT, NULL, cpy, size);\n" \
     "    SOL_NULL_CHECK_GOTO(content, err_exit);\n" \
     "    packet = sol_flow_packet_new_http_response(code, url,\n" \
     "        content_type, content, &cookies, &headers);\n" \
@@ -293,7 +294,7 @@
     "    char *cpy;\n" \
     "    value = duk_require_string(ctx, -1);\n" \
     "    cpy = strdup(value);\n" \
-    "    blob = sol_blob_new(SOL_BLOB_TYPE_DEFAULT, NULL, cpy, strlen(cpy));\n" \
+    "    blob = sol_blob_new(&SOL_BLOB_TYPE_DEFAULT, NULL, cpy, strlen(cpy));\n" \
     "    if (!blob) {\n" \
     "        free(cpy);\n" \
     "        return NULL;\n" \
@@ -720,6 +721,9 @@
     "}\n" \
     "static int\n" \
     "js_metatype_simple_port_process(struct sol_flow_node *node, void *data, uint16_t port, uint16_t conn_id,\n" \
+    "    const struct sol_flow_packet *packet) SOL_ATTR_UNUSED;\n" \
+    "static int\n" \
+    "js_metatype_simple_port_process(struct sol_flow_node *node, void *data, uint16_t port, uint16_t conn_id,\n" \
     "    const struct sol_flow_packet *packet)\n" \
     "{\n" \
     "    duk_context **duk_ctx = data;\n" \
@@ -733,6 +737,8 @@
     "    duk_pop_n(*duk_ctx, 3);\n" \
     "    return r;\n" \
     "}\n" \
+    "static int js_metatype_composed_port_process(struct sol_flow_node *node, void *data,\n" \
+    "    uint16_t port, uint16_t conn_id, const struct sol_flow_packet *packet) SOL_ATTR_UNUSED;\n" \
     "static int\n" \
     "js_metatype_composed_port_process(struct sol_flow_node *node, void *data,\n" \
     "    uint16_t port, uint16_t conn_id, const struct sol_flow_packet *packet)\n" \

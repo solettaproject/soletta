@@ -29,13 +29,13 @@ SOL_LOG_INTERNAL_DECLARE_STATIC(_sol_blob_log_domain, "blob");
 
 #ifndef SOL_NO_API_VERSION
 #define SOL_BLOB_CHECK_API_VERSION(blob, ...) \
-    if (!(blob)->type->api_version) {               \
-        SOL_WRN("" # blob                            \
-            "(%p)->type->api_version(%hu) != "   \
-            "SOL_BLOB_TYPE_API_VERSION(%hu)",     \
-            (blob), (blob)->type->api_version,   \
-            SOL_BLOB_TYPE_API_VERSION);           \
-        return __VA_ARGS__;                         \
+    if ((blob)->type->api_version != SOL_BLOB_TYPE_API_VERSION) { \
+        SOL_WRN("" # blob \
+            "(%p)->type->api_version(%hu) != " \
+            "SOL_BLOB_TYPE_API_VERSION(%hu)", \
+            (blob), (blob)->type->api_version, \
+            SOL_BLOB_TYPE_API_VERSION); \
+        return __VA_ARGS__; \
     }
 #else
 #define SOL_BLOB_CHECK_API_VERSION(blob, ...)
@@ -166,18 +166,25 @@ blob_free(struct sol_blob *blob)
     free(blob);
 }
 
-static const struct sol_blob_type _SOL_BLOB_TYPE_DEFAULT = {
+static void
+blob_no_free(struct sol_blob *blob)
+{
+}
+
+SOL_API const struct sol_blob_type SOL_BLOB_TYPE_DEFAULT = {
     SOL_SET_API_VERSION(.api_version = SOL_BLOB_TYPE_API_VERSION, )
     SOL_SET_API_VERSION(.sub_api = 0, )
     .free = blob_free,
 };
 
-static const struct sol_blob_type _SOL_BLOB_TYPE_NOFREE = {
+SOL_API const struct sol_blob_type SOL_BLOB_TYPE_NO_FREE_DATA = {
     SOL_SET_API_VERSION(.api_version = SOL_BLOB_TYPE_API_VERSION, )
     SOL_SET_API_VERSION(.sub_api = 0, )
     .free = NULL,
 };
 
-SOL_API const struct sol_blob_type *SOL_BLOB_TYPE_DEFAULT = &_SOL_BLOB_TYPE_DEFAULT;
-
-SOL_API const struct sol_blob_type *SOL_BLOB_TYPE_NOFREE = &_SOL_BLOB_TYPE_NOFREE;
+SOL_API const struct sol_blob_type SOL_BLOB_TYPE_NO_FREE = {
+    SOL_SET_API_VERSION(.api_version = SOL_BLOB_TYPE_API_VERSION, )
+    SOL_SET_API_VERSION(.sub_api = 0, )
+    .free = blob_no_free,
+};

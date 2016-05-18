@@ -103,7 +103,7 @@ file_reader_load(struct file_reader_data *mdata)
         reader, sizeof(reader));
     SOL_NULL_CHECK_GOTO(mdata->reader_blob, err_reader);
 
-    mdata->content_blob = sol_blob_new(SOL_BLOB_TYPE_NOFREE,
+    mdata->content_blob = sol_blob_new(&SOL_BLOB_TYPE_NO_FREE_DATA,
         mdata->reader_blob,
         slice.data, slice.len);
     SOL_NULL_CHECK_GOTO(mdata->content_blob, err_content);
@@ -336,8 +336,8 @@ file_writer_worker_thread_iterate(void *data)
 static int
 file_writer_load(struct file_writer_data *mdata)
 {
-    struct sol_worker_thread_spec spec = {
-        SOL_SET_API_VERSION(.api_version = SOL_WORKER_THREAD_SPEC_API_VERSION, )
+    struct sol_worker_thread_config config = {
+        SOL_SET_API_VERSION(.api_version = SOL_WORKER_THREAD_CONFIG_API_VERSION, )
         .setup = file_writer_worker_thread_setup,
         .cleanup = file_writer_worker_thread_cleanup,
         .iterate = file_writer_worker_thread_iterate,
@@ -357,7 +357,7 @@ file_writer_load(struct file_writer_data *mdata)
     mdata->err_msg = NULL;
     file_writer_send(mdata);
 
-    mdata->worker = sol_worker_thread_new(&spec);
+    mdata->worker = sol_worker_thread_new(&config);
     SOL_NULL_CHECK_GOTO(mdata->worker, error);
     return 0;
 

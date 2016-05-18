@@ -1,0 +1,72 @@
+{
+  "$schema": "http://solettaproject.github.io/soletta/schemas/node-type-genspec.schema",
+  "name": "hc-sr04",
+  "meta": {
+    "author": "Intel Corporation",
+    "license": "Apache-2.0",
+    "version": "1"
+  },
+  "types": [
+    {
+      "category": "input/hw",
+      "description": "Ultrasonic ranging module HC-SR04. Provides non-contact distance measurements, including ultrasonic transmitters, receiver and control circuit.",
+      "in_ports": [
+        {
+          "data_type": "any",
+          "description": "Send a ultrasonic wave and measure distance to obstacle. After each pulse a distance will be calculated and sent on output port.",
+          "methods": {
+            "process": "trigger_process"
+          },
+          "name": "TRIGGER"
+        }
+      ],
+      "methods": {
+        "close": "hc_sr04_close",
+        "open": "hc_sr04_open"
+      },
+      "name": "hc-sr04/distance",
+      "options": {
+        "members": [
+          {
+            "data_type": "string",
+            "description": "Label of the 'Trigger' pin on the board. This pin will receive a pulse to emit the wave. If 'raw' is set to true, this should be the pin number as recognized by the platform.",
+            "name": "trigger"
+          },
+          {
+            "data_type": "string",
+            "description": "Label of the 'Echo' pin on the board. This pin will read a pulse and based on its width distance is calculated. If 'raw' is set to true, this should be the pin number as recognized by the platform.",
+            "name": "echo"
+          },
+          {
+            "data_type": "boolean",
+            "default": false,
+            "description": "Change 'trigger' and 'echo' meaning to be the system parameters needed to address the desired pin. Use it if you know what you are doing.",
+            "name": "raw"
+          },
+          {
+            "data_type": "int",
+            "default": 30,
+            "description": "Polling time on 'echo' pin in milliseconds.",
+            "name": "echo_poll_timeout"
+          },
+          {
+            "data_type": "int",
+            "default": 400,
+            "description": "An aditional time Offset between the pulse on trigger and echo respose pulse, on microseconds. It's only required if the echo pulse is so fast that when the first interruption is handled the pulse ended already, so it reads the wrong value. It may happen on non real time systems, like Linux.",
+            "name": "offset"
+          }
+        ],
+        "version": 1
+      },
+      "out_ports": [
+        {
+          "data_type": "int",
+          "description": "Distance to obstacle in centimeters.",
+          "name": "CENTIMETERS"
+        }
+      ],
+      "private_data_type": "hc_sr04_data",
+      "url": "http://solettaproject.org/doc/latest/node_types/hc_sr04.html"
+    }
+  ]
+}

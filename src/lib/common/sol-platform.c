@@ -410,7 +410,8 @@ sol_platform_get_machine_id(void)
     char *env_id = getenv("SOL_MACHINE_ID");
 
     if (env_id) {
-        if (strlen(env_id) > 32 || !sol_util_uuid_str_valid(env_id)) {
+        if (strlen(env_id) > 32 ||
+            !sol_util_uuid_str_is_valid(sol_str_slice_from_str(env_id))) {
             SOL_WRN("Malformed UUID passed on environment variable "
                 "SOL_MACHINE_ID: %s", env_id);
             return NULL;
@@ -427,6 +428,46 @@ sol_platform_get_machine_id(void)
     }
 
     return id;
+}
+
+static unsigned int
+as_nibble(const char c)
+{
+    if (c >= '0' && c <= '9')
+        return c - '0';
+    if (c >= 'a' && c <= 'f')
+        return c - 'a' + 10;
+    if (c >= 'A' && c <= 'F')
+        return c - 'A' + 10;
+
+    SOL_WRN("Invalid hex character: %d", c);
+    return 0;
+}
+
+SOL_API const uint8_t *
+sol_platform_get_machine_id_as_bytes(void)
+{
+    static uint8_t machine_id[16] = { 0 };
+    static bool machine_id_set = false;
+    const char *machine_id_buf;
+
+    if (SOL_UNLIKELY(!machine_id_set)) {
+        machine_id_buf = sol_platform_get_machine_id();
+        if (!machine_id_buf) {
+            SOL_WRN("Could not get machine ID");
+            return NULL;
+        } else {
+            const char *p;
+            size_t i;
+
+            for (p = machine_id_buf, i = 0; i < 16; i++, p += 2)
+                machine_id[i] = as_nibble(*p) << 4 | as_nibble(*(p + 1));
+        }
+
+        machine_id_set = true;
+    }
+
+    return machine_id;
 }
 
 SOL_API const char *

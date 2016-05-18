@@ -233,7 +233,7 @@ static void
 calamari_7seg_new_type(const struct sol_flow_node_type **current)
 {
     struct sol_flow_node_type *type;
-    const struct sol_flow_node_type *gpio_writer;
+    const struct sol_flow_node_type **gpio_writer, **ctl;
 
     static struct sol_flow_static_node_spec nodes[] = {
         [SEG_CTL] = { NULL, "segments-ctl", NULL },
@@ -270,9 +270,15 @@ calamari_7seg_new_type(const struct sol_flow_node_type **current)
         *current = NULL;
         return;
     }
+    if ((*gpio_writer)->init_type)
+        (*gpio_writer)->init_type();
 
-    nodes[SEG_CTL].type = SOL_FLOW_NODE_TYPE_CALAMARI_SEGMENTS_CTL;
-    nodes[SEG_CLEAR].type = nodes[SEG_LATCH].type = nodes[SEG_CLOCK].type = nodes[SEG_DATA].type = gpio_writer;
+    ctl = &SOL_FLOW_NODE_TYPE_CALAMARI_SEGMENTS_CTL;
+    if ((*ctl)->init_type)
+        (*ctl)->init_type();
+
+    nodes[SEG_CTL].type = *ctl;
+    nodes[SEG_CLEAR].type = nodes[SEG_LATCH].type = nodes[SEG_CLOCK].type = nodes[SEG_DATA].type = *gpio_writer;
 
     type = sol_flow_static_new_type(&spec);
     SOL_NULL_CHECK(type);
@@ -427,12 +433,12 @@ calamari_lever_spi_poll(void *data)
     /* MCP300X message - Start, Single ended - pin 0, null */
     static const uint8_t tx[] = { 0x01, 0x80, 0x00 };
     /* rx must be the same size as tx */
-    static uint8_t rx[SOL_UTIL_ARRAY_SIZE(tx)] = { 0x00, };
+    static uint8_t rx[sol_util_array_size(tx)] = { 0x00, };
 
     SOL_NULL_CHECK(mdata, false);
     SOL_NULL_CHECK(mdata->spi, false);
 
-    if (!sol_spi_transfer(mdata->spi, tx, rx, SOL_UTIL_ARRAY_SIZE(tx), spi_transfer_cb,
+    if (!sol_spi_transfer(mdata->spi, tx, rx, sol_util_array_size(tx), spi_transfer_cb,
         mdata)) {
         SOL_WRN("Error reading lever during poll.");
     }
@@ -582,7 +588,7 @@ static void
 calamari_rgb_led_new_type(const struct sol_flow_node_type **current)
 {
     struct sol_flow_node_type *type;
-    const struct sol_flow_node_type *gpio_writer;
+    const struct sol_flow_node_type **gpio_writer, **ctl;
 
     static struct sol_flow_static_node_spec nodes[] = {
         [RGB_LED_CTL] = { NULL, "rgb-ctl", NULL },
@@ -618,9 +624,15 @@ calamari_rgb_led_new_type(const struct sol_flow_node_type **current)
         *current = NULL;
         return;
     }
+    if ((*gpio_writer)->init_type)
+        (*gpio_writer)->init_type();
 
-    nodes[RGB_LED_CTL].type = SOL_FLOW_NODE_TYPE_CALAMARI_RGB_CTL;
-    nodes[RGB_LED_RED].type = nodes[RGB_LED_GREEN].type = nodes[RGB_LED_BLUE].type = gpio_writer;
+    ctl = &SOL_FLOW_NODE_TYPE_CALAMARI_RGB_CTL;
+    if ((*ctl)->init_type)
+        (*ctl)->init_type();
+
+    nodes[RGB_LED_CTL].type = *ctl;
+    nodes[RGB_LED_RED].type = nodes[RGB_LED_GREEN].type = nodes[RGB_LED_BLUE].type = *gpio_writer;
 
     type = sol_flow_static_new_type(&spec);
     SOL_NULL_CHECK(type);

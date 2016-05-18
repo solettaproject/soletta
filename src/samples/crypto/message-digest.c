@@ -54,7 +54,7 @@ print_time(const struct feed_ctx *ctx, size_t amount, const char *prefix)
     const char *s_unit, *r_unit;
 
     sol_util_timespec_sub(&now, &ctx->start, &elapsed);
-    seconds = elapsed.tv_sec + (double)elapsed.tv_nsec / SOL_NSEC_PER_SEC;
+    seconds = elapsed.tv_sec + (double)elapsed.tv_nsec / SOL_UTIL_NSEC_PER_SEC;
 
     size = amount;
     if (size >= 1.0e9) {
@@ -239,7 +239,7 @@ startup(void)
                 size_t clen = remaining > chunk_size ? chunk_size : remaining;
                 uint8_t *cmem = (uint8_t *)blob->mem + offset;
                 bool is_last = offset + clen == blob->size;
-                struct sol_blob *chunk = sol_blob_new(SOL_BLOB_TYPE_NOFREE,
+                struct sol_blob *chunk = sol_blob_new(&SOL_BLOB_TYPE_NO_FREE_DATA,
                     blob, cmem, clen);
                 if (!chunk) {
                     fprintf(stderr, "ERROR: could not create chunk blob at "

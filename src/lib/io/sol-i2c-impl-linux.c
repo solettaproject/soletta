@@ -46,6 +46,9 @@
 SOL_LOG_INTERNAL_DECLARE_STATIC(_log_domain, "i2c");
 
 #include "sol-i2c.h"
+#ifdef USE_PIN_MUX
+#include "sol-pin-mux.h"
+#endif
 #include "sol-macros.h"
 #include "sol-mainloop.h"
 #include "sol-util-internal.h"
@@ -60,7 +63,6 @@ struct i2c_create_device {
     struct sol_buffer *result_path;
     unsigned int dev_number;
     const char *dev_name;
-    int result;
 };
 
 struct sol_i2c {
@@ -103,17 +105,6 @@ struct sol_i2c {
 #define BUSY_CHECK(i2c, ret) SOL_EXP_CHECK(i2c->async.timeout, ret);
 #endif
 
-static int
-_i2c_open_device_file(const char *i2c_dev_path, int len)
-{
-    if (len < 0 || len >= PATH_MAX) {
-        SOL_WRN("i2c: could not format device path");
-        return -1;
-    }
-
-    return open(i2c_dev_path, O_RDWR | O_CLOEXEC);
-}
-
 SOL_API struct sol_i2c *
 sol_i2c_open_raw(uint8_t bus, enum sol_i2c_speed speed)
 {
@@ -125,26 +116,23 @@ sol_i2c_open_raw(uint8_t bus, enum sol_i2c_speed speed)
     SOL_LOG_INTERNAL_INIT_ONCE;
 
     len = snprintf(i2c_dev_path, sizeof(i2c_dev_path), "/dev/i2c-%u", bus);
-    dev = _i2c_open_device_file(i2c_dev_path, len);
-    if (dev < 0) {
-        SOL_INF("i2c #%u: could not open at /dev/", bus);
-
-        len = snprintf(i2c_dev_path, sizeof(i2c_dev_path),
-            "/sys/class/i2c-adapter/i2c-%u", bus);
-        dev = _i2c_open_device_file(i2c_dev_path, len);
-        if (dev < 0) {
-            SOL_WRN("i2c #%u: could not open at /sys/class/i2c-adapter/", bus);
-            return NULL;
-        }
+    if (len < 0 || len >= PATH_MAX) {
+        SOL_WRN("i2c #%u: could not format device path", bus);
+        return NULL;
     }
 
     i2c = calloc(1, sizeof(*i2c));
     if (!i2c) {
         SOL_WRN("i2c #%u: could not allocate i2c context", bus);
-        close(dev);
+        errno = ENOMEM;
         return NULL;
     }
 
+    dev = open(i2c_dev_path, O_RDWR | O_CLOEXEC);
+    if (dev < 0) {
+        SOL_WRN("i2c #%u: could not open device file", bus);
+        goto open_error;
+    }
     i2c->bus = bus;
     i2c->dev = dev;
 
@@ -158,6 +146,7 @@ sol_i2c_open_raw(uint8_t bus, enum sol_i2c_speed speed)
 
 ioctl_error:
     close(i2c->dev);
+open_error:
     free(i2c);
     return NULL;
 }
@@ -272,8 +261,8 @@ SOL_API struct sol_i2c_pending *
 sol_i2c_write_quick(struct sol_i2c *i2c, bool rw, void (*write_quick_cb)(void *cb_data, struct sol_i2c *i2c, ssize_t status), const void *cb_data)
 {
 #ifdef WORKER_THREAD
-    struct sol_worker_thread_spec spec = {
-        SOL_SET_API_VERSION(.api_version = SOL_WORKER_THREAD_SPEC_API_VERSION, )
+    struct sol_worker_thread_config config = {
+        SOL_SET_API_VERSION(.api_version = SOL_WORKER_THREAD_CONFIG_API_VERSION, )
         .setup = NULL,
         .cleanup = NULL,
         .iterate = i2c_write_quick_worker_thread_iterate,
@@ -294,7 +283,7 @@ sol_i2c_write_quick(struct sol_i2c *i2c, bool rw, void (*write_quick_cb)(void *c
     i2c->async.cb_data = cb_data;
 
 #ifdef WORKER_THREAD
-    i2c->async.worker = sol_worker_thread_new(&spec);
+    i2c->async.worker = sol_worker_thread_new(&config);
     SOL_NULL_CHECK(i2c->async.worker, NULL);
     return (struct sol_i2c_pending *)i2c->async.worker;
 #else
@@ -395,8 +384,8 @@ SOL_API struct sol_i2c_pending *
 sol_i2c_read(struct sol_i2c *i2c, uint8_t *values, size_t count, void (*read_cb)(void *cb_data, struct sol_i2c *i2c, uint8_t *data, ssize_t status), const void *cb_data)
 {
 #ifdef WORKER_THREAD
-    struct sol_worker_thread_spec spec = {
-        SOL_SET_API_VERSION(.api_version = SOL_WORKER_THREAD_SPEC_API_VERSION, )
+    struct sol_worker_thread_config config = {
+        SOL_SET_API_VERSION(.api_version = SOL_WORKER_THREAD_CONFIG_API_VERSION, )
         .setup = NULL,
         .cleanup = NULL,
         .iterate = i2c_read_worker_thread_iterate,
@@ -420,7 +409,7 @@ sol_i2c_read(struct sol_i2c *i2c, uint8_t *values, size_t count, void (*read_cb)
     i2c->async.cb_data = cb_data;
 
 #ifdef WORKER_THREAD
-    i2c->async.worker = sol_worker_thread_new(&spec);
+    i2c->async.worker = sol_worker_thread_new(&config);
     SOL_NULL_CHECK(i2c->async.worker, NULL);
     return (struct sol_i2c_pending *)i2c->async.worker;
 #else
@@ -469,8 +458,8 @@ SOL_API struct sol_i2c_pending *
 sol_i2c_write(struct sol_i2c *i2c, uint8_t *values, size_t count, void (*write_cb)(void *cb_data, struct sol_i2c *i2c, uint8_t *data, ssize_t status), const void *cb_data)
 {
 #ifdef WORKER_THREAD
-    struct sol_worker_thread_spec spec = {
-        SOL_SET_API_VERSION(.api_version = SOL_WORKER_THREAD_SPEC_API_VERSION, )
+    struct sol_worker_thread_config config = {
+        SOL_SET_API_VERSION(.api_version = SOL_WORKER_THREAD_CONFIG_API_VERSION, )
         .setup = NULL,
         .cleanup = NULL,
         .iterate = i2c_write_worker_thread_iterate,
@@ -494,7 +483,7 @@ sol_i2c_write(struct sol_i2c *i2c, uint8_t *values, size_t count, void (*write_c
     i2c->async.cb_data = cb_data;
 
 #ifdef WORKER_THREAD
-    i2c->async.worker = sol_worker_thread_new(&spec);
+    i2c->async.worker = sol_worker_thread_new(&config);
     SOL_NULL_CHECK(i2c->async.worker, NULL);
     return (struct sol_i2c_pending *)i2c->async.worker;
 #else
@@ -621,8 +610,8 @@ SOL_API struct sol_i2c_pending *
 sol_i2c_read_register(struct sol_i2c *i2c, uint8_t reg, uint8_t *values, size_t count, void (*read_reg_cb)(void *cb_data, struct sol_i2c *i2c, uint8_t reg, uint8_t *data, ssize_t status), const void *cb_data)
 {
 #ifdef WORKER_THREAD
-    struct sol_worker_thread_spec spec = {
-        SOL_SET_API_VERSION(.api_version = SOL_WORKER_THREAD_SPEC_API_VERSION, )
+    struct sol_worker_thread_config config = {
+        SOL_SET_API_VERSION(.api_version = SOL_WORKER_THREAD_CONFIG_API_VERSION, )
         .setup = NULL,
         .cleanup = NULL,
         .iterate = i2c_read_reg_worker_thread_iterate,
@@ -647,7 +636,7 @@ sol_i2c_read_register(struct sol_i2c *i2c, uint8_t reg, uint8_t *values, size_t 
     i2c->async.cb_data = cb_data;
 
 #ifdef WORKER_THREAD
-    i2c->async.worker = sol_worker_thread_new(&spec);
+    i2c->async.worker = sol_worker_thread_new(&config);
     SOL_NULL_CHECK(i2c->async.worker, NULL);
     return (struct sol_i2c_pending *)i2c->async.worker;
 #else
@@ -735,8 +724,8 @@ SOL_API struct sol_i2c_pending *
 sol_i2c_read_register_multiple(struct sol_i2c *i2c, uint8_t reg, uint8_t *values, size_t count, uint8_t times, void (*read_reg_multiple_cb)(void *cb_data, struct sol_i2c *i2c, uint8_t reg, uint8_t *data, ssize_t status), const void *cb_data)
 {
 #ifdef WORKER_THREAD
-    struct sol_worker_thread_spec spec = {
-        SOL_SET_API_VERSION(.api_version = SOL_WORKER_THREAD_SPEC_API_VERSION, )
+    struct sol_worker_thread_config config = {
+        SOL_SET_API_VERSION(.api_version = SOL_WORKER_THREAD_CONFIG_API_VERSION, )
         .setup = NULL,
         .cleanup = NULL,
         .iterate = i2c_read_reg_multiple_worker_thread_iterate,
@@ -763,7 +752,7 @@ sol_i2c_read_register_multiple(struct sol_i2c *i2c, uint8_t reg, uint8_t *values
     i2c->async.times = times;
 
 #ifdef WORKER_THREAD
-    i2c->async.worker = sol_worker_thread_new(&spec);
+    i2c->async.worker = sol_worker_thread_new(&config);
     SOL_NULL_CHECK(i2c->async.worker, NULL);
     return (struct sol_i2c_pending *)i2c->async.worker;
 #else
@@ -875,8 +864,8 @@ SOL_API struct sol_i2c_pending *
 sol_i2c_write_register(struct sol_i2c *i2c, uint8_t reg, const uint8_t *values, size_t count, void (*write_reg_cb)(void *cb_data, struct sol_i2c *i2c, uint8_t reg, uint8_t *data, ssize_t status), const void *cb_data)
 {
 #ifdef WORKER_THREAD
-    struct sol_worker_thread_spec spec = {
-        SOL_SET_API_VERSION(.api_version = SOL_WORKER_THREAD_SPEC_API_VERSION, )
+    struct sol_worker_thread_config config = {
+        SOL_SET_API_VERSION(.api_version = SOL_WORKER_THREAD_CONFIG_API_VERSION, )
         .setup = NULL,
         .cleanup = NULL,
         .iterate = i2c_write_reg_worker_thread_iterate,
@@ -901,7 +890,7 @@ sol_i2c_write_register(struct sol_i2c *i2c, uint8_t reg, const uint8_t *values, 
     i2c->async.cb_data = cb_data;
 
 #ifdef WORKER_THREAD
-    i2c->async.worker = sol_worker_thread_new(&spec);
+    i2c->async.worker = sol_worker_thread_new(&config);
     SOL_NULL_CHECK(i2c->async.worker, NULL);
     return (struct sol_i2c_pending *)i2c->async.worker;
 #else
@@ -974,63 +963,80 @@ sol_i2c_pending_cancel(struct sol_i2c *i2c, struct sol_i2c_pending *pending)
     }
 }
 
-static bool
+static enum sol_util_iterate_dir_reason
 create_device_iter_cb(void *data, const char *dir_path, struct dirent *ent)
 {
     struct i2c_create_device *result = data;
     char path[PATH_MAX];
-    int r;
+    int r, err_write;
     struct stat st;
 
+#ifdef USE_PIN_MUX
+    unsigned int i2c_bus;
+    char *end_ptr;
+#endif
+
     if (strstartswith(ent->d_name, "i2c-")) {
+    #ifdef USE_PIN_MUX
+        errno = 0;
+        i2c_bus = strtoul(ent->d_name + strlen("i2c-"), &end_ptr, 0);
+        if (errno || *end_ptr != '\0') {
+            SOL_ERR("Could not get I2C bus number");
+            return false;
+        } else {
+            if (sol_pin_mux_setup_i2c(i2c_bus) < 0) {
+                SOL_WRN("Pin Multiplexer Recipe for i2c bus=%u found, but couldn't be applied.", i2c_bus);
+            }
+        }
+    #endif
+
         r = snprintf(path, sizeof(path), SYSFS_I2C_NEW_DEVICE, dir_path,
             ent->d_name);
-        if (r > 0) {
-            /* There should be only one i2c-X dir. If we fail to write to its
-             * new_device file, we lost */
-            result->result = sol_util_write_file(path, "%s %d",
-                result->dev_name, result->dev_number);
-            if (result->result < 0) {
-                SOL_INF("Could not write to [%s]: %s", path,
-                    sol_util_strerrora(errno));
-            }
-
-            r = snprintf(path, PATH_MAX, "%s/%s/%s-00%X",
-                dir_path, ent->d_name, ent->d_name + strlen("i2c-"),
-                result->dev_number);
-            if (r < 0 || r >= PATH_MAX) {
-                SOL_WRN("Could not write resulting device path");
-                result->result = -EINVAL;
-                return true;
-            }
-
-            if (result->result == -EINVAL) {
-                /* Device may happen to exist. Check it. */
-                if (!stat(path, &st)) {
-                    result->result = -EEXIST;
-                }
-            }
-
-            if (result->result_path) {
-                r = sol_buffer_append_printf(result->result_path,
-                    "%s", path);
-                if (r < 0) {
-                    SOL_WRN("Could not write resulting device path to buffer");
-                    result->result = r;
-                }
-            }
-            return true;
+        if (r < 0 || r >= PATH_MAX) {
+            SOL_WRN("Could not write resulting device path");
+            return -EINVAL;
         }
+        /* There should be only one i2c-X dir. If we fail to write to its
+         * new_device file, we lost */
+        err_write = sol_util_write_file(path, "%s %d",
+            result->dev_name, result->dev_number);
+        if (err_write < 0) {
+            SOL_INF("Could not write to [%s]: %s", path,
+                sol_util_strerrora(errno));
+        }
+
+        r = snprintf(path, PATH_MAX, "%s/%s/%s-00%X",
+            dir_path, ent->d_name, ent->d_name + strlen("i2c-"),
+            result->dev_number);
+        if (r < 0 || r >= PATH_MAX) {
+            SOL_WRN("Could not write resulting device path");
+            return -EINVAL;
+        }
+
+        if (result->result_path) {
+            r = sol_buffer_append_slice(result->result_path,
+                sol_str_slice_from_str(path));
+            SOL_INT_CHECK(r, < 0, r);
+        }
+
+        if (err_write == -EINVAL) {
+            /* Device may happen to exist. Check it. */
+            if (!stat(path, &st))
+                return -EEXIST;
+            else
+                return -EINVAL;
+        }
+        return SOL_UTIL_ITERATE_DIR_STOP;
     }
 
-    return false;
+    return SOL_UTIL_ITERATE_DIR_CONTINUE;
 }
 
 SOL_API int
 sol_i2c_create_device(const char *address, const char *dev_name, unsigned int dev_number, struct sol_buffer *result_path)
 {
     char path[PATH_MAX], real_path[PATH_MAX];
-    int len;
+    int len, r;
     struct i2c_create_device result;
 
     SOL_NULL_CHECK(address, -EINVAL);
@@ -1054,10 +1060,10 @@ sol_i2c_create_device(const char *address, const char *dev_name, unsigned int de
         }
     }
 
-    if (!sol_util_iterate_dir(real_path, create_device_iter_cb, &result)) {
-        SOL_WRN("Could not find suitable i2c dir on device sysfs [%s]", real_path);
-        return -ENOENT;
-    }
+    r = sol_util_iterate_dir(real_path, create_device_iter_cb, &result);
+    if (r < 0 && r != -EEXIST)
+        SOL_WRN("Could not find suitable i2c dir on device sysfs [%s]",
+            real_path);
 
-    return result.result;
+    return r;
 }

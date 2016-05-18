@@ -18,7 +18,8 @@
 
 var success = "\x1b[42;30m✓\x1b[0m",
 	failure = "\x1b[41;30m✗\x1b[0m",
-	QUnit = require( "qunitjs" );
+	QUnit = require( "qunitjs" ),
+	results = require( "./getresult" );
 
 // Right-align runtime in a field that's 10 columns wide
 function formatRuntime( runtime ) {
@@ -55,6 +56,8 @@ QUnit.config.callbacks.testStart.push( function( status ) {
 QUnit.config.callbacks.log.push( function( status ) {
 
 	// Parameters: status: { module, result(t/f), message, actual, expected, testId, runtime }
+
+	results.getTestResult( status );
 
 	console.log(
 		( status.result ? success : failure ) +

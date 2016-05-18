@@ -20,7 +20,7 @@
 #include "sol-json.h"
 #include "sol-util-internal.h"
 #include "sol-log.h"
-#include "sol-types.h"
+#include "sol-util.h"
 #include <float.h>
 
 #define TOKENS (const enum sol_json_type[])
@@ -129,7 +129,7 @@ test_json(void)
     unsigned int i = 0;
     int j = 0;
 
-    for (i = 0; i < SOL_UTIL_ARRAY_SIZE(scan_tests); i++) {
+    for (i = 0; i < sol_util_array_size(scan_tests); i++) {
         struct test_entry *t;
         struct sol_json_scanner scanner;
         struct sol_json_token input;
@@ -527,7 +527,7 @@ test_json_token_get_double(void)
         token.end = buf + strlen(itr->str);
         retval = sol_json_token_get_double(&token, &value);
         if (itr->expected_return == 0 && retval == 0) {
-            if (sol_drange_val_equal(itr->reference, value)) {
+            if (sol_util_double_equal(itr->reference, value)) {
                 SOL_DBG("OK: parsed '%s' as %g", itr->str, value);
             } else {
                 SOL_WRN("FAILED: parsed '%s' as %.64g where %.64g was expected"
@@ -554,7 +554,7 @@ test_json_token_get_double(void)
                     itr->expected_return, sol_util_strerrora(-itr->expected_return),
                     retval, sol_util_strerrora(-retval), value);
                 FAIL();
-            } else if (!sol_drange_val_equal(itr->reference, value)) {
+            } else if (!sol_util_double_equal(itr->reference, value)) {
                 SOL_WRN("FAILED: parsing '%s' should result in %.64g"
                     ", but got %.64g (difference = %g)",
                     itr->str, itr->reference, value, itr->reference - value);
@@ -565,6 +565,1074 @@ test_json_token_get_double(void)
             }
         }
     }
+}
+
+DEFINE_TEST(test_json_serialize_memdesc);
+static void
+test_json_serialize_memdesc(void)
+{
+    enum myenum {
+        enum0 = 0,
+        enum1,
+        enum2
+    };
+    const struct myst {
+        int64_t i64;
+        char *s;
+        uint8_t u8;
+        void *ptr;
+    } myst_defcontent = {
+        .i64 = 0x7234567890123456,
+        .s = (char *)"some string \"quotes\" and \t tab",
+        .u8 = 0xf2,
+        .ptr = NULL
+    };
+    struct sol_vector int_vector = SOL_VECTOR_INIT(int32_t);
+    struct sol_vector kv_vector = SOL_VECTOR_INIT(struct sol_key_value);
+    struct sol_vector enum_vector = SOL_VECTOR_INIT(enum myenum);
+    const struct test {
+        struct sol_memdesc desc;
+        const char *expected_detailed;
+        const char *expected_essential;
+    } *itr, tests[] = {
+        {
+            .desc = {
+                SOL_SET_API_VERSION(.api_version = SOL_MEMDESC_API_VERSION, )
+                .type = SOL_MEMDESC_TYPE_BOOLEAN,
+                .defcontent.b = true,
+            },
+            .expected_essential = "true",
+        },
+        {
+            .desc = {
+                SOL_SET_API_VERSION(.api_version = SOL_MEMDESC_API_VERSION, )
+                .type = SOL_MEMDESC_TYPE_BOOLEAN,
+                .defcontent.b = false,
+            },
+            .expected_essential = "false",
+        },
+        {
+            .desc = {
+                SOL_SET_API_VERSION(.api_version = SOL_MEMDESC_API_VERSION, )
+                .type = SOL_MEMDESC_TYPE_INT64,
+                .defcontent.i64 = 0x7234567890123456,
+            },
+            .expected_essential = "8229297494925915222",
+        },
+        {
+            .desc = {
+                SOL_SET_API_VERSION(.api_version = SOL_MEMDESC_API_VERSION, )
+                .type = SOL_MEMDESC_TYPE_UINT64,
+                .defcontent.i64 = 0xf234567890123456,
+            },
+            .expected_essential = "17452669531780691030",
+        },
+        {
+            .desc = {
+                SOL_SET_API_VERSION(.api_version = SOL_MEMDESC_API_VERSION, )
+                .type = SOL_MEMDESC_TYPE_STRING,
+                .defcontent.s = "some string \"quotes\" and \t tab",
+            },
+            .expected_essential = "\"some string \\\"quotes\\\" and \\t tab\"",
+        },
+        {
+            .desc = {
+                SOL_SET_API_VERSION(.api_version = SOL_MEMDESC_API_VERSION, )
+                .size = sizeof(struct myst),
+                .type = SOL_MEMDESC_TYPE_STRUCTURE,
+                .defcontent.p = &myst_defcontent,
+                .structure_members = (const struct sol_memdesc_structure_member[]){
+                    {
+                        .base = {
+                            SOL_SET_API_VERSION(.api_version = SOL_MEMDESC_API_VERSION, )
+                            .type = SOL_MEMDESC_TYPE_INT64,
+                        },
+                        .offset = offsetof(struct myst, i64),
+                        .name = "i64",
+                        .detail = true,
+                    },
+                    {
+                        .base = {
+                            SOL_SET_API_VERSION(.api_version = SOL_MEMDESC_API_VERSION, )
+                            .type = SOL_MEMDESC_TYPE_STRING,
+                        },
+                        .offset = offsetof(struct myst, s),
+                        .name = "s",
+                    },
+                    {
+                        .base = {
+                            SOL_SET_API_VERSION(.api_version = SOL_MEMDESC_API_VERSION, )
+                            .type = SOL_MEMDESC_TYPE_UINT8,
+                        },
+                        .offset = offsetof(struct myst, u8),
+                        .name = "u8",
+                    },
+                    {
+                        .base = {
+                            SOL_SET_API_VERSION(.api_version = SOL_MEMDESC_API_VERSION, )
+                            .type = SOL_MEMDESC_TYPE_PTR,
+                        },
+                        .offset = offsetof(struct myst, ptr),
+                        .name = "ptr",
+                        .detail = true,
+                    },
+                    {}
+                },
+            },
+            .expected_detailed = "{\"i64\":8229297494925915222,\"s\":\"some string \\\"quotes\\\" and \\t tab\",\"u8\":242,\"ptr\":null}",
+            .expected_essential = "{\"s\":\"some string \\\"quotes\\\" and \\t tab\",\"u8\":242}",
+        },
+        {
+            .desc = {
+                SOL_SET_API_VERSION(.api_version = SOL_MEMDESC_API_VERSION, )
+                .type = SOL_MEMDESC_TYPE_PTR,
+                .defcontent.p = &myst_defcontent,
+                .pointed_item = &(const struct sol_memdesc){
+                    SOL_SET_API_VERSION(.api_version = SOL_MEMDESC_API_VERSION, )
+                    .size = sizeof(struct myst),
+                    .type = SOL_MEMDESC_TYPE_STRUCTURE,
+                    .structure_members = (const struct sol_memdesc_structure_member[]){
+                        {
+                            .base = {
+                                SOL_SET_API_VERSION(.api_version = SOL_MEMDESC_API_VERSION, )
+                                .type = SOL_MEMDESC_TYPE_INT64,
+                            },
+                            .offset = offsetof(struct myst, i64),
+                            .name = "i64",
+                            .detail = true,
+                        },
+                        {
+                            .base = {
+                                SOL_SET_API_VERSION(.api_version = SOL_MEMDESC_API_VERSION, )
+                                .type = SOL_MEMDESC_TYPE_STRING,
+                            },
+                            .offset = offsetof(struct myst, s),
+                            .name = "s",
+                        },
+                        {
+                            .base = {
+                                SOL_SET_API_VERSION(.api_version = SOL_MEMDESC_API_VERSION, )
+                                .type = SOL_MEMDESC_TYPE_UINT8,
+                            },
+                            .offset = offsetof(struct myst, u8),
+                            .name = "u8",
+                        },
+                        {
+                            .base = {
+                                SOL_SET_API_VERSION(.api_version = SOL_MEMDESC_API_VERSION, )
+                                .type = SOL_MEMDESC_TYPE_PTR,
+                            },
+                            .offset = offsetof(struct myst, ptr),
+                            .name = "ptr",
+                            .detail = true,
+                        },
+                        {}
+                    },
+                },
+            },
+            .expected_detailed = "{\"i64\":8229297494925915222,\"s\":\"some string \\\"quotes\\\" and \\t tab\",\"u8\":242,\"ptr\":null}",
+            .expected_essential = "{\"s\":\"some string \\\"quotes\\\" and \\t tab\",\"u8\":242}",
+        },
+        {
+            .desc = {
+                SOL_SET_API_VERSION(.api_version = SOL_MEMDESC_API_VERSION, )
+                .type = SOL_MEMDESC_TYPE_PTR,
+                .pointed_item = &(const struct sol_memdesc){
+                    SOL_SET_API_VERSION(.api_version = SOL_MEMDESC_API_VERSION, )
+                    .size = sizeof(struct myst),
+                    .type = SOL_MEMDESC_TYPE_STRUCTURE,
+                    .structure_members = (const struct sol_memdesc_structure_member[]){
+                        {
+                            .base = {
+                                SOL_SET_API_VERSION(.api_version = SOL_MEMDESC_API_VERSION, )
+                                .type = SOL_MEMDESC_TYPE_INT64,
+                            },
+                            .offset = offsetof(struct myst, i64),
+                            .name = "i64",
+                        },
+                        {
+                            .base = {
+                                SOL_SET_API_VERSION(.api_version = SOL_MEMDESC_API_VERSION, )
+                                .type = SOL_MEMDESC_TYPE_STRING,
+                            },
+                            .offset = offsetof(struct myst, s),
+                            .name = "s",
+                        },
+                        {
+                            .base = {
+                                SOL_SET_API_VERSION(.api_version = SOL_MEMDESC_API_VERSION, )
+                                .type = SOL_MEMDESC_TYPE_UINT8,
+                            },
+                            .offset = offsetof(struct myst, u8),
+                            .name = "u8",
+                        },
+                        {
+                            .base = {
+                                SOL_SET_API_VERSION(.api_version = SOL_MEMDESC_API_VERSION, )
+                                .type = SOL_MEMDESC_TYPE_PTR,
+                            },
+                            .offset = offsetof(struct myst, ptr),
+                            .name = "ptr",
+                        },
+                        {}
+                    },
+                },
+            },
+            .expected_essential = "null",
+        },
+        {
+            .desc = {
+                SOL_SET_API_VERSION(.api_version = SOL_MEMDESC_API_VERSION, )
+                .size = sizeof(struct sol_vector),
+                .type = SOL_MEMDESC_TYPE_ARRAY,
+                .defcontent.p = &int_vector,
+                .ops = &SOL_MEMDESC_OPS_VECTOR,
+                .array_item = &(const struct sol_memdesc){
+                    SOL_SET_API_VERSION(.api_version = SOL_MEMDESC_API_VERSION, )
+                    .type = SOL_MEMDESC_TYPE_INT32,
+                },
+            },
+            .expected_essential = "[10,20,30,40,50,60,70,80,90,100]",
+        },
+        {
+            .desc = {
+                SOL_SET_API_VERSION(.api_version = SOL_MEMDESC_API_VERSION, )
+                .size = sizeof(struct sol_vector),
+                .type = SOL_MEMDESC_TYPE_ARRAY,
+                .defcontent.p = &enum_vector,
+                .ops = &SOL_MEMDESC_OPS_VECTOR,
+                .array_item = &(const struct sol_memdesc){
+                    SOL_SET_API_VERSION(.api_version = SOL_MEMDESC_API_VERSION, )
+                    .type = SOL_MEMDESC_TYPE_ENUMERATION,
+                    .size = sizeof(enum myenum),
+                    .enumeration_mapping = (const struct sol_str_table_int64[]){
+                        SOL_STR_TABLE_INT64_ITEM("enum0", enum0),
+                        SOL_STR_TABLE_INT64_ITEM("enum1", enum1),
+                        SOL_STR_TABLE_INT64_ITEM("enum2", enum2),
+                        {}
+                    },
+                },
+            },
+            .expected_essential = "[\"enum0\",\"enum1\",\"enum2\",3]",
+        },
+        {
+            .desc = {
+                SOL_SET_API_VERSION(.api_version = SOL_MEMDESC_API_VERSION, )
+                .size = sizeof(struct sol_vector),
+                .type = SOL_MEMDESC_TYPE_ARRAY,
+                .defcontent.p = &kv_vector,
+                .ops = &SOL_MEMDESC_OPS_VECTOR,
+                .array_item = &(const struct sol_memdesc){
+                    SOL_SET_API_VERSION(.api_version = SOL_MEMDESC_API_VERSION, )
+                    .size = sizeof(struct sol_key_value),
+                    .type = SOL_MEMDESC_TYPE_STRUCTURE,
+                    .structure_members = (const struct sol_memdesc_structure_member[]){
+                        {
+                            .base = {
+                                SOL_SET_API_VERSION(.api_version = SOL_MEMDESC_API_VERSION, )
+                                .type = SOL_MEMDESC_TYPE_STRING,
+                            },
+                            .offset = offsetof(struct sol_key_value, key),
+                            .name = "key",
+                        },
+                        {
+                            .base = {
+                                SOL_SET_API_VERSION(.api_version = SOL_MEMDESC_API_VERSION, )
+                                .type = SOL_MEMDESC_TYPE_STRING,
+                            },
+                            .offset = offsetof(struct sol_key_value, value),
+                            .name = "value",
+                        },
+                        {}
+                    },
+                },
+            },
+            .expected_essential = "[{\"key\":\"akey\",\"value\":\"avalue\"},{\"key\":\"xkey\",\"value\":\"xvalue\"}]",
+        },
+        { }
+    };
+    size_t i;
+    int32_t *int_items;
+    enum myenum *enum_items;
+    struct sol_key_value *kv_items;
+
+    int_items = sol_vector_append_n(&int_vector, 10);
+    ASSERT(int_items);
+    ASSERT_INT_EQ(int_vector.len, 10);
+    for (i = 0; i < int_vector.len; i++)
+        int_items[i] = (i + 1) * 10;
+
+    kv_items = sol_vector_append_n(&kv_vector, 2);
+    ASSERT(kv_items);
+    ASSERT_INT_EQ(kv_vector.len, 2);
+    kv_items[0].key = "akey";
+    kv_items[0].value = "avalue";
+    kv_items[1].key = "xkey";
+    kv_items[1].value = "xvalue";
+
+    enum_items = sol_vector_append_n(&enum_vector, 4);
+    ASSERT(enum_items);
+    ASSERT_INT_EQ(enum_vector.len, 4);
+    for (i = 0; i < enum_vector.len; i++)
+        enum_items[i] = i;
+
+    for (itr = tests; itr->expected_essential != NULL; itr++) {
+        void *mem = sol_memdesc_new_with_defaults(&itr->desc);
+        struct sol_buffer buf = SOL_BUFFER_INIT_EMPTY;
+        struct sol_str_slice out;
+        int r;
+
+        ASSERT(mem);
+        r = sol_json_serialize_memdesc(&buf, &itr->desc, mem, false);
+        ASSERT_INT_EQ(r, 0);
+
+        out = sol_buffer_get_slice(&buf);
+        ASSERT_STR_EQ(out.data, itr->expected_essential);
+
+        sol_buffer_fini(&buf);
+
+        if (itr->expected_detailed) {
+            r = sol_json_serialize_memdesc(&buf, &itr->desc, mem, true);
+            ASSERT_INT_EQ(r, 0);
+
+            out = sol_buffer_get_slice(&buf);
+            ASSERT_STR_EQ(out.data, itr->expected_detailed);
+
+            sol_buffer_fini(&buf);
+        }
+
+        sol_memdesc_free(&itr->desc, mem);
+    }
+
+    sol_vector_clear(&int_vector);
+    sol_vector_clear(&kv_vector);
+    sol_vector_clear(&enum_vector);
+}
+
+DEFINE_TEST(test_json_load_memdesc);
+static void
+test_json_load_memdesc(void)
+{
+    enum myenum {
+        enum0 = 0,
+        enum1,
+        enum2
+    };
+    const struct myst {
+        int64_t i64;
+        char *s;
+        uint8_t u8;
+        void *ptr;
+    } myst_defcontent = {
+        .i64 = 0x7234567890123456,
+        .s = (char *)"some string \"quotes\" and \t tab",
+        .u8 = 0xf2,
+        .ptr = NULL
+    };
+    struct sol_vector int_vector = SOL_VECTOR_INIT(int32_t);
+    struct sol_vector kv_vector = SOL_VECTOR_INIT(struct sol_key_value);
+    struct sol_vector enum_vector = SOL_VECTOR_INIT(enum myenum);
+    const struct test {
+        const char *input;
+        struct sol_memdesc desc;
+        struct sol_memdesc desc_expected;
+    } *itr, tests[] = {
+        {
+            .input = "true",
+            .desc = {
+                SOL_SET_API_VERSION(.api_version = SOL_MEMDESC_API_VERSION, )
+                .type = SOL_MEMDESC_TYPE_BOOLEAN,
+                .defcontent.b = false,
+            },
+            .desc_expected = {
+                SOL_SET_API_VERSION(.api_version = SOL_MEMDESC_API_VERSION, )
+                .type = SOL_MEMDESC_TYPE_BOOLEAN,
+                .defcontent.b = true,
+            },
+        },
+        {
+            .input = "false",
+            .desc = {
+                SOL_SET_API_VERSION(.api_version = SOL_MEMDESC_API_VERSION, )
+                .type = SOL_MEMDESC_TYPE_BOOLEAN,
+                .defcontent.b = true,
+            },
+            .desc_expected = {
+                SOL_SET_API_VERSION(.api_version = SOL_MEMDESC_API_VERSION, )
+                .type = SOL_MEMDESC_TYPE_BOOLEAN,
+                .defcontent.b = false,
+            },
+        },
+        {
+            .input = "8229297494925915222",
+            .desc = {
+                SOL_SET_API_VERSION(.api_version = SOL_MEMDESC_API_VERSION, )
+                .type = SOL_MEMDESC_TYPE_INT64,
+            },
+            .desc_expected = {
+                SOL_SET_API_VERSION(.api_version = SOL_MEMDESC_API_VERSION, )
+                .type = SOL_MEMDESC_TYPE_INT64,
+                .defcontent.i64 = 0x7234567890123456,
+            },
+        },
+        {
+            .input = "17452669531780691030",
+            .desc = {
+                SOL_SET_API_VERSION(.api_version = SOL_MEMDESC_API_VERSION, )
+                .type = SOL_MEMDESC_TYPE_UINT64,
+            },
+            .desc_expected = {
+                SOL_SET_API_VERSION(.api_version = SOL_MEMDESC_API_VERSION, )
+                .type = SOL_MEMDESC_TYPE_UINT64,
+                .defcontent.i64 = 0xf234567890123456,
+            },
+        },
+        {
+            .input = "\"some string \\\"quotes\\\" and \\t tab\"",
+            .desc = {
+                SOL_SET_API_VERSION(.api_version = SOL_MEMDESC_API_VERSION, )
+                .type = SOL_MEMDESC_TYPE_STRING,
+            },
+            .desc_expected = {
+                SOL_SET_API_VERSION(.api_version = SOL_MEMDESC_API_VERSION, )
+                .type = SOL_MEMDESC_TYPE_STRING,
+                .defcontent.s = "some string \"quotes\" and \t tab",
+            },
+        },
+        {
+            .input = "{\"i64\":8229297494925915222,\"s\":\"some string \\\"quotes\\\" and \\t tab\",\"u8\":242,\"ptr\":null}",
+            .desc = {
+                SOL_SET_API_VERSION(.api_version = SOL_MEMDESC_API_VERSION, )
+                .size = sizeof(struct myst),
+                .type = SOL_MEMDESC_TYPE_STRUCTURE,
+                .structure_members = (const struct sol_memdesc_structure_member[]){
+                    {
+                        .base = {
+                            SOL_SET_API_VERSION(.api_version = SOL_MEMDESC_API_VERSION, )
+                            .type = SOL_MEMDESC_TYPE_INT64,
+                        },
+                        .offset = offsetof(struct myst, i64),
+                        .name = "i64",
+                    },
+                    {
+                        .base = {
+                            SOL_SET_API_VERSION(.api_version = SOL_MEMDESC_API_VERSION, )
+                            .type = SOL_MEMDESC_TYPE_STRING,
+                        },
+                        .offset = offsetof(struct myst, s),
+                        .name = "s",
+                    },
+                    {
+                        .base = {
+                            SOL_SET_API_VERSION(.api_version = SOL_MEMDESC_API_VERSION, )
+                            .type = SOL_MEMDESC_TYPE_UINT8,
+                        },
+                        .offset = offsetof(struct myst, u8),
+                        .name = "u8",
+                    },
+                    {
+                        .base = {
+                            SOL_SET_API_VERSION(.api_version = SOL_MEMDESC_API_VERSION, )
+                            .type = SOL_MEMDESC_TYPE_PTR,
+                        },
+                        .offset = offsetof(struct myst, ptr),
+                        .name = "ptr",
+                    },
+                    {}
+                },
+            },
+            .desc_expected = {
+                SOL_SET_API_VERSION(.api_version = SOL_MEMDESC_API_VERSION, )
+                .size = sizeof(struct myst),
+                .type = SOL_MEMDESC_TYPE_STRUCTURE,
+                .defcontent.p = &myst_defcontent,
+                .structure_members = (const struct sol_memdesc_structure_member[]){
+                    {
+                        .base = {
+                            SOL_SET_API_VERSION(.api_version = SOL_MEMDESC_API_VERSION, )
+                            .type = SOL_MEMDESC_TYPE_INT64,
+                        },
+                        .offset = offsetof(struct myst, i64),
+                        .name = "i64",
+                    },
+                    {
+                        .base = {
+                            SOL_SET_API_VERSION(.api_version = SOL_MEMDESC_API_VERSION, )
+                            .type = SOL_MEMDESC_TYPE_STRING,
+                        },
+                        .offset = offsetof(struct myst, s),
+                        .name = "s",
+                    },
+                    {
+                        .base = {
+                            SOL_SET_API_VERSION(.api_version = SOL_MEMDESC_API_VERSION, )
+                            .type = SOL_MEMDESC_TYPE_UINT8,
+                        },
+                        .offset = offsetof(struct myst, u8),
+                        .name = "u8",
+                    },
+                    {
+                        .base = {
+                            SOL_SET_API_VERSION(.api_version = SOL_MEMDESC_API_VERSION, )
+                            .type = SOL_MEMDESC_TYPE_PTR,
+                        },
+                        .offset = offsetof(struct myst, ptr),
+                        .name = "ptr",
+                    },
+                    {}
+                },
+            },
+        },
+        {
+            .input = "{\"i64\":8229297494925915222,\"s\":\"some string \\\"quotes\\\" and \\t tab\",\"u8\":242,\"ptr\":null}",
+            .desc = {
+                SOL_SET_API_VERSION(.api_version = SOL_MEMDESC_API_VERSION, )
+                .type = SOL_MEMDESC_TYPE_PTR,
+                .pointed_item = &(const struct sol_memdesc){
+                    SOL_SET_API_VERSION(.api_version = SOL_MEMDESC_API_VERSION, )
+                    .size = sizeof(struct myst),
+                    .type = SOL_MEMDESC_TYPE_STRUCTURE,
+                    .structure_members = (const struct sol_memdesc_structure_member[]){
+                        {
+                            .base = {
+                                SOL_SET_API_VERSION(.api_version = SOL_MEMDESC_API_VERSION, )
+                                .type = SOL_MEMDESC_TYPE_INT64,
+                            },
+                            .offset = offsetof(struct myst, i64),
+                            .name = "i64",
+                        },
+                        {
+                            .base = {
+                                SOL_SET_API_VERSION(.api_version = SOL_MEMDESC_API_VERSION, )
+                                .type = SOL_MEMDESC_TYPE_STRING,
+                            },
+                            .offset = offsetof(struct myst, s),
+                            .name = "s",
+                        },
+                        {
+                            .base = {
+                                SOL_SET_API_VERSION(.api_version = SOL_MEMDESC_API_VERSION, )
+                                .type = SOL_MEMDESC_TYPE_UINT8,
+                            },
+                            .offset = offsetof(struct myst, u8),
+                            .name = "u8",
+                        },
+                        {
+                            .base = {
+                                SOL_SET_API_VERSION(.api_version = SOL_MEMDESC_API_VERSION, )
+                                .type = SOL_MEMDESC_TYPE_PTR,
+                            },
+                            .offset = offsetof(struct myst, ptr),
+                            .name = "ptr",
+                        },
+                        {}
+                    },
+                },
+            },
+            .desc_expected = {
+                SOL_SET_API_VERSION(.api_version = SOL_MEMDESC_API_VERSION, )
+                .size = sizeof(struct myst *),
+                .type = SOL_MEMDESC_TYPE_PTR,
+                .defcontent.p = &myst_defcontent,
+                .pointed_item = &(const struct sol_memdesc){
+                    SOL_SET_API_VERSION(.api_version = SOL_MEMDESC_API_VERSION, )
+                    .size = sizeof(struct myst),
+                    .type = SOL_MEMDESC_TYPE_STRUCTURE,
+                    .structure_members = (const struct sol_memdesc_structure_member[]){
+                        {
+                            .base = {
+                                SOL_SET_API_VERSION(.api_version = SOL_MEMDESC_API_VERSION, )
+                                .type = SOL_MEMDESC_TYPE_INT64,
+                            },
+                            .offset = offsetof(struct myst, i64),
+                            .name = "i64",
+                        },
+                        {
+                            .base = {
+                                SOL_SET_API_VERSION(.api_version = SOL_MEMDESC_API_VERSION, )
+                                .type = SOL_MEMDESC_TYPE_STRING,
+                            },
+                            .offset = offsetof(struct myst, s),
+                            .name = "s",
+                        },
+                        {
+                            .base = {
+                                SOL_SET_API_VERSION(.api_version = SOL_MEMDESC_API_VERSION, )
+                                .type = SOL_MEMDESC_TYPE_UINT8,
+                            },
+                            .offset = offsetof(struct myst, u8),
+                            .name = "u8",
+                        },
+                        {
+                            .base = {
+                                SOL_SET_API_VERSION(.api_version = SOL_MEMDESC_API_VERSION, )
+                                .type = SOL_MEMDESC_TYPE_PTR,
+                            },
+                            .offset = offsetof(struct myst, ptr),
+                            .name = "ptr",
+                        },
+                        {}
+                    },
+                },
+            },
+        },
+        {
+            .input = "null",
+            .desc = {
+                SOL_SET_API_VERSION(.api_version = SOL_MEMDESC_API_VERSION, )
+                .type = SOL_MEMDESC_TYPE_PTR,
+                .pointed_item = &(const struct sol_memdesc){
+                    SOL_SET_API_VERSION(.api_version = SOL_MEMDESC_API_VERSION, )
+                    .size = sizeof(struct myst),
+                    .type = SOL_MEMDESC_TYPE_STRUCTURE,
+                    .structure_members = (const struct sol_memdesc_structure_member[]){
+                        {
+                            .base = {
+                                SOL_SET_API_VERSION(.api_version = SOL_MEMDESC_API_VERSION, )
+                                .type = SOL_MEMDESC_TYPE_INT64,
+                            },
+                            .offset = offsetof(struct myst, i64),
+                            .name = "i64",
+                        },
+                        {
+                            .base = {
+                                SOL_SET_API_VERSION(.api_version = SOL_MEMDESC_API_VERSION, )
+                                .type = SOL_MEMDESC_TYPE_STRING,
+                            },
+                            .offset = offsetof(struct myst, s),
+                            .name = "s",
+                        },
+                        {
+                            .base = {
+                                SOL_SET_API_VERSION(.api_version = SOL_MEMDESC_API_VERSION, )
+                                .type = SOL_MEMDESC_TYPE_UINT8,
+                            },
+                            .offset = offsetof(struct myst, u8),
+                            .name = "u8",
+                        },
+                        {
+                            .base = {
+                                SOL_SET_API_VERSION(.api_version = SOL_MEMDESC_API_VERSION, )
+                                .type = SOL_MEMDESC_TYPE_PTR,
+                            },
+                            .offset = offsetof(struct myst, ptr),
+                            .name = "ptr",
+                        },
+                        {}
+                    },
+                },
+            },
+            .desc_expected = {
+                SOL_SET_API_VERSION(.api_version = SOL_MEMDESC_API_VERSION, )
+                .type = SOL_MEMDESC_TYPE_PTR,
+                .defcontent.p = NULL,
+                .pointed_item = &(const struct sol_memdesc){
+                    SOL_SET_API_VERSION(.api_version = SOL_MEMDESC_API_VERSION, )
+                    .size = sizeof(struct myst),
+                    .type = SOL_MEMDESC_TYPE_STRUCTURE,
+                    .structure_members = (const struct sol_memdesc_structure_member[]){
+                        {
+                            .base = {
+                                SOL_SET_API_VERSION(.api_version = SOL_MEMDESC_API_VERSION, )
+                                .type = SOL_MEMDESC_TYPE_INT64,
+                            },
+                            .offset = offsetof(struct myst, i64),
+                            .name = "i64",
+                        },
+                        {
+                            .base = {
+                                SOL_SET_API_VERSION(.api_version = SOL_MEMDESC_API_VERSION, )
+                                .type = SOL_MEMDESC_TYPE_STRING,
+                            },
+                            .offset = offsetof(struct myst, s),
+                            .name = "s",
+                        },
+                        {
+                            .base = {
+                                SOL_SET_API_VERSION(.api_version = SOL_MEMDESC_API_VERSION, )
+                                .type = SOL_MEMDESC_TYPE_UINT8,
+                            },
+                            .offset = offsetof(struct myst, u8),
+                            .name = "u8",
+                        },
+                        {
+                            .base = {
+                                SOL_SET_API_VERSION(.api_version = SOL_MEMDESC_API_VERSION, )
+                                .type = SOL_MEMDESC_TYPE_PTR,
+                            },
+                            .offset = offsetof(struct myst, ptr),
+                            .name = "ptr",
+                        },
+                        {}
+                    },
+                },
+            },
+        },
+        {
+            .input = "[10,20,30,40,50,60,70,80,90,100]",
+            .desc = {
+                SOL_SET_API_VERSION(.api_version = SOL_MEMDESC_API_VERSION, )
+                .size = sizeof(struct sol_vector),
+                .type = SOL_MEMDESC_TYPE_ARRAY,
+                .ops = &SOL_MEMDESC_OPS_VECTOR,
+                .array_item = &(const struct sol_memdesc){
+                    SOL_SET_API_VERSION(.api_version = SOL_MEMDESC_API_VERSION, )
+                    .type = SOL_MEMDESC_TYPE_INT32,
+                },
+            },
+            .desc_expected = {
+                SOL_SET_API_VERSION(.api_version = SOL_MEMDESC_API_VERSION, )
+                .size = sizeof(struct sol_vector),
+                .type = SOL_MEMDESC_TYPE_ARRAY,
+                .defcontent.p = &int_vector,
+                .ops = &SOL_MEMDESC_OPS_VECTOR,
+                .array_item = &(const struct sol_memdesc){
+                    SOL_SET_API_VERSION(.api_version = SOL_MEMDESC_API_VERSION, )
+                    .type = SOL_MEMDESC_TYPE_INT32,
+                },
+            },
+        },
+        {
+            .input = "[\"enum0\",\"enum1\",\"enum2\",3]",
+            .desc = {
+                SOL_SET_API_VERSION(.api_version = SOL_MEMDESC_API_VERSION, )
+                .size = sizeof(struct sol_vector),
+                .type = SOL_MEMDESC_TYPE_ARRAY,
+                .ops = &SOL_MEMDESC_OPS_VECTOR,
+                .array_item = &(const struct sol_memdesc){
+                    SOL_SET_API_VERSION(.api_version = SOL_MEMDESC_API_VERSION, )
+                    .type = SOL_MEMDESC_TYPE_ENUMERATION,
+                    .size = sizeof(enum myenum),
+                    .enumeration_mapping = (const struct sol_str_table_int64[]){
+                        SOL_STR_TABLE_INT64_ITEM("enum0", enum0),
+                        SOL_STR_TABLE_INT64_ITEM("enum1", enum1),
+                        SOL_STR_TABLE_INT64_ITEM("enum2", enum2),
+                        {}
+                    },
+                },
+            },
+            .desc_expected = {
+                SOL_SET_API_VERSION(.api_version = SOL_MEMDESC_API_VERSION, )
+                .size = sizeof(struct sol_vector),
+                .type = SOL_MEMDESC_TYPE_ARRAY,
+                .defcontent.p = &enum_vector,
+                .ops = &SOL_MEMDESC_OPS_VECTOR,
+                .array_item = &(const struct sol_memdesc){
+                    SOL_SET_API_VERSION(.api_version = SOL_MEMDESC_API_VERSION, )
+                    .type = SOL_MEMDESC_TYPE_ENUMERATION,
+                    .size = sizeof(enum myenum),
+                    .enumeration_mapping = (const struct sol_str_table_int64[]){
+                        SOL_STR_TABLE_INT64_ITEM("enum0", enum0),
+                        SOL_STR_TABLE_INT64_ITEM("enum1", enum1),
+                        SOL_STR_TABLE_INT64_ITEM("enum2", enum2),
+                        {}
+                    },
+                },
+            },
+        },
+        {
+            .input = "[{\"key\":\"akey\",\"value\":\"avalue\"},{\"key\":\"xkey\",\"value\":\"xvalue\"}]",
+            .desc = {
+                SOL_SET_API_VERSION(.api_version = SOL_MEMDESC_API_VERSION, )
+                .size = sizeof(struct sol_vector),
+                .type = SOL_MEMDESC_TYPE_ARRAY,
+                .ops = &SOL_MEMDESC_OPS_VECTOR,
+                .array_item = &(const struct sol_memdesc){
+                    SOL_SET_API_VERSION(.api_version = SOL_MEMDESC_API_VERSION, )
+                    .size = sizeof(struct sol_key_value),
+                    .type = SOL_MEMDESC_TYPE_STRUCTURE,
+                    .structure_members = (const struct sol_memdesc_structure_member[]){
+                        {
+                            .base = {
+                                SOL_SET_API_VERSION(.api_version = SOL_MEMDESC_API_VERSION, )
+                                .type = SOL_MEMDESC_TYPE_STRING,
+                            },
+                            .offset = offsetof(struct sol_key_value, key),
+                            .name = "key",
+                        },
+                        {
+                            .base = {
+                                SOL_SET_API_VERSION(.api_version = SOL_MEMDESC_API_VERSION, )
+                                .type = SOL_MEMDESC_TYPE_STRING,
+                            },
+                            .offset = offsetof(struct sol_key_value, value),
+                            .name = "value",
+                        },
+                        {}
+                    },
+                },
+            },
+            .desc_expected = {
+                SOL_SET_API_VERSION(.api_version = SOL_MEMDESC_API_VERSION, )
+                .size = sizeof(struct sol_vector),
+                .type = SOL_MEMDESC_TYPE_ARRAY,
+                .defcontent.p = &kv_vector,
+                .ops = &SOL_MEMDESC_OPS_VECTOR,
+                .array_item = &(const struct sol_memdesc){
+                    SOL_SET_API_VERSION(.api_version = SOL_MEMDESC_API_VERSION, )
+                    .size = sizeof(struct sol_key_value),
+                    .type = SOL_MEMDESC_TYPE_STRUCTURE,
+                    .structure_members = (const struct sol_memdesc_structure_member[]){
+                        {
+                            .base = {
+                                SOL_SET_API_VERSION(.api_version = SOL_MEMDESC_API_VERSION, )
+                                .type = SOL_MEMDESC_TYPE_STRING,
+                            },
+                            .offset = offsetof(struct sol_key_value, key),
+                            .name = "key",
+                        },
+                        {
+                            .base = {
+                                SOL_SET_API_VERSION(.api_version = SOL_MEMDESC_API_VERSION, )
+                                .type = SOL_MEMDESC_TYPE_STRING,
+                            },
+                            .offset = offsetof(struct sol_key_value, value),
+                            .name = "value",
+                        },
+                        {}
+                    },
+                },
+            },
+        },
+        {}
+    };
+    size_t i;
+    int32_t *int_items;
+    struct sol_key_value *kv_items;
+    enum myenum *enum_items;
+
+    int_items = sol_vector_append_n(&int_vector, 10);
+    ASSERT(int_items);
+    ASSERT_INT_EQ(int_vector.len, 10);
+    for (i = 0; i < int_vector.len; i++)
+        int_items[i] = (i + 1) * 10;
+
+    kv_items = sol_vector_append_n(&kv_vector, 2);
+    ASSERT(kv_items);
+    ASSERT_INT_EQ(kv_vector.len, 2);
+    kv_items[0].key = "akey";
+    kv_items[0].value = "avalue";
+    kv_items[1].key = "xkey";
+    kv_items[1].value = "xvalue";
+
+    enum_items = sol_vector_append_n(&enum_vector, 4);
+    ASSERT(enum_items);
+    ASSERT_INT_EQ(enum_vector.len, 4);
+    for (i = 0; i < enum_vector.len; i++)
+        enum_items[i] = i;
+
+    for (itr = tests; itr->input != NULL; itr++) {
+        void *mem = sol_memdesc_new_with_defaults(&itr->desc);
+        void *mem_expected = sol_memdesc_new_with_defaults(&itr->desc_expected);
+        struct sol_json_token token;
+        int r;
+
+        ASSERT(mem);
+        ASSERT(mem_expected);
+
+        sol_json_token_init_from_slice(&token, sol_str_slice_from_str(itr->input));
+        r = sol_json_load_memdesc(&token, &itr->desc, mem);
+        ASSERT_INT_EQ(r, 0);
+
+        r = sol_memdesc_compare(&itr->desc, mem, mem_expected);
+        ASSERT_INT_EQ(r, 0);
+
+        sol_memdesc_free(&itr->desc, mem);
+        sol_memdesc_free(&itr->desc_expected, mem_expected);
+    }
+
+    sol_vector_clear(&int_vector);
+    sol_vector_clear(&kv_vector);
+    sol_vector_clear(&enum_vector);
+}
+
+DEFINE_TEST(test_json_memdesc_complex);
+static void
+test_json_memdesc_complex(void)
+{
+    struct myst {
+        uint64_t u64;
+        struct sol_vector v;
+        uint8_t u8;
+    };
+    struct myst defval = {
+        .u64 = 0xf234567890123456,
+        .v = SOL_VECTOR_INIT(struct sol_vector),
+        .u8 = 0x72,
+    };
+    struct sol_memdesc desc = {
+        SOL_SET_API_VERSION(.api_version = SOL_MEMDESC_API_VERSION, )
+        .size = sizeof(struct myst),
+        .type = SOL_MEMDESC_TYPE_STRUCTURE,
+        .defcontent.p = &defval,
+        .structure_members = (const struct sol_memdesc_structure_member[]){
+            {
+                .base = {
+                    SOL_SET_API_VERSION(.api_version = SOL_MEMDESC_API_VERSION, )
+                    .type = SOL_MEMDESC_TYPE_UINT64,
+                },
+                .offset = offsetof(struct myst, u64),
+                .name = "u64",
+            },
+            {
+                .base = {
+                    SOL_SET_API_VERSION(.api_version = SOL_MEMDESC_API_VERSION, )
+                    .size = sizeof(struct sol_vector),
+                    .type = SOL_MEMDESC_TYPE_ARRAY,
+                    .ops = &SOL_MEMDESC_OPS_VECTOR,
+                    .array_item = &(const struct sol_memdesc){
+                        SOL_SET_API_VERSION(.api_version = SOL_MEMDESC_API_VERSION, )
+                        .size = sizeof(struct sol_vector),
+                        .type = SOL_MEMDESC_TYPE_ARRAY,
+                        .ops = &SOL_MEMDESC_OPS_VECTOR,
+                        .array_item = &(const struct sol_memdesc){
+                            SOL_SET_API_VERSION(.api_version = SOL_MEMDESC_API_VERSION, )
+                            .size = sizeof(struct sol_key_value),
+                            .type = SOL_MEMDESC_TYPE_STRUCTURE,
+                            .structure_members = (const struct sol_memdesc_structure_member[]){
+                                {
+                                    .base = {
+                                        SOL_SET_API_VERSION(.api_version = SOL_MEMDESC_API_VERSION, )
+                                        .type = SOL_MEMDESC_TYPE_STRING,
+                                    },
+                                    .offset = offsetof(struct sol_key_value, key),
+                                    .name = "key",
+                                },
+                                {
+                                    .base = {
+                                        SOL_SET_API_VERSION(.api_version = SOL_MEMDESC_API_VERSION, )
+                                        .type = SOL_MEMDESC_TYPE_STRING,
+                                    },
+                                    .offset = offsetof(struct sol_key_value, value),
+                                    .name = "value",
+                                },
+                                {}
+                            },
+                        },
+                    },
+                },
+                .offset = offsetof(struct myst, v),
+                .name = "v",
+            },
+            {
+                .base = {
+                    SOL_SET_API_VERSION(.api_version = SOL_MEMDESC_API_VERSION, )
+                    .type = SOL_MEMDESC_TYPE_UINT8,
+                },
+                .offset = offsetof(struct myst, u8),
+                .name = "u8",
+            },
+            {}
+        },
+    };
+    struct myst a;
+    struct sol_key_value *kv;
+    size_t i, j;
+    int r;
+    struct sol_buffer buf = SOL_BUFFER_INIT_EMPTY;
+    const char expected[] = "{\"u64\":17452669531780691030,\"v\":[[{\"key\":\"key0\",\"value\":\"value0\"}],[{\"key\":\"key100\",\"value\":\"value100\"},{\"key\":\"key101\",\"value\":\"value101\"}],[{\"key\":\"key200\",\"value\":\"value200\"},{\"key\":\"key201\",\"value\":\"value201\"},{\"key\":\"key202\",\"value\":\"value202\"}],[{\"key\":\"key300\",\"value\":\"value300\"},{\"key\":\"key301\",\"value\":\"value301\"},{\"key\":\"key302\",\"value\":\"value302\"},{\"key\":\"key303\",\"value\":\"value303\"}]],\"u8\":114}";
+    struct sol_json_token token;
+
+    for (j = 0; j < 4; j++) {
+        struct sol_vector *vec = sol_vector_append(&defval.v);
+
+        ASSERT(vec);
+        sol_vector_init(vec, sizeof(struct sol_key_value));
+        for (i = 0; i < (j + 1); i++) {
+            char *k, *v;
+
+            r = asprintf(&k, "key%zd", i + j * 100);
+            ASSERT(r > 0);
+
+            r = asprintf(&v, "value%zd", i + j * 100);
+            ASSERT(r > 0);
+
+            kv = sol_vector_append(vec);
+            ASSERT(kv);
+            kv->key = k;
+            kv->value = v;
+        }
+    }
+
+    r = sol_memdesc_init_defaults(&desc, &a);
+    ASSERT_INT_EQ(r, 0);
+    ASSERT_INT_EQ(a.v.len, defval.v.len);
+
+    for (j = 0; j < defval.v.len; j++) {
+        const struct sol_vector *vec_a = sol_vector_get(&a.v, j);
+        const struct sol_vector *vec_b = sol_vector_get(&defval.v, j);
+
+        ASSERT(vec_a);
+        ASSERT(vec_b);
+        ASSERT_INT_EQ(vec_a->len, vec_b->len);
+    }
+
+    r = sol_memdesc_compare(&desc, &a, &defval);
+    ASSERT_INT_EQ(r, 0);
+    ASSERT_INT_EQ(errno, 0);
+
+    for (j = 0; j < defval.v.len; j++) {
+        const struct sol_vector *vec_a = sol_vector_get(&a.v, j);
+        const struct sol_vector *vec_b = sol_vector_get(&defval.v, j);
+
+        ASSERT(vec_a);
+        ASSERT(vec_b);
+
+        for (i = 0; i < vec_b->len; i++) {
+            const struct sol_key_value *ita, *itb;
+
+            ita = sol_vector_get(vec_a, i);
+            ASSERT(ita);
+
+            itb = sol_vector_get(vec_b, i);
+            ASSERT(itb);
+
+            ASSERT_STR_EQ(ita->key, itb->key);
+            ASSERT_STR_EQ(ita->value, itb->value);
+        }
+    }
+
+    r = sol_json_serialize_memdesc(&buf, &desc, &a, true);
+    ASSERT_INT_EQ(r, 0);
+
+    ASSERT_STR_EQ(buf.data, expected);
+
+    sol_buffer_fini(&buf);
+
+    sol_memdesc_free_content(&desc, &a);
+
+    /* no default means an empty array, but elem_size must be set from children size */
+    desc.defcontent.p = NULL;
+    memset(&a, 0xff, sizeof(a));
+
+    r = sol_memdesc_init_defaults(&desc, &a);
+    ASSERT_INT_EQ(r, 0);
+    ASSERT_INT_EQ(a.v.len, 0);
+    ASSERT_INT_EQ(a.v.elem_size, sizeof(struct sol_vector));
+    ASSERT(!a.v.data);
+
+    sol_json_token_init_from_slice(&token, sol_str_slice_from_str(expected));
+    r = sol_json_load_memdesc(&token, &desc, &a);
+    ASSERT_INT_EQ(r, 0);
+
+    r = sol_memdesc_compare(&desc, &a, &defval);
+    ASSERT_INT_EQ(r, 0);
+    ASSERT_INT_EQ(errno, 0);
+
+    sol_memdesc_free_content(&desc, &a);
+
+    for (j = 0; j < defval.v.len; j++) {
+        struct sol_vector *vec = sol_vector_get(&defval.v, j);
+
+        for (i = 0; i <  vec->len; i++) {
+            kv = sol_vector_get(vec, i);
+            free((void *)kv->key);
+            free((void *)kv->value);
+        }
+
+        sol_vector_clear(vec);
+    }
+    sol_vector_clear(&defval.v);
 }
 
 TEST_MAIN();

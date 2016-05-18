@@ -21,18 +21,19 @@
 #include <mutex.h>
 #include <thread.h>
 
+#include "sol-atomic.h"
 #include "sol-mainloop.h"
 #include "sol-worker-thread-impl.h"
 
 struct sol_worker_thread_riot {
-    struct sol_worker_thread_spec spec;
+    struct sol_worker_thread_config config;
     struct sol_idle *idler;
     char *stack;
     mutex_t lock;
     kernel_pid_t thread;
     kernel_pid_t waiting_join;
-    bool cancel;
-    bool finished;
+    sol_atomic_int cancel;
+    sol_atomic_int finished;
 };
 
 bool
@@ -42,13 +43,13 @@ sol_worker_thread_impl_cancel_check(const void *handle)
 
     thread_yield();
 
-    return __atomic_load_n(&thread->cancel, __ATOMIC_SEQ_CST);
+    return sol_atomic_load(&thread->cancel, SOL_ATOMIC_RELAXED);
 }
 
 static inline void
 cancel_set(struct sol_worker_thread_riot *thread)
 {
-    __atomic_store_n(&thread->cancel, true, __ATOMIC_SEQ_CST);
+    sol_atomic_store(&thread->cancel, true, SOL_ATOMIC_RELAXED);
 
     thread_yield();
 }
@@ -72,7 +73,7 @@ sol_worker_thread_join(struct sol_worker_thread_riot *thread)
 {
     bool status;
 
-    status = __atomic_load_n(&thread->finished, __ATOMIC_SEQ_CST);
+    status = sol_atomic_load(&thread->finished, SOL_ATOMIC_ACQUIRE);
     if (!status) {
         thread->waiting_join = thread_getpid();
         thread_sleep();
@@ -95,8 +96,8 @@ sol_worker_thread_finished(void *data)
 
     SOL_DBG("worker thread %p finished", thread);
 
-    if (thread->spec.finished)
-        thread->spec.finished((void *)thread->spec.data);
+    if (thread->config.finished)
+        thread->config.finished((void *)thread->config.data);
 
     free(thread->stack);
     free(thread);
@@ -107,22 +108,22 @@ static void *
 sol_worker_thread_do(void *data)
 {
     struct sol_worker_thread_riot *thread = data;
-    struct sol_worker_thread_spec *spec = &thread->spec;
+    struct sol_worker_thread_config *config = &thread->config;
 
     SOL_DBG("worker thread %p started", thread);
 
-    if (spec->setup) {
-        if (!spec->setup((void *)spec->data))
+    if (config->setup) {
+        if (!config->setup((void *)config->data))
             goto end;
     }
 
     while (!sol_worker_thread_impl_cancel_check(thread)) {
-        if (!spec->iterate((void *)spec->data))
+        if (!config->iterate((void *)config->data))
             break;
     }
 
-    if (spec->cleanup)
-        spec->cleanup((void *)spec->data);
+    if (config->cleanup)
+        config->cleanup((void *)config->data);
 
 end:
     if (sol_worker_thread_lock(thread)) {
@@ -135,8 +136,8 @@ end:
     SOL_DBG("worker thread %p stopped", thread);
     /* From this point forward, we can't allow a context switch. IRQ will be
      * re-enabled by the scheduler once this function returns */
-    disableIRQ();
-    __atomic_store_n(&thread->finished, true, __ATOMIC_SEQ_CST);
+    irq_disable();
+    sol_atomic_store(&thread->finished, true, SOL_ATOMIC_RELEASE);
     if (thread->waiting_join != KERNEL_PID_UNDEF)
         sched_set_status((thread_t *)sched_threads[thread->waiting_join], STATUS_PENDING);
 
@@ -144,7 +145,7 @@ end:
 }
 
 void *
-sol_worker_thread_impl_new(const struct sol_worker_thread_spec *spec)
+sol_worker_thread_impl_new(const struct sol_worker_thread_config *config)
 {
     struct sol_worker_thread_riot *thread;
     int r = -ENOMEM, stacksize = THREAD_STACKSIZE_DEFAULT;
@@ -153,7 +154,7 @@ sol_worker_thread_impl_new(const struct sol_worker_thread_spec *spec)
     thread = calloc(1, sizeof(*thread));
     SOL_NULL_CHECK(thread, NULL);
 
-    thread->spec = *spec;
+    thread->config = *config;
 
     mutex_init(&thread->lock);
 
@@ -193,8 +194,8 @@ sol_worker_thread_impl_cancel(void *handle)
 
     cancel_set(thread);
 
-    if (thread->spec.cancel)
-        thread->spec.cancel((void *)thread->spec.data);
+    if (thread->config.cancel)
+        thread->config.cancel((void *)thread->config.data);
 
     sol_worker_thread_join(thread);
     thread->thread = KERNEL_PID_UNDEF;
@@ -214,7 +215,7 @@ sol_worker_thread_feedback_dispatch(void *data)
         sol_worker_thread_unlock(thread);
     }
 
-    thread->spec.feedback((void *)thread->spec.data);
+    thread->config.feedback((void *)thread->config.data);
     return false;
 }
 
@@ -224,7 +225,7 @@ sol_worker_thread_impl_feedback(void *handle)
     struct sol_worker_thread_riot *thread = handle;
 
     SOL_NULL_CHECK(thread);
-    SOL_NULL_CHECK(thread->spec.feedback);
+    SOL_NULL_CHECK(thread->config.feedback);
 
     if (sol_worker_thread_impl_cancel_check(thread)) {
         SOL_WRN("worker thread %p is not running.", thread);

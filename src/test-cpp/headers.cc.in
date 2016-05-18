@@ -61,7 +61,7 @@ SOL_UPDATE_DECLARE(my_update,
                    .shutdown = NULL);
 #endif
 
-#ifdef FLOW_SUPPORT
+#ifdef USE_FLOW
 
 SOL_FLOW_METATYPE(my_meta,
                   .name = NULL,
@@ -95,7 +95,7 @@ startup()
     const void *v;
     int arr[10];
 
-    SOL_UTIL_ARRAY_SIZE(arr);
+    sol_util_array_size(arr);
 
     sol_util_strerrora(2);
 
@@ -125,7 +125,7 @@ startup()
     SOL_PTR_VECTOR_FOREACH_IDX(&v2, i, j);
     SOL_PTR_VECTOR_FOREACH_REVERSE_IDX(&v2, i, j);
 
-    struct sol_list list = SOL_LIST_INIT, *itr, *itr2;
+    struct sol_list list = SOL_LIST_INIT(list), *itr, *itr2;
 
     SOL_LIST_FOREACH(&list, itr);
 
@@ -154,7 +154,7 @@ startup()
     SOL_JSON_SCANNER_OBJECT_LOOP(&scanner, &token, &token_key, &token_value, json_reason);
     SOL_JSON_SCANNER_OBJECT_LOOP_NEST(&scanner, &token, &token_key, &token_value, json_reason);
 
-#ifdef FLOW_SUPPORT
+#ifdef USE_FLOW
     struct sol_flow_static_node_spec node_spec = SOL_FLOW_STATIC_NODE_SPEC_GUARD;
     struct sol_flow_static_conn_spec conn_spec = SOL_FLOW_STATIC_CONN_SPEC_GUARD;
     struct sol_flow_static_port_spec port_sec = SOL_FLOW_STATIC_PORT_SPEC_GUARD;
@@ -166,7 +166,7 @@ startup()
 #ifdef OIC
     float f = 2.3f;
     struct sol_oic_map_reader map = { 0, 0, 0, 0, 0, 0 };
-    enum sol_oic_map_loop_reason end_reason;
+    enum sol_oic_map_loop_status end_status;
     struct sol_oic_map_reader iterator = { 0, 0, 0, 0, 0, 0 };
     struct sol_oic_repr_field rep_field1 = SOL_OIC_REPR_UINT("1", 2);
     struct sol_oic_repr_field rep_field2 = SOL_OIC_REPR_INT("2", -2);
@@ -178,7 +178,7 @@ startup()
     struct sol_oic_repr_field rep_field9 = SOL_OIC_REPR_FLOAT("9", 2.3);
     struct sol_oic_repr_field rep_field10 = SOL_OIC_REPR_DOUBLE("10", 2.3);
     struct sol_oic_repr_field rep_field11 = SOL_OIC_REPR_FIELD("131231", SOL_OIC_REPR_TYPE_UINT, .v_uint = 123);
-    SOL_OIC_MAP_LOOP(&map, &rep_field1, &iterator, end_reason);
+    SOL_OIC_MAP_LOOP(&map, &rep_field1, &iterator, end_status);
 #endif
 
 #ifdef HTTP
@@ -210,7 +210,7 @@ startup()
     SOL_MEMMAP_ENTRY(memamp2, 0, 0);
 
 #ifdef COAP
-    MAKE_RSPCODE(2, 3);
+    sol_coap_make_response_code(2, 3);
 #endif
 
 #ifdef FLOW_NODE_TYPE_FLOWER_POWER

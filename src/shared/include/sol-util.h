@@ -51,32 +51,64 @@ extern "C" {
 /**
  * @brief Calculates the number of elements in an array
  */
-#define SOL_UTIL_ARRAY_SIZE(arr) (sizeof(arr) / sizeof((arr)[0]))
+#define sol_util_array_size(arr) (sizeof(arr) / sizeof((arr)[0]))
 
 /**
  * @brief number of nanoseconds in a second: 1,000,000,000.
  */
-#define SOL_NSEC_PER_SEC 1000000000ULL
+#define SOL_UTIL_NSEC_PER_SEC 1000000000ULL
 
 /**
  * @brief number of milliseconds in a second: 1,000.
  */
-#define SOL_MSEC_PER_SEC 1000ULL
+#define SOL_UTIL_MSEC_PER_SEC 1000ULL
 
 /**
  * @brief number of microseconds in a second: 1,000,000.
  */
-#define SOL_USEC_PER_SEC 1000000ULL
+#define SOL_UTIL_USEC_PER_SEC 1000000ULL
 
 /**
  * @brief number of nanoseconds in a milliseconds: 1,000,000,000 / 1,000 = 1,000,000.
  */
-#define SOL_NSEC_PER_MSEC 1000000ULL
+#define SOL_UTIL_NSEC_PER_MSEC 1000000ULL
 
 /**
  * @brief  number of nanoseconds in a microsecond: 1,000,000,000 / 1,000,000 = 1,000.
  */
-#define SOL_NSEC_PER_USEC 1000ULL
+#define SOL_UTIL_NSEC_PER_USEC 1000ULL
+
+/**
+ * @brief Gets the minimum value
+ *
+ * This will generate shadowing warnings if the same kind
+ * is nested, but the warnings on type mismatch are a fair benefit.
+ *
+ * Use temporary variables to address nested call cases.
+ */
+#define sol_util_min(x, y) \
+    ({ \
+        __typeof__(x)_min1 = (x); \
+        __typeof__(y)_min2 = (y); \
+        (void)(&_min1 == &_min2); \
+        _min1 < _min2 ? _min1 : _min2; \
+    })
+
+/**
+ * @brief Gets the maximum value
+ *
+ * This will generate shadowing warnings if the same kind
+ * is nested, but the warnings on type mismatch are a fair benefit.
+ *
+ * Use temporary variables to address nested call cases.
+ */
+#define sol_util_max(x, y) \
+    ({ \
+        __typeof__(x)_max1 = (x); \
+        __typeof__(y)_max2 = (y); \
+        (void)(&_max1 == &_max2); \
+        _max1 > _max2 ? _max1 : _max2; \
+    })
 
 /**
  * @brief Gets the current time (Monotonic).
@@ -103,12 +135,12 @@ int sol_util_timespec_get_realtime(struct timespec *t);
  * @param result Variable used to store the sum's result.
  */
 static inline void
-sol_util_timespec_sum(const struct timespec *t1, const struct timespec *t2, struct timespec *result)
+sol_util_timespec_add(const struct timespec *t1, const struct timespec *t2, struct timespec *result)
 {
     result->tv_nsec = t1->tv_nsec + t2->tv_nsec;
     result->tv_sec = t1->tv_sec + t2->tv_sec;
-    if ((unsigned long long)result->tv_nsec >= SOL_NSEC_PER_SEC) {
-        result->tv_nsec -= SOL_NSEC_PER_SEC;
+    if ((unsigned long long)result->tv_nsec >= SOL_UTIL_NSEC_PER_SEC) {
+        result->tv_nsec -= SOL_UTIL_NSEC_PER_SEC;
         result->tv_sec++;
     }
 }
@@ -126,7 +158,7 @@ sol_util_timespec_sub(const struct timespec *t1, const struct timespec *t2, stru
     result->tv_nsec = t1->tv_nsec - t2->tv_nsec;
     result->tv_sec = t1->tv_sec - t2->tv_sec;
     if (result->tv_nsec < 0) {
-        result->tv_nsec += SOL_NSEC_PER_SEC;
+        result->tv_nsec += SOL_UTIL_NSEC_PER_SEC;
         result->tv_sec--;
     }
 }
@@ -164,8 +196,25 @@ sol_util_timespec_from_msec(const int msec)
 {
     struct timespec ts;
 
-    ts.tv_sec = msec / SOL_MSEC_PER_SEC;
-    ts.tv_nsec = (msec % SOL_MSEC_PER_SEC) * SOL_NSEC_PER_MSEC;
+    ts.tv_sec = msec / SOL_UTIL_MSEC_PER_SEC;
+    ts.tv_nsec = (msec % SOL_UTIL_MSEC_PER_SEC) * SOL_UTIL_NSEC_PER_MSEC;
+    return ts;
+}
+
+/**
+ * @brief Create a @c struct timespec from microseconds.
+ *
+ * @param usec The number of microseconds.
+ *
+ * @return a @c struct timespec representing @c usec microseconds.
+ */
+static inline struct timespec
+sol_util_timespec_from_usec(const int usec)
+{
+    struct timespec ts;
+
+    ts.tv_sec = usec / SOL_UTIL_USEC_PER_SEC;
+    ts.tv_nsec = (usec % SOL_UTIL_USEC_PER_SEC) * SOL_UTIL_NSEC_PER_USEC;
     return ts;
 }
 
@@ -179,7 +228,20 @@ sol_util_timespec_from_msec(const int msec)
 static inline int
 sol_util_msec_from_timespec(const struct timespec *ts)
 {
-    return ts->tv_sec * SOL_MSEC_PER_SEC + ts->tv_nsec / SOL_NSEC_PER_MSEC;
+    return ts->tv_sec * SOL_UTIL_MSEC_PER_SEC + ts->tv_nsec / SOL_UTIL_NSEC_PER_MSEC;
+}
+
+/**
+ * @brief Gets the number of microseconds for given time.
+ *
+ * @param ts The struct timespec to get the microseconds.
+ *
+ * @return the number of microseconds on @c ts.
+ */
+static inline int
+sol_util_usec_from_timespec(const struct timespec *ts)
+{
+    return ts->tv_sec * SOL_UTIL_USEC_PER_SEC + ts->tv_nsec / SOL_UTIL_NSEC_PER_USEC;
 }
 
 /**
@@ -362,17 +424,17 @@ int sol_util_uint32_mul(const uint32_t op1, const uint32_t op2, uint32_t *out);
  * The generated string is 16 bytes-long (128 bits) long and conforms to v4
  * UUIDs (generated from random—or pseudo-random—numbers).
  *
- * @param upcase Whether to generate the UUID in upcase or not
+ * @param uppercase Whether to generate the UUID in uppercase or not
  * @param with_hyphens Format the resulting UUID string with hyphens
  *                     (e.g. "de305d54-75b4-431b-adb2-eb6b9e546014") or
  *                     without them.
- * @param id Where to store the generated id. It's 37 bytes in lenght
- *           so it accomodates the maximum lenght case -- 2 * 16
- *           (chars) + 4 (hyphens) + 1 (\0)
+ * @param uuid_buf An initialized buffer to be used to append the generated id.
+ *        It will have 36 bytes of length if with_hyphens is true or 32 bytes
+ *        of length if with_hyphens is false.
  *
  * @return 0 on success, negative error code otherwise.
  */
-int sol_util_uuid_gen(bool upcase, bool with_hyphens, char id[SOL_STATIC_ARRAY_SIZE(37)]);
+int sol_util_uuid_gen(bool uppercase, bool with_hyphens, struct sol_buffer *uuid_buf);
 
 /**
  * @brief Checks if a given universally unique identifier (UUID), in string
@@ -380,11 +442,39 @@ int sol_util_uuid_gen(bool upcase, bool with_hyphens, char id[SOL_STATIC_ARRAY_S
  *
  * All upcase/downcase, hyphenated/non-hyphenated cases are included.
  *
- * @param str The given UUID.
+ * @param uuid The given UUID formatted in a string, with or without hyphens.
  *
  * @return @c true if it's valid, @c false otherwise.
  */
-bool sol_util_uuid_str_valid(const char *str);
+bool sol_util_uuid_str_is_valid(const struct sol_str_slice uuid);
+
+/**
+ * @brief Convert an UUID in byte format to UUID string format.
+ *
+ * @param uppercase Whether to create the UUID string in uppercase or not
+ * @param with_hyphens Format the resulting UUID string with hyphens
+ *                     (e.g. "de305d54-75b4-431b-adb2-eb6b9e546014") or
+ *                     without them.
+ * @param uuid_bytes A 16 byte array containing the UUID in byte format.
+ * @param uuid_str n initialized buffer to be used to append the converted uuid.
+ *        It will have 36 bytes of length if with_hyphens is true or 32 bytes
+ *        of length if with_hyphens is false.
+ *
+ * @return 0 on success, negative error code otherwise.
+ */
+int sol_util_uuid_string_from_bytes(bool uppercase, bool with_hyphens, const uint8_t uuid_bytes[SOL_STATIC_ARRAY_SIZE(16)], struct sol_buffer *uuid_str);
+
+/**
+ * @brief Convert an UUID in string format to a byte array with UUID bytes.
+ *
+ * @param uuid_str The UUID in string format, with or without hyphens, using
+ *        lowercase or uppercase characters.
+ * @param uuid_bytes an initialized buffer to be used to append the converted uuid,
+ *        totalizing 16 bytes.
+ *
+ * @return 0 on success, negative error code otherwise.
+ */
+int sol_util_uuid_bytes_from_string(struct sol_str_slice uuid_str, struct sol_buffer *uuid_bytes);
 
 /**
  * @brief Restricts a number between two other numbers.
@@ -551,7 +641,7 @@ ssize_t sol_util_base16_encode(void *buf, size_t buflen, const struct sol_str_sl
  *        slice.len / 2.
  * @param slice the slice to decode, it must be a set of 0-9 or
  *        letters A-F (if uppercase) or a-f, otherwise decode fails.
- * @param decode_case if SOL_DECODE_UPERCASE, uppercase letters ABCDEF are
+ * @param decode_case if SOL_DECODE_UPPERCASE, uppercase letters ABCDEF are
  *        used, if SOL_DECODE_LOWERCASE, lowercase abcdef are used instead.
  *        If SOL_DECODE_BOTH both, lowercase and uppercase, letters can be
  *        used.
@@ -632,13 +722,13 @@ sol_util_base16_calculate_decoded_len(const struct sol_str_slice slice)
  * @param len The buf length
  */
 static inline void
-sol_util_secure_clear_memory(void *buf, size_t len)
+sol_util_clear_memory_secure(void *buf, size_t len)
 {
     memset(buf, 0, len);
 
     /* Clobber memory pointed to by `buf` to prevent the optimizer from
      * eliding the memset() call.  */
-    asm volatile ("" : : "g" (buf) : "memory");
+    __asm__ __volatile__ ("" : : "g" (buf) : "memory");
 }
 
 /**
@@ -670,7 +760,7 @@ sol_util_secure_clear_memory(void *buf, size_t len)
  *         NAN, @c INF (positive or negative). See the strtod(3)
  *         documentation for the details.
  */
-double sol_util_strtodn(const char *nptr, char **endptr, ssize_t len, bool use_locale);
+double sol_util_strtod_n(const char *nptr, char **endptr, ssize_t len, bool use_locale);
 
 /**
  * @brief Wrapper over strtol() that consumes up to @c len bytes
@@ -689,14 +779,14 @@ double sol_util_strtodn(const char *nptr, char **endptr, ssize_t len, bool use_l
  * @param len use at most this amount of bytes of @a nptr. If -1, assumes
  *        nptr has a trailing NUL and calculate the string length.
  *
- * @param base it's the base of convertion, which must be between 2
+ * @param base it's the base of conversion, which must be between 2
  *        and 36 inclusive, or be the special value 0.
  *        A zero base is taken as 10 (decimal) unless the next character
  *        is '0', in which case it  is  taken as 8 (octal).
  *
  * @return the converted value, if any.
  */
-long int sol_util_strtol(const char *nptr, char **endptr, ssize_t len, int base);
+long int sol_util_strtol_n(const char *nptr, char **endptr, ssize_t len, int base);
 
 /**
  * @brief Wrapper over strtoul() that consumes up to @c len bytes
@@ -715,19 +805,19 @@ long int sol_util_strtol(const char *nptr, char **endptr, ssize_t len, int base)
  * @param len use at most this amount of bytes of @a nptr. If -1, assumes
  *        nptr has a trailing NUL and calculate the string length.
  *
- * @param base it's the base of convertion, which must be between 2
+ * @param base it's the base of conversion, which must be between 2
  *        and 36 inclusive, or be the special value 0.
  *        A zero base is taken as 10 (decimal) unless the next character
  *        is '0', in which case it  is  taken as 8 (octal).
  *
  * @return the converted value, if any.
  */
-unsigned long int sol_util_strtoul(const char *nptr, char **endptr, ssize_t len, int base);
+unsigned long int sol_util_strtoul_n(const char *nptr, char **endptr, ssize_t len, int base);
 
 /**
  * @brief Swaps the bytes of a 16 bytes unsigned int
  */
-#define sol_uint16_bytes_swap(val) \
+#define sol_util_uint16_bytes_swap(val) \
     ((uint16_t)((((val) >> 8) & 0xff) | (((val) & 0xff) << 8)))
 
 /**
@@ -746,7 +836,7 @@ static inline uint16_t
 sol_util_cpu_to_be16(uint16_t val)
 {
 #if __BYTE_ORDER__ == __ORDER_LITTLE_ENDIAN__
-    return sol_uint16_bytes_swap(val);
+    return sol_util_uint16_bytes_swap(val);
 #else
     return val;
 #endif
@@ -768,7 +858,7 @@ static inline uint16_t
 sol_util_cpu_to_le16(uint16_t val)
 {
 #if __BYTE_ORDER__ == __ORDER_BIG_ENDIAN__
-    return sol_uint16_bytes_swap(val);
+    return sol_util_uint16_bytes_swap(val);
 #else
     return val;
 #endif
@@ -790,7 +880,7 @@ static inline uint16_t
 sol_util_be16_to_cpu(uint16_t val)
 {
 #if __BYTE_ORDER__ == __ORDER_LITTLE_ENDIAN__
-    return sol_uint16_bytes_swap(val);
+    return sol_util_uint16_bytes_swap(val);
 #else
     return val;
 #endif
@@ -812,7 +902,7 @@ static inline uint16_t
 sol_util_le16_to_cpu(uint16_t val)
 {
 #if __BYTE_ORDER__ == __ORDER_BIG_ENDIAN__
-    return sol_uint16_bytes_swap(val);
+    return sol_util_uint16_bytes_swap(val);
 #else
     return val;
 #endif
@@ -821,7 +911,7 @@ sol_util_le16_to_cpu(uint16_t val)
 /**
  * @brief Swaps the bytes of a 32 bytes unsigned int
  */
-#define sol_uint32_bytes_swap(val) \
+#define sol_util_uint32_bytes_swap(val) \
     ((uint32_t)((((val) & 0xff000000) >> 24) | (((val) & 0x00ff0000) >>  8) | \
     (((val) & 0x0000ff00) <<  8) | (((val) & 0x000000ff) << 24)))
 
@@ -841,7 +931,7 @@ static inline uint32_t
 sol_util_cpu_to_be32(uint32_t val)
 {
 #if __BYTE_ORDER__ == __ORDER_LITTLE_ENDIAN__
-    return sol_uint32_bytes_swap(val);
+    return sol_util_uint32_bytes_swap(val);
 #else
     return val;
 #endif
@@ -863,7 +953,7 @@ static inline uint32_t
 sol_util_cpu_to_le32(uint32_t val)
 {
 #if __BYTE_ORDER__ == __ORDER_BIG_ENDIAN__
-    return sol_uint32_bytes_swap(val);
+    return sol_util_uint32_bytes_swap(val);
 #else
     return val;
 #endif
@@ -885,7 +975,7 @@ static inline uint32_t
 sol_util_be32_to_cpu(uint32_t val)
 {
 #if __BYTE_ORDER__ == __ORDER_LITTLE_ENDIAN__
-    return sol_uint32_bytes_swap(val);
+    return sol_util_uint32_bytes_swap(val);
 #else
     return val;
 #endif
@@ -907,7 +997,7 @@ static inline uint32_t
 sol_util_le32_to_cpu(uint32_t val)
 {
 #if __BYTE_ORDER__ == __ORDER_BIG_ENDIAN__
-    return sol_uint32_bytes_swap(val);
+    return sol_util_uint32_bytes_swap(val);
 #else
     return val;
 #endif
@@ -916,7 +1006,7 @@ sol_util_le32_to_cpu(uint32_t val)
 /**
  * @brief Swaps the bytes of a 32 bytes unsigned int
  */
-#define sol_uint64_bytes_swap(val) \
+#define sol_util_uint64_bytes_swap(val) \
     ((uint64_t)((((val) & 0xff00000000000000ull) >> 56) \
     | (((val) & 0x00ff000000000000ull) >> 40) | (((val) & 0x0000ff0000000000ull) >> 24) \
     | (((val) & 0x000000ff00000000ull) >> 8) | (((val) & 0x00000000ff000000ull) << 8) \
@@ -939,7 +1029,7 @@ static inline uint64_t
 sol_util_cpu_to_be64(uint64_t val)
 {
 #if __BYTE_ORDER__ == __ORDER_LITTLE_ENDIAN__
-    return sol_uint64_bytes_swap(val);
+    return sol_util_uint64_bytes_swap(val);
 #else
     return val;
 #endif
@@ -961,7 +1051,7 @@ static inline uint64_t
 sol_util_cpu_to_le64(uint64_t val)
 {
 #if __BYTE_ORDER__ == __ORDER_BIG_ENDIAN__
-    return sol_uint64_bytes_swap(val);
+    return sol_util_uint64_bytes_swap(val);
 #else
     return val;
 #endif
@@ -983,7 +1073,7 @@ static inline uint64_t
 sol_util_be64_to_cpu(uint64_t val)
 {
 #if __BYTE_ORDER__ == __ORDER_LITTLE_ENDIAN__
-    return sol_uint64_bytes_swap(val);
+    return sol_util_uint64_bytes_swap(val);
 #else
     return val;
 #endif
@@ -1005,7 +1095,7 @@ static inline uint64_t
 sol_util_le64_to_cpu(uint64_t val)
 {
 #if __BYTE_ORDER__ == __ORDER_BIG_ENDIAN__
-    return sol_uint64_bytes_swap(val);
+    return sol_util_uint64_bytes_swap(val);
 #else
     return val;
 #endif
@@ -1024,6 +1114,36 @@ sol_util_le64_to_cpu(uint64_t val)
  * @return 0 on success, negative errno otherwise.
  */
 int sol_util_unescape_quotes(const struct sol_str_slice slice, struct sol_buffer *buf);
+
+
+/**
+ * @brief Wrapper around strftime()/strftime_l()
+ *
+ * This is a simple wrapper around strftime()/strftime_l() functions. The
+ * @c use_locale parameter is only considered if strftime_l() and newlocale() are
+ * available, otherwise this wrapper will fallback to strftime() - Thus current system's
+ * locale will be considered when formatting the time.
+ *
+ * @param buf The buffer to append the formatted time to - It must be already initialzed.
+ * @param format The date format - check strftime man page for accepted formats.
+ * @param timeptr The broken down time struct.
+ * @param use_locale true to use current system locale or false to do not use system's locale.
+ * @return The number of bytes written, negative errno or 0 on error. (see strftime man page).
+ */
+ssize_t sol_util_strftime(struct sol_buffer *buf, const char *format, const struct tm *timeptr, bool use_locale) SOL_ATTR_STRFTIME(2);
+
+/**
+ * @brief Checks @c var0 and @c var1 for equality.
+ *
+ * It uses relative comparison to account for impressions caused by floating point arithmetics,
+ * so give preference to use this function instead of comparing the numbers directly.
+ *
+ * @param var0 First argument
+ * @param var1 Second argument
+ *
+ * @return @c true if both values are equal, @c false otherwise.
+ */
+bool sol_util_double_equal(double var0, double var1);
 
 /**
  * @}

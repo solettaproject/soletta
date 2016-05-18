@@ -55,7 +55,7 @@ test_align_power2(void)
         { 17, 32 },
     };
 
-    for (i = 0; i < SOL_UTIL_ARRAY_SIZE(table); i++) {
+    for (i = 0; i < sol_util_array_size(table); i++) {
         unsigned int actual;
         actual = align_power2(table[i].input);
 
@@ -225,7 +225,7 @@ test_strtodn(void)
             continue;
         }
 
-        value = sol_util_strtodn(buf, &endptr, slen, itr->use_locale);
+        value = sol_util_strtod_n(buf, &endptr, slen, itr->use_locale);
         reterr = errno;
 
         endptr_offset = endptr - buf;
@@ -238,7 +238,7 @@ test_strtodn(void)
             wanted_endptr_offset = slen;
 
         if (itr->expected_errno == 0 && reterr == 0) {
-            if (sol_drange_val_equal(itr->reference, value)) {
+            if (sol_util_double_equal(itr->reference, value)) {
                 SOL_DBG("OK: parsed '%s' as %g (locale:%u)", itr->str, value,
                     itr->use_locale);
             } else {
@@ -267,7 +267,7 @@ test_strtodn(void)
                     itr->expected_errno, sol_util_strerrora(itr->expected_errno),
                     reterr, sol_util_strerrora(reterr), value, itr->use_locale);
                 FAIL();
-            } else if (!sol_drange_val_equal(itr->reference, value)) {
+            } else if (!sol_util_double_equal(itr->reference, value)) {
                 SOL_WRN("FAILED: parsing '%s' should result in %.64g"
                     ", but got %.64g (difference = %g) (locale:%u)",
                     itr->str, itr->reference, value, itr->reference - value,
@@ -306,7 +306,7 @@ test_base64_encode(void)
 
     slice = sol_str_slice_from_str(instr);
 
-    for (i = 0; i < SOL_UTIL_ARRAY_SIZE(expectstrs); i++) {
+    for (i = 0; i < sol_util_array_size(expectstrs); i++) {
         struct sol_str_slice exp = sol_str_slice_from_str(expectstrs[i]);
 
         memset(outstr, 0xff, sizeof(outstr));
@@ -339,7 +339,7 @@ test_base64_decode(void)
 
     exp = sol_str_slice_from_str(expstr);
 
-    for (i = 0; i < SOL_UTIL_ARRAY_SIZE(instrs); i++) {
+    for (i = 0; i < sol_util_array_size(instrs); i++) {
         slice = sol_str_slice_from_str(instrs[i]);
 
         memset(outstr, 0xff, sizeof(outstr));
@@ -414,7 +414,7 @@ test_base16_decode(void)
         if (i == 0)
             decode_case = SOL_DECODE_LOWERCASE;
         else if (i == 1)
-            decode_case = SOL_DECODE_UPERCASE;
+            decode_case = SOL_DECODE_UPPERCASE;
         else
             decode_case = SOL_DECODE_BOTH;
 
@@ -432,14 +432,14 @@ test_base16_decode(void)
 
         memset(outstr, 0xff, sizeof(outstr));
         r = sol_util_base16_decode(outstr, sizeof(outstr), slice, !i ?
-            SOL_DECODE_UPERCASE : SOL_DECODE_LOWERCASE);
+            SOL_DECODE_UPPERCASE : SOL_DECODE_LOWERCASE);
     }
 
     /* short sequence (not multiple of 2) */
     slice = sol_str_slice_from_str("1");
     memset(outstr, 0xff, sizeof(outstr));
     r = sol_util_base16_decode(outstr, sizeof(outstr), slice,
-        SOL_DECODE_UPERCASE);
+        SOL_DECODE_UPPERCASE);
     ASSERT_INT_EQ(r, -EINVAL);
 }
 
@@ -475,7 +475,7 @@ test_unicode_utf_conversion(void)
     uint8_t read, written;
 
     str_len = sizeof(utf8_string);
-    for (i = 0; i < SOL_UTIL_ARRAY_SIZE(unicode_codes); i++) {
+    for (i = 0; i < sol_util_array_size(unicode_codes); i++) {
         code = sol_util_unicode_code_from_utf8(p, str_len, &read);
         ASSERT_INT_EQ(code, unicode_codes[i]);
 
@@ -501,7 +501,7 @@ test_unicode_utf_conversion(void)
     r = sol_util_utf8_from_unicode_code(utf8_buf, 0, 0x0);
     ASSERT_INT_EQ(r, -EINVAL);
 
-    for (i = 0; i < SOL_UTIL_ARRAY_SIZE(invalid_utf8); i++) {
+    for (i = 0; i < sol_util_array_size(invalid_utf8); i++) {
         code = sol_util_unicode_code_from_utf8(invalid_utf8[i],
             sizeof(invalid_utf8[i]), NULL);
         ASSERT_INT_EQ(code, -EINVAL);
@@ -521,33 +521,33 @@ test_escape_quotes(void)
     } escape_tests[] = {
         //Cases where that copy is not necessary.
         { SOL_STR_SLICE_LITERAL("x"), SOL_STR_SLICE_LITERAL("x"), 0,
-          SOL_BUFFER_FLAGS_MEMORY_NOT_OWNED | SOL_BUFFER_FLAGS_NO_NUL_BYTE },
+          SOL_BUFFER_FLAGS_MEMORY_NOT_OWNED },
         { SOL_STR_SLICE_LITERAL("    x"), SOL_STR_SLICE_LITERAL("x"), 0,
-          SOL_BUFFER_FLAGS_MEMORY_NOT_OWNED | SOL_BUFFER_FLAGS_NO_NUL_BYTE },
+          SOL_BUFFER_FLAGS_MEMORY_NOT_OWNED },
         { SOL_STR_SLICE_LITERAL("x    "), SOL_STR_SLICE_LITERAL("x"), 0,
-          SOL_BUFFER_FLAGS_MEMORY_NOT_OWNED | SOL_BUFFER_FLAGS_NO_NUL_BYTE },
+          SOL_BUFFER_FLAGS_MEMORY_NOT_OWNED },
         { SOL_STR_SLICE_LITERAL("'x'"), SOL_STR_SLICE_LITERAL("x"), 0,
-          SOL_BUFFER_FLAGS_MEMORY_NOT_OWNED | SOL_BUFFER_FLAGS_NO_NUL_BYTE },
+          SOL_BUFFER_FLAGS_MEMORY_NOT_OWNED },
         { SOL_STR_SLICE_LITERAL("\"x\""), SOL_STR_SLICE_LITERAL("x"), 0,
-          SOL_BUFFER_FLAGS_MEMORY_NOT_OWNED | SOL_BUFFER_FLAGS_NO_NUL_BYTE },
+          SOL_BUFFER_FLAGS_MEMORY_NOT_OWNED },
         { SOL_STR_SLICE_LITERAL("    \"x\""), SOL_STR_SLICE_LITERAL("x"), 0,
-          SOL_BUFFER_FLAGS_MEMORY_NOT_OWNED | SOL_BUFFER_FLAGS_NO_NUL_BYTE },
+          SOL_BUFFER_FLAGS_MEMORY_NOT_OWNED },
         { SOL_STR_SLICE_LITERAL("\"x\"     "), SOL_STR_SLICE_LITERAL("x"), 0,
-          SOL_BUFFER_FLAGS_MEMORY_NOT_OWNED | SOL_BUFFER_FLAGS_NO_NUL_BYTE },
+          SOL_BUFFER_FLAGS_MEMORY_NOT_OWNED  },
         { SOL_STR_SLICE_LITERAL("    \"x\"    "), SOL_STR_SLICE_LITERAL("x"), 0,
-          SOL_BUFFER_FLAGS_MEMORY_NOT_OWNED | SOL_BUFFER_FLAGS_NO_NUL_BYTE },
+          SOL_BUFFER_FLAGS_MEMORY_NOT_OWNED },
         { SOL_STR_SLICE_LITERAL("'Locale'"), SOL_STR_SLICE_LITERAL("Locale"), 0,
-          SOL_BUFFER_FLAGS_MEMORY_NOT_OWNED | SOL_BUFFER_FLAGS_NO_NUL_BYTE },
+          SOL_BUFFER_FLAGS_MEMORY_NOT_OWNED },
         { SOL_STR_SLICE_LITERAL("\"My String\""), SOL_STR_SLICE_LITERAL("My String"), 0,
-          SOL_BUFFER_FLAGS_MEMORY_NOT_OWNED | SOL_BUFFER_FLAGS_NO_NUL_BYTE },
+          SOL_BUFFER_FLAGS_MEMORY_NOT_OWNED },
         { SOL_STR_SLICE_LITERAL("      \"My Stri    ng\" "), SOL_STR_SLICE_LITERAL("My Stri    ng"), 0,
-          SOL_BUFFER_FLAGS_MEMORY_NOT_OWNED | SOL_BUFFER_FLAGS_NO_NUL_BYTE },
+          SOL_BUFFER_FLAGS_MEMORY_NOT_OWNED },
         { SOL_STR_SLICE_LITERAL("       "), SOL_STR_SLICE_LITERAL(""), 0,
-          SOL_BUFFER_FLAGS_MEMORY_NOT_OWNED | SOL_BUFFER_FLAGS_NO_NUL_BYTE },
+          SOL_BUFFER_FLAGS_MEMORY_NOT_OWNED },
         { SOL_STR_SLICE_LITERAL("I'm good"), SOL_STR_SLICE_LITERAL("I'm good"), 0,
-          SOL_BUFFER_FLAGS_MEMORY_NOT_OWNED | SOL_BUFFER_FLAGS_NO_NUL_BYTE },
+          SOL_BUFFER_FLAGS_MEMORY_NOT_OWNED },
         { SOL_STR_SLICE_LITERAL("Hello"), SOL_STR_SLICE_LITERAL("Hello"), 0,
-          SOL_BUFFER_FLAGS_MEMORY_NOT_OWNED | SOL_BUFFER_FLAGS_NO_NUL_BYTE },
+          SOL_BUFFER_FLAGS_MEMORY_NOT_OWNED },
 
         { SOL_STR_SLICE_LITERAL("I 'like' you"), SOL_STR_SLICE_LITERAL("I like you"), 0,
           SOL_BUFFER_FLAGS_DEFAULT },
@@ -579,7 +579,7 @@ test_escape_quotes(void)
     };
     size_t i;
 
-    for (i = 0; i < SOL_UTIL_ARRAY_SIZE(escape_tests); i++) {
+    for (i = 0; i < sol_util_array_size(escape_tests); i++) {
         struct sol_buffer buf;
         int r;
 
@@ -591,6 +591,76 @@ test_escape_quotes(void)
         ASSERT(buf.flags == escape_tests[i].flags);
         sol_buffer_fini(&buf);
     }
+}
+
+DEFINE_TEST(test_uuid_functions);
+
+static void
+test_uuid_functions(void)
+{
+    SOL_BUFFER_DECLARE_STATIC(buf, 37);
+    struct sol_str_slice
+        uuid_uh = SOL_STR_SLICE_LITERAL("9FD636DD-FF84-4075-8AE7-D55F2F7BA190"),
+        uuid_lh = SOL_STR_SLICE_LITERAL("9fd636dd-ff84-4075-8ae7-d55f2f7ba190"),
+        uuid_u = SOL_STR_SLICE_LITERAL("9FD636DDFF8440758AE7D55F2F7BA190"),
+        uuid_l = SOL_STR_SLICE_LITERAL("9fd636ddff8440758ae7d55f2f7ba190"),
+        uuid_invalid = SOL_STR_SLICE_LITERAL("9fd6-6dd1ff841407518ae71d5-f2f7ba190"),
+        uuid_invalid2 = SOL_STR_SLICE_LITERAL("9fd636ddff8440758ae7d55-2f7ba190"),
+        uuid_invalid3 = SOL_STR_SLICE_LITERAL("9fd636ddff8440758ae7d552f7ba190");
+    const uint8_t uuid_bytes[16] = { 0x9F, 0xD6, 0x36, 0xDD, 0xFF, 0x84, 0x40,
+                                     0x75, 0x8A, 0xE7, 0xD5, 0x5F, 0x2F, 0x7B,
+                                     0xA1, 0x90 };
+
+    //UUID string to bytes
+    ASSERT_INT_EQ(sol_util_uuid_bytes_from_string(uuid_uh, &buf), 0);
+    ASSERT_INT_EQ(buf.used, sizeof(uuid_bytes));
+    ASSERT_INT_EQ(memcmp(buf.data, uuid_bytes, sizeof(uuid_bytes)), 0);
+
+    buf.used = 0;
+    ASSERT_INT_EQ(sol_util_uuid_bytes_from_string(uuid_lh, &buf), 0);
+    ASSERT_INT_EQ(buf.used, sizeof(uuid_bytes));
+    ASSERT_INT_EQ(memcmp(buf.data, uuid_bytes, sizeof(uuid_bytes)), 0);
+
+    buf.used = 0;
+    ASSERT_INT_EQ(sol_util_uuid_bytes_from_string(uuid_u, &buf), 0);
+    ASSERT_INT_EQ(buf.used, sizeof(uuid_bytes));
+    ASSERT_INT_EQ(memcmp(buf.data, uuid_bytes, sizeof(uuid_bytes)), 0);
+
+    buf.used = 0;
+    ASSERT_INT_EQ(sol_util_uuid_bytes_from_string(uuid_l, &buf), 0);
+    ASSERT_INT_EQ(buf.used, sizeof(uuid_bytes));
+    ASSERT_INT_EQ(memcmp(buf.data, uuid_bytes, sizeof(uuid_bytes)), 0);
+
+    //UUID bytes to string
+    buf.used = 0;
+    ASSERT_INT_EQ(sol_util_uuid_string_from_bytes(true, true, uuid_bytes,
+        &buf), 0);
+    ASSERT(sol_str_slice_str_eq(uuid_uh, buf.data));
+
+    buf.used = 0;
+    ASSERT_INT_EQ(sol_util_uuid_string_from_bytes(true, false, uuid_bytes,
+        &buf), 0);
+    ASSERT(sol_str_slice_str_eq(uuid_u, buf.data));
+
+    buf.used = 0;
+    ASSERT_INT_EQ(sol_util_uuid_string_from_bytes(false, true, uuid_bytes,
+        &buf), 0);
+    ASSERT(sol_str_slice_str_eq(uuid_lh, buf.data));
+
+    buf.used = 0;
+    ASSERT_INT_EQ(sol_util_uuid_string_from_bytes(false, false, uuid_bytes,
+        &buf), 0);
+    ASSERT(sol_str_slice_str_eq(uuid_l, buf.data));
+
+    //UUID validation
+    ASSERT(sol_util_uuid_str_is_valid(uuid_uh));
+    ASSERT(sol_util_uuid_str_is_valid(uuid_lh));
+    ASSERT(sol_util_uuid_str_is_valid(uuid_u));
+    ASSERT(sol_util_uuid_str_is_valid(uuid_l));
+
+    ASSERT(!sol_util_uuid_str_is_valid(uuid_invalid));
+    ASSERT(!sol_util_uuid_str_is_valid(uuid_invalid2));
+    ASSERT(!sol_util_uuid_str_is_valid(uuid_invalid3));
 }
 
 TEST_MAIN();

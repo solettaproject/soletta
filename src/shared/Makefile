@@ -6,13 +6,13 @@ obj-libshared-y := \
     sol-util.o \
     sol-random.o
 
-obj-libshared-$(FLOW_SUPPORT) += \
+obj-libshared-$(USE_FLOW) += \
     sol-fbp-graph.o \
     sol-fbp-internal-scanner.o \
     sol-fbp-parser.o
 
 ifeq (y,$(LOG))
-obj-libshared-$(FLOW_SUPPORT) += \
+obj-libshared-$(USE_FLOW) += \
     sol-fbp-internal-log.o
 endif
 
@@ -36,8 +36,11 @@ obj-libshared-$(PLATFORM_ZEPHYR) += \
 
 obj-libshared-y-extra-cflags += -fvisibility=default
 
+obj-libshared-y-extra-ldflags += -lm
+
 headers-y += \
     include/sol-util.h
 
 headers-$(FEATURE_FILESYSTEM) += \
-    include/sol-util-file.h
+    include/sol-util-file.h \
+    include/sol-file-reader.h

@@ -26,6 +26,8 @@ SOL_LOG_INTERNAL_DECLARE_STATIC(_log_domain, "i2c");
 #ifdef USE_PIN_MUX
 #include "sol-pin-mux.h"
 #endif
+#include "sol-str-table.h"
+#include "sol-util.h"
 #include "sol-vector.h"
 
 struct sol_i2c_shared {
@@ -91,4 +93,39 @@ sol_i2c_close(struct sol_i2c *i2c)
             break;
         }
     }
+}
+
+SOL_API enum sol_i2c_speed
+sol_i2c_speed_from_str(const char *speed)
+{
+    static const struct sol_str_table table[] = {
+        SOL_STR_TABLE_ITEM("10kbps", SOL_I2C_SPEED_10KBIT),
+        SOL_STR_TABLE_ITEM("100kbps", SOL_I2C_SPEED_100KBIT),
+        SOL_STR_TABLE_ITEM("400kbps", SOL_I2C_SPEED_400KBIT),
+        SOL_STR_TABLE_ITEM("1000kbps", SOL_I2C_SPEED_1MBIT),
+        SOL_STR_TABLE_ITEM("3400kbps", SOL_I2C_SPEED_3MBIT_400KBIT),
+        { }
+    };
+
+    SOL_NULL_CHECK(speed, SOL_I2C_SPEED_10KBIT);
+
+    return sol_str_table_lookup_fallback(table,
+        sol_str_slice_from_str(speed), SOL_I2C_SPEED_10KBIT);
+}
+
+SOL_API const char *
+sol_i2c_speed_to_str(enum sol_i2c_speed speed)
+{
+    static const char *speed_names[] = {
+        [SOL_I2C_SPEED_10KBIT] = "10kbps",
+        [SOL_I2C_SPEED_100KBIT] = "100kbps",
+        [SOL_I2C_SPEED_400KBIT] = "400kbps",
+        [SOL_I2C_SPEED_1MBIT] = "1000kbps",
+        [SOL_I2C_SPEED_3MBIT_400KBIT] = "3400kbps"
+    };
+
+    if (speed < sol_util_array_size(speed_names))
+        return speed_names[speed];
+
+    return NULL;
 }

@@ -132,18 +132,18 @@ _temperature_reading_callback(float temperature, bool success, void *data)
     temperature_out.val = temperature - ZERO_K;
 
     sol_flow_send_drange_packet(mdata->node,
-        SOL_FLOW_NODE_TYPE_AM2315_TEMPERATURE__OUT__KELVIN, &temperature_out);
+        SOL_FLOW_NODE_TYPE_AM2315_THERMOMETER__OUT__KELVIN, &temperature_out);
 }
 
 static int
 temperature_am2315_open(struct sol_flow_node *node, void *data, const struct sol_flow_node_options *options)
 {
     struct am2315_data *mdata = data;
-    const struct sol_flow_node_type_am2315_temperature_options *opts;
+    const struct sol_flow_node_type_am2315_thermometer_options *opts;
 
-    SOL_FLOW_NODE_OPTIONS_SUB_API_CHECK(options, SOL_FLOW_NODE_TYPE_AM2315_TEMPERATURE_OPTIONS_API_VERSION,
+    SOL_FLOW_NODE_OPTIONS_SUB_API_CHECK(options, SOL_FLOW_NODE_TYPE_AM2315_THERMOMETER_OPTIONS_API_VERSION,
         -EINVAL);
-    opts = (const struct sol_flow_node_type_am2315_temperature_options *)options;
+    opts = (const struct sol_flow_node_type_am2315_thermometer_options *)options;
 
     mdata->device = am2315_open(opts->i2c_bus, opts->i2c_slave);
     if (!mdata->device) {

@@ -66,7 +66,7 @@ _calculate_result(struct compass_data *mdata)
     _normalize_data(mdata);
 
     pitch = asin(-mdata->accel.x);
-    if (!sol_drange_val_equal(fabs(pitch), M_PI / 2))
+    if (!sol_util_double_equal(fabs(pitch), M_PI / 2))
         roll = asin(mdata->accel.y / cos(pitch));
     else
         roll = 0.0;

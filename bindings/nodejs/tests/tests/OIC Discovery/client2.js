@@ -20,7 +20,7 @@ var messagePrefix = "Client 2: ";
 var async = require( "async" );
 var _ = require( "lodash" );
 var soletta = require( require( "path" )
-	.join( require( "../../closestSoletta" )( __dirname ), "lowlevel" ) );
+	.join( require( "bindings" ).getRoot( __filename ), "lowlevel" ) );
 var testUtils = require( "../../assert-to-console" );
 var discoveryCallbackCount = 0;
 var theResource;
@@ -48,10 +48,10 @@ var defaultAddress = {
 
 async.series( [
 	function waitForDiscoveryToComplete( callback ) {
-		soletta.sol_oic_client_find_resource( client, destination, "",
+		soletta.sol_oic_client_find_resources( client, destination, "", "",
 			function( client, resource ) {
 				discoveryCallbackCount++;
-				if ( resource && resource.href === "/a/" + process.argv[ 2 ] ) {
+				if ( resource && resource.path === "/a/" + process.argv[ 2 ] ) {
 					theResource = resource;
 				}
 				if ( !resource ) {
@@ -63,11 +63,11 @@ async.series( [
 			} );
 	},
 	function tellServerImDone( callback ) {
-		soletta.sol_oic_client_resource_request( client, theResource,
-			soletta.sol_coap_method_t.SOL_COAP_METHOD_PUT, { uuid: process.argv[ 2 ] },
+		soletta.sol_oic_client_request( client, theResource,
+			soletta.sol_coap_method.SOL_COAP_METHOD_PUT, { uuid: process.argv[ 2 ] },
 				function( code, client, address, response ) {
 					testUtils.assert( "strictEqual", code,
-						soletta.sol_coap_responsecode_t.SOL_COAP_RSPCODE_OK,
+						soletta.sol_coap_response_code.SOL_COAP_RESPONSE_CODE_OK,
 						messagePrefix + "server acknowledged PUT request" );
 
 					// If the server has heard from all of us clients, we can conclude the test

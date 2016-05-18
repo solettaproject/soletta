@@ -112,12 +112,12 @@ struct sol_bus_client;
 /**
  * Opens and returns an connection to the system bus.
  *
- * @param bus_initialized Called when the connection is ready.
+ * @param bus_initialized Called when the connection is ready - It should return 0 on success, -errno on error.
  *
  * @return \a sd_bus pointer when the connection could be made
  *         NULL in case of failure.
  **/
-sd_bus *sol_bus_get(void (*bus_initialized)(sd_bus *bus));
+sd_bus *sol_bus_get(int (*bus_initialized)(sd_bus *bus));
 
 /**
  * Closes the connection to the system bus.
@@ -127,7 +127,7 @@ void sol_bus_close(void);
 /**
  * Creates a new #sol_bus_client instance.
  *
- * Most of the other operations depend on the existance of a remote client.
+ * Most of the other operations depend on the existence of a remote client.
  *
  * @param bus Connection to a D-Bus bus (system, session or private)
  * @param service Name of the service to be monitored, per the D-Bus specification,

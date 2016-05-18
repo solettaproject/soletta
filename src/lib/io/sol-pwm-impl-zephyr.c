@@ -153,7 +153,7 @@ sol_pwm_set_period(struct sol_pwm *pwm, uint32_t period_ns)
     ret = pwm_pin_set_values(pwm->dev, pwm->channel,
         pwm->duty_cycle, pwm->period - pwm->duty_cycle);
 
-    return ret == DEV_OK;
+    return ret == 0;
 }
 
 SOL_API int32_t
@@ -177,7 +177,7 @@ sol_pwm_set_duty_cycle(struct sol_pwm *pwm, uint32_t duty_cycle_ns)
     ret = pwm_pin_set_values(pwm->dev, pwm->channel,
         pwm->duty_cycle, pwm->period - pwm->duty_cycle);
 
-    return ret == DEV_OK;
+    return ret == 0;
 }
 
 SOL_API int32_t

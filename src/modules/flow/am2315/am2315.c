@@ -242,7 +242,7 @@ _read_data(void *data)
         goto error;
     }
 
-    /* Read 8 bytes: 1st is the function code, 2nd is data lenght,
+    /* Read 8 bytes: 1st is the function code, 2nd is data length,
      * 3rd and 4th are humidity hi/lo, 5th and 6th are temperature
      * hi/lo, 7th and 8th are CRC code to validade data. */
     device->i2c_pending = sol_i2c_read(device->i2c, device->buffer,

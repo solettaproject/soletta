@@ -78,8 +78,6 @@ _on_network_event(void *data, const struct sol_network_link *link, enum sol_netw
 {
     char *name;
 
-    SOL_NETWORK_LINK_CHECK_VERSION(link);
-
     if (!_match_link(link))
         return;
 

@@ -21,15 +21,16 @@
 #include <stdlib.h>
 #include <glib.h>
 
+#include "sol-atomic.h"
 #include "sol-mainloop.h"
 #include "sol-worker-thread-impl.h"
 
 struct sol_worker_thread_glib {
-    struct sol_worker_thread_spec spec;
+    struct sol_worker_thread_config config;
     struct sol_idle *idler;
     GMutex lock;
     GThread *thread;
-    bool cancel;
+    sol_atomic_int cancel;
 };
 
 bool
@@ -37,13 +38,13 @@ sol_worker_thread_impl_cancel_check(const void *handle)
 {
     const struct sol_worker_thread_glib *thread = handle;
 
-    return __atomic_load_n(&thread->cancel, __ATOMIC_SEQ_CST);
+    return sol_atomic_load(&thread->cancel, SOL_ATOMIC_RELAXED);
 }
 
 static inline void
 cancel_set(struct sol_worker_thread_glib *thread)
 {
-    __atomic_store_n(&thread->cancel, true, __ATOMIC_SEQ_CST);
+    sol_atomic_store(&thread->cancel, true, SOL_ATOMIC_RELAXED);
 }
 
 static bool
@@ -63,8 +64,8 @@ sol_worker_thread_finished(void *data)
 
     SOL_DBG("worker thread %p finished", thread);
 
-    if (thread->spec.finished)
-        thread->spec.finished((void *)thread->spec.data);
+    if (thread->config.finished)
+        thread->config.finished((void *)thread->config.data);
 
     free(thread);
     return false;
@@ -74,22 +75,22 @@ static gpointer
 sol_worker_thread_do(gpointer data)
 {
     struct sol_worker_thread_glib *thread = data;
-    struct sol_worker_thread_spec *spec = &thread->spec;
+    struct sol_worker_thread_config *config = &thread->config;
 
     SOL_DBG("worker thread %p started", thread);
 
-    if (spec->setup) {
-        if (!spec->setup((void *)spec->data))
+    if (config->setup) {
+        if (!config->setup((void *)config->data))
             goto end;
     }
 
     while (!sol_worker_thread_impl_cancel_check(thread)) {
-        if (!spec->iterate((void *)spec->data))
+        if (!config->iterate((void *)config->data))
             break;
     }
 
-    if (spec->cleanup)
-        spec->cleanup((void *)spec->data);
+    if (config->cleanup)
+        config->cleanup((void *)config->data);
 
 end:
     g_mutex_lock(&thread->lock);
@@ -104,21 +105,21 @@ end:
 }
 
 void *
-sol_worker_thread_impl_new(const struct sol_worker_thread_spec *spec)
+sol_worker_thread_impl_new(const struct sol_worker_thread_config *config)
 {
-    static uint16_t thr_cnt = 0;
+    static sol_atomic_uint thr_cnt = SOL_ATOMIC_INIT(0u);
     struct sol_worker_thread_glib *thread;
     char name[16];
 
     thread = calloc(1, sizeof(*thread));
     SOL_NULL_CHECK(thread, NULL);
 
-    thread->spec = *spec;
+    thread->config = *config;
 
     g_mutex_init(&thread->lock);
 
     snprintf(name, 16, "thr-%u",
-        __atomic_fetch_add(&thr_cnt, 1, __ATOMIC_SEQ_CST));
+        sol_atomic_fetch_add(&thr_cnt, 1, SOL_ATOMIC_RELAXED));
     thread->thread = g_thread_new(name, sol_worker_thread_do, thread);
     SOL_NULL_CHECK_GOTO(thread->thread, error_thread);
 
@@ -147,8 +148,8 @@ sol_worker_thread_impl_cancel(void *handle)
 
     cancel_set(thread);
 
-    if (thread->spec.cancel)
-        thread->spec.cancel((void *)thread->spec.data);
+    if (thread->config.cancel)
+        thread->config.cancel((void *)thread->config.data);
 
     g_thread_join(thread->thread);
     thread->thread = NULL;
@@ -167,7 +168,7 @@ sol_worker_thread_feedback_dispatch(void *data)
     thread->idler = NULL;
     g_mutex_unlock(&thread->lock);
 
-    thread->spec.feedback((void *)thread->spec.data);
+    thread->config.feedback((void *)thread->config.data);
     return false;
 }
 
@@ -177,7 +178,7 @@ sol_worker_thread_impl_feedback(void *handle)
     struct sol_worker_thread_glib *thread = handle;
 
     SOL_NULL_CHECK(thread);
-    SOL_NULL_CHECK(thread->spec.feedback);
+    SOL_NULL_CHECK(thread->config.feedback);
 
     if (sol_worker_thread_impl_cancel_check(thread)) {
         SOL_WRN("worker thread %p is not running.", thread);

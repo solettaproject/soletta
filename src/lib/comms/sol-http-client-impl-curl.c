@@ -203,7 +203,7 @@ write_cb(char *data, size_t size, size_t nmemb, void *connp)
         if (ret < 0)
             return 0;
 
-        r = sol_buffer_remove_data(&connection->buffer, ret, 0);
+        r = sol_buffer_remove_data(&connection->buffer, 0, ret);
         SOL_INT_CHECK(r, < 0, 0);
     }
 
@@ -659,7 +659,7 @@ set_headers_from_params(CURL *curl, const struct sol_http_params *params,
 
         if (sol_str_slice_str_caseeq(key, "Content-Length")) {
             curl_off_t len;
-            len = sol_util_strtol(iter->value.key_value.value.data, NULL,
+            len = sol_util_strtol_n(iter->value.key_value.value.data, NULL,
                 iter->value.key_value.value.len, 0);
 
             curl_easy_setopt(curl, CURLOPT_POSTFIELDSIZE_LARGE, len);
@@ -860,7 +860,7 @@ check_param_api_version(const struct sol_http_params *params)
 {
 #ifndef SOL_NO_API_VERSION
     if (SOL_UNLIKELY(params->api_version != SOL_HTTP_PARAM_API_VERSION)) {
-        SOL_ERR("Parameter has an invalid API version. Expected %u, got %u",
+        SOL_ERR("Parameter has an invalid API version. Expected %" PRIu16 ", got %" PRIu16,
             SOL_HTTP_PARAM_API_VERSION, params->api_version);
         return false;
     }
@@ -1073,8 +1073,8 @@ sol_http_client_request_with_interface(enum sol_http_method method,
 
 #ifndef SOL_NO_API_VERSION
     if (interface->api_version != SOL_HTTP_REQUEST_INTERFACE_API_VERSION) {
-        SOL_WRN("interface->api_version=%hu, "
-            "expected version is %hu.",
+        SOL_WRN("interface->api_version=%" PRIu16 ", "
+            "expected version is %" PRIu16 ".",
             interface->api_version, SOL_HTTP_REQUEST_INTERFACE_API_VERSION);
         return NULL;
     }

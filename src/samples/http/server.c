@@ -149,7 +149,10 @@ startup_server(void)
         goto err_buffer;
     }
 
-    server = sol_http_server_new(port);
+    server = sol_http_server_new(&(struct sol_http_server_config) {
+        SOL_SET_API_VERSION(.api_version = SOL_HTTP_SERVER_CONFIG_API_VERSION, )
+        .port = port,
+    });
     if (!server) {
         fprintf(stderr, "ERROR: Failed to create the server\n");
         goto err_server;

@@ -50,7 +50,7 @@ struct sol_i2c_pending; /**< @brief I2C pending operation handle structure */
 /**
  * @brief Enum for I2C bus speed.
  *
- * Must be choosen when opening a bus with sol_i2c_open() and
+ * Must be chosen when opening a bus with sol_i2c_open() and
  * sol_i2c_open_raw().
  */
 enum sol_i2c_speed {
@@ -60,6 +60,32 @@ enum sol_i2c_speed {
     SOL_I2C_SPEED_1MBIT, /**< flag for fast plus speed */
     SOL_I2C_SPEED_3MBIT_400KBIT /**< flag for high speed */
 };
+
+/**
+ * @brief Converts a string I2C speed to sol_i2c_speed
+ *
+ * This function converts a string I2C speed to enumeration sol_i2c_speed.
+ *
+ * @see sol_i2c_speed_to_str().
+ *
+ * @param speed Valid values are "10kbps", "100kbps", "400kbps", "1000kbps", "3400kbps".
+ *
+ * @return enumeration sol_i2c_speed.
+ */
+enum sol_i2c_speed sol_i2c_speed_from_str(const char *speed) SOL_ATTR_WARN_UNUSED_RESULT;
+
+/**
+ * @brief Converts sol_i2c_speed to a string name.
+ *
+ * This function converts sol_i2c_speed enumeration to a string I2C speed name.
+ *
+ * @see sol_i2c_speed_from_str().
+ *
+ * @param speed sol_i2c_speed.
+ *
+ * @return String representation of the sol_i2c_speed.
+ */
+const char *sol_i2c_speed_to_str(enum sol_i2c_speed speed) SOL_ATTR_WARN_UNUSED_RESULT;
 
 /**
  * @brief Open an I2C bus.

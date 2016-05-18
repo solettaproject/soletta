@@ -29,14 +29,6 @@
 
 using namespace v8;
 
-NAN_METHOD(bind_sol_oic_server_init) {
-    info.GetReturnValue().Set(Nan::New(sol_oic_server_init()));
-}
-
-NAN_METHOD(bind_sol_oic_server_shutdown) {
-    sol_oic_server_shutdown();
-}
-
 class SolOicServerResource : public JSHandle<SolOicServerResource> {
 public:
     static const char *jsClassName() { return "SolOicServerResource"; }
@@ -95,51 +87,57 @@ public:
 };
 
 #define ENTITY_HANDLER_SIGNATURE \
-    const struct sol_network_link_addr *cliaddr, \
-    const void *data, \
-    const struct sol_oic_map_reader *input, \
-    struct sol_oic_map_writer *output
+    void *data, \
+    struct sol_oic_request *request
 
-static sol_coap_responsecode_t entityHandler(ENTITY_HANDLER_SIGNATURE,
+static int entityHandler(ENTITY_HANDLER_SIGNATURE,
     enum OicServerMethod method) {
     Nan::HandleScope scope;
-    sol_coap_responsecode_t returnValue = SOL_COAP_RSPCODE_NOT_IMPLEMENTED;
+    enum sol_coap_response_code returnValue = SOL_COAP_RESPONSE_CODE_NOT_IMPLEMENTED;
     struct ResourceInfo *info = (struct ResourceInfo *)data;
+    struct sol_oic_response *response = NULL;
     Local<Object> outputPayload = Nan::New<Object>();
-    Local<Value> arguments[3] = {
-        js_sol_network_link_addr(cliaddr),
-        js_sol_oic_map_reader(input),
+    Local<Value> arguments[2] = {
+        js_sol_oic_map_reader(sol_oic_server_request_get_reader(request)),
         outputPayload
     };
+    //TODO: Make JS API Async
     Nan::Callback *callback = info->handlers[method];
     if (callback) {
-        Local<Value> jsReturnValue = callback->Call(3, arguments);
+        Local<Value> jsReturnValue = callback->Call(2, arguments);
         VALIDATE_CALLBACK_RETURN_VALUE_TYPE(jsReturnValue, IsUint32,
             "entity handler", returnValue);
-        returnValue = (sol_coap_responsecode_t)
+        returnValue = (enum sol_coap_response_code)
             Nan::To<uint32_t>(jsReturnValue).FromJust();
 
-        if (!c_sol_oic_map_writer(outputPayload, output)) {
+        response = sol_oic_server_response_new(request);
+        if (!response) {
+            Nan::ThrowError("entity handler: Failed to create response");
+        }
+        if (!c_sol_oic_map_writer(outputPayload,
+            sol_oic_server_response_get_writer(response))) {
+            sol_oic_server_response_free(response);
             Nan::ThrowError("entity handler: Failed to encode output payload");
         }
+
     }
-    return returnValue;
+    return sol_oic_server_send_response(request, response, returnValue);
 }
 
-static sol_coap_responsecode_t defaultGet(ENTITY_HANDLER_SIGNATURE) {
-    return entityHandler(cliaddr, data, input, output, OIC_SERVER_GET);
+static int defaultGet(ENTITY_HANDLER_SIGNATURE) {
+    return entityHandler(data, request, OIC_SERVER_GET);
 }
 
-static sol_coap_responsecode_t defaultPut(ENTITY_HANDLER_SIGNATURE) {
-    return entityHandler(cliaddr, data, input, output, OIC_SERVER_PUT);
+static int defaultPut(ENTITY_HANDLER_SIGNATURE) {
+    return entityHandler(data, request, OIC_SERVER_PUT);
 }
 
-static sol_coap_responsecode_t defaultPost(ENTITY_HANDLER_SIGNATURE) {
-    return entityHandler(cliaddr, data, input, output, OIC_SERVER_POST);
+static int defaultPost(ENTITY_HANDLER_SIGNATURE) {
+    return entityHandler(data, request, OIC_SERVER_POST);
 }
 
-static sol_coap_responsecode_t defaultDel(ENTITY_HANDLER_SIGNATURE) {
-    return entityHandler(cliaddr, data, input, output, OIC_SERVER_DEL);
+static int defaultDel(ENTITY_HANDLER_SIGNATURE) {
+    return entityHandler(data, request, OIC_SERVER_DEL);
 }
 
 #define ASSIGN_STR_SLICE_MEMBER_FROM_PROPERTY(to, from, message, member) \
@@ -184,7 +182,7 @@ resource_type_failed:
     return false;
 }
 
-NAN_METHOD(bind_sol_oic_server_add_resource) {
+NAN_METHOD(bind_sol_oic_server_register_resource) {
     VALIDATE_ARGUMENT_COUNT(info, 2);
     VALIDATE_ARGUMENT_TYPE(info, 0, IsObject);
     VALIDATE_ARGUMENT_TYPE(info, 1, IsUint32);
@@ -203,7 +201,7 @@ NAN_METHOD(bind_sol_oic_server_add_resource) {
         return;
     }
 
-    resource = sol_oic_server_add_resource(&resourceType, resourceInfo,
+    resource = sol_oic_server_register_resource(&resourceType, resourceInfo,
         (enum sol_oic_resource_flag)(Nan::To<uint32_t>(info[1]).FromJust()));
     resourceInfo->resource = resource;
 
@@ -218,7 +216,7 @@ NAN_METHOD(bind_sol_oic_server_add_resource) {
     }
 }
 
-NAN_METHOD(bind_sol_oic_server_del_resource) {
+NAN_METHOD(bind_sol_oic_server_unregister_resource) {
     VALIDATE_ARGUMENT_COUNT(info, 1);
     VALIDATE_ARGUMENT_TYPE(info, 0, IsObject);
     Local<Object> jsResourceInfo = Nan::To<Object>(info[0]).ToLocalChecked();
@@ -227,19 +225,27 @@ NAN_METHOD(bind_sol_oic_server_del_resource) {
     if (!resourceInfo) {
         return;
     }
-    sol_oic_server_del_resource(resourceInfo->resource);
+    sol_oic_server_unregister_resource(resourceInfo->resource);
     delete resourceInfo;
     Nan::SetInternalFieldPointer(jsResourceInfo, 0, 0);
 }
 
-NAN_METHOD(bind_sol_oic_notify_observers) {
+NAN_METHOD(bind_sol_oic_server_send_notification_to_observers) {
     VALIDATE_ARGUMENT_COUNT(info, 2);
     VALIDATE_ARGUMENT_TYPE(info, 0, IsObject);
     VALIDATE_ARGUMENT_TYPE_OR_NULL(info, 1, IsObject);
+    struct sol_oic_response *notification;
+    bool result = true;
     struct ResourceInfo *resourceInfo = (struct ResourceInfo *)
         SolOicServerResource::Resolve(
             Nan::To<Object>(info[0]).ToLocalChecked());
     if (!resourceInfo) {
+        return;
+    }
+
+    notification = sol_oic_server_notification_new(resourceInfo->resource);
+    if (!notification) {
+        info.GetReturnValue().Set(Nan::New(false));
         return;
     }
 
@@ -249,9 +255,15 @@ NAN_METHOD(bind_sol_oic_notify_observers) {
             Nan::To<Object>(info[1]).ToLocalChecked());
     }
 
-    info.GetReturnValue().Set(Nan::New(
-        sol_oic_notify_observers(resourceInfo->resource,
-            (jsPayload ? oic_map_writer_callback : 0), jsPayload)));
+    if (jsPayload) {
+        result = oic_map_writer_callback(jsPayload, sol_oic_server_response_get_writer(notification));
+    }
+
+    if (result)
+        result = sol_oic_server_send_notification_to_observers(notification) == 0;
+    else
+        sol_oic_server_response_free(notification);
+    info.GetReturnValue().Set(Nan::New(result));
 
     if (jsPayload) {
         jsPayload->Reset();

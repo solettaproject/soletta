@@ -108,7 +108,6 @@ twitter_request_finished(void *data,
     }
 
     SOL_NULL_CHECK_GOTO(response, err);
-    SOL_HTTP_RESPONSE_CHECK_API_GOTO(response, err);
 
     if (response->response_code != SOL_HTTP_STATUS_OK) {
         SOL_WRN("Response from %s - %d",
@@ -124,17 +123,19 @@ twitter_request_finished(void *data,
         response->content.used);
 
     r = ENOMEM;
-    blob = sol_blob_new(SOL_BLOB_TYPE_DEFAULT, NULL,
+    blob = sol_blob_new(&SOL_BLOB_TYPE_DEFAULT, NULL,
         sol_buffer_steal(&response->content, NULL), response->content.used);
     SOL_NULL_CHECK_GOTO(blob, err);
 
     if (sol_json_is_valid_type(&object_scanner, SOL_JSON_TYPE_OBJECT_START)) {
         r = sol_flow_send_json_object_packet(node,
             SOL_FLOW_NODE_TYPE_TWITTER_CLIENT__OUT__OBJECT, blob);
+        SOL_INT_CHECK_GOTO(r, < 0, err_send);
     } else if (sol_json_is_valid_type(&array_scanner,
         SOL_JSON_TYPE_ARRAY_START)) {
         r = sol_flow_send_json_array_packet(node,
             SOL_FLOW_NODE_TYPE_TWITTER_CLIENT__OUT__ARRAY, blob);
+        SOL_INT_CHECK_GOTO(r, < 0, err_send);
     } else {
         sol_flow_send_error_packet(node, EINVAL, "The json received from:%s"
             " is not valid json-object or json-array", response->url);
@@ -147,7 +148,13 @@ twitter_request_finished(void *data,
 
 err:
     sol_flow_send_error_packet(node, r,
-        "Invalid response from twitter %s", response->url);
+        "Invalid response from twitter %s", response ? response->url : "");
+    return;
+err_send:
+    sol_blob_unref(blob);
+    sol_flow_send_error_packet(node, r,
+        "Could not send the packet from twitter");
+    return;
 }
 
 static struct sol_http_client_connection *
@@ -346,7 +353,7 @@ post_status(struct sol_flow_node *node, const char *status)
         (int)buf.used, (char *)buf.data);
     SOL_INT_CHECK_GOTO(r, < 0, err_signature);
 
-    blob = sol_blob_new(SOL_BLOB_TYPE_DEFAULT, NULL,
+    blob = sol_blob_new(&SOL_BLOB_TYPE_DEFAULT, NULL,
         signature, strlen(signature));
     SOL_NULL_CHECK_GOTO(blob, err_blob);
 
@@ -509,7 +516,7 @@ timeline_process(struct sol_flow_node *node, void *data, uint16_t port, uint16_t
     sol_buffer_fini(&buf);
     SOL_INT_CHECK_GOTO(r, < 0, err_signature);
 
-    blob = sol_blob_new(SOL_BLOB_TYPE_DEFAULT,
+    blob = sol_blob_new(&SOL_BLOB_TYPE_DEFAULT,
         NULL, signature, strlen(signature));
     SOL_NULL_CHECK_GOTO(blob, err_blob);
 

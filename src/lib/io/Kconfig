@@ -81,3 +81,28 @@ config USE_MEMMAP
         Users must provide a mapping - for instance, using a JSON
         file - that will be used to define where on memory
         entries will be saved. Examples of memory are NVRAM or EEPROM.
+
+config USE_IPM
+    bool "Inter-processor messaging"
+    depends on FEATURE_HW_IPM
+    default y
+    help
+        Provide API to Inter-processor messaging. Some platforms
+        have more than one processor - this API provides communication
+        among them.
+
+config IPM_CHANNEL_X86_TO_ARC
+    int "IPM Channel x86 -> ARC"
+    depends on USE_IPM
+    default 0
+    help
+        Which IPM channel should be used to communication from x86 core
+        to ARC one.
+
+config IPM_CHANNEL_ARC_TO_X86
+    int "IPM Channel ARC -> x86"
+    depends on USE_IPM
+    default 1
+    help
+        Which IPM channel should be used to communication from ARC core
+        to x86 one.

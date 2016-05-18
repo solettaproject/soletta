@@ -19,7 +19,7 @@
 /*
  * This is our custom JS node type in order to be used in the mycounter.fbp sample.
  *
- * Everytime we receive a boolean from 'IN' we'll add or subtract from this value
+ * Every time we receive a boolean from 'IN' we'll add or subtract from this value
  * depending on boolean value, TRUE will add 1 and FALSE will subtract 1, after we'll
  * send this value to 'OUT' port.
  */

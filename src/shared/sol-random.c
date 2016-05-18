@@ -21,6 +21,10 @@
 #include <sol-util-internal.h>
 #include <time.h>
 
+#ifdef SOL_PLATFORM_ZEPHYR
+#include <drivers/rand32.h>
+#endif
+
 #ifdef SOL_PLATFORM_LINUX
 #include <fcntl.h>
 #include <sys/stat.h>
@@ -91,7 +95,11 @@ get_platform_seed(uint64_t seed)
 
     /* Fall back to using a bad source of entropy if platform-specific,
      * higher quality random sources, are unavailable. */
+#ifdef SOL_PLATFORM_ZEPHYR
+    return ((uint64_t)sys_rand32_get() << 32) | sys_rand32_get();
+#else
     return (uint64_t)time(NULL);
+#endif
 }
 
 struct sol_random_mt19937 {
@@ -104,7 +112,7 @@ static bool
 engine_mt19937_init(struct sol_random *generic, uint64_t seed)
 {
     struct sol_random_mt19937 *engine = (struct sol_random_mt19937 *)generic;
-    const size_t state_array_size = SOL_UTIL_ARRAY_SIZE(engine->state);
+    const size_t state_array_size = sol_util_array_size(engine->state);
     size_t i;
 
     if (!seed)
@@ -122,7 +130,7 @@ static uint32_t
 engine_mt19937_generate_uint32(struct sol_random *generic)
 {
     struct sol_random_mt19937 *engine = (struct sol_random_mt19937 *)generic;
-    const size_t state_array_size = SOL_UTIL_ARRAY_SIZE(engine->state);
+    const size_t state_array_size = sol_util_array_size(engine->state);
     uint32_t y;
 
     if (engine->index == 0) {
@@ -284,7 +292,7 @@ sol_random_new(const struct sol_random_impl *impl, uint64_t seed)
 
     engine->impl = impl;
     if (!engine->impl->init(engine, seed)) {
-        sol_util_secure_clear_memory(engine, impl->struct_size);
+        sol_util_clear_memory_secure(engine, impl->struct_size);
         free(engine);
         return NULL;
     }
@@ -300,7 +308,7 @@ sol_random_del(struct sol_random *engine)
     if (engine->impl->shutdown)
         engine->impl->shutdown(engine);
 
-    sol_util_secure_clear_memory(engine, engine->impl->struct_size);
+    sol_util_clear_memory_secure(engine, engine->impl->struct_size);
     free(engine);
 }
 
@@ -312,8 +320,8 @@ sol_random_fill_buffer(struct sol_random *engine, struct sol_buffer *buffer,
     struct sol_str_slice slice = SOL_STR_SLICE_STR((const char *)&value, sizeof(value));
     ssize_t total;
 
-    SOL_NULL_CHECK(engine, 0);
-    SOL_NULL_CHECK(engine->impl, 0);
+    SOL_NULL_CHECK(engine, -EINVAL);
+    SOL_NULL_CHECK(engine->impl, -EINVAL);
 
     for (total = (ssize_t)len; total > 0; total -= sizeof(value)) {
         int r;

@@ -139,6 +139,34 @@ sol_vector_del(struct sol_vector *v, uint16_t i)
     return 0;
 }
 
+SOL_API int
+sol_vector_del_range(struct sol_vector *v, uint16_t start, uint16_t len)
+{
+    size_t tail_len;
+
+    if (start >= v->len)
+        return -EINVAL;
+
+    if ((uint32_t)start + len >= (uint32_t)v->len)
+        len = v->len - start;
+
+    v->len -= len;
+    tail_len = v->len - start;
+
+    if (tail_len) {
+        unsigned char *data, *dst, *src;
+
+        data = v->data;
+        dst = &data[v->elem_size * start];
+        src = dst + len * v->elem_size;
+        memmove(dst, src, v->elem_size * tail_len);
+    }
+
+    sol_vector_shrink(v);
+    return 0;
+}
+
+
 SOL_API void
 sol_vector_clear(struct sol_vector *v)
 {
@@ -153,22 +181,22 @@ ptr_vector_find_sorted(const struct sol_ptr_vector *pv, uint16_t low, uint16_t h
 {
     uint16_t mid;
 
-    *dir = compare(ptr, sol_ptr_vector_get_nocheck(pv, low));
+    *dir = compare(ptr, sol_ptr_vector_get_no_check(pv, low));
     if (*dir <= 0 || low == high)
         return low;
 
-    *dir = compare(ptr, sol_ptr_vector_get_nocheck(pv, high));
+    *dir = compare(ptr, sol_ptr_vector_get_no_check(pv, high));
     if (*dir >= 0)
         return high;
 
     while (true) {
         if (low == high) {
-            *dir = compare(ptr, sol_ptr_vector_get_nocheck(pv, low));
+            *dir = compare(ptr, sol_ptr_vector_get_no_check(pv, low));
             return low;
         }
 
         mid = ((uint32_t)low + (uint32_t)high) >> 1;
-        *dir = compare(ptr, sol_ptr_vector_get_nocheck(pv, mid));
+        *dir = compare(ptr, sol_ptr_vector_get_no_check(pv, mid));
         if (*dir == 0)
             return mid;
         if (*dir < 0)
@@ -215,7 +243,7 @@ sol_ptr_vector_insert_sorted(struct sol_ptr_vector *pv, const void *ptr, int (*c
     index = ptr_vector_find_sorted(pv, 0, pv->base.len - 1, ptr, compare, &dir);
     while (dir == 0 && index < pv->base.len - 1U) {
         index++;
-        dir = compare(ptr, sol_ptr_vector_get_nocheck(pv, index));
+        dir = compare(ptr, sol_ptr_vector_get_no_check(pv, index));
     }
 
     if (dir >= 0)
@@ -239,15 +267,15 @@ sol_ptr_vector_update_sorted(struct sol_ptr_vector *pv, uint16_t i, int (*compar
     if (pv->base.len == 1)
         return 0;
 
-    ptr = sol_ptr_vector_get_nocheck(pv, i);
+    ptr = sol_ptr_vector_get_no_check(pv, i);
     if (i > 0) {
-        other = sol_ptr_vector_get_nocheck(pv, i - 1);
+        other = sol_ptr_vector_get_no_check(pv, i - 1);
         if (compare_cb(other, ptr) > 0)
             goto fix_it;
     }
 
     if (i + 1 < pv->base.len) {
-        other = sol_ptr_vector_get_nocheck(pv, i + 1);
+        other = sol_ptr_vector_get_no_check(pv, i + 1);
         if (compare_cb(ptr, other) >= 0)
             goto fix_it;
     }
@@ -293,7 +321,7 @@ sol_ptr_vector_append(struct sol_ptr_vector *pv, const void *ptr)
 
     data = sol_vector_append(&pv->base);
     if (!data)
-        return -ENODATA;
+        return -errno;
     *data = (void *)ptr;
     return 0;
 }
@@ -349,18 +377,23 @@ sol_vector_del_element(struct sol_vector *v, const void *elem)
 SOL_API int
 sol_ptr_vector_del_element(struct sol_ptr_vector *pv, const void *elem)
 {
-    int r;
-    uint16_t i, removed = 0;
-    void *cur;
+    uint16_t i = 0, offset = 0;
+    void **v = pv->base.data;
 
-    SOL_PTR_VECTOR_FOREACH_REVERSE_IDX (pv, cur, i)
-        if (cur == elem) {
-            r = sol_ptr_vector_del(pv, i);
-            SOL_INT_CHECK(r, < 0, r);
-            removed++;
-        }
+    while (i < pv->base.len && v[i] != elem)
+        i++;
 
-    if (!removed)
+    offset = i;
+
+    for (; i < pv->base.len; i++)
+        if (v[i] != elem)
+            v[offset++] = v[i];
+
+    if (offset == pv->base.len)
         return -ENOENT;
+
+    pv->base.len = offset;
+    sol_vector_shrink(&pv->base);
+
     return 0;
 }

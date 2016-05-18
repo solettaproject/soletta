@@ -100,7 +100,7 @@ struct sol_update_handle *sol_update_check(
  * @brief Fetch update, so it can be installed later wit @c sol_update_install.
  *
  * Fetch will get the update. Update module should check its hash and
- * signature before informing that task was completed successfuly.
+ * signature before informing that task was completed successfully.
  * If everything is OK, callback @a cb will be called with status == 0.
  *
  * @param cb callback called to inform fetch completion or failure. If
@@ -127,7 +127,7 @@ struct sol_update_handle *sol_update_fetch(void (*cb)(void *data, int status),
  *
  * @param cb callback called to inform installation success or failure.
  * If status < 0, then something went wrong. If status == 0, installation
- * completed successfuly.
+ * completed successfully.
  * @param data user defined data to be passed to callback @a cb
  *
  * @return handle of this update task, or NULL if couldn't start the task.
@@ -146,7 +146,7 @@ struct sol_update_handle *sol_update_install(void (*cb)(void *data, int status),
  *
  * @param handle handle of update task to be cancelled.
  *
- * @return true if current task was successfuly cancelled.
+ * @return true if current task was successfully cancelled.
  *
  * @note If cancel was successful, then @a handle becomes invalid. If not,
  * task callback shall still be called.

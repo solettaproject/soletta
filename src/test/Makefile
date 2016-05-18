@@ -1,6 +1,9 @@
 test-$(TEST_ARENA) += test-arena
 test-test-arena-$(TEST_ARENA) := test.c test-arena.c
 
+test-$(TEST_MEMDESC) += test-memdesc
+test-test-memdesc-$(TEST_MEMDESC) := test.c test-memdesc.c
+
 test-internal-$(TEST_COAP) += test-coap
 test-internal-test-coap-$(TEST_COAP) := test.c test-coap.c
 test-internal-test-coap-$(TEST_COAP)-deps := lib/comms/coap.o
@@ -63,6 +66,9 @@ test-test-str-table-$(TEST_STR_TABLE) := test.c test-str-table.c
 test-$(TEST_VECTOR) += test-vector
 test-test-vector-$(TEST_VECTOR) := test.c test-vector.c
 
+test-$(TEST_LIST) += test-list
+test-test-list-$(TEST_LIST) := test.c test-list.c
+
 test-$(TEST_BUFFER) += test-buffer
 test-test-buffer-$(TEST_BUFFER) := test.c test-buffer.c
 
@@ -89,3 +95,9 @@ test-test-certificate-$(TEST_CERTIFICATE) := test.c test-certificate.c
 
 test-$(TEST_LWM2M) += test-lwm2m
 test-test-lwm2m-$(TEST_LWM2M) := test.c test-lwm2m.c
+
+test-$(TEST_NETWORK) += test-network
+test-test-network-$(TEST_NETWORK) := test.c test-network.c
+
+test-$(TEST_BLUETOOTH) += test-bluetooth
+test-test-bluetooth-$(TEST_BLUETOOTH) := test.c test-bluetooth.c

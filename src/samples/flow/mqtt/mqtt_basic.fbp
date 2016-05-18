@@ -14,8 +14,16 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
-# NOTE: This sample expects that a MQTT broker is running on 
+# This sample creates two MQTT clients:
+#  * a publisher that send the message "Hello World" at every second
+#    on topic "soletta/mqtt/test"
+#  * a subscriber that print all messages published on topic
+#    "soletta/mqtt/test" to console
+#
+# NOTE: This sample expects that a MQTT broker is running on
 # the local machine on the default port (1883)
+# It may be done by simply running mosquitto (http://mosquitto.org) local
+# (with default configuration) or other broker of preference.
 
 # subscribe
 sub(mqtt/client:host="127.0.0.1",topic="soletta/mqtt/test")

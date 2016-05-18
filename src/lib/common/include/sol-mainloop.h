@@ -65,6 +65,8 @@ extern "C" {
  * @li @ref Utils
  * @li @ref WorkerThread
  *
+ * Also a lot of examples may be found at @ref examples page.
+ *
  * Please see the @ref authors page for contact details.
  */
 
@@ -74,24 +76,36 @@ extern "C" {
  * @author Anselmo L. S. Melo <anselmo.melo@intel.com>
  * @author Bruno Bottazzini <bruno.bottazzini@intel.com>
  * @author Bruno Dilly <bruno.dilly@intel.com>
+ * @author Bruno Melo <bsilva.melo@gmail.com>
  * @author Caio Marcelo de Oliveira Filho <caio.oliveira@intel.com>
+ * @author Chao Jie Gu <chao.jie.gu@intel.com>
  * @author Ederson de Souza <ederson.desouza@intel.com>
  * @author Flavio Ceolin <flavio.ceolin@intel.com>
+ * @author Gabriel Schulhof <gabriel.schulhof@intel.com>
+ * @author Guilherme Iscaro de Godoy <guilherme.iscaro@intel.com>
  * @author Gustavo Lima Chaves <gustavo.lima.chaves@intel.com>
  * @author Gustavo Sverzut Barbieri <gustavo.barbieri@intel.com>
  * @author Iván Briano <ivan.briano@intel.com>
+ * @author Jesus Sanchez-Palencia <jesus.sanchez-palencia@intel.com>
  * @author José Roberto de Souza <jose.souza@intel.com>
  * @author Leandro Dorileo <leandro.maciel.dorileo@intel.com>
  * @author Leandro Pereira <leandro.pereira@intel.com>
+ * @author Lei Yang <lei.a.yang@intel.com>
  * @author Lucas De Marchi <lucas.demarchi@intel.com>
  * @author Luis Felipe Strano Moraes <luis.strano@intel.com>
  * @author Luiz Ywata <luizg.ywata@intel.com>
  * @author Murilo Belluzzo <murilo.belluzzo@intel.com>
+ * @author Otavio Pontes <otavio.pontes@intel.com>
  * @author Ricardo de Almeida Gonzaga <ricardo.gonzaga@intel.com>
  * @author Rodrigo Chiossi <rodrigo.chiossi@intel.com>
+ * @author Srinivasa Ragavan <srinivasa.ragavan.venkateswaran@intel.com>
+ * @author Sudarsana Nagineni <sudarsana.nagineni@intel.com>
+ * @author Thiago Macieira <thiago.macieira@intel.com>
  * @author Tomaz Canabrava <tomaz.canabrava@intel.com>
  * @author Ulisses Furquim <ulisses.furquim@intel.com>
  * @author Vinicius Costa Gomes <vinicius.gomes@intel.com>
+ * @author Vladimir Cernov <cernov.vladimir@gmail.com>
+ * @author Zoltan Kis <zoltan.kis@intel.com>
  *
  * Please contact <soletta-dev@solettaproject.org> to get in contact with the
  * developers and maintainers.
@@ -307,7 +321,9 @@ struct sol_fd;
  * @param cb The function to call on events
  * @param data The user data pointer to pass to the function
  *
- * @return A handle that can be used to delete the file descriptor watcher
+ * @return A handle that can be used to delete the file descriptor
+ * watcher, on success, or @c NULL otherwise (when @errno will be set
+ * to one of @c EINVAL, @c ENOMEM, @c EOVERFLOW).
  *
  * @note MT-safe if compiled with threads support.
  */
@@ -346,7 +362,19 @@ bool sol_fd_set_flags(struct sol_fd *handle, uint32_t flags);
  *
  * @note MT-safe if compiled with threads support.
  */
-bool sol_fd_unset_flags(struct sol_fd *handle, uint32_t flags);
+bool sol_fd_remove_flags(struct sol_fd *handle, uint32_t flags);
+
+/**
+ * @brief Adds the given flags from those being watched.
+ *
+ * @param handle The handle to update
+ * @param flags The flags to add in the set the handle is watching
+ *
+ * @return True on success, false if the handle is invalid
+ *
+ * @note MT-safe if compiled with threads support.
+ */
+bool sol_fd_add_flags(struct sol_fd *handle, uint32_t flags);
 
 /**
  * @brief Gets the flags being watched for the given handle.
@@ -454,7 +482,7 @@ bool sol_child_watch_del(struct sol_child_watch *handle);
  */
 #ifndef SOL_SET_API_VERSION
 /* keep doxygen happy */
-#define SOL_SET_API_VERSION(x)
+#define SOL_SET_API_VERSION(expression)
 #undef SOL_SET_API_VERSION
 #endif
 
@@ -544,7 +572,7 @@ struct sol_mainloop_source_type {
      * @brief Function to be called when the source is deleted.
      *
      * It is called when the source is explicitly deleted using
-     * sol_mainloop_source_del() or when sol_shutdown() is called.
+     * sol_mainloop_del_source() or when sol_shutdown() is called.
      *
      * May be NULL.
      */
@@ -602,34 +630,34 @@ struct sol_mainloop_source;
  *
  * @return the new main loop source instance or @c NULL on failure
  *
- * @see sol_mainloop_source_del()
+ * @see sol_mainloop_del_source()
  *
  * @note MT-safe if compiled with threads support.
  */
-struct sol_mainloop_source *sol_mainloop_source_add(const struct sol_mainloop_source_type *type, const void *data);
+struct sol_mainloop_source *sol_mainloop_add_source(const struct sol_mainloop_source_type *type, const void *data);
 
 /**
  * @brief Destroy a source of main loop events.
  *
  * @param handle a valid handle previously created with
- *        sol_mainloop_source_add().
+ *        sol_mainloop_add_source().
  *
- * @see sol_mainloop_source_add()
+ * @see sol_mainloop_add_source()
  *
  * @note MT-safe if compiled with threads support.
  */
-void sol_mainloop_source_del(struct sol_mainloop_source *handle);
+void sol_mainloop_del_source(struct sol_mainloop_source *handle);
 
 /**
  * @brief Retrieve the user data (context) given to the source at creation time.
  *
  * @param handle a valid handle previously created with
- *        sol_mainloop_source_add().
+ *        sol_mainloop_add_source().
  *
- * @return whatever was given to sol_mainloop_source_add() as second
+ * @return whatever was given to sol_mainloop_add_source() as second
  *         parameter. NULL is a valid return.
  *
- * @see sol_mainloop_source_add()
+ * @see sol_mainloop_add_source()
  *
  * @note MT-safe if compiled with threads support.
  */
@@ -909,9 +937,9 @@ struct sol_mainloop_implementation {
      *
      * This function must return an internal handle that will
      * represent the source. It will be given to
-     * sol_mainloop_source_del() in order to remove it.
+     * sol_mainloop_del_source() in order to remove it.
      *
-     * This function will be called whenever sol_mainloop_source_add()
+     * This function will be called whenever sol_mainloop_add_source()
      * is called.
      *
      * Must not be NULL.
@@ -922,10 +950,10 @@ struct sol_mainloop_implementation {
      * Function to be called to remove mainloop event source.
      *
      * This function receives the handle returned by
-     * sol_mainloop_source_add() (and thus @c source_add), deleting
+     * sol_mainloop_add_source() (and thus @c source_add), deleting
      * it so it is not used anymore.
      *
-     * This function will be called whenever sol_mainloop_source_del() is called.
+     * This function will be called whenever sol_mainloop_del_source() is called.
      *
      * Must not be NULL.
      */
@@ -973,7 +1001,7 @@ const struct sol_mainloop_implementation *sol_mainloop_get_implementation(void);
  * Node.JS application. In this case we want to forward requests to
  * that mainloop and be as lean as possible.
  *
- * This is an alternative to sol_mainloop_source_add(), in that case
+ * This is an alternative to sol_mainloop_add_source(), in that case
  * Soletta would be the host and other main loops can be the guest,
  * see sol-glib-integration.h for one example.
  *
@@ -981,7 +1009,7 @@ const struct sol_mainloop_implementation *sol_mainloop_get_implementation(void);
  *       sol_timeout_add(), sol_timeout_del(), sol_fd_add(),
  *       sol_fd_del(), sol_fd_set_flags(), sol_fd_get_flags(),
  *       sol_child_watch_add() and sol_child_watch_del(),
- *       sol_mainloop_source_add(), sol_mainloop_source_del() and
+ *       sol_mainloop_add_source(), sol_mainloop_del_source() and
  *       sol_mainloop_source_get_data() may be called from threads,
  *       then handle these as such.
  *
@@ -1001,14 +1029,14 @@ bool sol_mainloop_set_implementation(const struct sol_mainloop_implementation *i
 /**
  * @brief Gets the argument count the application was launched with, if any.
  *
- * @return The @c argc value as set by sol_args_set() or #SOL_MAIN()
+ * @return The @c argc value as set by sol_set_args() or #SOL_MAIN()
  */
 int sol_argc(void);
 
 /**
  * @brief Gets the list of arguments the application was launched with, if any.
  *
- * @return The @c argv value as set by sol_args_set() or #SOL_MAIN()
+ * @return The @c argv value as set by sol_set_args() or #SOL_MAIN()
  */
 char **sol_argv(void);
 
@@ -1016,7 +1044,7 @@ char **sol_argv(void);
  * @brief Sets a new list of arguments and its count.
  *
  * A reference to the @a argv pointer will be kept, so it must be valid at least
- * until sol_args_set() is called again to set different arguments.
+ * until sol_set_args() is called again to set different arguments.
  * This function is useful in cases where the main application may have
  * arguments to handle and others that need to be passed forward to other
  * sub-systems. For example, the flow systems has node types to retrieve the
@@ -1028,7 +1056,7 @@ char **sol_argv(void);
  * @param argc The count of elements in @a argv
  * @param argv Array of nul terminated strings, each represents one argument
  */
-void sol_args_set(int argc, char *argv[]);
+void sol_set_args(int argc, char *argv[]);
 
 /**
  * @brief Structure used to keep the application main callbacks.

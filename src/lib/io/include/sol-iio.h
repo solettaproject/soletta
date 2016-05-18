@@ -151,7 +151,7 @@ bool sol_iio_device_start_buffer(struct sol_iio_device *device);
  * This function provides a way of addressing an IIO device to get its IIO
  * id from a series of space separated @a commands. Commands are processed
  * from left to right and processing stops on first command that worked.
- * A provided callback will be called with IIO device id or -1 if no command
+ * IIO device id will be returned, or a negative number if no command
  * resolved to an IIO device.
  *
  * There are essentially five commands. It can be an absolute path
@@ -171,19 +171,14 @@ bool sol_iio_device_start_buffer(struct sol_iio_device *device);
  * @arg @a devnumber is device number on bus, like 0xA4
  * @arg @a devname is device name, the one recognized by its driver
  *
- * If device already exists, will just return its IIO id on @a cb.
+ * If device already exists, will just return its IIO id.
  *
  * @param commands space separated commands on format specified above. e.g. <tt>
  * l3g4200d create,i2c,platform/80860F41:05,0x69,l3g4200d </tt>
- * @param cb callback to be called after device resolution. It contains IIO
- * device id, or -1 if unsuccessful
- * @param data user data to be passed to callback
  *
- * @return @a true if attempt to resolve device was successful, @a false
- * othewise. Note that to really know if device was resolved, besides return,
- * one needs to check callback device_id.
+ * @return IIO device id on success. A negative number means failure.
  */
-bool sol_iio_address_device(const char *commands, void (*cb)(void *data, int device_id), const void *data);
+int sol_iio_address_device(const char *commands);
 
 /**
  * @brief Returns raw buffer with channel sample.

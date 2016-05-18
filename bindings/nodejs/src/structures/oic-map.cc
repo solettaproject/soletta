@@ -33,9 +33,9 @@ Local<Value> js_sol_oic_map_reader(
     Local<Object> returnValue = Nan::New<Object>();
 
     struct sol_oic_repr_field field;
-    enum sol_oic_map_loop_reason end_reason;
+    enum sol_oic_map_loop_status end_status;
     struct sol_oic_map_reader iterator = {0, 0, 0, 0, 0, 0};
-    SOL_OIC_MAP_LOOP(representation, &field, &iterator, end_reason) {
+    SOL_OIC_MAP_LOOP(representation, &field, &iterator, end_status) {
         Local<Value> jsValue;
         if (field.type == SOL_OIC_REPR_TYPE_UINT) {
             jsValue = Nan::New<Uint32>((uint32_t)field.v_uint);
@@ -124,7 +124,7 @@ static bool encodeSingleValue(const char *name, Local<Value> value,
         goto error;
     }
 
-    returnValue = sol_oic_map_append(map, &field);
+    returnValue = (sol_oic_map_append(map, &field) == 0);
     if (field.type == SOL_OIC_REPR_TYPE_TEXT_STRING ||
             field.type == SOL_OIC_REPR_TYPE_BYTE_STRING) {
         free((void *)(field.v_slice.data));

@@ -18,6 +18,9 @@
 
 #pragma once
 
+#include <sol-common-buildopts.h>
+#include <sol-types.h>
+
 #ifdef __cplusplus
 extern "C" {
 #endif
@@ -43,18 +46,19 @@ extern "C" {
 struct sol_cert;
 
 /**
- * @brief Load a certificate from a file
+ * @brief Load a certificate from an id
  *
- * @param filename Path to the certificate file
+ * @param id The id of the certificate to be loaded.
  *
- * The path to the certificate file does not need to be absolute. The file
- * can also be in the default system folders ($SYSCONF/ssl/certs,
- * $SYSCONF/ssl/private, $SYSCONF/tls/certs and $SYSCONF/tls/private), or
- * in a directory specified by SSL_CERT_DIR
+ * In systems where file system is supported, the @a id is the name of the
+ * certificate file. The @a id can be a relative or an absolute path to the
+ * certificat file. If relative, function will look for it in default system
+ * directories ($SYSCONF/ssl/certs, $SYSCONF/ssl/private, $SYSCONF/tls/certs
+ * and $SYSCONF/tls/private), or in a directory specified by SSL_CERT_DIR
  *
  * @return sol_cert object on success, NULL otherwise
  */
-struct sol_cert *sol_cert_load_from_file(const char *filename);
+struct sol_cert *sol_cert_load_from_id(const char *id);
 
 /**
  * @brief Free the resources a sol_cert object and the object itself
@@ -63,6 +67,8 @@ struct sol_cert *sol_cert_load_from_file(const char *filename);
  */
 void sol_cert_unref(struct sol_cert *cert);
 
+#ifdef SOL_FEATURE_FILESYSTEM
+
 /**
  * @brief Get the full path to the certificate in the filesystem
  *
@@ -70,7 +76,18 @@ void sol_cert_unref(struct sol_cert *cert);
  *
  * @return sol_cert object on success, NULL otherwise
  */
-const char *sol_cert_get_filename(const struct sol_cert *cert);
+const char *sol_cert_get_file_name(const struct sol_cert *cert);
+
+#endif /*SOL_FEATURE_FILESYSTEM*/
+
+/**
+ * @brief Get the certificate contents
+ *
+ * @param cert Certificate object.
+ *
+ * @return the contents of the certificate @a cert on success, NULL otherwise
+ */
+struct sol_blob *sol_cert_get_contents(const struct sol_cert *cert);
 
 /**
  * @}

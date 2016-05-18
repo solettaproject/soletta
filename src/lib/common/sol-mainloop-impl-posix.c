@@ -24,6 +24,7 @@
 #include <sys/wait.h>
 #include <fcntl.h>
 
+#include "sol-atomic.h"
 #include "sol-mainloop-common.h"
 #include "sol-mainloop-impl.h"
 #include "sol-vector.h"
@@ -71,7 +72,7 @@ static struct sol_vector child_exit_status_vector = SOL_VECTOR_INIT(struct child
 
 static int pipe_fds[2];
 static pthread_t main_thread;
-static bool have_notified;
+static sol_atomic_int have_notified = SOL_ATOMIC_INIT(0);
 static struct sol_fd *ack_handler;
 
 static struct sol_ptr_vector child_watch_v_process = SOL_PTR_VECTOR_INIT;
@@ -111,7 +112,7 @@ sol_mainloop_impl_main_thread_notify(void)
     char tok = 'w';
     int r;
 
-    if (__atomic_test_and_set(&have_notified, __ATOMIC_SEQ_CST))
+    if (sol_atomic_test_and_set(&have_notified, SOL_ATOMIC_RELAXED))
         return;
 
     r = write(pipe_fds[1], &tok, sizeof(tok));
@@ -130,7 +131,7 @@ main_thread_ack(void *data, int fd, uint32_t active_flags)
     sol_mainloop_impl_lock();
 
     r = read(fd, &tok, sizeof(tok));
-    __atomic_clear(&have_notified, __ATOMIC_SEQ_CST);
+    sol_atomic_clear(&have_notified, SOL_ATOMIC_RELAXED);
 
     sol_mainloop_impl_unlock();
 
@@ -272,7 +273,7 @@ static const struct siginfo_handler siginfo_handler[] = {
     SIG(SIGUSR2, NULL),
 #undef SIG
 };
-#define SIGINFO_HANDLER_COUNT SOL_UTIL_ARRAY_SIZE(siginfo_handler)
+#define SIGINFO_HANDLER_COUNT sol_util_array_size(siginfo_handler)
 
 static struct sigaction sa_orig[SIGINFO_HANDLER_COUNT];
 static sigset_t sig_blockset, sig_origset;
@@ -735,9 +736,9 @@ void *
 sol_mainloop_impl_fd_add(int fd, uint32_t flags, bool (*cb)(void *data, int fd, uint32_t active_flags), const void *data)
 {
     struct sol_fd_posix *handle = malloc(sizeof(struct sol_fd_posix));
-    int ret;
+    int ret = 0;
 
-    SOL_NULL_CHECK(handle, NULL);
+    SOL_NULL_CHECK_ERRNO(handle, ENOMEM, NULL);
 
     sol_mainloop_impl_lock();
 
@@ -759,6 +760,7 @@ sol_mainloop_impl_fd_add(int fd, uint32_t flags, bool (*cb)(void *data, int fd, 
 clean:
     sol_mainloop_impl_unlock();
     free(handle);
+    errno = -ret;
     return NULL;
 }
 
@@ -790,6 +792,7 @@ sol_mainloop_impl_fd_set_flags(void *handle, uint32_t flags)
     sol_mainloop_impl_lock();
 
     fd_handle->flags = flags;
+    fd_changed = true;
 
     sol_mainloop_common_main_thread_check_notify();
     sol_mainloop_impl_unlock();

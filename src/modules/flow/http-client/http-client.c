@@ -40,7 +40,6 @@ struct http_data {
     enum sol_http_method method;
     struct sol_http_params url_params;
     char *url;
-    char *content_type;
     char *accept;
     char *last_modified;
     bool machine_id;
@@ -74,10 +73,8 @@ struct create_url_data {
 
 struct http_client_node_type {
     struct sol_flow_node_type base;
-    int (*process_token)(struct sol_flow_node *node, struct sol_json_token *key,
-        struct sol_json_token *value);
-    int (*process_data)(struct sol_flow_node *node,
-        struct sol_http_response *response);
+    int (*process_json)(struct sol_flow_node *node, const struct sol_str_slice slice);
+    int (*process_data)(struct sol_flow_node *node, struct sol_buffer *buf);
     void (*close_node)(struct sol_flow_node *node, void *data);
     int (*setup_params)(struct http_data *mdata, struct sol_http_params *params);
     void (*http_response)(void *data,
@@ -190,22 +187,6 @@ machine_id_header_add(struct sol_http_params *params)
 }
 
 static void
-get_key(struct http_data *mdata)
-{
-    char *ptr = NULL;
-
-    if (strstartswith(mdata->url, "http://"))
-        ptr = strstr(mdata->url + strlen("http://"), "/");
-    else if (strstartswith(mdata->url, "https://"))
-        ptr = strstr(mdata->url + strlen("https://"), "/");
-
-    if (ptr)
-        mdata->key = sol_str_slice_from_str(ptr);
-    else
-        mdata->key = (struct sol_str_slice){.len = 0, .data = NULL };
-}
-
-static void
 common_close(struct sol_flow_node *node, void *data)
 {
     struct sol_http_client_connection *connection;
@@ -219,7 +200,6 @@ common_close(struct sol_flow_node *node, void *data)
         type->close_node(node, data);
 
     free(mdata->url);
-    free(mdata->content_type);
     free(mdata->accept);
     free(mdata->last_modified);
     SOL_PTR_VECTOR_FOREACH_IDX (&mdata->pending_conns, connection, i)
@@ -237,30 +217,36 @@ common_open(struct sol_flow_node *node, void *data, const struct sol_flow_node_o
         (struct sol_flow_node_type_http_client_boolean_options *)options;
 
     mdata->machine_id = opts->machine_id;
-    sol_ptr_vector_init(&mdata->pending_conns);
+    mdata->strict = opts->strict;
 
+    sol_ptr_vector_init(&mdata->pending_conns);
     sol_http_params_init(&mdata->url_params);
 
     if (opts->url && opts->url[0] != '\0') {
         r = set_basic_url_info(mdata, opts->url);
         SOL_INT_CHECK(r, < 0, r);
-        get_key(mdata);
+    }
+
+    if (opts->accept) {
+        mdata->accept = strdup(opts->accept);
+        SOL_NULL_CHECK_GOTO(mdata->accept, err_accept);
     }
 
     return 0;
+
+err_accept:
+    free(mdata->url);
+    return -ENOMEM;
 }
 
 static int
 common_url_process(struct sol_flow_node *node, void *data, uint16_t port, uint16_t conn_id,
     const struct sol_flow_packet *packet)
 {
-    struct http_data *mdata = data;
     int r;
 
     r = set_basic_url_info_from_packet(data, packet);
     SOL_INT_CHECK(r, < 0, r);
-
-    get_key(mdata);
 
     return 0;
 }
@@ -289,7 +275,6 @@ check_response(struct http_data *mdata, struct sol_flow_node *node,
             "Error while reaching %s", mdata->url);
         return -EINVAL;
     }
-    SOL_HTTP_RESPONSE_CHECK_API(response, -EINVAL);
 
     if (response->response_code == SOL_HTTP_STATUS_NOT_MODIFIED)
         return 1;
@@ -298,12 +283,6 @@ check_response(struct http_data *mdata, struct sol_flow_node *node,
         sol_flow_send_error_packet(node, EINVAL,
             "%s returned an unhandled response code: %d",
             mdata->url, response->response_code);
-        return -EINVAL;
-    }
-
-    if (!response->content.used) {
-        sol_flow_send_error_packet(node, EINVAL,
-            "Empty response from %s", mdata->url);
         return -EINVAL;
     }
 
@@ -334,10 +313,50 @@ get_last_modified_date(struct http_data *mdata,
     return 0;
 }
 
+static bool
+is_accepted_content_type(const char *content_type, const char *accept)
+{
+    bool r = false;
+    int err;
+    uint16_t i;
+    struct sol_vector priorities;
+    struct sol_http_content_type_priority *pri;
+    struct sol_str_slice type, sub_type;
+    char *sep;
+
+    sep = strchr(content_type, '/');
+    SOL_NULL_CHECK(sep, false);
+
+    type.data = content_type;
+    type.len = sep - type.data;
+
+    sub_type.data = sep + 1;
+    sub_type.len = strlen(content_type) - type.len - 1;
+
+    err = sol_http_parse_content_type_priorities(sol_str_slice_from_str(accept),
+        &priorities);
+    SOL_INT_CHECK(err, < 0, false);
+
+    SOL_VECTOR_FOREACH_IDX (&priorities, pri, i) {
+        if (sol_str_slice_str_eq(pri->content_type, content_type) ||
+            sol_str_slice_str_eq(pri->content_type, "*/*") ||
+            (sol_str_slice_eq(pri->type, type) &&
+            sol_str_slice_str_eq(pri->sub_type, "*")) ||
+            (sol_str_slice_str_eq(pri->type, "*") &&
+            sol_str_slice_eq(pri->sub_type, sub_type))) {
+            r = true;
+            break;
+        }
+    }
+
+    sol_http_content_type_priorities_array_clear(&priorities);
+    return r;
+}
+
 static void
-common_request_finished(void *data,
+request_finished(void *data,
     const struct sol_http_client_connection *connection,
-    struct sol_http_response *response)
+    struct sol_http_response *response, bool accept_empty_response)
 {
     int ret;
     struct sol_flow_node *node = data;
@@ -354,25 +373,34 @@ common_request_finished(void *data,
     if (ret == 1)
         return;
 
+    if (!accept_empty_response && !response->content.used) {
+        sol_flow_send_error_packet(node, ENOENT,
+            "Received empty response from: %s", mdata->url);
+        return;
+    }
+
     ret = get_last_modified_date(mdata, response);
     SOL_INT_CHECK_GOTO(ret, < 0, err);
 
     type = (const struct http_client_node_type *)sol_flow_node_get_type(node);
-    if (streq(response->content_type, "application/json")) {
-        struct sol_json_scanner scanner;
-        struct sol_json_token token, key, value;
-        enum sol_json_loop_reason reason;
 
-        sol_json_scanner_init(&scanner, response->content.data, response->content.used);
-        SOL_JSON_SCANNER_OBJECT_LOOP (&scanner, &token, &key, &value, reason) {
-            if (!sol_json_token_str_eq(&token, mdata->key.data, mdata->key.len))
-                continue;
-            ret = type->process_token(node, &key, &value);
-            if (ret < 0)
-                goto err;
-        }
+    if (mdata->strict && mdata->accept && response->content_type &&
+        !is_accepted_content_type(response->content_type, mdata->accept)) {
+        sol_flow_send_error_packet(node, EINVAL,
+            "Response has different content type. Received: %s - Desired: %s",
+            response->content_type, mdata->accept);
+        return;
+    }
+
+    if (response->content_type && type->process_json &&
+        (streq(response->content_type, "application/json") ||
+        streq(response->content_type, "text/stream"))) {
+        ret = type->process_json(node, sol_buffer_get_slice(&response->content));
+        if (ret < 0)
+            goto err;
     } else {
-        ret = type->process_data(node, response);
+        //Json and blob nodes will always fallback to process_data()
+        ret = type->process_data(node, &response->content);
         if (ret < 0)
             goto err;
     }
@@ -384,14 +412,110 @@ err:
         "%s Could not parse url contents ", mdata->url);
 }
 
+static void
+common_request_finished(void *data,
+    const struct sol_http_client_connection *connection,
+    struct sol_http_response *response)
+{
+    request_finished(data, connection, response, false);
+}
+
+static ssize_t
+sse_received_data_cb(void *data, const struct sol_http_client_connection *conn,
+    struct sol_buffer *buf)
+{
+    struct sol_flow_node *node = data;
+    const struct http_client_node_type *type;
+    const struct sol_str_slice prefix = SOL_STR_SLICE_LITERAL("data: ");
+    const struct sol_str_slice suffix = SOL_STR_SLICE_LITERAL("\n\n");
+    struct sol_str_slice slice;
+    size_t consumed = 0;
+
+    SOL_DBG("Received SSE Data - *%.*s*",
+        SOL_STR_SLICE_PRINT(sol_buffer_get_slice(buf)));
+
+    slice = sol_buffer_get_slice(buf);
+    if (!sol_str_slice_contains(slice, suffix))
+        return 0;
+
+    type = (const struct http_client_node_type *)sol_flow_node_get_type(node);
+
+    while (slice.len) {
+        char *start, *end, *content;
+        struct sol_buffer content_buf;
+        size_t content_len, total_len;
+        int r;
+
+        start = sol_str_slice_contains(slice, prefix);
+        SOL_NULL_CHECK(start, -EINVAL);
+
+        end = sol_str_slice_contains(slice, suffix);
+        if (!end) //Wait for more data
+            goto exit;
+
+        content = start + prefix.len;
+        content_len = end - content;
+
+        sol_buffer_init_flags(&content_buf, content, content_len,
+            SOL_BUFFER_FLAGS_MEMORY_NOT_OWNED);
+        content_buf.used = content_len;
+        total_len = content_len + prefix.len + suffix.len;
+        consumed += total_len;
+
+        SOL_DBG("Parsed SSE data:*%.*s*",
+            SOL_STR_SLICE_PRINT(sol_buffer_get_slice(&content_buf)));
+
+        if (type->process_json)
+            r = type->process_json(node, sol_buffer_get_slice(&content_buf));
+        else
+            r = type->process_data(node, &content_buf); //Used by the http-client/json node
+        sol_buffer_fini(&content_buf);
+        SOL_INT_CHECK(r, < 0, r);
+        slice.len -= total_len;
+        slice.data += total_len;
+    }
+
+exit:
+    SOL_DBG("Buf len: %zu - Consumed: %zu", buf->used, consumed);
+    return consumed;
+}
+
+static void
+sse_response_end_cb(void *data,
+    const struct sol_http_client_connection *conn,
+    struct sol_http_response *response)
+{
+    struct sol_flow_node *node = data;
+    const struct http_client_node_type *type;
+
+    type = (const struct http_client_node_type *)sol_flow_node_get_type(node);
+    SOL_DBG("SSE finished - url: %s", response->url);
+
+    if (type->http_response)
+        type->http_response(data, conn, response);
+    else
+        request_finished(data, conn, response, true);
+}
+
 static int
-common_get_process(struct sol_flow_node *node, void *data, uint16_t port, uint16_t conn_id,
-    const struct sol_flow_packet *packet)
+common_get_process(struct sol_flow_node *node, void *data, uint16_t port,
+    uint16_t conn_id, const struct sol_flow_packet *packet)
 {
     int r;
     struct sol_http_params params;
     struct http_data *mdata = data;
     struct sol_http_client_connection *connection;
+    uint16_t i;
+    const struct http_client_node_type *type;
+    struct sol_http_param_value *param;
+    static const struct sol_http_request_interface req_iface = {
+        SOL_SET_API_VERSION(.api_version = SOL_HTTP_REQUEST_INTERFACE_API_VERSION, )
+        .recv_cb = sse_received_data_cb,
+        .response_cb = sse_response_end_cb,
+    };
+
+
+    type = (const struct http_client_node_type *)sol_flow_node_get_type(node);
 
     if (!mdata->url) {
         sol_flow_send_error_packet_str(node, ENOENT, "Missing URL");
@@ -399,12 +523,17 @@ common_get_process(struct sol_flow_node *node, void *data, uint16_t port, uint16
     }
 
     sol_http_params_init(&params);
-    if (!sol_http_param_add(&params,
-        SOL_HTTP_REQUEST_PARAM_HEADER("Accept", "application/json"))) {
-        SOL_WRN("Failed to set query params");
-        r = -ENOMEM;
-        goto err;
+
+    if (mdata->accept) {
+        if (!sol_http_param_add(&params,
+            SOL_HTTP_REQUEST_PARAM_HEADER("Accept", mdata->accept))) {
+            SOL_WRN("Failed to set the 'Accept' header with value: %s",
+                mdata->accept);
+            r = -ENOMEM;
+            goto err;
+        }
     }
+
 
     if (mdata->last_modified && !sol_http_param_add(&params,
         SOL_HTTP_REQUEST_PARAM_HEADER("If-Since-Modified",
@@ -414,13 +543,29 @@ common_get_process(struct sol_flow_node *node, void *data, uint16_t port, uint16
         goto err;
     }
 
+    SOL_HTTP_PARAMS_FOREACH_IDX (&mdata->url_params, param, i) {
+        if (!sol_http_param_add(&params, *param)) {
+            SOL_WRN("Could not append the param - %.*s:%.*s",
+                SOL_STR_SLICE_PRINT(param->value.key_value.key),
+                SOL_STR_SLICE_PRINT(param->value.key_value.value));
+            r = -EINVAL;
+            goto err;
+        }
+    }
+
+
+    if (type->setup_params) {
+        r = type->setup_params(mdata, &params);
+        SOL_INT_CHECK_GOTO(r, < 0, err);
+    }
+
     if (mdata->machine_id) {
         r = machine_id_header_add(&params);
         SOL_INT_CHECK_GOTO(r, < 0, err);
     }
 
-    connection = sol_http_client_request(SOL_HTTP_METHOD_GET, mdata->url,
-        &params, common_request_finished, node);
+    connection = sol_http_client_request_with_interface(SOL_HTTP_METHOD_GET,
+        mdata->url, &params, &req_iface, node);
 
     sol_http_params_clear(&params);
 
@@ -441,20 +586,21 @@ err:
 }
 
 static int
-common_post_process(struct sol_flow_node *node, void *data, ...)
+common_post_process(struct sol_flow_node *node, struct http_data *mdata,
+    struct sol_blob *blob, ...)
 {
     int r;
     va_list ap;
     char *key, *value;
     struct sol_http_params params;
-    struct http_data *mdata = data;
     struct sol_http_client_connection *connection;
 
     sol_http_params_init(&params);
-    if (!(sol_http_param_add(&params,
-        SOL_HTTP_REQUEST_PARAM_HEADER("Accept", "application/json")))) {
+
+    if (mdata->accept && !(sol_http_param_add(&params,
+        SOL_HTTP_REQUEST_PARAM_HEADER("Accept", mdata->accept)))) {
         SOL_WRN("Could not add the header '%s:%s' into request to %s",
-            "Accept", "application/json", mdata->url);
+            "Accept", mdata->accept, mdata->url);
         goto err;
     }
 
@@ -463,17 +609,30 @@ common_post_process(struct sol_flow_node *node, void *data, ...)
         SOL_INT_CHECK_GOTO(r, < 0, err);
     }
 
-    va_start(ap, data);
-    while ((key = va_arg(ap, char *))) {
-        value = va_arg(ap, char *);
-        if (!(sol_http_param_add(&params, SOL_HTTP_REQUEST_PARAM_POST_FIELD(key, value)))) {
-            SOL_WRN("Could not add header '%s:%s' into request to %s",
-                key, value, mdata->url);
-            va_end(ap);
+    if (!blob) {
+        va_start(ap, blob);
+        while ((key = va_arg(ap, char *))) {
+            value = va_arg(ap, char *);
+            if (!(sol_http_param_add(&params,
+                SOL_HTTP_REQUEST_PARAM_POST_FIELD(key, value)))) {
+                SOL_WRN("Could not add header '%s:%s' into request to %s",
+                    key, value, mdata->url);
+                va_end(ap);
+                goto err;
+            }
+        }
+        va_end(ap);
+    } else {
+        struct sol_str_slice slice;
+
+        slice.data = blob->mem;
+        slice.len = blob->size;
+        if (!sol_http_param_add(&params,
+            SOL_HTTP_REQUEST_PARAM_POST_DATA_CONTENTS("data", slice))) {
+            SOL_WRN("Could not add the post data contents!");
             goto err;
         }
     }
-    va_end(ap);
 
     connection = sol_http_client_request(SOL_HTTP_METHOD_POST, mdata->url,
         &params, common_request_finished, node);
@@ -496,14 +655,16 @@ err:
 }
 
 static int
-boolean_process_token(struct sol_flow_node *node,
-    struct sol_json_token *key, struct sol_json_token *value)
+boolean_process_json(struct sol_flow_node *node, const struct sol_str_slice slice)
 {
     bool result;
+    struct sol_json_token value;
 
-    if (sol_json_token_get_type(value) == SOL_JSON_TYPE_TRUE)
+    sol_json_token_init_from_slice(&value, slice);
+
+    if (sol_json_token_get_type(&value) == SOL_JSON_TYPE_TRUE)
         result = true;
-    else if (sol_json_token_get_type(value) == SOL_JSON_TYPE_FALSE)
+    else if (sol_json_token_get_type(&value) == SOL_JSON_TYPE_FALSE)
         result = false;
     else
         return -EINVAL;
@@ -513,16 +674,13 @@ boolean_process_token(struct sol_flow_node *node,
 }
 
 static int
-boolean_process_data(struct sol_flow_node *node,
-    struct sol_http_response *response)
+boolean_process_data(struct sol_flow_node *node, struct sol_buffer *buf)
 {
     bool result;
 
-    SOL_HTTP_RESPONSE_CHECK_API(response, -EINVAL);
-
-    if (!strncasecmp("true", response->content.data, response->content.used))
+    if (!strncasecmp("true", buf->data, buf->used))
         result = true;
-    else if (!strncasecmp("false", response->content.data, response->content.used))
+    else if (!strncasecmp("false", buf->data, buf->used))
         result = false;
     else
         return -EINVAL;
@@ -541,71 +699,87 @@ boolean_post_process(struct sol_flow_node *node, void *data, uint16_t port, uint
     r = sol_flow_packet_get_boolean(packet, &b);
     SOL_INT_CHECK(r, < 0, r);
 
-    return common_post_process(node, data, "value", b ? "true" : "false", NULL);
+    return common_post_process(node, data, NULL, "value", b ? "true" : "false",
+        NULL);
 }
 
 /*
  * --------------------------------- string node -----------------------------
  */
+
 static int
-string_process_token(struct sol_flow_node *node,
-    struct sol_json_token *key, struct sol_json_token *value)
+string_process_json(struct sol_flow_node *node, const struct sol_str_slice slice)
 {
     char *result = NULL;
+    struct sol_json_token value;
 
-    result = strndup(value->start + 1, value->end - value->start - 2);
+    sol_json_token_init_from_slice(&value, slice);
+
+    if (sol_json_token_get_type(&value) == SOL_JSON_TYPE_STRING)
+        result = sol_json_token_get_unescaped_string_copy(&value);
+    else
+        result = sol_str_slice_to_string(slice);
+    SOL_NULL_CHECK(result, -ENOMEM);
+
+    return sol_flow_send_string_take_packet(node,
+        SOL_FLOW_NODE_TYPE_HTTP_CLIENT_STRING__OUT__OUT, result);
+}
+
+static int
+string_process_data(struct sol_flow_node *node, struct sol_buffer *buf)
+{
+    char *result;
+
+    result = strndup(buf->data, buf->used);
+
     if (result) {
         return sol_flow_send_string_take_packet(node,
-            SOL_FLOW_NODE_TYPE_HTTP_CLIENT_BOOLEAN__OUT__OUT, result);
+            SOL_FLOW_NODE_TYPE_HTTP_CLIENT_STRING__OUT__OUT, result);
     }
 
     return -ENOMEM;
 }
 
 static int
-string_process_data(struct sol_flow_node *node,
-    struct sol_http_response *response)
+string_post(struct sol_flow_node *node, const struct sol_flow_packet *packet,
+    struct http_data *mdata, bool serialize)
 {
-    char *result;
+    int r;
+    const char *value;
+    struct sol_buffer buf = SOL_BUFFER_INIT_EMPTY;
 
-    SOL_HTTP_RESPONSE_CHECK_API(response, -EINVAL);
+    r = sol_flow_packet_get_string(packet, &value);
+    SOL_INT_CHECK(r, < 0, r);
 
-    result = strndup(response->content.data, response->content.used);
+    if (!serialize)
+        return common_post_process(node, mdata, NULL, "value", value, NULL);
 
-    if (result) {
-        return sol_flow_send_string_take_packet(node,
-            SOL_FLOW_NODE_TYPE_HTTP_CLIENT_BOOLEAN__OUT__OUT, result);
-    }
-
-    return -ENOMEM;
+    r = sol_json_serialize_string(&buf, value);
+    SOL_INT_CHECK(r, < 0, r);
+    r = common_post_process(node, mdata, NULL, "value", buf.data, NULL);
+    sol_buffer_fini(&buf);
+    return r;
 }
 
 static int
 string_post_process(struct sol_flow_node *node, void *data, uint16_t port, uint16_t conn_id,
     const struct sol_flow_packet *packet)
 {
-    int r;
-    const char *value;
-
-    r = sol_flow_packet_get_string(packet, &value);
-    SOL_INT_CHECK(r, < 0, r);
-
-    return common_post_process(node, data, "value", value, NULL);
+    return string_post(node, packet, data, false);
 }
 
 /*
  * --------------------------------- irange node -----------------------------
  */
 static int
-int_process_token(struct sol_flow_node *node,
-    struct sol_json_token *key, struct sol_json_token *value)
+int_process_json(struct sol_flow_node *node, const struct sol_str_slice slice)
 {
     struct sol_irange irange = SOL_IRANGE_INIT();
     enum sol_json_loop_reason reason;
     struct sol_json_scanner sub_scanner;
     struct sol_json_token sub_key, sub_value, token;
 
-    sol_json_scanner_init(&sub_scanner, value->start, value->end - value->start);
+    sol_json_scanner_init_from_slice(&sub_scanner, slice);
     SOL_JSON_SCANNER_OBJECT_LOOP (&sub_scanner, &token, &sub_key, &sub_value, reason) {
         if (SOL_JSON_TOKEN_STR_LITERAL_EQ(&sub_key, "value")) {
             if (sol_json_token_get_int32(&sub_value, &irange.val) < 0)
@@ -627,25 +801,20 @@ int_process_token(struct sol_flow_node *node,
 }
 
 static int
-int_process_data(struct sol_flow_node *node,
-    struct sol_http_response *response)
+int_process_data(struct sol_flow_node *node, struct sol_buffer *buf)
 {
-    int value;
+    int value, r;
 
-    SOL_HTTP_RESPONSE_CHECK_API(response, -EINVAL);
-
-    errno = 0;
-    value = strtol(response->content.data, NULL, 0);
-    if (errno)
-        return -EINVAL;
+    r = sol_str_slice_to_int(sol_buffer_get_slice(buf), &value);
+    SOL_INT_CHECK(r, < 0, r);
 
     return sol_flow_send_irange_value_packet(node,
         SOL_FLOW_NODE_TYPE_HTTP_CLIENT_INT__OUT__OUT, value);
 }
 
 static int
-int_post_process(struct sol_flow_node *node, void *data, uint16_t port, uint16_t conn_id,
-    const struct sol_flow_packet *packet)
+int_post(struct sol_flow_node *node, const struct sol_flow_packet *packet,
+    struct http_data *mdata, bool all_fields)
 {
     int r;
     struct sol_irange value;
@@ -658,6 +827,10 @@ int_post_process(struct sol_flow_node *node, void *data, uint16_t port, uint16_t
     r = snprintf(val, sizeof(val), "%" PRId32, value.val);
     SOL_INT_CHECK(r, < 0, r);
     SOL_INT_CHECK(r, >= (int)sizeof(val), -ENOMEM);
+
+    if (!all_fields)
+        return common_post_process(node, mdata, NULL, "value", val, NULL);
+
     r = snprintf(min, sizeof(min), "%" PRId32, value.min);
     SOL_INT_CHECK(r, < 0, r);
     SOL_INT_CHECK(r, >= (int)sizeof(min), -ENOMEM);
@@ -668,23 +841,29 @@ int_post_process(struct sol_flow_node *node, void *data, uint16_t port, uint16_t
     SOL_INT_CHECK(r, < 0, r);
     SOL_INT_CHECK(r, >= (int)sizeof(step), -ENOMEM);
 
-    return common_post_process(node, data, "value", val, "min", min,
+    return common_post_process(node, mdata, NULL, "value", val, "min", min,
         "max", max, "step", step, NULL);
+}
+
+static int
+int_post_process(struct sol_flow_node *node, void *data, uint16_t port, uint16_t conn_id,
+    const struct sol_flow_packet *packet)
+{
+    return int_post(node, packet, data, true);
 }
 
 /*
  * --------------------------------- drange node -----------------------------
  */
 static int
-float_process_token(struct sol_flow_node *node,
-    struct sol_json_token *key, struct sol_json_token *value)
+float_process_json(struct sol_flow_node *node, const struct sol_str_slice slice)
 {
     struct sol_drange drange = SOL_DRANGE_INIT();
     enum sol_json_loop_reason reason;
     struct sol_json_scanner sub_scanner;
     struct sol_json_token token, sub_key, sub_value;
 
-    sol_json_scanner_init(&sub_scanner, value->start, value->end - value->start);
+    sol_json_scanner_init_from_slice(&sub_scanner, slice);
     SOL_JSON_SCANNER_OBJECT_LOOP (&sub_scanner, &token, &sub_key, &sub_value, reason) {
         int r;
         if (SOL_JSON_TOKEN_STR_LITERAL_EQ(&sub_key, "value")) {
@@ -707,25 +886,31 @@ float_process_token(struct sol_flow_node *node,
 }
 
 static int
-float_process_data(struct sol_flow_node *node,
-    struct sol_http_response *response)
+parse_float(const struct sol_str_slice slice, double *value)
 {
-    double value;
-
-    SOL_HTTP_RESPONSE_CHECK_API(response, EINVAL);
-
     errno = 0;
-    value = sol_util_strtodn(response->content.data, NULL, -1, false);
+    *value = sol_util_strtod_n(slice.data, NULL, slice.len, false);
     if (errno)
         return -errno;
+    return 0;
+}
+
+static int
+float_process_data(struct sol_flow_node *node, struct sol_buffer *buf)
+{
+    double value;
+    int r;
+
+    r = parse_float(sol_buffer_get_slice(buf), &value);
+    SOL_INT_CHECK(r, < 0, r);
 
     return sol_flow_send_drange_value_packet(node,
         SOL_FLOW_NODE_TYPE_HTTP_CLIENT_FLOAT__OUT__OUT, value);
 }
 
 static int
-float_post_process(struct sol_flow_node *node, void *data, uint16_t port, uint16_t conn_id,
-    const struct sol_flow_packet *packet)
+float_post(struct sol_flow_node *node, const struct sol_flow_packet *packet,
+    struct http_data *mdata, bool all_fields)
 {
     int r;
     struct sol_drange value;
@@ -741,6 +926,9 @@ float_post_process(struct sol_flow_node *node, void *data, uint16_t port, uint16
     r = sol_json_double_to_str(value.val, &val);
     SOL_INT_CHECK(r, < 0, r);
 
+    if (!all_fields)
+        return common_post_process(node, mdata, NULL, "value", val.data, NULL);
+
     r = sol_json_double_to_str(value.min, &min);
     SOL_INT_CHECK(r, < 0, r);
 
@@ -750,8 +938,15 @@ float_post_process(struct sol_flow_node *node, void *data, uint16_t port, uint16
     r = sol_json_double_to_str(value.step, &step);
     SOL_INT_CHECK(r, < 0, r);
 
-    return common_post_process(node, data, "value", val.data, "min", min.data,
-        "max", max.data, "step", step.data, NULL);
+    return common_post_process(node, mdata, NULL, "value", val.data, "min",
+        min.data, "max", max.data, "step", step.data, NULL);
+}
+
+static int
+float_post_process(struct sol_flow_node *node, void *data, uint16_t port, uint16_t conn_id,
+    const struct sol_flow_packet *packet)
+{
+    return float_post(node, packet, data, true);
 }
 
 /*
@@ -759,17 +954,14 @@ float_post_process(struct sol_flow_node *node, void *data, uint16_t port, uint16
  */
 
 static int
-rgb_process_token(struct sol_flow_node *node, struct sol_json_token *key,
-    struct sol_json_token *value)
+rgb_process_json(struct sol_flow_node *node, const struct sol_str_slice slice)
 {
     struct sol_rgb rgb = { 0 };
     enum sol_json_loop_reason reason;
     struct sol_json_scanner sub_scanner;
     struct sol_json_token sub_key, sub_value, token;
 
-    sol_json_scanner_init(&sub_scanner, value->start,
-        value->end - value->start);
-
+    sol_json_scanner_init_from_slice(&sub_scanner, slice);
     rgb.red_max = rgb.green_max = rgb.blue_max = 255;
 
     SOL_JSON_SCANNER_OBJECT_LOOP (&sub_scanner, &token, &sub_key,
@@ -821,7 +1013,7 @@ hex_str_to_decimal(const char *start, ssize_t len, uint32_t *value)
     char *endptr = NULL;
 
     errno = 0;
-    *value = sol_util_strtoul(start, &endptr, len, 16);
+    *value = sol_util_strtoul_n(start, &endptr, len, 16);
 
     if (errno != 0 || endptr == start) {
         SOL_WRN("Could not convert the string '%.*s' to decimal",
@@ -833,15 +1025,13 @@ hex_str_to_decimal(const char *start, ssize_t len, uint32_t *value)
 }
 
 static int
-rgb_process_data(struct sol_flow_node *node,
-    struct sol_http_response *response)
+rgb_process_data(struct sol_flow_node *node, struct sol_buffer *buf)
 {
     struct sol_rgb rgb = { 0 };
     struct sol_str_slice rgb_str;
     int r;
 
-    rgb_str.data = response->content.data;
-    rgb_str.len = response->content.used;
+    rgb_str = sol_buffer_get_slice(buf);
 
     if (rgb_str.len != 7 || rgb_str.data[0] != '#') {
         SOL_WRN("Expected format #RRGGBB. Received: %.*s",
@@ -899,7 +1089,7 @@ rgb_post_process(struct sol_flow_node *node, void *data, uint16_t port,
     r = sol_buffer_append_printf(&blue_max, "%" PRIu32, rgb.blue_max);
     SOL_INT_CHECK(r, < 0, r);
 
-    return common_post_process(node, data, "red", red.data,
+    return common_post_process(node, data, NULL, "red", red.data,
         "green", green.data, "blue", blue.data, "red_max", red_max.data,
         "green_max", green_max.data, "blue_max", blue_max.data, NULL);
 
@@ -910,16 +1100,14 @@ rgb_post_process(struct sol_flow_node *node, void *data, uint16_t port,
  * --------------------------------- direction vector node  -----------------------------
  */
 static int
-direction_vector_process_token(struct sol_flow_node *node,
-    struct sol_json_token *key, struct sol_json_token *value)
+direction_vector_process_json(struct sol_flow_node *node, const struct sol_str_slice slice)
 {
     struct sol_direction_vector dir_vector = { 0 };
     enum sol_json_loop_reason reason;
     struct sol_json_scanner sub_scanner;
     struct sol_json_token sub_key, sub_value, token;
 
-    sol_json_scanner_init(&sub_scanner, value->start,
-        value->end - value->start);
+    sol_json_scanner_init_from_slice(&sub_scanner, slice);
 
     dir_vector.max = DBL_MAX;
     dir_vector.min = -DBL_MAX;
@@ -968,15 +1156,14 @@ direction_vector_process_token(struct sol_flow_node *node,
 
 static int
 direction_vector_process_data(struct sol_flow_node *node,
-    struct sol_http_response *response)
+    struct sol_buffer *buf)
 {
     struct sol_direction_vector dir_vector;
     struct sol_str_slice token;
     double components[3];
     size_t i = 0;
 
-    token.data = response->content.data;
-    token.len = response->content.used;
+    token = sol_buffer_get_slice(buf);
 
     if (!token.len || token.data[0] != '(' ||
         token.data[token.len - 1] != ')') {
@@ -1000,7 +1187,7 @@ direction_vector_process_data(struct sol_flow_node *node,
 
         errno = 0;
         endptr = NULL;
-        components[i] = sol_util_strtodn(token.data, &endptr, len, false);
+        components[i] = sol_util_strtod_n(token.data, &endptr, len, false);
 
         if (errno != 0 || endptr == token.data) {
             SOL_WRN("Could not parse the component to double. '%.*s'",
@@ -1060,57 +1247,9 @@ direction_vector_post_process(struct sol_flow_node *node, void *data,
     r = sol_json_double_to_str(dir.max, &max);
     SOL_INT_CHECK(r, < 0, r);
 
-    return common_post_process(node, data, "x", x.data,
+    return common_post_process(node, data, NULL, "x", x.data,
         "y", y.data, "z", z.data, "min", min.data,
         "max", max.data, NULL);
-}
-
-/*
- * --------------------------------- generic nodes  -----------------------------
- */
-
-static int
-generic_open(struct sol_flow_node *node, void *data,
-    const struct sol_flow_node_options *options)
-{
-    struct http_data *mdata = data;
-    int r;
-    struct sol_flow_node_type_http_client_get_string_options *opts =
-        (struct sol_flow_node_type_http_client_get_string_options *)options;
-
-    SOL_FLOW_NODE_OPTIONS_SUB_API_CHECK(options,
-        SOL_FLOW_NODE_TYPE_HTTP_CLIENT_GET_STRING_OPTIONS_API_VERSION,
-        -EINVAL);
-
-    sol_http_params_init(&mdata->url_params);
-
-    if (opts->url) {
-        r = set_basic_url_info(mdata, opts->url);
-        SOL_INT_CHECK(r, < 0, r);
-    }
-
-    if (opts->content_type) {
-        mdata->content_type = strdup(opts->content_type);
-        SOL_NULL_CHECK_GOTO(mdata->content_type, err_content_type);
-    }
-
-    if (opts->accept) {
-        mdata->accept = strdup(opts->accept);
-        SOL_NULL_CHECK_GOTO(mdata->accept, err_accept);
-    }
-
-    mdata->strict = opts->strict;
-    mdata->machine_id = opts->machine_id;
-    sol_ptr_vector_init(&mdata->pending_conns);
-    mdata->method = SOL_HTTP_METHOD_GET;
-    return 0;
-
-err_accept:
-    free(mdata->content_type);
-err_content_type:
-    sol_http_params_clear(&mdata->url_params);
-    free(mdata->url);
-    return -ENOMEM;
 }
 
 static int
@@ -1120,224 +1259,180 @@ generic_url_process(struct sol_flow_node *node, void *data, uint16_t port,
     return set_basic_url_info_from_packet(data, packet);
 }
 
-static int
-get_string_process(struct sol_flow_node *node, struct sol_http_response *response)
-{
-    char *result;
-
-    SOL_HTTP_RESPONSE_CHECK_API(response, -EINVAL);
-
-    SOL_DBG("String process - response from: %s", response->url);
-    result = strndup(response->content.data, response->content.used);
-
-    if (!result) {
-        sol_flow_send_error_packet(node, ENOMEM,
-            "Could not alloc memory for the response from: %s", response->url);
-        return -ENOMEM;
-    }
-
-    sol_flow_send_string_take_packet(node,
-        SOL_FLOW_NODE_TYPE_HTTP_CLIENT_GET_STRING__OUT__OUT, result);
-
-    return 0;
-}
-
-static int
-get_blob_process(struct sol_flow_node *node, struct sol_http_response *response)
+static struct sol_blob *
+blob_from_buffer(struct sol_flow_node *node, struct sol_buffer *buf)
 {
     struct sol_blob *blob;
     size_t size;
     void *data;
-    int r;
 
-    SOL_HTTP_RESPONSE_CHECK_API(response, -EINVAL);
-
-    SOL_DBG("Blob process - response from: %s", response->url);
-
-    data = sol_buffer_steal(&response->content, &size);
-    blob = sol_blob_new(SOL_BLOB_TYPE_DEFAULT, NULL, data, size);
+    data = sol_buffer_steal_or_copy(buf, &size);
+    blob = sol_blob_new(&SOL_BLOB_TYPE_DEFAULT, NULL, data, size);
     if (!blob) {
         sol_flow_send_error_packet(node, ENOMEM,
-            "Could not alloc memory for the response from %s", response->url);
-        return -ENOMEM;
+            "Could not alloc memory for the response");
+        free(data);
+        return NULL;
     }
 
+    return blob;
+}
+
+static int
+get_blob_process(struct sol_flow_node *node, struct sol_buffer *buf)
+{
+    struct sol_blob *blob;
+    int r;
+
+    blob = blob_from_buffer(node, buf);
+    SOL_NULL_CHECK(blob, -ENOMEM);
+
     r = sol_flow_send_blob_packet(node,
-        SOL_FLOW_NODE_TYPE_HTTP_CLIENT_GET_BLOB__OUT__OUT, blob);
+        SOL_FLOW_NODE_TYPE_HTTP_CLIENT_BLOB__OUT__OUT, blob);
     sol_blob_unref(blob);
 
     return r;
 }
 
 static int
-get_json_process(struct sol_flow_node *node, struct sol_http_response *response)
+blob_post_process(struct sol_flow_node *node, void *data, uint16_t port,
+    uint16_t conn_id, const struct sol_flow_packet *packet)
 {
+    int r;
     struct sol_blob *blob;
-    struct sol_json_scanner object_scanner, array_scanner;
-    struct sol_str_slice trimmed_str;
+
+    r = sol_flow_packet_get_blob(packet, &blob);
+    SOL_INT_CHECK(r, < 0, r);
+    return common_post_process(node, data, blob);
+}
+
+static int
+json_post_array_or_object(struct sol_flow_node *node, void *data,
+    const struct sol_flow_packet *packet, bool is_object)
+{
+    int r;
+    struct sol_blob *blob;
+
+    if (is_object)
+        r = sol_flow_packet_get_json_object(packet, &blob);
+    else
+        r = sol_flow_packet_get_json_array(packet, &blob);
+    SOL_INT_CHECK(r, < 0, r);
+    return common_post_process(node, data, blob);
+}
+
+static int
+json_object_post_process(struct sol_flow_node *node, void *data, uint16_t port,
+    uint16_t conn_id, const struct sol_flow_packet *packet)
+{
+    return json_post_array_or_object(node, data, packet, true);
+}
+
+static int
+json_array_post_process(struct sol_flow_node *node, void *data, uint16_t port,
+    uint16_t conn_id, const struct sol_flow_packet *packet)
+{
+    return json_post_array_or_object(node, data, packet, false);
+}
+
+static int
+json_string_post_process(struct sol_flow_node *node, void *data, uint16_t port,
+    uint16_t conn_id, const struct sol_flow_packet *packet)
+{
+    return string_post(node, packet, data, true);
+}
+
+static int
+json_float_post_process(struct sol_flow_node *node, void *data, uint16_t port,
+    uint16_t conn_id, const struct sol_flow_packet *packet)
+{
+    return float_post(node, packet, data, false);
+}
+
+static int
+json_int_post_process(struct sol_flow_node *node, void *data, uint16_t port,
+    uint16_t conn_id, const struct sol_flow_packet *packet)
+{
+    return int_post(node, packet, data, false);
+}
+
+static int
+json_null_post_process(struct sol_flow_node *node, void *data, uint16_t port,
+    uint16_t conn_id, const struct sol_flow_packet *packet)
+{
+    return common_post_process(node, data, NULL, "value", "null", NULL);
+}
+
+static int
+get_json_process(struct sol_flow_node *node, struct sol_buffer *buf)
+{
+    struct sol_json_token value;
+    enum sol_json_type type;
     int r;
 
-    SOL_HTTP_RESPONSE_CHECK_API(response, -EINVAL);
+    sol_json_token_init_from_slice(&value, sol_buffer_get_slice(buf));
 
-    SOL_DBG("Json process - response from: %s", response->url);
+    type = sol_json_token_get_type(&value);
 
-    trimmed_str = sol_str_slice_trim(sol_buffer_get_slice(&response->content));
-    sol_json_scanner_init(&object_scanner, trimmed_str.data, trimmed_str.len);
-    sol_json_scanner_init(&array_scanner, trimmed_str.data, trimmed_str.len);
+    if (type == SOL_JSON_TYPE_OBJECT_START) {
+        struct sol_blob *blob;
 
-    (void)sol_buffer_steal(&response->content, NULL);
-    blob = sol_blob_new(SOL_BLOB_TYPE_DEFAULT, NULL, trimmed_str.data,
-        trimmed_str.len);
-
-    if (!blob) {
-        sol_flow_send_error_packet(node, ENOMEM,
-            "Could not create the json blob packet from: %s", response->url);
-        SOL_ERR("Could not create the json blob packet from: %s",
-            response->url);
-        return -ENOMEM;
-    }
-
-    if (sol_json_is_valid_type(&object_scanner, SOL_JSON_TYPE_OBJECT_START)) {
+        blob = blob_from_buffer(node, buf);
+        SOL_NULL_CHECK(blob, -ENOMEM);
         r = sol_flow_send_json_object_packet(node,
-            SOL_FLOW_NODE_TYPE_HTTP_CLIENT_GET_JSON__OUT__OBJECT, blob);
-    } else if (sol_json_is_valid_type(&array_scanner,
-        SOL_JSON_TYPE_ARRAY_START)) {
+            SOL_FLOW_NODE_TYPE_HTTP_CLIENT_JSON__OUT__OBJECT, blob);
+        sol_blob_unref(blob);
+    } else if (type == SOL_JSON_TYPE_ARRAY_START) {
+        struct sol_blob *blob;
+
+        blob = blob_from_buffer(node, buf);
+        SOL_NULL_CHECK(blob, -ENOMEM);
         r = sol_flow_send_json_array_packet(node,
-            SOL_FLOW_NODE_TYPE_HTTP_CLIENT_GET_JSON__OUT__ARRAY, blob);
+            SOL_FLOW_NODE_TYPE_HTTP_CLIENT_JSON__OUT__ARRAY, blob);
+        sol_blob_unref(blob);
+    } else if (type == SOL_JSON_TYPE_TRUE) {
+        r = sol_flow_send_boolean_packet(node,
+            SOL_FLOW_NODE_TYPE_HTTP_CLIENT_JSON__OUT__BOOLEAN, true);
+    } else if (type == SOL_JSON_TYPE_FALSE) {
+        r = sol_flow_send_boolean_packet(node,
+            SOL_FLOW_NODE_TYPE_HTTP_CLIENT_JSON__OUT__BOOLEAN, false);
+    } else if (type == SOL_JSON_TYPE_STRING) {
+        char *str;
+
+        str = sol_json_token_get_unescaped_string_copy(&value);
+        SOL_NULL_CHECK(str, -ENOMEM);
+
+        r = sol_flow_send_string_take_packet(node,
+            SOL_FLOW_NODE_TYPE_HTTP_CLIENT_JSON__OUT__STRING, str);
+    } else if (type == SOL_JSON_TYPE_NUMBER) {
+        double dvalue;
+
+        r = parse_float(sol_buffer_get_slice(buf), &dvalue);
+        SOL_INT_CHECK(r, < 0, r);
+        r = sol_flow_send_drange_value_packet(node,
+            SOL_FLOW_NODE_TYPE_HTTP_CLIENT_JSON__OUT__FLOAT, dvalue);
+        SOL_INT_CHECK(r, < 0, r);
+
+        if (dvalue >= INT32_MIN && dvalue <= INT32_MAX)
+            r = sol_flow_send_irange_value_packet(node,
+                SOL_FLOW_NODE_TYPE_HTTP_CLIENT_JSON__OUT__INT, (int32_t)dvalue);
+    } else if (type == SOL_JSON_TYPE_NULL) {
+        r = sol_flow_send_empty_packet(node,
+            SOL_FLOW_NODE_TYPE_HTTP_CLIENT_JSON__OUT__NULL);
     } else {
-        sol_flow_send_error_packet(node, EINVAL, "The json received from:%s"
-            " is not valid json-object or json-array", response->url);
-        SOL_ERR("The json received from:%s is not valid json-object or"
-            " json-array", response->url);
+        sol_flow_send_error_packet(node, EINVAL, "Unknown json type");
         r = -EINVAL;
     }
 
-    sol_blob_unref(blob);
     return r;
 }
 
-static void
-generic_request_finished(void *data,
-    const struct sol_http_client_connection *conn,
-    struct sol_http_response *response)
-{
-    struct sol_flow_node *node = data;
-    struct http_data *mdata = sol_flow_node_get_private_data(node);
-    const struct http_client_node_type *type;
-    int ret;
-
-    ret = check_response(mdata, node, conn, response);
-
-    if (ret < 0) {
-        SOL_ERR("Invalid http response from %s", mdata->url);
-        return;
-    }
-
-    if (ret == 1)
-        return;
-
-    ret = get_last_modified_date(mdata, response);
-    SOL_INT_CHECK(ret, < 0);
-
-    if (mdata->strict && mdata->accept && response->content_type &&
-        !streq(response->content_type, mdata->accept)) {
-        sol_flow_send_error_packet(node, EINVAL,
-            "Response has different content type. Received: %s - Desired: %s",
-            response->content_type,
-            mdata->accept);
-        return;
-    }
-
-    type = (const struct http_client_node_type *)
-        sol_flow_node_get_type(node);
-
-    type->process_data(node, response);
-}
-
+/*
+ * --------------------------------- generic nodes  -----------------------------
+ */
 static int
-make_http_request(struct sol_flow_node *node, struct http_data *mdata)
-{
-    const struct http_client_node_type *type;
-    struct sol_http_client_connection *conn;
-    struct sol_http_params params;
-    struct sol_http_param_value *param;
-    uint16_t i;
-    int r;
-
-    type = (const struct http_client_node_type *)
-        sol_flow_node_get_type(node);
-
-    sol_http_params_init(&params);
-    if (mdata->accept && !sol_http_param_add(&params,
-        SOL_HTTP_REQUEST_PARAM_HEADER("Accept", mdata->accept))) {
-        SOL_ERR("Could not add the HTTP Accept param");
-        goto err;
-    }
-
-    if (mdata->last_modified && !sol_http_param_add(&params,
-        SOL_HTTP_REQUEST_PARAM_HEADER("If-Since-Modified",
-        mdata->last_modified))) {
-        SOL_WRN("Failed to set query params");
-        goto err;
-    }
-
-
-    if ((mdata->method == SOL_HTTP_METHOD_POST ||
-        mdata->method == SOL_HTTP_METHOD_PUT) &&
-        mdata->content_type && !sol_http_param_add(&params,
-        SOL_HTTP_REQUEST_PARAM_HEADER("Content-Type", mdata->content_type))) {
-        SOL_ERR("Could not add the HTTP Content-Type param");
-        goto err;
-    }
-
-    SOL_HTTP_PARAMS_FOREACH_IDX (&mdata->url_params, param, i) {
-        if (!sol_http_param_add(&params, *param)) {
-            SOL_ERR("Could not append the param - %.*s:%.*s",
-                SOL_STR_SLICE_PRINT(param->value.key_value.key),
-                SOL_STR_SLICE_PRINT(param->value.key_value.value));
-            goto err;
-        }
-    }
-
-    if (type->setup_params) {
-        r = type->setup_params(mdata, &params);
-        SOL_INT_CHECK_GOTO(r, < 0, err);
-    }
-
-    if (mdata->machine_id) {
-        r = machine_id_header_add(&params);
-        SOL_INT_CHECK_GOTO(r, < 0, err);
-    }
-
-    conn = sol_http_client_request(mdata->method, mdata->url,
-        &params, type->http_response ? type->http_response :
-        generic_request_finished, node);
-    sol_http_params_clear(&params);
-    SOL_NULL_CHECK(conn, -ENOMEM);
-
-    r = sol_ptr_vector_append(&mdata->pending_conns, conn);
-    if (r < 0) {
-        SOL_ERR("Could not add store the pending connection. Aborting");
-        sol_http_client_connection_cancel(conn);
-        return -ENOMEM;
-    }
-    SOL_DBG("Making request to: %s", mdata->url);
-    return 0;
-
-err:
-    sol_http_params_clear(&params);
-    return -ENOMEM;
-}
-
-static int
-generic_get_process(struct sol_flow_node *node, void *data, uint16_t port,
-    uint16_t conn_id, const struct sol_flow_packet *packet)
-{
-    return make_http_request(node, data);
-}
-
-static int
-request_node_setup_params(struct http_data *data, struct sol_http_params *params)
+request_node_setup_params(struct http_data *data,
+    struct sol_http_params *params)
 {
     struct http_request_data *mdata = (struct http_request_data *)data;
     struct sol_http_param_value *param;
@@ -1434,8 +1529,6 @@ request_node_http_response(void *data,
     struct http_data *mdata = sol_flow_node_get_private_data(node);
     struct sol_vector headers, cookies;
     struct sol_blob *blob;
-    size_t buf_size;
-    void *mem;
     int r;
 
     remove_connection(mdata, conn);
@@ -1447,12 +1540,7 @@ request_node_http_response(void *data,
         return;
     }
 
-    SOL_HTTP_RESPONSE_CHECK_API_VERSION(response);
-
-    mem = sol_buffer_steal(&response->content, &buf_size);
-
-    blob = sol_blob_new(SOL_BLOB_TYPE_DEFAULT, NULL, mem,
-        buf_size);
+    blob = blob_from_buffer(node, &response->content);
     SOL_NULL_CHECK_GOTO(blob, err_blob);
 
     sol_vector_init(&cookies, sizeof(struct sol_key_value));
@@ -1475,10 +1563,8 @@ err_exit:
     clear_sol_key_value_vector(&cookies);
     clear_sol_key_value_vector(&headers);
     sol_blob_unref(blob);
-    return;
-
 err_blob:
-    free(mem);
+    return;
 }
 
 static enum sol_http_method
@@ -1550,8 +1636,6 @@ request_node_clear_params(struct http_request_data *mdata)
         mdata->content = NULL;
     }
 
-    free(mdata->base.content_type);
-    mdata->base.content_type = NULL;
     sol_http_params_clear(&mdata->params);
 }
 
@@ -1682,15 +1766,6 @@ request_node_password_process(struct sol_flow_node *node, void *data,
 }
 
 static int
-request_node_content_type_process(struct sol_flow_node *node, void *data,
-    uint16_t port, uint16_t conn_id, const struct sol_flow_packet *packet)
-{
-    struct http_request_data *mdata = data;
-
-    return replace_string_from_packet(packet, &mdata->base.content_type);
-}
-
-static int
 request_node_accept_process(struct sol_flow_node *node, void *data,
     uint16_t port, uint16_t conn_id, const struct sol_flow_packet *packet)
 {
@@ -1745,7 +1820,7 @@ request_node_trigger_process(struct sol_flow_node *node, void *data,
         SOL_INT_CHECK(r, < 0, r);
     }
 
-    return make_http_request(node, data);
+    return common_get_process(node, data, port, conn_id, packet);
 }
 
 static int

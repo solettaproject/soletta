@@ -480,9 +480,25 @@
       "fragment": "strtod_l(0, 0, 0);"
     },
     {
+      "dependency": "strftime_l",
+      "type": "ccode",
+      "headers": [
+        "<time.h>"
+      ],
+      "fragment": "strftime_l(0, 0, 0, 0, 0);"
+    },
+    {
       "dependency": "getconf",
       "type": "exec",
       "exec": "getconf"
+    },
+    {
+      "dependency": "get_current_dir_name",
+      "type": "ccode",
+      "headers": [
+        "<unistd.h>"
+      ],
+      "fragment": "get_current_dir_name();"
     },
     {
       "dependency": "valgrind",
@@ -517,7 +533,9 @@
     {
       "dependency": "nodejs",
       "type": "exec",
-      "exec": "node"
+      "exec": "node",
+      "version-command": "node --version",
+      "atleast-version": "v4.0"
     },
     {
       "dependency": "nodejs_npm",

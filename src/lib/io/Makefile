@@ -22,6 +22,9 @@ obj-$(USE_IIO) += \
 obj-$(USE_STORAGE) += \
     io-storage.mod
 
+obj-$(USE_IPM) += \
+    io-ipm.mod
+
 obj-io-aio-$(USE_AIO) := \
     sol-aio-common.o
 obj-io-aio-$(PLATFORM_RIOTOS) += \
@@ -60,16 +63,20 @@ obj-io-i2c-$(PLATFORM_LINUX) += \
 obj-io-i2c-$(PLATFORM_ZEPHYR) += \
     sol-i2c-impl-zephyr.o
 
-obj-io-spi-$(PLATFORM_RIOTOS) := \
+obj-io-spi-$(USE_SPI) := \
+    sol-spi-common.o
+obj-io-spi-$(PLATFORM_RIOTOS) += \
     sol-spi-impl-riot.o
-obj-io-spi-$(PLATFORM_LINUX) := \
+obj-io-spi-$(PLATFORM_LINUX) += \
     sol-spi-impl-linux.o
-obj-io-spi-$(PLATFORM_ZEPHYR) := \
+obj-io-spi-$(PLATFORM_ZEPHYR) += \
     sol-spi-impl-zephyr.o
 
-obj-io-uart-$(PLATFORM_RIOTOS) := \
+obj-io-uart-$(USE_UART) := \
+    sol-uart-common.o
+obj-io-uart-$(PLATFORM_RIOTOS) += \
     sol-uart-impl-riot.o
-obj-io-uart-$(PLATFORM_LINUX) := \
+obj-io-uart-$(PLATFORM_LINUX) += \
     sol-uart-impl-linux.o
 
 obj-io-iio-$(USE_IIO) := \
@@ -81,6 +88,9 @@ obj-io-storage-$(USE_EFIVARS) += \
     sol-efivarfs-storage.o
 obj-io-storage-$(USE_MEMMAP) += \
     sol-memmap-storage.o
+
+obj-io-ipm-$(USE_IPM) += \
+    sol-ipm.o
 
 headers-$(USE_AIO) += \
     include/sol-aio.h
@@ -104,3 +114,6 @@ headers-$(USE_EFIVARS) += \
     include/sol-efivarfs-storage.h
 headers-$(USE_MEMMAP) += \
     include/sol-memmap-storage.h
+
+headers-$(USE_IPM) += \
+    include/sol-ipm.h

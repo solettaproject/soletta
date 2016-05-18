@@ -55,7 +55,7 @@ Resource representation properties shall not be created and deleted one by one. 
 **Resource discovery** is based on the existence of resources (directories) set up for discovery. It can be achieved in 3 ways:
 - direct discovery through peer inquiry (unicast or multicast)
 - indirect discovery based on a 3rd party directory (a server for resource discovery)
-- presence advertisment: the resource enabling discovery is local to the initiator, and it is maintained by presence notifications.
+- presence advertisement: the resource enabling discovery is local to the initiator, and it is maintained by presence notifications.
 
 Implementations should encapsulate the resource discovery type, and should map the DiscoveryOptions values to the best suited protocol request(s).
 

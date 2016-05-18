@@ -33,9 +33,6 @@
 
 #include "dtls.h"
 
-#define DTLS_PSK_ID_LEN 16
-#define DTLS_PSK_KEY_LEN 16
-
 static const uint32_t dtls_magic = 'D' << 24 | 't' << 16 | 'L' << 8 | 's';
 
 struct queue_item {
@@ -50,24 +47,13 @@ struct sol_socket_dtls {
     struct sol_socket *wrapped;
     struct sol_timeout *retransmit_timeout;
     dtls_context_t *context;
-
     struct {
         bool (*cb)(void *data, struct sol_socket *s);
-        const void *data;
         struct sol_vector queue;
     } read, write;
-};
+    const void *data;
 
-/* Both `struct cred_item` and `struct creds` should be in its own file when
- * these things are not hardcoded anymore.  */
-struct cred_item {
-    char *id;
-    char *psk;
-};
-
-struct creds {
-    struct sol_vector items;
-    char *id;
+    const struct sol_socket_dtls_credential_cb *credentials;
 };
 
 static bool encrypt_payload(struct sol_socket_dtls *s);
@@ -145,16 +131,21 @@ session_from_linkaddr(const struct sol_network_link_addr *addr,
 }
 
 static void
+clear_queue_item(struct queue_item *item)
+{
+    sol_util_clear_memory_secure(item->buffer.data, item->buffer.capacity);
+    sol_buffer_fini(&item->buffer);
+    sol_util_clear_memory_secure(item, sizeof(*item));
+}
+
+static void
 clear_queue(struct sol_vector *vec)
 {
     struct queue_item *item;
     uint16_t idx;
 
-    SOL_VECTOR_FOREACH_IDX (vec, item, idx) {
-        sol_util_secure_clear_memory(item->buffer.data, item->buffer.capacity);
-        sol_buffer_fini(&item->buffer);
-        sol_util_secure_clear_memory(item, sizeof(*item));
-    }
+    SOL_VECTOR_FOREACH_IDX (vec, item, idx)
+        clear_queue_item(item);
 
     sol_vector_clear(vec);
 }
@@ -163,7 +154,7 @@ static void
 free_queue(struct sol_vector *vec)
 {
     clear_queue(vec);
-    sol_util_secure_clear_memory(vec, sizeof(*vec));
+    sol_util_clear_memory_secure(vec, sizeof(*vec));
 }
 
 static void
@@ -181,48 +172,29 @@ sol_socket_dtls_del(struct sol_socket *socket)
 
     sol_socket_del(s->wrapped);
 
-    sol_util_secure_clear_memory(s, sizeof(*s));
+    sol_util_clear_memory_secure(s, sizeof(*s));
     free(s);
-}
-
-static int
-sol_socket_dtls_setsockopt(struct sol_socket *socket, enum sol_socket_level level,
-    enum sol_socket_option optname, const void *optval, size_t optlen)
-{
-    struct sol_socket_dtls *s = (struct sol_socket_dtls *)socket;
-
-    return sol_socket_setsockopt(s->wrapped, level, optname, optval, optlen);
-}
-
-static int
-sol_socket_dtls_getsockopt(struct sol_socket *socket, enum sol_socket_level level,
-    enum sol_socket_option optname, void *optval, size_t *optlen)
-{
-    struct sol_socket_dtls *s = (struct sol_socket_dtls *)socket;
-
-    return sol_socket_getsockopt(s->wrapped, level, optname, optval, optlen);
 }
 
 static int
 remove_item_from_vector(struct sol_vector *vec, struct queue_item *item,
     int retval)
 {
-    sol_util_secure_clear_memory(item->buffer.data, item->buffer.capacity);
-    sol_buffer_fini(&item->buffer);
-
-    sol_util_secure_clear_memory(item, sizeof(*item));
+    clear_queue_item(item);
     sol_vector_del(vec, 0);
 
     return retval;
 }
 
 static ssize_t
-sol_socket_dtls_recvmsg(struct sol_socket *socket, void *buf, size_t len, struct sol_network_link_addr *cliaddr)
+sol_socket_dtls_recvmsg(struct sol_socket *socket, struct sol_buffer *buf,
+    struct sol_network_link_addr *cliaddr)
 {
     struct sol_socket_dtls *s = (struct sol_socket_dtls *)socket;
     struct sol_buffer new_buf;
     void *buf_copy;
     struct queue_item *item;
+    int ret;
 
     if (s->read.queue.len == 0) {
         SOL_DBG("Receive queue empty, returning 0");
@@ -235,63 +207,44 @@ sol_socket_dtls_recvmsg(struct sol_socket *socket, void *buf, size_t len, struct
         return -EAGAIN;
     }
 
-    if (!buf)
-        return item->buffer.used;
-
     memcpy(cliaddr, &item->addr, sizeof(*cliaddr));
 
-    if (item->buffer.used <= len) {
-        memcpy(buf, item->buffer.data, item->buffer.used);
-        return remove_item_from_vector(&s->read.queue, item,
-            item->buffer.used);
-    }
+    ret = sol_buffer_set_buffer(buf, &item->buffer);
+    SOL_INT_CHECK(ret, < 0, ret);
 
-    memcpy(buf, item->buffer.data, len);
-    sol_util_secure_clear_memory(item->buffer.data, len);
-
-    buf_copy = sol_util_memdup((const char *)item->buffer.data + len,
-        item->buffer.used - len);
-    SOL_NULL_CHECK_GOTO(buf_copy, clear_buf);
-
-    sol_buffer_init_flags(&new_buf, buf_copy, len, SOL_BUFFER_FLAGS_FIXED_CAPACITY | SOL_BUFFER_FLAGS_NO_NUL_BYTE);
-    new_buf.used = item->buffer.used - len;
-
-    sol_buffer_fini(&item->buffer);
-    item->buffer = new_buf;
-
-    return len;
-
-clear_buf:
-    SOL_WRN("Could not copy buffer for short read, discarding unencrypted data");
-    return remove_item_from_vector(&s->read.queue, item, -ENOMEM);
+    return remove_item_from_vector(&s->read.queue, item, buf->used);
 }
 
-static int
-sol_socket_dtls_sendmsg(struct sol_socket *socket, const void *buf, size_t len,
+static ssize_t
+sol_socket_dtls_sendmsg(struct sol_socket *socket, const struct sol_buffer *buf,
     const struct sol_network_link_addr *cliaddr)
 {
     struct sol_socket_dtls *s = (struct sol_socket_dtls *)socket;
     struct queue_item *item;
-    void *buf_copy;
+    int ret;
 
     if (s->write.queue.len > 4) {
         SOL_WRN("Transmission queue too long");
         return -ENOMEM;
     }
 
-    buf_copy = sol_util_memdup(buf, len);
-    SOL_NULL_CHECK(buf_copy, -ENOMEM);
-
     item = sol_vector_append(&s->write.queue);
     SOL_NULL_CHECK(item, -ENOMEM);
 
     item->addr = *cliaddr;
-    sol_buffer_init_flags(&item->buffer, buf_copy, len, SOL_BUFFER_FLAGS_FIXED_CAPACITY | SOL_BUFFER_FLAGS_NO_NUL_BYTE);
-    item->buffer.used = len;
+    sol_buffer_init_flags(&item->buffer, NULL, 0,
+        SOL_BUFFER_FLAGS_NO_NUL_BYTE | SOL_BUFFER_FLAGS_CLEAR_MEMORY);
+    ret = sol_buffer_set_buffer(&item->buffer, buf);
+    if (ret < 0) {
+        SOL_WRN("Could not append the buffer");
+        sol_buffer_fini(&item->buffer);
+        sol_vector_del_last(&s->write.queue);
+        return ret;
+    }
 
     encrypt_payload(s);
 
-    return (int)len;
+    return buf->used;
 }
 
 static int
@@ -314,7 +267,7 @@ init_dtls_if_needed(void)
 {
     static bool initialized = false;
 
-    if (!initialized) {
+    if (SOL_UNLIKELY(!initialized)) {
         dtls_init();
         initialized = true;
         SOL_DBG("TinyDTLS initialized");
@@ -331,19 +284,20 @@ read_encrypted(void *data, struct sol_socket *wrapped)
     struct sol_socket_dtls *socket = data;
     struct sol_network_link_addr cliaddr;
     session_t session = { 0 };
-    uint8_t buf[DTLS_MAX_BUF];
     int len;
+
+    SOL_BUFFER_DECLARE_STATIC(buffer, DTLS_MAX_BUF);
 
     SOL_DBG("Reading encrypted data from wrapped socket");
 
-    len = sol_socket_recvmsg(socket->wrapped, buf, sizeof(buf), &cliaddr);
+    len = sol_socket_recvmsg(socket->wrapped, &buffer, &cliaddr);
     SOL_INT_CHECK(len, < 0, false);
 
     session.size = sizeof(session.addr);
     if (to_sockaddr(&cliaddr, &session.addr.sa, &session.size) < 0)
         return false;
 
-    return dtls_handle_message(socket->context, &session, buf, len) == 0;
+    return dtls_handle_message(socket->context, &session, buffer.data, len) == 0;
 }
 
 static int
@@ -365,7 +319,7 @@ call_user_read_cb(struct dtls_context_t *ctx, session_t *session, uint8_t *buf, 
     }
 
     buf_copy = sol_util_memdup(buf, len);
-    sol_util_secure_clear_memory(buf, len);
+    sol_util_clear_memory_secure(buf, len);
     SOL_NULL_CHECK(buf_copy, -EINVAL);
 
     item = sol_vector_append(&socket->read.queue);
@@ -373,7 +327,8 @@ call_user_read_cb(struct dtls_context_t *ctx, session_t *session, uint8_t *buf, 
 
     item->addr = addr;
     sol_buffer_init_flags(&item->buffer, buf_copy, len,
-        SOL_BUFFER_FLAGS_FIXED_CAPACITY | SOL_BUFFER_FLAGS_NO_NUL_BYTE);
+        SOL_BUFFER_FLAGS_CLEAR_MEMORY | SOL_BUFFER_FLAGS_NO_NUL_BYTE |
+        SOL_BUFFER_FLAGS_FIXED_CAPACITY);
     item->buffer.used = len;
 
     if (!socket->read.cb) {
@@ -381,13 +336,13 @@ call_user_read_cb(struct dtls_context_t *ctx, session_t *session, uint8_t *buf, 
         return -EINVAL;
     }
 
-    if (socket->read.cb(socket->read.data, socket))
+    if (socket->read.cb((void *)socket->data, socket))
         return len;
 
     return -EINVAL;
 
 no_item:
-    sol_util_secure_clear_memory(buf_copy, len);
+    sol_util_clear_memory_secure(buf_copy, len);
     free(buf_copy);
     return -ENOMEM;
 }
@@ -430,9 +385,8 @@ encrypt_payload(struct sol_socket_dtls *s)
     else
         SOL_DBG("Sent everything, will remove from queue");
 
-    sol_util_secure_clear_memory(item->buffer.data, item->buffer.capacity);
     sol_buffer_fini(&item->buffer);
-    sol_util_secure_clear_memory(item, sizeof(*item));
+    sol_util_clear_memory_secure(item, sizeof(*item));
     sol_vector_del(&s->write.queue, 0);
 
     return true;
@@ -443,6 +397,7 @@ write_encrypted(struct dtls_context_t *ctx, session_t *session, uint8_t *buf, si
 {
     struct sol_socket_dtls *socket = dtls_get_app_data(ctx);
     struct sol_network_link_addr addr;
+    struct sol_buffer buffer = SOL_BUFFER_INIT_CONST(buf, len);
     int r;
 
     if (from_sockaddr(&session->addr.sa, session->size, &addr) < 0) {
@@ -450,10 +405,7 @@ write_encrypted(struct dtls_context_t *ctx, session_t *session, uint8_t *buf, si
         return -EINVAL;
     }
 
-    r = sol_socket_sendmsg(socket->wrapped, buf, len, &addr);
-    SOL_INT_CHECK(r, < 0, r);
-
-    return len;
+    return sol_socket_sendmsg(socket->wrapped, &buffer, &addr);
 }
 
 static bool
@@ -466,17 +418,17 @@ call_user_write_cb(void *data, struct sol_socket *wrapped)
         return false;
     }
 
-    if (socket->write.cb(socket->write.data, socket)) {
+    if (socket->write.cb((void *)socket->data, socket)) {
         SOL_DBG("User func@%p returned success, encrypting payload",
             socket->write.cb);
 
-        if (encrypt_payload(data)) {
+        if (encrypt_payload(socket)) {
             SOL_DBG("Data encrypted, should have been passed to the "
                 "wrapped socket");
             return true;
-        } else {
-            SOL_DBG("Could not encrypt payload");
         }
+
+        SOL_DBG("Could not encrypt payload");
     }
 
     return false;
@@ -510,10 +462,8 @@ retransmit_timer_enable(struct sol_socket_dtls *s, clock_time_t next)
 {
     SOL_DBG("Next DTLS retransmission will happen in %u seconds", next);
 
-    if (s->retransmit_timeout) {
+    if (s->retransmit_timeout)
         sol_timeout_del(s->retransmit_timeout);
-        s->retransmit_timeout = NULL;
-    }
 
     s->retransmit_timeout = sol_timeout_add(next * 1000, retransmit_timer_cb,
         socket);
@@ -592,12 +542,13 @@ handle_dtls_event(struct dtls_context_t *ctx, session_t *session,
         msg = "unknown_event";
 
     if (level == DTLS_ALERT_LEVEL_WARNING) {
-        SOL_WRN("\n\nDTLS warning for socket %p: %s\n\n", socket, msg);
+        SOL_WRN("DTLS warning for socket %p: %s", socket, msg);
     } else if (level == DTLS_ALERT_LEVEL_FATAL) {
         /* FIXME: What to do here? Destroy the wrapped socket? Renegotiate? */
-        SOL_ERR("\n\nDTLS fatal error for socket %p: %s\n\n", socket, msg);
+        SOL_ERR("DTLS fatal error for socket %p: %s", socket, msg);
     } else {
-        SOL_DBG("\n\nTLS session changed for socket %p: %s\n\n", socket, msg);
+        SOL_DBG("TLS session changed for socket %p: %s", socket, msg);
+
         if (code == DTLS_EVENT_CONNECTED) {
             struct queue_item *item;
             uint16_t idx;
@@ -610,6 +561,7 @@ handle_dtls_event(struct dtls_context_t *ctx, session_t *session,
                     continue;
 
                 (void)dtls_write(socket->context, &session, item->buffer.data, item->buffer.used);
+                clear_queue_item(item);
             }
             clear_queue(&socket->write.queue);
         }
@@ -621,123 +573,24 @@ handle_dtls_event(struct dtls_context_t *ctx, session_t *session,
 }
 
 static int
-sol_socket_dtls_set_on_read(struct sol_socket *socket, bool (*cb)(void *data, struct sol_socket *s), void *data)
+sol_socket_dtls_set_read_monitor(struct sol_socket *socket, bool on)
 {
     struct sol_socket_dtls *s = (struct sol_socket_dtls *)socket;
 
-    s->read.cb = cb;
-    s->read.data = data;
 
-    SOL_DBG("setting onread of socket %p to %p<%p>", socket, cb, data);
+    SOL_DBG("setting onread of socket %p to <%d>", socket, on);
 
-    return sol_socket_set_on_read(s->wrapped, read_encrypted, socket);
+    return sol_socket_set_read_monitor(s->wrapped, on);
 }
 
 static int
-sol_socket_dtls_set_on_write(struct sol_socket *socket, bool (*cb)(void *data, struct sol_socket *s), void *data)
+sol_socket_dtls_set_write_monitor(struct sol_socket *socket, bool on)
 {
     struct sol_socket_dtls *s = (struct sol_socket_dtls *)socket;
 
-    s->write.cb = cb;
-    s->write.data = data;
+    SOL_DBG("setting onwrite of socket %p to <%d>", socket, on);
 
-    SOL_DBG("setting onwrite of socket %p to %p<%p>", socket, cb, data);
-
-    return sol_socket_set_on_write(s->wrapped, call_user_write_cb, socket);
-}
-
-static const char *
-creds_find_psk(const struct creds *creds, const char *desc, size_t desc_len)
-{
-    struct cred_item *iter;
-    uint16_t idx;
-
-    SOL_DBG("Looking for PSK with ID=%.*s", (int)desc_len, desc);
-
-    SOL_VECTOR_FOREACH_IDX (&creds->items, iter, idx) {
-        if (!memcmp(desc, iter->id, desc_len)) /* timingsafe_bcmp()? */
-            return iter->psk;
-    }
-
-    return NULL;
-}
-
-static bool
-creds_add(struct creds *creds, const char *id, size_t id_len,
-    const char *psk, size_t psk_len)
-{
-    struct cred_item *item;
-    char *psk_stored;
-
-    psk_stored = creds_find_psk(creds, id, id_len);
-    if (psk_stored) {
-        if (!memcmp(psk_stored, psk, psk_len))
-            return true;
-
-        SOL_WRN("Attempting to add PSK for ID=%.*s, but it's already"
-            " registered and different from the supplied key",
-            (int)id_len, id);
-        return false;
-    }
-
-    item = sol_vector_append(&creds->items);
-    SOL_NULL_CHECK(item, false);
-
-    item->id = strndup(id, id_len);
-    SOL_NULL_CHECK_GOTO(item->id, no_id);
-
-    item->psk = strndup(psk, psk_len);
-    SOL_NULL_CHECK_GOTO(item->psk, no_psk);
-
-    return true;
-
-no_psk:
-    sol_util_secure_clear_memory(item->id, strlen(id));
-    free(item->id);
-no_id:
-    sol_util_secure_clear_memory(item, sizeof(*item));
-    sol_vector_del_last(&creds->items);
-
-    return false;
-}
-
-static void
-creds_clear(struct creds *creds)
-{
-    struct cred_item *iter;
-    uint16_t idx;
-
-    SOL_VECTOR_FOREACH_IDX (&creds->items, iter, idx) {
-        sol_util_secure_clear_memory(iter->id, DTLS_PSK_ID_LEN);
-        sol_util_secure_clear_memory(iter->psk, DTLS_PSK_KEY_LEN);
-
-        free(iter->id);
-        free(iter->psk);
-    }
-    sol_vector_clear(&creds->items);
-
-    sol_util_secure_clear_memory(creds->id, strlen(creds->id));
-    free(creds->id);
-
-    sol_util_secure_clear_memory(creds, sizeof(*creds));
-}
-
-static bool
-creds_init(struct creds *creds)
-{
-    creds->id = strdup("1111111111111111");
-    if (!creds->id)
-        return false;
-
-    sol_vector_init(&creds->items, sizeof(struct cred_item));
-
-    /* FIXME: Load this information from a secure storage area somehow. */
-    if (!creds_add(creds, "1111111111111111", DTLS_PSK_ID_LEN, "AAAAAAAAAAAAAAAA", DTLS_PSK_KEY_LEN)) {
-        creds_clear(creds);
-        return false;
-    }
-
-    return true;
+    return sol_socket_set_write_monitor(s->wrapped, on);
 }
 
 static int
@@ -745,60 +598,76 @@ get_psk_info(struct dtls_context_t *ctx, const session_t *session,
     dtls_credentials_type_t type, const char *desc, size_t desc_len,
     char *result, size_t result_len)
 {
-    struct creds creds;
+    struct sol_socket_dtls *socket = dtls_get_app_data(ctx);
+    ssize_t len;
+    void *creds;
     int r = -1;
 
-    if (!creds_init(&creds)) {
-        SOL_WRN("Could not obtain PSK credentials");
+    SOL_NULL_CHECK(socket->credentials,
+        dtls_alert_fatal_create(DTLS_ALERT_INTERNAL_ERROR));
+    SOL_NULL_CHECK(socket->credentials->init,
+        dtls_alert_fatal_create(DTLS_ALERT_INTERNAL_ERROR));
+    SOL_NULL_CHECK(socket->credentials->clear,
+        dtls_alert_fatal_create(DTLS_ALERT_INTERNAL_ERROR));
+    SOL_NULL_CHECK(socket->credentials->get_psk,
+        dtls_alert_fatal_create(DTLS_ALERT_INTERNAL_ERROR));
+    SOL_NULL_CHECK(socket->credentials->get_id,
+        dtls_alert_fatal_create(DTLS_ALERT_INTERNAL_ERROR));
+
+    creds = socket->credentials->init(socket->credentials->data);
+    if (!creds) {
+        SOL_WRN("Could not initialize credential storage");
         return dtls_alert_fatal_create(DTLS_ALERT_INTERNAL_ERROR);
     }
 
     if (type == DTLS_PSK_IDENTITY || type == DTLS_PSK_HINT) {
         SOL_DBG("Server asked for PSK %s with %zu bytes, have %d",
             type == DTLS_PSK_IDENTITY ? "identity" : "hint",
-            result_len, DTLS_PSK_ID_LEN);
+            result_len, SOL_DTLS_PSK_ID_LEN);
 
-        if (result && result_len >= DTLS_PSK_ID_LEN) {
-            memcpy(result, creds.id, DTLS_PSK_ID_LEN);
-            r = DTLS_PSK_ID_LEN;
-        } else {
-            SOL_DBG("Not enough space to write PSK");
+        len = socket->credentials->get_id(creds, result, result_len);
+        if (len != SOL_DTLS_PSK_ID_LEN) {
+            SOL_DBG("Not enough space to write key ID");
             r = dtls_alert_fatal_create(DTLS_ALERT_INTERNAL_ERROR);
+        } else {
+            r = (int)len;
         }
     } else if (type != DTLS_PSK_KEY) {
         SOL_WRN("Expecting request for PSK, got something else instead (got %d, expected %d)",
             type, DTLS_PSK_KEY);
         r = dtls_alert_fatal_create(DTLS_ALERT_INTERNAL_ERROR);
-    } else if (!desc || desc_len < DTLS_PSK_KEY_LEN) {
-        SOL_WRN("Expecting PSK key but no space to write it (got %zu, have %d)",
-            desc_len, DTLS_PSK_KEY_LEN);
-        r = dtls_alert_fatal_create(DTLS_ALERT_ILLEGAL_PARAMETER);
     } else {
-        const char *psk = creds_find_psk(&creds, desc, desc_len);
-        if (psk) {
-            memcpy(result, psk, DTLS_PSK_KEY_LEN);
-            r = DTLS_PSK_KEY_LEN;
+        len = socket->credentials->get_psk(creds,
+            SOL_STR_SLICE_STR(desc, desc_len), result, result_len);
+        if (len != SOL_DTLS_PSK_KEY_LEN) {
+            if (len < 0)
+                SOL_WRN("Expecting PSK key but no space to write it (need %d, got %zd <%s>)",
+                    SOL_DTLS_PSK_KEY_LEN, len, sol_util_strerrora(-len));
+            else
+                SOL_WRN("Expecting PSK key but no space to write it (need %d, got %zd)",
+                    SOL_DTLS_PSK_KEY_LEN, len);
+            r = dtls_alert_fatal_create(DTLS_ALERT_ILLEGAL_PARAMETER);
+        } else {
+            r = (int)len;
         }
     }
 
-    creds_clear(&creds);
+    socket->credentials->clear(creds);
     return r;
 }
 
 struct sol_socket *
-sol_socket_dtls_wrap_socket(struct sol_socket *to_wrap)
+sol_socket_default_dtls_new(const struct sol_socket_options *options)
 {
-    static const struct sol_socket_impl impl = {
+    static const struct sol_socket_type type = {
+        SOL_SET_API_VERSION(.api_version = SOL_SOCKET_TYPE_API_VERSION, )
         .bind = sol_socket_dtls_bind,
         .join_group = sol_socket_dtls_join_group,
         .sendmsg = sol_socket_dtls_sendmsg,
         .recvmsg = sol_socket_dtls_recvmsg,
-        .set_on_write = sol_socket_dtls_set_on_write,
-        .set_on_read = sol_socket_dtls_set_on_read,
-        .del = sol_socket_dtls_del,
-        .new = NULL,
-        .setsockopt = sol_socket_dtls_setsockopt,
-        .getsockopt = sol_socket_dtls_getsockopt
+        .set_write_monitor = sol_socket_dtls_set_write_monitor,
+        .set_read_monitor = sol_socket_dtls_set_read_monitor,
+        .del = sol_socket_dtls_del
     };
     static const dtls_handler_t dtls_handler = {
         .write = write_encrypted,
@@ -806,33 +675,54 @@ sol_socket_dtls_wrap_socket(struct sol_socket *to_wrap)
         .event = handle_dtls_event,
         .get_psk_info = get_psk_info
     };
-    struct sol_socket_dtls *socket;
+    struct sol_socket_ip_options opts;
+    struct sol_socket_dtls *s;
+    int r = 0;
 
+    SOL_SOCKET_OPTIONS_CHECK_SUB_API_VERSION(options, SOL_SOCKET_IP_OPTIONS_SUB_API_VERSION, NULL);
+
+    opts = *(struct sol_socket_ip_options *)options;
     init_dtls_if_needed();
 
-    socket = malloc(sizeof(*socket));
-    SOL_NULL_CHECK(socket, NULL);
+    s = calloc(1, sizeof(*s));
+    SOL_NULL_CHECK_ERRNO(s, ENOMEM, NULL);
 
-    socket->context = dtls_new_context(socket);
-    if (!socket->context) {
-        SOL_WRN("Could not create DTLS context");
-        free(socket);
-        return NULL;
+    s->write.cb = opts.base.on_can_write;
+    s->read.cb = opts.base.on_can_read;
+    s->data = opts.base.data;
+
+    opts.base.data = s;
+    opts.base.on_can_read = read_encrypted;
+    opts.base.on_can_write = call_user_write_cb;
+
+    s->wrapped = sol_socket_ip_default_new(&opts);
+    if (!s) {
+        r = -errno;
+        goto err;
     }
 
-    dtls_set_handler(socket->context, &dtls_handler);
+    s->context = dtls_new_context(s);
+    if (!s->context) {
+        SOL_WRN("Could not create DTLS context");
+        sol_socket_del(s->wrapped);
+        r = -errno;
+        goto err;
+    }
 
-    socket->read.cb = NULL;
-    socket->write.cb = NULL;
-    socket->retransmit_timeout = NULL;
-    socket->wrapped = to_wrap;
-    socket->base.impl = &impl;
-    socket->dtls_magic = dtls_magic;
+    dtls_set_handler(s->context, &dtls_handler);
 
-    sol_vector_init(&socket->write.queue, sizeof(struct queue_item));
-    sol_vector_init(&socket->read.queue, sizeof(struct queue_item));
+    s->base.type = &type;
+    s->dtls_magic = dtls_magic;
 
-    return &socket->base;
+    sol_vector_init(&s->write.queue, sizeof(struct queue_item));
+    sol_vector_init(&s->read.queue, sizeof(struct queue_item));
+
+    return &s->base;
+
+err:
+    free(s);
+    errno = -r;
+    return NULL;
 }
 
 int
@@ -848,7 +738,7 @@ sol_socket_dtls_set_handshake_cipher(struct sol_socket *s,
 
     SOL_INT_CHECK(socket->dtls_magic, != dtls_magic, -EINVAL);
 
-    if ((size_t)cipher >= SOL_UTIL_ARRAY_SIZE(conv_tbl))
+    if ((size_t)cipher >= sol_util_array_size(conv_tbl))
         return -EINVAL;
 
     dtls_select_cipher(socket->context, conv_tbl[cipher]);
@@ -891,6 +781,19 @@ sol_socket_dtls_prf_keyblock(struct sol_socket *s,
         return -EINVAL;
 
     buffer->used = r;
+
+    return 0;
+}
+
+int
+sol_socket_dtls_set_credentials_callbacks(struct sol_socket *s,
+    const struct sol_socket_dtls_credential_cb *cb)
+{
+    struct sol_socket_dtls *socket = (struct sol_socket_dtls *)s;
+
+    SOL_INT_CHECK(socket->dtls_magic, != dtls_magic, -EINVAL);
+
+    socket->credentials = cb;
 
     return 0;
 }

@@ -49,7 +49,7 @@ SOL_LOG_INTERNAL_DECLARE(_sol_coap_log_domain, "coap");
  */
 #define ACK_TIMEOUT_MS 2345
 #define MAX_RETRANSMIT 4
-#define NONCON_PKT_TIMEOUT_MS (ACK_TIMEOUT_MS << MAX_RETRANSMIT)
+#define MAX_PKT_TIMEOUT_MS (ACK_TIMEOUT_MS << MAX_RETRANSMIT)
 
 #ifndef SOL_NO_API_VERSION
 #define COAP_RESOURCE_CHECK_API(...) \
@@ -57,7 +57,7 @@ SOL_LOG_INTERNAL_DECLARE(_sol_coap_log_domain, "coap");
         if (SOL_UNLIKELY(resource->api_version != \
             SOL_COAP_RESOURCE_API_VERSION)) { \
             SOL_WRN("Couldn't handle resource that has unsupported version " \
-                "'%u', expected version is '%u'", \
+                "'%" PRIu16 "', expected version is '%" PRIu16 "'", \
                 resource->api_version, SOL_COAP_RESOURCE_API_VERSION); \
             return __VA_ARGS__; \
         } \
@@ -93,11 +93,18 @@ struct resource_observer {
 };
 
 struct pending_reply {
-    bool (*cb)(struct sol_coap_server *server, struct sol_coap_packet *req,
-        const struct sol_network_link_addr *cliaddr, void *data);
+    struct sol_coap_server *server;
+    struct sol_timeout *timeout;
+    bool (*cb)(void *data, struct sol_coap_server *server, struct sol_coap_packet *req,
+        const struct sol_network_link_addr *cliaddr);
     const void *data;
-    bool observing;
     char *path;
+    struct sol_coap_packet *pkt; /* We may need a week ref to the
+                                  * original packet to address the
+                                  * sol_coap_cancel_send_packet() case
+                                  * on NONCON packets sent with
+                                  * replies. */
+    bool observing;
     uint16_t id;
     uint8_t tkl;
     uint8_t token[0];
@@ -106,6 +113,8 @@ struct pending_reply {
 struct outgoing {
     struct sol_coap_server *server;
     struct sol_coap_packet *pkt;
+    /* When present this header will overwrite the header from 'pkt'. */
+    struct sol_coap_packet *header;
     struct sol_timeout *timeout;
     struct sol_network_link_addr cliaddr;
     int counter; /* How many times this packet was retransmited. */
@@ -113,8 +122,19 @@ struct outgoing {
 
 static bool on_can_write(void *data, struct sol_socket *s);
 
+/* This is an internal API and shouldn't be marked with SOL_API. */
+struct sol_socket *sol_coap_server_get_socket(const struct sol_coap_server *server);
+
+struct sol_socket *
+sol_coap_server_get_socket(const struct sol_coap_server *server)
+{
+    SOL_NULL_CHECK_ERRNO(server, EINVAL, NULL);
+
+    return server->socket;
+}
+
 SOL_API int
-sol_coap_header_get_ver(const struct sol_coap_packet *pkt, uint8_t *version)
+sol_coap_header_get_version(const struct sol_coap_packet *pkt, uint8_t *version)
 {
     struct coap_header *hdr;
 
@@ -146,15 +166,17 @@ sol_coap_header_get_token(const struct sol_coap_packet *pkt, uint8_t *len)
 {
     struct coap_header *hdr;
 
-    SOL_NULL_CHECK(pkt, NULL);
+    SOL_NULL_CHECK_ERRNO(pkt, EINVAL, NULL);
 
     hdr = (struct coap_header *)pkt->buf.data;
 
     if (len)
         *len = hdr->tkl;
 
-    if (hdr->tkl == 0)
+    if (hdr->tkl == 0) {
+        errno = EINVAL;
         return NULL;
+    }
 
     return (uint8_t *)pkt->buf.data + sizeof(*hdr);
 }
@@ -191,27 +213,27 @@ sol_coap_header_get_code(const struct sol_coap_packet *pkt, uint8_t *code)
     case SOL_COAP_METHOD_DELETE:
 
     /* All the defined response codes */
-    case SOL_COAP_RSPCODE_OK:
-    case SOL_COAP_RSPCODE_CREATED:
-    case SOL_COAP_RSPCODE_DELETED:
-    case SOL_COAP_RSPCODE_VALID:
-    case SOL_COAP_RSPCODE_CHANGED:
-    case SOL_COAP_RSPCODE_CONTENT:
-    case SOL_COAP_RSPCODE_BAD_REQUEST:
-    case SOL_COAP_RSPCODE_UNAUTHORIZED:
-    case SOL_COAP_RSPCODE_BAD_OPTION:
-    case SOL_COAP_RSPCODE_FORBIDDEN:
-    case SOL_COAP_RSPCODE_NOT_FOUND:
-    case SOL_COAP_RSPCODE_NOT_ALLOWED:
-    case SOL_COAP_RSPCODE_NOT_ACCEPTABLE:
-    case SOL_COAP_RSPCODE_PRECONDITION_FAILED:
-    case SOL_COAP_RSPCODE_REQUEST_TOO_LARGE:
-    case SOL_COAP_RSPCODE_INTERNAL_ERROR:
-    case SOL_COAP_RSPCODE_NOT_IMPLEMENTED:
-    case SOL_COAP_RSPCODE_BAD_GATEWAY:
-    case SOL_COAP_RSPCODE_SERVICE_UNAVAILABLE:
-    case SOL_COAP_RSPCODE_GATEWAY_TIMEOUT:
-    case SOL_COAP_RSPCODE_PROXYING_NOT_SUPPORTED:
+    case SOL_COAP_RESPONSE_CODE_OK:
+    case SOL_COAP_RESPONSE_CODE_CREATED:
+    case SOL_COAP_RESPONSE_CODE_DELETED:
+    case SOL_COAP_RESPONSE_CODE_VALID:
+    case SOL_COAP_RESPONSE_CODE_CHANGED:
+    case SOL_COAP_RESPONSE_CODE_CONTENT:
+    case SOL_COAP_RESPONSE_CODE_BAD_REQUEST:
+    case SOL_COAP_RESPONSE_CODE_UNAUTHORIZED:
+    case SOL_COAP_RESPONSE_CODE_BAD_OPTION:
+    case SOL_COAP_RESPONSE_CODE_FORBIDDEN:
+    case SOL_COAP_RESPONSE_CODE_NOT_FOUND:
+    case SOL_COAP_RESPONSE_CODE_NOT_ALLOWED:
+    case SOL_COAP_RESPONSE_CODE_NOT_ACCEPTABLE:
+    case SOL_COAP_RESPONSE_CODE_PRECONDITION_FAILED:
+    case SOL_COAP_RESPONSE_CODE_REQUEST_TOO_LARGE:
+    case SOL_COAP_RESPONSE_CODE_INTERNAL_ERROR:
+    case SOL_COAP_RESPONSE_CODE_NOT_IMPLEMENTED:
+    case SOL_COAP_RESPONSE_CODE_BAD_GATEWAY:
+    case SOL_COAP_RESPONSE_CODE_SERVICE_UNAVAILABLE:
+    case SOL_COAP_RESPONSE_CODE_GATEWAY_TIMEOUT:
+    case SOL_COAP_RESPONSE_CODE_PROXYING_NOT_SUPPORTED:
     case SOL_COAP_CODE_EMPTY:
         *code = hdr->code;
         break;
@@ -227,7 +249,7 @@ sol_coap_header_get_code(const struct sol_coap_packet *pkt, uint8_t *code)
  * buffer operation, that can lead to reallocs */
 
 SOL_API int
-sol_coap_header_set_ver(struct sol_coap_packet *pkt, uint8_t ver)
+sol_coap_header_set_version(struct sol_coap_packet *pkt, uint8_t ver)
 {
     struct coap_header *hdr;
     int r;
@@ -343,7 +365,7 @@ uri_path_eq(const struct sol_coap_packet *req, const struct sol_str_slice path[]
 }
 
 SOL_API int
-sol_coap_uri_path_to_buf(const struct sol_str_slice path[],
+sol_coap_path_to_buffer(const struct sol_str_slice path[],
     struct sol_buffer *buf, size_t offset, size_t *size)
 {
     size_t cur, new_cur;
@@ -402,7 +424,7 @@ packet_extract_path(const struct sol_coap_packet *req, char **path_str)
     }
     path[count] = SOL_STR_SLICE_STR(NULL, 0);
 
-    r = sol_coap_uri_path_to_buf(path, &buf, 0, NULL);
+    r = sol_coap_path_to_buffer(path, &buf, 0, NULL);
     SOL_INT_CHECK_GOTO(r, < 0, error);
 
     *path_str = sol_buffer_steal(&buf, NULL);
@@ -421,10 +443,10 @@ error:
 
 static int(*find_resource_cb(const struct sol_coap_packet *req,
     const struct sol_coap_resource *resource)) (
-    struct sol_coap_server *server,
+    void *data, struct sol_coap_server *server,
     const struct sol_coap_resource *resource,
     struct sol_coap_packet *req,
-    const struct sol_network_link_addr *cliaddr, void *data){
+    const struct sol_network_link_addr *cliaddr){
     uint8_t opcode;
 
     SOL_NULL_CHECK(resource, NULL);
@@ -481,10 +503,10 @@ static struct sol_coap_packet *
 packet_new(struct sol_buffer *buf)
 {
     struct sol_coap_packet *pkt;
-    int r;
+    int r = 0;
 
     pkt = calloc(1, sizeof(struct sol_coap_packet));
-    SOL_NULL_CHECK(pkt, NULL);
+    SOL_NULL_CHECK_ERRNO(pkt, ENOMEM, NULL);
 
     pkt->refcnt = 1;
     pkt->buf = buf ? *buf :
@@ -495,7 +517,7 @@ packet_new(struct sol_buffer *buf)
 
     memset(pkt->buf.data, 0, sizeof(struct coap_header));
 
-    r = sol_coap_header_set_ver(pkt, COAP_VERSION);
+    r = sol_coap_header_set_version(pkt, COAP_VERSION);
     SOL_INT_CHECK_GOTO(r, < 0, err);
 
     pkt->buf.used = sizeof(struct coap_header);
@@ -505,6 +527,7 @@ packet_new(struct sol_buffer *buf)
 err:
     sol_buffer_fini(&pkt->buf);
     free(pkt);
+    errno = r;
     return NULL;
 }
 
@@ -530,8 +553,8 @@ sol_coap_packet_new(struct sol_coap_packet *old)
         sol_coap_header_get_type(old, &type);
         if (type == SOL_COAP_TYPE_CON)
             r = sol_coap_header_set_type(pkt, SOL_COAP_TYPE_ACK);
-        else if (type == SOL_COAP_TYPE_NONCON)
-            r = sol_coap_header_set_type(pkt, SOL_COAP_TYPE_NONCON);
+        else if (type == SOL_COAP_TYPE_NON_CON)
+            r = sol_coap_header_set_type(pkt, SOL_COAP_TYPE_NON_CON);
         SOL_INT_CHECK_GOTO(r, < 0, err);
         token = sol_coap_header_get_token(old, &tkl);
         if (token) {
@@ -543,6 +566,7 @@ sol_coap_packet_new(struct sol_coap_packet *old)
     return pkt;
 
 err:
+    errno = -r;
     free(pkt);
     return NULL;
 }
@@ -554,6 +578,10 @@ outgoing_free(struct outgoing *outgoing)
         sol_timeout_del(outgoing->timeout);
 
     sol_coap_packet_unref(outgoing->pkt);
+
+    if (outgoing->header)
+        sol_coap_packet_unref(outgoing->header);
+
     free(outgoing);
 }
 
@@ -586,7 +614,7 @@ timeout_cb(void *data)
 
     outgoing->timeout = NULL;
 
-    sol_socket_set_on_write(server->socket, on_can_write, server);
+    sol_socket_set_write_monitor(server->socket, true);
 
     sol_network_link_addr_to_str(&outgoing->cliaddr, &addr);
 
@@ -607,28 +635,29 @@ pending_reply_free(struct pending_reply *reply)
 
     if (reply->observing)
         free(reply->path);
+
+    if (reply->timeout)
+        sol_timeout_del(reply->timeout);
+
     free(reply);
 }
 
+/* This is mostly for !CON packets, which do not go to the outgoing
+ * list but also keep a context of their own, for response handling */
 static bool
-call_reply_timeout_cb(struct sol_coap_server *server, struct sol_coap_packet *pkt)
+pending_timeout_cb(void *data)
 {
-    uint16_t i, id;
-    struct pending_reply *reply;
+    struct pending_reply *reply = data;
+    struct sol_coap_server *server = reply->server;
 
-    sol_coap_header_get_id(pkt, &id);
+    if (reply->cb((void *)reply->data, server, NULL, NULL))
+        return true;
 
-    SOL_PTR_VECTOR_FOREACH_REVERSE_IDX (&server->pending, reply, i) {
-        if (reply->observing || reply->id != id)
-            continue;
+    sol_ptr_vector_remove(&server->pending, reply);
 
-        if (reply->cb(server, NULL, NULL, (void *)reply->data))
-            return false;
-        sol_ptr_vector_del(&server->pending, i);
-        pending_reply_free(reply);
-    }
+    pending_reply_free(reply);
 
-    return true;
+    return false;
 }
 
 static bool
@@ -638,30 +667,22 @@ timeout_expired(struct sol_coap_server *server, struct outgoing *outgoing)
     int timeout;
     uint16_t i, id;
     uint8_t type;
-    int max_retransmit;
     bool expired = false;
 
     sol_coap_header_get_type(outgoing->pkt, &type);
-    if (type == SOL_COAP_TYPE_CON) {
-        max_retransmit = MAX_RETRANSMIT;
-        timeout = ACK_TIMEOUT_MS << outgoing->counter++;
-    } else {
-        max_retransmit = 1;
-        timeout = NONCON_PKT_TIMEOUT_MS;
-        outgoing->counter++;
-    }
+    /* no re-transmissions for !CON packets, we just keep a
+     * pending_reply for a while */
+    if (type != SOL_COAP_TYPE_CON)
+        return false;
 
-    if (outgoing->counter > max_retransmit) {
+    timeout = ACK_TIMEOUT_MS << outgoing->counter++;
+
+    if (outgoing->counter > MAX_RETRANSMIT) {
         SOL_PTR_VECTOR_FOREACH_REVERSE_IDX (&server->outgoing, o, i) {
             if (o == outgoing) {
                 sol_coap_header_get_id(outgoing->pkt, &id);
                 SOL_DBG("packet id %d dropped, after %d transmissions",
                     id, outgoing->counter);
-
-                if (!call_reply_timeout_cb(server, outgoing->pkt)) {
-                    expired = true;
-                    break;
-                }
 
                 sol_ptr_vector_del(&server->outgoing, i);
                 outgoing_free(o);
@@ -678,13 +699,59 @@ timeout_expired(struct sol_coap_server *server, struct outgoing *outgoing)
     return expired;
 }
 
+static int
+prepare_buffer(struct outgoing *outgoing, struct sol_buffer *buffer)
+{
+    struct sol_coap_packet *header = outgoing->header;
+    struct sol_coap_packet *payload = outgoing->pkt;
+    uint16_t new_size, new_offset, old_offset;
+    uint8_t new_tkl, old_tkl;
+    uint8_t *buf_data;
+    int r;
+
+    if (!header) {
+        sol_buffer_init_flags(buffer, payload->buf.data, payload->buf.used,
+            SOL_BUFFER_FLAGS_MEMORY_NOT_OWNED | SOL_BUFFER_FLAGS_NO_NUL_BYTE);
+        buffer->used = payload->buf.used;
+        return 0;
+    }
+
+    (void)sol_coap_header_get_token(payload, &old_tkl);
+    (void)sol_coap_header_get_token(header, &new_tkl);
+
+    new_size = payload->buf.used + (new_tkl - old_tkl);
+
+    buf_data = malloc(new_size);
+    SOL_NULL_CHECK(buf_data, -ENOMEM);
+
+    sol_buffer_init_flags(buffer, buf_data, new_size,
+        SOL_BUFFER_FLAGS_FIXED_CAPACITY | SOL_BUFFER_FLAGS_NO_NUL_BYTE);
+
+    new_offset = sizeof(struct coap_header) + new_tkl;
+    old_offset = sizeof(struct coap_header) + old_tkl;
+
+    r = sol_buffer_append_bytes(buffer, header->buf.data, new_offset);
+    SOL_INT_CHECK_GOTO(r, < 0, error);
+
+    r = sol_buffer_append_bytes(buffer, sol_buffer_at(&payload->buf, old_offset),
+        payload->buf.used - old_offset);
+    SOL_INT_CHECK_GOTO(r, < 0, error);
+
+    return 0;
+
+error:
+    sol_buffer_fini(buffer);
+    return -ENOMEM;
+}
+
 static bool
 on_can_write(void *data, struct sol_socket *s)
 {
     struct sol_coap_server *server = data;
     struct outgoing *outgoing;
-    int err;
-    int idx;
+    struct sol_buffer buf;
+    int err, idx;
+    ssize_t ret;
 
     if (sol_ptr_vector_get_len(&server->outgoing) == 0)
         return false;
@@ -696,17 +763,24 @@ on_can_write(void *data, struct sol_socket *s)
     if (!outgoing)
         return false;
 
-    err = sol_socket_sendmsg(s, outgoing->pkt->buf.data,
-        outgoing->pkt->buf.used, &outgoing->cliaddr);
-    /* Eventually we are going to re-send it. */
-    if (err == -EAGAIN)
+    err = prepare_buffer(outgoing, &buf);
+    if (err)
         return true;
 
-    SOL_DBG("CoAP packet sent (payload of %zu bytes, "
-        "buffer holding it with %zu bytes)",
+    ret = sol_socket_sendmsg(s, &buf, &outgoing->cliaddr);
+    /* Eventually we are going to re-send it. */
+    sol_buffer_fini(&buf);
+
+    if ((ret < 0) && errno == EAGAIN)
+        return true;
+
+    SOL_DBG("CoAP packet sent (outgoing_len=%d, pending_len=%d)"
+        " -- payload of %zu bytes, buffer holding it with %zu bytes",
+        sol_ptr_vector_get_len(&server->outgoing),
+        sol_ptr_vector_get_len(&server->pending),
         outgoing->pkt->buf.used, outgoing->pkt->buf.capacity);
     sol_coap_packet_debug(outgoing->pkt);
-    if (err < 0) {
+    if (ret < 0) {
         uint16_t id;
         SOL_BUFFER_DECLARE_STATIC(addr, SOL_INET_ADDR_STRLEN);
 
@@ -717,6 +791,24 @@ on_can_write(void *data, struct sol_socket *s)
         return false;
     }
 
+    /* According to RFC 7641, section 4.5, "since RESET messages are
+     * transmitted unreliably, the client must be prepared in case the
+     * these are not received by the server. Thus, a server can always
+     * pretend that a RESET message rejecting a non-confirmable
+     * notification was lost. If a server does this, it could
+     * accelerate cancellation by sending the following notifications
+     * to that client in confirmable messages".
+     *
+     * If 'timeout' is NULL, it means that the packet doesn't need to
+     * be retransmitted. By taking this shortcut we reduce memory
+     * usage A LOT and are able to run on very small devices with no
+     * memory issues.
+     */
+    if (!outgoing->timeout) {
+        sol_ptr_vector_del(&server->outgoing, idx);
+        outgoing_free(outgoing);
+    }
+
     if (sol_ptr_vector_get_len(&server->outgoing) == 0)
         return false;
 
@@ -725,6 +817,7 @@ on_can_write(void *data, struct sol_socket *s)
 
 static int
 enqueue_packet(struct sol_coap_server *server, struct sol_coap_packet *pkt,
+    struct sol_coap_packet *header,
     const struct sol_network_link_addr *cliaddr)
 {
     struct outgoing *outgoing;
@@ -747,8 +840,10 @@ enqueue_packet(struct sol_coap_server *server, struct sol_coap_packet *pkt,
     memcpy(&outgoing->cliaddr, cliaddr, sizeof(*cliaddr));
 
     outgoing->pkt = sol_coap_packet_ref(pkt);
+    if (header)
+        outgoing->header = sol_coap_packet_ref(header);
 
-    sol_socket_set_on_write(server->socket, on_can_write, server);
+    sol_socket_set_write_monitor(server->socket, true);
 
     return 0;
 }
@@ -756,15 +851,14 @@ enqueue_packet(struct sol_coap_server *server, struct sol_coap_packet *pkt,
 SOL_API int
 sol_coap_send_packet_with_reply(struct sol_coap_server *server, struct sol_coap_packet *pkt,
     const struct sol_network_link_addr *cliaddr,
-    bool (*reply_cb)(struct sol_coap_server *server,
-    struct sol_coap_packet *req, const struct sol_network_link_addr *cliaddr,
-    void *data), const void *data)
+    bool (*reply_cb)(void *data, struct sol_coap_server *server,
+    struct sol_coap_packet *req, const struct sol_network_link_addr *cliaddr), const void *data)
 {
-    struct sol_str_slice option = {};
     struct pending_reply *reply = NULL;
+    struct sol_str_slice option = {};
+    bool observing = false;
     uint8_t tkl, *token;
     int err = 0, count;
-    bool observing = false;
 
     SOL_NULL_CHECK(server, -EINVAL);
     SOL_NULL_CHECK(pkt, -EINVAL);
@@ -802,6 +896,11 @@ sol_coap_send_packet_with_reply(struct sol_coap_server *server, struct sol_coap_
     reply->data = data;
     reply->observing = observing;
     reply->tkl = tkl;
+    reply->server = server;
+    reply->pkt = pkt;
+    reply->timeout = sol_timeout_add(MAX_PKT_TIMEOUT_MS,
+        pending_timeout_cb, reply);
+
     if (token)
         memcpy(reply->token, token, tkl);
     if (observing) {
@@ -810,7 +909,7 @@ sol_coap_send_packet_with_reply(struct sol_coap_server *server, struct sol_coap_
     }
 
 done:
-    err = enqueue_packet(server, pkt, cliaddr);
+    err = enqueue_packet(server, pkt, NULL, cliaddr);
     if (err < 0) {
         SOL_BUFFER_DECLARE_STATIC(addr, SOL_INET_ADDR_STRLEN);
 
@@ -858,8 +957,7 @@ sol_coap_packet_send_notification(struct sol_coap_server *server,
 {
     struct resource_observer *o;
     struct resource_context *c;
-    struct sol_coap_packet *p;
-    uint8_t tkl;
+    struct sol_coap_packet *header;
     uint16_t i;
     int r = 0;
 
@@ -872,43 +970,32 @@ sol_coap_packet_send_notification(struct sol_coap_server *server,
     c = find_context(server, resource);
     SOL_NULL_CHECK(c, -ENOENT);
 
-    sol_coap_header_get_token(pkt, &tkl);
-
     SOL_PTR_VECTOR_FOREACH_IDX (&c->observers, o, i) {
         uint8_t type, code;
 
-        p = sol_coap_packet_new(NULL);
-        SOL_NULL_CHECK(p, -ENOMEM);
+        header = sol_coap_packet_new(NULL);
+        SOL_NULL_CHECK(header, -ENOMEM);
 
         sol_coap_header_get_code(pkt, &code);
-        r = sol_coap_header_set_code(p, code);
+        r = sol_coap_header_set_code(header, code);
         SOL_INT_CHECK_GOTO(r, < 0, err);
         sol_coap_header_get_type(pkt, &type);
-        r = sol_coap_header_set_type(p, type);
+        r = sol_coap_header_set_type(header, type);
         SOL_INT_CHECK_GOTO(r, < 0, err);
-        r = sol_coap_header_set_token(p, o->token, o->tkl);
-        SOL_INT_CHECK_GOTO(r, < 0, err);
-
-        /*
-         * Copying the options + payload from the notification packet to
-         * every packet that will be sent.
-         */
-        r = sol_buffer_append_bytes(&p->buf,
-            (uint8_t *)pkt->buf.data + sizeof(struct coap_header) + tkl,
-            pkt->buf.used - sizeof(struct coap_header) - tkl);
+        r = sol_coap_header_set_token(header, o->token, o->tkl);
         SOL_INT_CHECK_GOTO(r, < 0, err);
 
-        r = enqueue_packet(server, p, &o->cliaddr);
+        r = enqueue_packet(server, pkt, header, &o->cliaddr);
         if (r < 0) {
             SOL_BUFFER_DECLARE_STATIC(addr, SOL_INET_ADDR_STRLEN);
 
             sol_network_link_addr_to_str(&o->cliaddr, &addr);
-            SOL_WRN("Failed to enqueue packet %p to %.*s", p,
+            SOL_WRN("Failed to enqueue packet %p to %.*s", header,
                 SOL_STR_SLICE_PRINT(sol_buffer_get_slice(&addr)));
             goto done;
         }
 
-        sol_coap_packet_unref(p);
+        sol_coap_packet_unref(header);
     }
 
 done:
@@ -916,13 +1003,13 @@ done:
     return r;
 
 err:
-    sol_coap_packet_unref(p);
+    sol_coap_packet_unref(header);
     sol_coap_packet_unref(pkt);
     return r;
 }
 
 SOL_API struct sol_coap_packet *
-sol_coap_packet_notification_new(struct sol_coap_server *server, struct sol_coap_resource *resource)
+sol_coap_packet_new_notification(struct sol_coap_server *server, struct sol_coap_resource *resource)
 {
     struct resource_context *c;
     struct sol_coap_packet *pkt;
@@ -943,7 +1030,7 @@ sol_coap_packet_notification_new(struct sol_coap_server *server, struct sol_coap
     pkt = sol_coap_packet_new(NULL);
     SOL_NULL_CHECK(pkt, NULL);
 
-    r = sol_coap_header_set_type(pkt, SOL_COAP_TYPE_NONCON);
+    r = sol_coap_header_set_type(pkt, SOL_COAP_TYPE_NON_CON);
     SOL_INT_CHECK_GOTO(r, < 0, err_exit);
 
     r = sol_coap_add_option(pkt, SOL_COAP_OPTION_OBSERVE, &id, sizeof(id));
@@ -965,11 +1052,11 @@ sol_coap_send_packet(struct sol_coap_server *server,
 }
 
 SOL_API struct sol_coap_packet *
-sol_coap_packet_request_new(sol_coap_method_t method, sol_coap_msgtype_t type)
+sol_coap_packet_new_request(enum sol_coap_method method, enum sol_coap_msgtype type)
 {
     static uint16_t request_id;
     struct sol_coap_packet *pkt;
-    int r;
+    int r = 0;
 
     pkt = sol_coap_packet_new(NULL);
     SOL_NULL_CHECK(pkt, NULL);
@@ -984,6 +1071,7 @@ sol_coap_packet_request_new(sol_coap_method_t method, sol_coap_msgtype_t type)
     return pkt;
 
 err:
+    errno = -r;
     sol_coap_packet_unref(pkt);
     return NULL;
 }
@@ -1113,13 +1201,14 @@ sol_coap_find_options(const struct sol_coap_packet *pkt, uint16_t code,
 }
 
 static int
-well_known_get(struct sol_coap_server *server,
+well_known_get(void *data, struct sol_coap_server *server,
     const struct sol_coap_resource *resource, struct sol_coap_packet *req,
-    const struct sol_network_link_addr *cliaddr, void *data)
+    const struct sol_network_link_addr *cliaddr)
 {
     struct resource_context *c;
     struct sol_coap_packet *resp;
-    size_t len;
+    struct sol_buffer *buf;
+    size_t offset;
     uint16_t i;
     int r;
 
@@ -1129,18 +1218,19 @@ well_known_get(struct sol_coap_server *server,
         return -EINVAL;
     }
 
-    r = sol_coap_header_set_code(resp, SOL_COAP_RSPCODE_CONTENT);
+    r = sol_coap_header_set_code(resp, SOL_COAP_RESPONSE_CODE_CONTENT);
     if (r < 0) {
         SOL_WRN("Failed to set header code on packet %p", resp);
-        return -EINVAL;
+        sol_coap_packet_unref(resp);
+        return r;
     }
 
-    r = coap_get_header_len(resp);
+    r = sol_coap_packet_get_payload(resp, &buf, &offset);
     if (r < 0) {
-        SOL_WRN("Failed to get header len from packet %p", resp);
-        return -EINVAL;
+        SOL_WRN("Failed to get payload from packet %p", resp);
+        sol_coap_packet_unref(resp);
+        return r;
     }
-    len = r;
 
     SOL_VECTOR_FOREACH_IDX (&server->contexts, c, i) {
         size_t tmp = 0;
@@ -1149,18 +1239,18 @@ well_known_get(struct sol_coap_server *server,
         if (!(res->flags & SOL_COAP_FLAGS_WELL_KNOWN))
             continue;
 
-        r = sol_buffer_insert_char(&resp->buf, len++, '<');
+        r = sol_buffer_insert_char(buf, offset++, '<');
         SOL_INT_CHECK_GOTO(r, < 0, error);
 
-        r = sol_coap_uri_path_to_buf(res->path, &resp->buf, len, &tmp);
+        r = sol_coap_path_to_buffer(res->path, buf, offset, &tmp);
         SOL_INT_CHECK_GOTO(r, < 0, error);
-        len += tmp;
+        offset += tmp;
 
-        r = sol_buffer_insert_char(&resp->buf, len++, '>');
+        r = sol_buffer_insert_char(buf, offset++, '>');
         SOL_INT_CHECK_GOTO(r, < 0, error);
 
         if (i < server->contexts.len) {
-            r = sol_buffer_insert_char(&resp->buf, len++, ',');
+            r = sol_buffer_insert_char(buf, offset++, ',');
             SOL_INT_CHECK_GOTO(r, < 0, error);
         }
     }
@@ -1168,7 +1258,7 @@ well_known_get(struct sol_coap_server *server,
     return sol_coap_send_packet(server, resp, cliaddr);
 
 error:
-    sol_coap_header_set_code(resp, SOL_COAP_RSPCODE_INTERNAL_ERROR);
+    sol_coap_header_set_code(resp, SOL_COAP_RESPONSE_CODE_INTERNAL_ERROR);
     return sol_coap_send_packet(server, resp, cliaddr);
 }
 
@@ -1245,9 +1335,13 @@ register_observer(struct resource_context *c, struct sol_coap_packet *req,
     memcpy(&o->cliaddr, cliaddr, sizeof(*cliaddr));
 
     r = sol_ptr_vector_append(&c->observers, o);
-    SOL_INT_CHECK(r, < 0, -ENOMEM);
+    SOL_INT_CHECK_GOTO(r, < 0, error);
 
     return 0;
+
+error:
+    free(o);
+    return -ENOMEM;
 }
 
 static bool
@@ -1287,7 +1381,7 @@ resource_not_found(struct sol_coap_packet *req,
     resp = sol_coap_packet_new(req);
     SOL_NULL_CHECK(resp, -ENOMEM);
 
-    r = sol_coap_header_set_code(resp, SOL_COAP_RSPCODE_NOT_FOUND);
+    r = sol_coap_header_set_code(resp, SOL_COAP_RESPONSE_CODE_NOT_FOUND);
     SOL_INT_CHECK_GOTO(r, < 0, err);
 
     return sol_coap_send_packet(server, resp, cliaddr);
@@ -1331,7 +1425,7 @@ send_unobserve_packet(struct sol_coap_server *server, const struct sol_network_l
     uint8_t reg = 1;
     int r;
 
-    req = sol_coap_packet_request_new(SOL_COAP_METHOD_GET, SOL_COAP_TYPE_CON);
+    req = sol_coap_packet_new_request(SOL_COAP_METHOD_GET, SOL_COAP_TYPE_CON);
     SOL_NULL_CHECK(req, -ENOMEM);
 
     r = sol_coap_header_set_token(req, token, tkl);
@@ -1386,11 +1480,10 @@ static int
 respond_packet(struct sol_coap_server *server, struct sol_coap_packet *req,
     const struct sol_network_link_addr *cliaddr)
 {
-    int (*cb)(struct sol_coap_server *server,
+    int (*cb)(void *data, struct sol_coap_server *server,
         const struct sol_coap_resource *resource,
         struct sol_coap_packet *req,
-        const struct sol_network_link_addr *cliaddr,
-        void *data);
+        const struct sol_network_link_addr *cliaddr);
     struct pending_reply *reply;
     struct resource_context *c;
     int observe, r = 0;
@@ -1414,7 +1507,7 @@ respond_packet(struct sol_coap_server *server, struct sol_coap_packet *req,
             if (!match_reply(reply, req))
                 continue;
 
-            if (!reply->cb(server, req, cliaddr, (void *)reply->data)) {
+            if (!reply->cb((void *)reply->data, server, req, cliaddr)) {
                 sol_ptr_vector_del(&server->pending, i);
                 if (reply->observing) {
                     r = send_unobserve_packet(server, cliaddr, reply->path,
@@ -1423,8 +1516,19 @@ respond_packet(struct sol_coap_server *server, struct sol_coap_packet *req,
                         SOL_WRN("Could not unobserve packet.");
                 }
                 pending_reply_free(reply);
-            } else if (!reply->observing)
+            } else if (!reply->observing) {
                 remove_outgoing = false;
+            } else {
+                /*
+                   This means that the user wishes to continue observing that resource,
+                   so we don't need to keep the reply timeout around.
+                 */
+                if (reply->timeout) {
+                    sol_timeout_del(reply->timeout);
+                    reply->timeout = NULL;
+                }
+            }
+
             found_reply = true;
         }
 
@@ -1456,7 +1560,7 @@ respond_packet(struct sol_coap_server *server, struct sol_coap_packet *req,
     /* /.well-known/core well known resource */
     cb = find_resource_cb(req, &well_known);
     if (cb)
-        return cb(server, &well_known, req, cliaddr, NULL);
+        return cb(NULL, server, &well_known, req, cliaddr);
 
     SOL_VECTOR_FOREACH_IDX (&server->contexts, c, i) {
         const struct sol_coap_resource *resource = c->resource;
@@ -1468,7 +1572,7 @@ respond_packet(struct sol_coap_server *server, struct sol_coap_packet *req,
         if (observe >= 0)
             register_observer(c, req, cliaddr, observe);
 
-        return cb(server, resource, req, cliaddr, (void *)c->data);
+        return cb((void *)c->data, server, resource, req, cliaddr);
     }
 
     if (server->unknown_handler)
@@ -1482,7 +1586,7 @@ static bool
 on_can_read(void *data, struct sol_socket *s)
 {
     struct sol_coap_server *server = data;
-    struct sol_network_link_addr cliaddr;
+    struct sol_network_link_addr cliaddr = { 0 };
     struct sol_coap_packet *pkt;
     ssize_t len;
     int err;
@@ -1496,23 +1600,9 @@ on_can_read(void *data, struct sol_socket *s)
      * datagrams, since this *calculate exact needed size* step would
      * have to change on those cases. */
 
-    /* calculate exact needed size */
-    len = sol_socket_recvmsg(s, NULL, 0, NULL);
-    SOL_INT_CHECK_GOTO(len, < 0, err_recv);
-
-    SOL_DBG("allocating %zd bytes for pkt", len);
-    err = sol_buffer_ensure(&pkt->buf, len);
-    if (err < 0) {
-        SOL_WRN("Could not allocate space (%zd bytes) to receive from socket"
-            " (%d): %s", len, err, sol_util_strerrora(-err));
-        coap_packet_free(pkt);
-        return true;
-    }
-
     /* store at the beginning of the buffer and reset 'used' */
-    len = sol_socket_recvmsg(s, pkt->buf.data, len, &cliaddr);
+    len = sol_socket_recvmsg(s, &pkt->buf, &cliaddr);
     SOL_INT_CHECK_GOTO(len, < 0, err_recv);
-    pkt->buf.used = len;
 
     err = coap_packet_parse(pkt);
     if (err < 0) {
@@ -1521,7 +1611,7 @@ on_can_read(void *data, struct sol_socket *s)
         return true;
     }
 
-    SOL_DBG("pkt received and parsed sucessfully");
+    SOL_DBG("pkt received and parsed successfully");
     sol_coap_packet_debug(pkt);
 
     err = respond_packet(server, pkt, &cliaddr);
@@ -1580,7 +1670,7 @@ sol_coap_server_destroy(struct sol_coap_server *server)
 
     SOL_PTR_VECTOR_FOREACH_REVERSE_IDX (&server->pending, reply, i) {
         sol_ptr_vector_del(&server->pending, i);
-        reply->cb(server, NULL, NULL, (void *)reply->data);
+        reply->cb((void *)reply->data, server, NULL, NULL);
         pending_reply_free(reply);
     }
 
@@ -1611,6 +1701,7 @@ join_mcast_groups(struct sol_socket *s, const struct sol_network_link *link)
     struct sol_network_link_addr groupaddr = { };
     struct sol_network_link_addr *addr;
     uint16_t i;
+    int ret;
 
     if (!(link->flags & SOL_NETWORK_LINK_RUNNING) && !(link->flags & SOL_NETWORK_LINK_MULTICAST))
         return 0;
@@ -1620,19 +1711,19 @@ join_mcast_groups(struct sol_socket *s, const struct sol_network_link *link)
 
         if (addr->family == SOL_NETWORK_FAMILY_INET) {
             sol_network_link_addr_from_str(&groupaddr, IPV4_ALL_COAP_NODES_GROUP);
-            if (sol_socket_join_group(s, link->index, &groupaddr) < 0)
-                return -errno;
+            if ((ret = sol_socket_join_group(s, link->index, &groupaddr)) < 0)
+                return ret;
 
             continue;
         }
 
         sol_network_link_addr_from_str(&groupaddr, IPV6_ALL_COAP_NODES_SCOPE_LOCAL);
-        if (sol_socket_join_group(s, link->index, &groupaddr) < 0)
-            return -errno;
+        if ((ret = sol_socket_join_group(s, link->index, &groupaddr)) < 0)
+            return ret;
 
         sol_network_link_addr_from_str(&groupaddr, IPV6_ALL_COAP_NODES_SCOPE_SITE);
-        if (sol_socket_join_group(s, link->index, &groupaddr) < 0)
-            return -errno;
+        if ((ret = sol_socket_join_group(s, link->index, &groupaddr)) < 0)
+            return ret;
     }
 
     return 0;
@@ -1653,40 +1744,31 @@ network_event(void *data, const struct sol_network_link *link, enum sol_network_
 }
 
 static struct sol_coap_server *
-sol_coap_server_new_full(enum sol_socket_type type, const struct sol_network_link_addr *servaddr)
+sol_coap_server_new_full(struct sol_socket_ip_options *options, const struct sol_network_link_addr *servaddr)
 {
     const struct sol_vector *links;
     struct sol_network_link *link;
     struct sol_coap_server *server;
     struct sol_socket *s;
+    int ret = 0;
     uint16_t i;
-    int on = 1;
 
     SOL_LOG_INTERNAL_INIT_ONCE;
 
-    s = sol_socket_new(servaddr->family, type, 0);
+    server = calloc(1, sizeof(*server));
+    SOL_NULL_CHECK_ERRNO(server, ENOMEM, NULL);
+
+    options->base.data = server;
+    s = sol_socket_ip_new(&options->base);
     if (!s) {
         SOL_WRN("Could not create socket (%d): %s", errno, sol_util_strerrora(errno));
-        return NULL;
+        ret = -errno;
+        goto err;
     }
 
-    if (sol_socket_setsockopt(s, SOL_SOCKET_LEVEL_SOCKET,
-        SOL_SOCKET_OPTION_REUSEADDR, &on, sizeof(on)) < 0) {
-        SOL_WRN("Could not set socket's option: %s", sol_util_strerrora(errno));
-        sol_socket_del(s);
-        return NULL;
-    }
-
-    if (sol_socket_bind(s, servaddr) < 0) {
-        SOL_WRN("Could not bind socket (%d): %s", errno, sol_util_strerrora(errno));
-        sol_socket_del(s);
-        return NULL;
-    }
-
-    server = calloc(1, sizeof(*server));
-    if (!server) {
-        sol_socket_del(s);
-        return NULL;
+    if ((ret = sol_socket_bind(s, servaddr)) < 0) {
+        SOL_WRN("Could not bind socket (%d): %s", -ret, sol_util_strerrora(-ret));
+        goto err_bind;
     }
 
     server->refcnt = 1;
@@ -1697,14 +1779,11 @@ sol_coap_server_new_full(enum sol_socket_type type, const struct sol_network_lin
     sol_ptr_vector_init(&server->outgoing);
 
     server->socket = s;
-    if (sol_socket_set_on_read(s, on_can_read, server) < 0) {
-        free(server);
-        sol_socket_del(s);
-        return NULL;
-    }
+    ret = sol_socket_set_read_monitor(s, true);
+    SOL_INT_CHECK_GOTO(ret, < 0, err_monitor);
 
-    /* If type is SOL_SOCKET_DTLS, then it's only a unicast server. */
-    if (type == SOL_SOCKET_UDP && servaddr->port) {
+    /* If secure is enabled it's only a unicast server. */
+    if (!options->secure && servaddr->port) {
         /* From man 7 ip:
          *
          *   imr_address is the address of the local interface with which the
@@ -1722,10 +1801,10 @@ sol_coap_server_new_full(enum sol_socket_type type, const struct sol_network_lin
                 /* Not considering an error,
                  * because direct packets will work still.
                  */
-                if (join_mcast_groups(s, link) < 0) {
+                if ((ret = join_mcast_groups(s, link)) < 0) {
                     char *name = sol_network_link_get_name(link);
                     SOL_WRN("Could not join multicast group, iface %s (%d): %s",
-                        name, errno, sol_util_strerrora(errno));
+                        name, -ret, sol_util_strerrora(-ret));
                     free(name);
                 }
             }
@@ -1735,26 +1814,49 @@ sol_coap_server_new_full(enum sol_socket_type type, const struct sol_network_lin
     sol_network_subscribe_events(network_event, server);
 
     SOL_DBG("New server %p on port %d%s", server, servaddr->port,
-        type == SOL_SOCKET_UDP ? "" : " (secure)");
+        !options->secure ? "" : " (secure)");
 
     return server;
+
+err_monitor:
+err_bind:
+    sol_socket_del(s);
+err:
+    free(server);
+    errno = -ret;
+    return NULL;
 }
 
 SOL_API struct sol_coap_server *
 sol_coap_server_new(const struct sol_network_link_addr *addr)
 {
-    return sol_coap_server_new_full(SOL_SOCKET_UDP, addr);
+    return sol_coap_server_new_full(&((struct sol_socket_ip_options) {
+        .base = {
+            SOL_SET_API_VERSION(.api_version = SOL_SOCKET_OPTIONS_API_VERSION, )
+            SOL_SET_API_VERSION(.sub_api = SOL_SOCKET_IP_OPTIONS_SUB_API_VERSION, )
+            .on_can_read = on_can_read,
+            .on_can_write = on_can_write,
+        },
+        .family = addr->family,
+        .secure = false,
+        .reuse_addr = true,
+    }), addr);
 }
 
 SOL_API struct sol_coap_server *
 sol_coap_secure_server_new(const struct sol_network_link_addr *addr)
 {
-#ifdef DTLS
-    return sol_coap_server_new_full(SOL_SOCKET_DTLS, addr);
-#else
-    errno = ENOSYS;
-    return NULL;
-#endif
+    return sol_coap_server_new_full(&((struct sol_socket_ip_options) {
+        .base = {
+            SOL_SET_API_VERSION(.api_version = SOL_SOCKET_OPTIONS_API_VERSION, )
+            SOL_SET_API_VERSION(.sub_api = SOL_SOCKET_IP_OPTIONS_SUB_API_VERSION, )
+            .on_can_read = on_can_read,
+            .on_can_write = on_can_write,
+        },
+        .family = addr->family,
+        .secure = true,
+        .reuse_addr = true,
+    }), addr);
 }
 
 SOL_API bool
@@ -1854,27 +1956,31 @@ sol_coap_server_unregister_resource(struct sol_coap_server *server,
 SOL_API int
 sol_coap_cancel_send_packet(struct sol_coap_server *server, struct sol_coap_packet *pkt, struct sol_network_link_addr *cliaddr)
 {
-    uint16_t id, i, cancel = 0;
     struct pending_reply *reply;
+    uint16_t i, cancel = 0;
     struct outgoing *o;
     int r;
 
     SOL_NULL_CHECK(server, -EINVAL);
     SOL_NULL_CHECK(pkt, -EINVAL);
 
-    sol_coap_header_get_id(pkt, &id);
     SOL_PTR_VECTOR_FOREACH_REVERSE_IDX (&server->outgoing, o, i) {
+        uint16_t id;
+
         if (o->pkt != pkt)
             continue;
 
-        SOL_DBG("packet id %d canceled", id);
+        sol_coap_header_get_id(pkt, &id);
+        SOL_DBG("Packet with ID %d canceled", id);
         sol_ptr_vector_del(&server->outgoing, i);
         outgoing_free(o);
         cancel++;
     }
 
     SOL_PTR_VECTOR_FOREACH_REVERSE_IDX (&server->pending, reply, i) {
-        if (!match_reply(reply, pkt))
+        /* match by pkt ref, here, once pkt may point to already freed
+         * memory */
+        if (reply->pkt != pkt)
             continue;
 
         sol_ptr_vector_del(&server->pending, i);
@@ -1885,13 +1991,14 @@ sol_coap_cancel_send_packet(struct sol_coap_server *server, struct sol_coap_pack
                 SOL_WRN("Could not unobserve packet.");
         }
         pending_reply_free(reply);
+        cancel++;
     }
 
     return cancel ? 0 : -ENOENT;
 }
 
 SOL_API int
-sol_coap_unobserve_server(struct sol_coap_server *server, const struct sol_network_link_addr *cliaddr, uint8_t *token, uint8_t tkl)
+sol_coap_unobserve_by_token(struct sol_coap_server *server, const struct sol_network_link_addr *cliaddr, uint8_t *token, uint8_t tkl)
 {
     int r;
     uint16_t i;
@@ -1903,7 +2010,7 @@ sol_coap_unobserve_server(struct sol_coap_server *server, const struct sol_netwo
         if (!match_observe_reply(reply, token, tkl))
             continue;
 
-        reply->cb(server, NULL, NULL, (void *)reply->data);
+        reply->cb((void *)reply->data, server, NULL, NULL);
         sol_ptr_vector_del(&server->pending, i);
 
         r = send_unobserve_packet(server, cliaddr, reply->path, token, tkl);

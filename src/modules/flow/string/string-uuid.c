@@ -34,15 +34,15 @@ string_uuid_gen(struct sol_flow_node *node,
     uint16_t conn_id,
     const struct sol_flow_packet *packet)
 {
+    SOL_BUFFER_DECLARE_STATIC(buf, 37);
     int r;
-    char id[37] = { 0 };
     struct string_uuid_data *mdata = data;
 
-    r = sol_util_uuid_gen(mdata->upcase, mdata->with_hyphens, id);
+    r = sol_util_uuid_gen(mdata->upcase, mdata->with_hyphens, &buf);
     SOL_INT_CHECK(r, < 0, r);
 
     return sol_flow_send_string_packet(node,
-        SOL_FLOW_NODE_TYPE_STRING_UUID__OUT__OUT, id);
+        SOL_FLOW_NODE_TYPE_STRING_UUID__OUT__OUT, buf.data);
 }
 
 int

@@ -2,6 +2,10 @@ config TEST_ARENA
 	bool "arena"
 	default y
 
+config TEST_MEMDESC
+	bool "memdesc"
+	default y
+
 config TEST_BUFFER
 	bool "buffer"
 	default y
@@ -13,17 +17,17 @@ config TEST_COAP
 
 config TEST_FBP
 	bool "fbp"
-	depends on FLOW_SUPPORT
+	depends on USE_FLOW
 	default y
 
 config TEST_FBP_SCANNER
 	bool "fbp scanner"
-	depends on FLOW_SUPPORT
+	depends on USE_FLOW
 	default y
 
 config TEST_FLOW
 	bool "flow"
-	depends on FLOW_SUPPORT && FLOW_NODE_TYPE_INT && FLOW_NODE_TYPE_TIMER
+	depends on USE_FLOW && FLOW_NODE_TYPE_INT && FLOW_NODE_TYPE_TIMER
 	default y
 
 config TEST_FLOW_BUILDER
@@ -89,6 +93,10 @@ config TEST_VECTOR
 	bool "vector"
 	default y
 
+config TEST_LIST
+    bool "list"
+    default y
+
 config TEST_JSON
 	bool "json"
 	default y
@@ -98,8 +106,9 @@ config TEST_UTIL
 	default y
 
 config TEST_COMPOSED_TYPE
-      bool "composed-type"
-      default y
+	bool "composed-type"
+	depends on USE_FLOW
+	default y
 
 config TEST_MESSAGE_DIGEST
       bool "crypto message-digest"
@@ -123,4 +132,14 @@ config TEST_CERTIFICATE
 config TEST_LWM2M
        bool "lwm2m"
        depends on COAP && LWM2M
+       default y
+
+config TEST_NETWORK
+       bool "network"
+       depends on NETWORK && BLUETOOTH
+       default y
+
+config TEST_BLUETOOTH
+       bool "bluetooth"
+       depends on NETWORK && BLUETOOTH
        default y

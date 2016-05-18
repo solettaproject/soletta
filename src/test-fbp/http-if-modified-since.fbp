@@ -18,7 +18,7 @@ _(http-server/int:port=8080, value=20, path="/int")
 
 _(constant/empty) OUT -> GET http_client(http-client/int:url="http://localhost:8080/int")
 
-http_client OUT -> IN _(test/int-validator:sequence="20 30") OUT -> RESULT _(test/result)
+http_client OUT -> IN _(test/int-validator:sequence="20 30") OUT -> RESULT _(test/result:timeout=6000)
 
 http_client OUT -> GET http_client
 

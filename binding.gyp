@@ -1,8 +1,6 @@
 {
 	"variables": {
-		"BUILD_SOLETTA": '<!(sh bindings/nodejs/establish-flags.sh BUILD_SOLETTA)',
-		"SOLETTA_CFLAGS": [ '<!@(sh bindings/nodejs/establish-flags.sh SOLETTA_CFLAGS)' ],
-		"SOLETTA_LIBS": [ '<!@(sh bindings/nodejs/establish-flags.sh SOLETTA_LIBS)' ]
+		"BUILD_SOLETTA": '<!(test "x${SOLETTA_CFLAGS}x" = "xx" -o "x${SOLETTA_LIBS}x" = "xx" && echo "true" || echo "false")',
 	},
 	"conditions": [
 		[ "'<(BUILD_SOLETTA)'=='true'", {
@@ -35,39 +33,39 @@
 						"action": [
 							"sh",
 							"-c",
-							'./bindings/nodejs/generate-main.sh <(SOLETTA_CFLAGS)'
+							'./bindings/nodejs/generate-main.sh'
+						]
+					} ]
+				},
+				{
+					"target_name": "copyapis",
+					"type": "none",
+					"actions": [ {
+						"action_name": "copyapis",
+						"message": "Copying JS APIs",
+						"inputs": [ "./bindings/nodejs/lib" ],
+						"outputs": [ "" ],
+						"action": [
+							"sh",
+							"-c",
+							"cp -a ./bindings/nodejs/lib/* ."
 						]
 					} ]
 				},
 				{
 					"target_name": "soletta",
-					"sources": [
-						"bindings/nodejs/generated/main.cc",
-						"bindings/nodejs/src/hijack.cc",
-						"bindings/nodejs/src/data.cc",
-						"bindings/nodejs/src/sol-uv-integration.c",
-						"bindings/nodejs/src/structures/oic-client.cc",
-						"bindings/nodejs/src/structures/network.cc",
-						"bindings/nodejs/src/structures/js-handle.cc",
-						"bindings/nodejs/src/structures/oic-map.cc",
-						"bindings/nodejs/src/structures/device-id.cc",
-						"bindings/nodejs/src/functions/oic-client-common.cc",
-						"bindings/nodejs/src/functions/oic-client-discovery.cc",
-						"bindings/nodejs/src/functions/sol-network.cc",
-						"bindings/nodejs/src/functions/sol-platform-monitors.cc",
-						"bindings/nodejs/src/functions/oic-server.cc",
-						"bindings/nodejs/src/functions/oic-client-resource-ops.cc",
-						"bindings/nodejs/src/functions/simple.cc"
+					"includes": [
+						"bindings/nodejs/generated/nodejs-bindings-sources.gyp"
 					],
 					"include_dirs": [
 						"<!(node -e \"require('nan')\")"
 					],
-					"cflags": [ '<(SOLETTA_CFLAGS)' ],
+					"cflags": [ '<!@(echo "${SOLETTA_CFLAGS}")' ],
 					"xcode_settings": {
-						"OTHER_CFLAGS": [ '<(SOLETTA_CFLAGS)' ]
+						"OTHER_CFLAGS": [ '<!@(echo "${SOLETTA_CFLAGS}")' ]
 					},
-					"libraries": [ '<(SOLETTA_LIBS)' ],
-					"dependencies": [ "collectbindings" ]
+					"libraries": [ '<!@(echo "${SOLETTA_LIBS}")' ],
+					"dependencies": [ "collectbindings", "copyapis" ]
 				}
 			]
 		} ]

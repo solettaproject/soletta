@@ -24,6 +24,6 @@ _(constant/string:value="Temperature (in celsius) avg=") OUT -> IN[0] temp_strin
 _(constant/string:value=", low=") OUT -> IN[2] temp_string
 _(constant/string:value=", high=") OUT -> IN[4] temp_string
 
-temp_avg(converter/float-to-string:format_spec="{:.2f}") OUT -> IN[1] temp_string
-temp_low(converter/float-to-string:format_spec="{:.2f}") OUT -> IN[3] temp_string
-temp_high(converter/float-to-string:format_spec="{:.2f}") OUT -> IN[5] temp_string
+temp_avg(converter/float-to-string:format_precision=".2") OUT -> IN[1] temp_string
+temp_low(converter/float-to-string:format_precision=".2") OUT -> IN[3] temp_string
+temp_high(converter/float-to-string:format_precision=".2") OUT -> IN[5] temp_string

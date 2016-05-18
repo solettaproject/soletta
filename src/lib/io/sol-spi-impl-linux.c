@@ -124,8 +124,8 @@ SOL_API bool
 sol_spi_transfer(struct sol_spi *spi, const uint8_t *tx, uint8_t *rx, size_t size, void (*transfer_cb)(void *cb_data, struct sol_spi *spi, const uint8_t *tx, uint8_t *rx, ssize_t status), const void *cb_data)
 {
 #ifdef WORKER_THREAD
-    struct sol_worker_thread_spec spec = {
-        SOL_SET_API_VERSION(.api_version = SOL_WORKER_THREAD_SPEC_API_VERSION, )
+    struct sol_worker_thread_config config = {
+        SOL_SET_API_VERSION(.api_version = SOL_WORKER_THREAD_CONFIG_API_VERSION, )
         .setup = NULL,
         .cleanup = NULL,
         .iterate = spi_worker_thread_iterate,
@@ -151,7 +151,7 @@ sol_spi_transfer(struct sol_spi *spi, const uint8_t *tx, uint8_t *rx, size_t siz
     spi->transfer.status = -1;
 
 #ifdef WORKER_THREAD
-    spi->transfer.worker = sol_worker_thread_new(&spec);
+    spi->transfer.worker = sol_worker_thread_new(&config);
     SOL_NULL_CHECK(spi->transfer.worker, false);
 #else
     spi->transfer.timeout = sol_timeout_add(0, spi_timeout_cb, spi);
@@ -191,8 +191,8 @@ sol_spi_open(unsigned int bus, const struct sol_spi_config *config)
 
 #ifndef SOL_NO_API_VERSION
     if (SOL_UNLIKELY(config->api_version != SOL_SPI_CONFIG_API_VERSION)) {
-        SOL_WRN("Couldn't open SPI that has unsupported version '%u', "
-            "expected version is '%u'",
+        SOL_WRN("Couldn't open SPI that has unsupported version '%" PRIu16 "', "
+            "expected version is '%" PRIu16 "'",
             config->api_version, SOL_SPI_CONFIG_API_VERSION);
         return NULL;
     }

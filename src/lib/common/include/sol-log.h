@@ -62,6 +62,30 @@ template <> inline const char *sol_int_format<unsigned char>(unsigned char) { re
         } \
     } while (0)
 
+#define SOL_INT_CHECK_GOTO_IMPL_ERRNO(var, exp, err, label) \
+    do { \
+        if (SOL_UNLIKELY((var)exp)) { \
+            char *str = (char *)alloca(snprintf(NULL, 0, "%s (%s) %s", \
+                # var, sol_int_format(var),  # exp) + 1); \
+            sprintf(str, "%s (%s) %s", # var, sol_int_format(var), # exp); \
+            SOL_WRN(str, var); \
+            errno = err; \
+            goto label; \
+        } \
+    } while (0)
+
+#define SOL_INT_CHECK_IMPL_ERRNO(var, exp, err, ...) \
+    do { \
+        if (SOL_UNLIKELY((var)exp)) { \
+            char *str = (char *)alloca(snprintf(NULL, 0, "%s (%s) %s", \
+                # var, sol_int_format(var),  # exp) + 1); \
+            sprintf(str, "%s (%s) %s", # var, sol_int_format(var), # exp); \
+            SOL_WRN(str, var); \
+            errno = err; \
+            return __VA_ARGS__; \
+        } \
+    } while (0)
+
 #else
 
 /**
@@ -71,43 +95,43 @@ template <> inline const char *sol_int_format<unsigned char>(unsigned char) { re
  */
 #define _SOL_INT_CHECK_FMT(var) \
     __builtin_choose_expr( \
-    __builtin_types_compatible_p(typeof(var), int), \
+    __builtin_types_compatible_p(__typeof__(var), int), \
     "" # var " (%d) %s", \
     __builtin_choose_expr( \
-    __builtin_types_compatible_p(typeof(var), long), \
+    __builtin_types_compatible_p(__typeof__(var), long), \
     "" # var " (%ld) %s", \
     __builtin_choose_expr( \
-    __builtin_types_compatible_p(typeof(var), size_t), \
+    __builtin_types_compatible_p(__typeof__(var), size_t), \
     "" # var " (%zu) %s", \
     __builtin_choose_expr( \
-    __builtin_types_compatible_p(typeof(var), unsigned), \
+    __builtin_types_compatible_p(__typeof__(var), unsigned), \
     "" # var " (%u) %s", \
     __builtin_choose_expr( \
-    __builtin_types_compatible_p(typeof(var), uint64_t), \
+    __builtin_types_compatible_p(__typeof__(var), uint64_t), \
     "" # var " (%" PRIu64 ") %s", \
     __builtin_choose_expr( \
-    __builtin_types_compatible_p(typeof(var), uint32_t), \
+    __builtin_types_compatible_p(__typeof__(var), uint32_t), \
     "" # var " (%" PRIu32 ") %s", \
     __builtin_choose_expr( \
-    __builtin_types_compatible_p(typeof(var), uint16_t), \
+    __builtin_types_compatible_p(__typeof__(var), uint16_t), \
     "" # var " (%" PRIu16 ") %s", \
     __builtin_choose_expr( \
-    __builtin_types_compatible_p(typeof(var), uint8_t), \
+    __builtin_types_compatible_p(__typeof__(var), uint8_t), \
     "" # var " (%" PRIu8 ") %s", \
     __builtin_choose_expr( \
-    __builtin_types_compatible_p(typeof(var), int64_t), \
+    __builtin_types_compatible_p(__typeof__(var), int64_t), \
     "" # var " (%" PRId64 ") %s", \
     __builtin_choose_expr( \
-    __builtin_types_compatible_p(typeof(var), int32_t), \
+    __builtin_types_compatible_p(__typeof__(var), int32_t), \
     "" # var " (%" PRId32 ") %s", \
     __builtin_choose_expr( \
-    __builtin_types_compatible_p(typeof(var), int16_t), \
+    __builtin_types_compatible_p(__typeof__(var), int16_t), \
     "" # var " (%" PRId16 ") %s", \
     __builtin_choose_expr( \
-    __builtin_types_compatible_p(typeof(var), int8_t), \
+    __builtin_types_compatible_p(__typeof__(var), int8_t), \
     "" # var " (%" PRId8 ") %s", \
     __builtin_choose_expr( \
-    __builtin_types_compatible_p(typeof(var), ssize_t), \
+    __builtin_types_compatible_p(__typeof__(var), ssize_t), \
     "" # var " (%zd) %s", \
     (void)0)))))))))))))
 
@@ -124,6 +148,24 @@ template <> inline const char *sol_int_format<unsigned char>(unsigned char) { re
         if (SOL_UNLIKELY((var)exp)) { \
             SOL_WRN(_SOL_INT_CHECK_FMT(var), var, # exp); \
             goto label; \
+        } \
+    } while (0)
+
+#define SOL_INT_CHECK_GOTO_IMPL_ERRNO(var, exp, err, label) \
+    do { \
+        if (SOL_UNLIKELY((var)exp)) { \
+            SOL_WRN(_SOL_INT_CHECK_FMT(var), var, # exp); \
+            errno = err; \
+            goto label; \
+        } \
+    } while (0)
+
+#define SOL_INT_CHECK_IMPL_ERRNO(var, exp, err, ...) \
+    do { \
+        if (SOL_UNLIKELY((var)exp)) { \
+            SOL_WRN(_SOL_INT_CHECK_FMT(var), var, # exp); \
+            errno = err; \
+            return __VA_ARGS__; \
         } \
     } while (0)
 
@@ -182,6 +224,27 @@ extern "C" {
     do { \
         if (SOL_UNLIKELY(!(ptr))) { \
             SOL_WRN("%s == NULL", # ptr); \
+            return __VA_ARGS__; \
+        } \
+    } while (0)
+
+/**
+ * @brief Convenience macro to check for @c NULL pointer (and set @c
+ * errno).
+ *
+ * This macro logs a warning message and returns if the pointer @a ptr
+ * happens to be @c NULL. Additionally, it sets the @c errno variable
+ * to @a err.
+ *
+ * @param ptr Pointer to check
+ * @param err @c errno value to set
+ * @param ... Optional return value
+ */
+#define SOL_NULL_CHECK_ERRNO(ptr, err, ...) \
+    do { \
+        if (SOL_UNLIKELY(!(ptr))) { \
+            SOL_WRN("%s == NULL", # ptr); \
+            errno = err; \
             return __VA_ARGS__; \
         } \
     } while (0)
@@ -253,6 +316,21 @@ extern "C" {
 #define SOL_INT_CHECK(var, exp, ...) \
     SOL_INT_CHECK_IMPL(var, exp, __VA_ARGS__)
 
+/**
+ * @brief Safety-check macro to check if integer @c var against @c exp
+ * (and set @c errno).
+ *
+ * This macro logs a warning message and returns if the integer @a var
+ * satisfies the expression @c exp. Additionally, it sets the @c errno variable
+ * to @a err.
+ *
+ * @param var Integer to be check
+ * @param exp Safety-check expression
+ * @param err @c errno value to set
+ * @param ... Optional return value
+ */
+#define SOL_INT_CHECK_ERRNO(var, exp, err, ...) \
+    SOL_INT_CHECK_IMPL_ERRNO(var, exp, err, __VA_ARGS__)
 
 /**
  * @brief Similar to @ref SOL_INT_CHECK but jumping to @c label instead of returning.
@@ -266,6 +344,22 @@ extern "C" {
  */
 #define SOL_INT_CHECK_GOTO(var, exp, label) \
     SOL_INT_CHECK_GOTO_IMPL(var, exp, label)
+
+/**
+ * @brief Similar to @ref SOL_INT_CHECK but jumping to @c label
+ * instead of returning (and setting @c errno value).
+ *
+ * This macro logs a warning message and jumps to @c label if the
+ * integer @c var satisfies the expression @c exp. Additionally, it
+ * sets the @c errno variable to @a err.
+ *
+ * @param var Integer to be check
+ * @param exp Safety-check expression
+ * @param err @c errno value to set
+ * @param label @c goto label
+ */
+#define SOL_INT_CHECK_GOTO_ERRNO(var, exp, err, label) \
+    SOL_INT_CHECK_GOTO_IMPL_ERRNO(var, exp, label)
 
 /**
  * @brief Safety-check macro to check the expression @c exp.
@@ -459,6 +553,40 @@ sol_log_domain_init_level(struct sol_log_domain *domain)
 #endif
 
 /**
+ * @def SOL_LOG_FILE
+ *
+ * @brief Macro defining what to log for file entries
+ *
+ * Set at build time. By default, it's set to @c __FILE__, i.e. the
+ * file name of the log call entry will be part of the log (and thus
+ * take part in the final Soletta binary/image). One can disable that
+ * behavior, though, when it'll be set to @c NULL (and no file name
+ * will take part in the log entries).
+ */
+#ifdef SOL_LOG_FILES
+#define SOL_LOG_FILE __FILE__
+#else
+#define SOL_LOG_FILE ""
+#endif
+
+/**
+ * @def SOL_LOG_FUNCTION
+ *
+ * @brief Macro defining what to log for function entries
+ *
+ * Set at build time. By default, it's set to @c __PRETTY_FUNCTION__,
+ * i.e. the function name of the log call entry will be part of the
+ * log (and thus take part in the final Soletta binary/image). One can
+ * disable that behavior, though, when it'll be set to @c NULL (and no
+ * function name will take part in the log entries).
+ */
+#ifdef SOL_LOG_FUNCTIONS
+#define SOL_LOG_FUNCTION __PRETTY_FUNCTION__
+#else
+#define SOL_LOG_FUNCTION ""
+#endif
+
+/**
  * @def SOL_LOG(level, fmt, ...)
  *
  * @brief Logs to #SOL_LOG_DOMAIN using the given level and
@@ -472,7 +600,7 @@ sol_log_domain_init_level(struct sol_log_domain *domain)
     do { \
         if (SOL_LOG_LEVEL_POSSIBLE(level)) { \
             sol_log_print(SOL_LOG_DOMAIN, level, \
-                __FILE__, __PRETTY_FUNCTION__, __LINE__, \
+                SOL_LOG_FILE, SOL_LOG_FUNCTION,  __LINE__, \
                 fmt, ## __VA_ARGS__); \
         } \
     } while (0)

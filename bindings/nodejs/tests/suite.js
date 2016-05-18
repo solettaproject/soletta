@@ -149,7 +149,7 @@ function runTestSuites( files ) {
 								theChild.kill( "SIGTERM" );
 							}
 							if ( error ) {
-								throw error;
+								throw new Error( error );
 							}
 						},
 						maybeQuit: assert.async(),

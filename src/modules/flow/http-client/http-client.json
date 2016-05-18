@@ -21,7 +21,7 @@
         ],
         "data_type": "struct http_client_node_type",
         "extra_methods": {
-          "process_token": "boolean_process_token",
+          "process_json": "boolean_process_json",
           "process_data": "boolean_process_data"
         }
       },
@@ -38,6 +38,18 @@
             "description": "If the machine_id should be set on every request made",
             "name": "machine_id",
             "default": false
+          },
+          {
+            "data_type": "boolean",
+            "default": false,
+            "description": "Enforce the response content type, if it does not match if the requested one, ignore it.",
+            "name": "strict"
+          },
+          {
+            "data_type": "string",
+            "default": "text/stream, application/json, text/plain",
+            "description": "The desired content type of the response",
+            "name": "accept"
           }
         ],
         "version": 1
@@ -92,7 +104,7 @@
         ],
         "data_type": "struct http_client_node_type",
         "extra_methods": {
-          "process_token": "string_process_token",
+          "process_json": "string_process_json",
           "process_data": "string_process_data"
         }
       },
@@ -109,6 +121,18 @@
             "description": "If the machine_id should be set on every request made",
             "name": "machine_id",
             "default": false
+          },
+          {
+            "data_type": "boolean",
+            "default": false,
+            "description": "Enforce the response content type, if it does not match if the requested one, ignore it.",
+            "name": "strict"
+          },
+          {
+            "data_type": "string",
+            "default": "text/stream, text/plain",
+            "description": "The desired content type of the response",
+            "name": "accept"
           }
         ],
         "version": 1
@@ -163,7 +187,7 @@
         ],
         "data_type": "struct http_client_node_type",
         "extra_methods": {
-          "process_token": "rgb_process_token",
+          "process_json": "rgb_process_json",
           "process_data": "rgb_process_data"
         }
       },
@@ -179,6 +203,18 @@
             "description": "If the machine_id should be set on every request made",
             "name": "machine_id",
             "default": false
+          },
+          {
+            "data_type": "boolean",
+            "default": false,
+            "description": "Enforce the response content type, if it does not match if the requested one, ignore it.",
+            "name": "strict"
+          },
+          {
+            "data_type": "string",
+            "default": "text/stream, application/json, text/plain",
+            "description": "The desired content type of the response",
+            "name": "accept"
           }
         ],
         "version": 1
@@ -233,7 +269,7 @@
         ],
         "data_type": "struct http_client_node_type",
         "extra_methods": {
-          "process_token": "direction_vector_process_token",
+          "process_json": "direction_vector_process_json",
           "process_data": "direction_vector_process_data"
         }
       },
@@ -249,6 +285,18 @@
             "description": "If the machine_id should be set on every request made",
             "name": "machine_id",
             "default": false
+          },
+          {
+            "data_type": "boolean",
+            "default": false,
+            "description": "Enforce the response content type, if it does not match if the requested one, ignore it.",
+            "name": "strict"
+          },
+          {
+            "data_type": "string",
+            "default": "text/stream, application/json, text/plain",
+            "description": "The desired content type of the response",
+            "name": "accept"
           }
         ],
         "version": 1
@@ -303,7 +351,7 @@
         ],
         "data_type": "struct http_client_node_type",
         "extra_methods": {
-          "process_token": "int_process_token",
+          "process_json": "int_process_json",
           "process_data": "int_process_data"
         }
       },
@@ -320,6 +368,18 @@
             "description": "If the machine_id should be set on every request made",
             "name": "machine_id",
             "default": false
+          },
+          {
+            "data_type": "boolean",
+            "default": false,
+            "description": "Enforce the response content type, if it does not match if the requested one, ignore it.",
+            "name": "strict"
+          },
+          {
+            "data_type": "string",
+            "default": "text/stream, application/json, text/plain",
+            "description": "The desired content type of the response",
+            "name": "accept"
           }
         ],
         "version": 1
@@ -374,7 +434,7 @@
         ],
         "data_type": "struct http_client_node_type",
         "extra_methods": {
-          "process_token": "float_process_token",
+          "process_json": "float_process_json",
           "process_data": "float_process_data"
         }
       },
@@ -391,6 +451,18 @@
             "description": "If the machine_id should be set on every request made",
             "name": "machine_id",
             "default": false
+          },
+          {
+            "data_type": "boolean",
+            "default": false,
+            "description": "Enforce the response content type, if it does not match if the requested one, ignore it.",
+            "name": "strict"
+          },
+          {
+            "data_type": "string",
+            "default": "text/stream, application/json, text/plain",
+            "description": "The desired content type of the response",
+            "name": "accept"
           }
         ],
         "version": 1
@@ -432,95 +504,14 @@
       "url": "http://solettaproject.org/doc/latest/node_types/http-client/float.html"
     },
     {
-      "name": "http-client/get-string",
+      "name": "http-client/blob",
       "private_data_type": "http_data",
-      "category": "http-generic",
-      "description": "Make a GET http request at a given URL and outputs its content as string",
-      "url": "http://solettaproject.org/doc/latest/node_types/http-client/get-string.html",
+      "category": "output/network",
+      "description": "HTTP client for blob",
+      "url": "http://solettaproject.org/doc/latest/node_types/http-client/blob.html",
       "methods": {
         "close": "common_close",
-        "open": "generic_open"
-      },
-      "node_type": {
-        "access": [
-          "base"
-        ],
-        "data_type": "struct http_client_node_type",
-        "extra_methods": {
-          "process_data": "get_string_process"
-        }
-      },
-      "options": {
-        "members": [
-          {
-            "data_type": "string",
-            "default": null,
-            "description": "The url to make a GET request",
-            "name": "url",
-            "default": null
-          },
-          {
-            "data_type": "boolean",
-            "description": "If the machine_id should be set on every request made",
-            "name": "machine_id",
-            "default": false
-          },
-          {
-            "data_type": "boolean",
-            "default": false,
-            "description": "Enforce the response content type, if it does not match if the requested one, ignore it.",
-            "name": "strict"
-          },
-          {
-            "data_type": "string",
-            "default": "text/plain",
-            "description": "The content type of the payload sent to the server",
-            "name": "content_type"
-          },
-          {
-            "data_type": "string",
-            "default": "text/plain",
-            "description": "The desired content type of the response",
-            "name": "accept"
-          }
-        ],
-        "version": 1
-      },
-      "in_ports": [
-        {
-          "data_type": "string",
-          "description": "The url to make a GET request",
-          "name": "URL",
-          "methods": {
-            "process": "generic_url_process"
-          }
-        },
-        {
-          "data_type": "any",
-          "description": "Execute the GET request",
-          "name": "GET",
-          "methods": {
-            "process": "generic_get_process"
-          }
-        }
-      ],
-      "out_ports": [
-        {
-          "data_type": "string",
-          "description": "The values received from the request.",
-          "name": "OUT"
-        }
-      ]
-    },
-    {
-      "name": "http-client/get-blob",
-      "private_data_type": "http_data",
-      "category": "http-generic",
-      "description": "Make a GET http request at a given URL and outputs its content as blob",
-      "url": "http://solettaproject.org/doc/latest/node_types/http-client/get-blob.html",
-      "methods": {
-        "close": "common_close",
-        "open": "generic_open"
+        "open": "common_open"
       },
       "node_type": {
         "access": [
@@ -555,12 +546,6 @@
           {
             "data_type": "string",
             "default": null,
-            "description": "The content type of the payload sent to the server",
-            "name": "content_type"
-          },
-          {
-            "data_type": "string",
-            "default": null,
             "description": "The desired content type of the response",
             "name": "accept"
           }
@@ -573,7 +558,7 @@
           "description": "The url to make a GET request",
           "name": "URL",
           "methods": {
-            "process": "generic_url_process"
+            "process": "common_url_process"
           }
         },
         {
@@ -581,7 +566,15 @@
           "description": "Execute the GET request",
           "name": "GET",
           "methods": {
-            "process": "generic_get_process"
+            "process": "common_get_process"
+          }
+        },
+        {
+          "data_type": "blob",
+          "description": "Execute the GET request",
+          "name": "POST",
+          "methods": {
+            "process": "blob_post_process"
           }
         }
       ],
@@ -594,14 +587,14 @@
       ]
     },
     {
-      "name": "http-client/get-json",
+      "name": "http-client/json",
       "private_data_type": "http_data",
-      "category": "http-generic",
-      "description": "Make a GET http request at a given URL and outputs its content as json",
-      "url": "http://solettaproject.org/doc/latest/node_types/http-client/get-json.html",
+      "category": "output/network",
+      "description": "HTTP client for JSON",
+      "url": "http://solettaproject.org/doc/latest/node_types/http-client/json.html",
       "methods": {
         "close": "common_close",
-        "open": "generic_open"
+        "open": "common_open"
       },
       "node_type": {
         "access": [
@@ -635,13 +628,7 @@
           },
           {
             "data_type": "string",
-            "default": "application/json",
-            "description": "The content type of the payload sent to the server",
-            "name": "content_type"
-          },
-          {
-            "data_type": "string",
-            "default": "application/json",
+            "default": "text/stream, application/json, text/plain",
             "description": "The desired content type of the response",
             "name": "accept"
           }
@@ -651,10 +638,10 @@
       "in_ports": [
         {
           "data_type": "string",
-          "description": "The url to make a GET request",
+          "description": "The URL to make a GET/POST request",
           "name": "URL",
           "methods": {
-            "process": "generic_url_process"
+            "process": "common_url_process"
           }
         },
         {
@@ -662,7 +649,63 @@
           "description": "Execute the GET request",
           "name": "GET",
           "methods": {
-            "process": "generic_get_process"
+            "process": "common_get_process"
+          }
+        },
+        {
+          "data_type": "json-object",
+          "description": "POST a json-object",
+          "name": "POST_OBJECT",
+          "methods": {
+            "process": "json_object_post_process"
+          }
+        },
+        {
+          "data_type": "json-array",
+          "description": "POST a json-array",
+          "name": "POST_ARRAY",
+          "methods": {
+            "process": "json_array_post_process"
+          }
+        },
+        {
+          "data_type": "boolean",
+          "description": "POST a json boolean",
+          "name": "POST_BOOLEAN",
+          "methods": {
+            "process": "boolean_post_process"
+          }
+        },
+        {
+          "data_type": "string",
+          "description": "POST a json string",
+          "name": "POST_STRING",
+          "methods": {
+            "process": "json_string_post_process"
+          }
+        },
+        {
+          "data_type": "int",
+          "description": "POST a json int - Only the irange value will be sent (min, max and step will be ignored).",
+          "name": "POST_INT",
+          "methods": {
+            "process": "json_int_post_process"
+          }
+        },
+        {
+          "data_type": "float",
+          "description": "POST a json float - Only the drange value will be sent (min, max and step will be ignored).",
+          "name": "POST_FLOAT",
+          "methods": {
+            "process": "json_float_post_process"
+          }
+        },
+        {
+          "data_type": "any",
+          "description": "POST a json NULL",
+          "name": "POST_NULL",
+          "methods": {
+            "process": "json_null_post_process"
           }
         }
       ],
@@ -676,6 +719,31 @@
           "data_type": "json-array",
           "description": "The response as json-array",
           "name": "ARRAY"
+        },
+        {
+          "data_type": "boolean",
+          "description": "The response as json boolean",
+          "name": "BOOLEAN"
+        },
+        {
+          "data_type": "string",
+          "description": "The response as json string",
+          "name": "STRING"
+        },
+        {
+          "data_type": "int",
+          "description": "if the json value is an integer, the int packet is created with that as value and default range (min as INT32_MIN, max as INT32_MAX and step as 1)",
+          "name": "INT"
+        },
+        {
+          "data_type": "float",
+          "description": "if the json value is a float, the float packet is created with that as value and default range (min as -DBL_MAX, max as DBL_MAX and step as DBL_MIN)",
+          "name": "FLOAT"
+        },
+        {
+          "data_type": "empty",
+          "description": "If the json value is null, then an empty packet is emitted",
+          "name": "NULL"
         }
       ]
     },
@@ -697,7 +765,7 @@
         "extra_methods": {
           "close_node": "request_node_close",
           "setup_params": "request_node_setup_params",
-          "http_response" : "request_node_http_response"
+          "http_response": "request_node_http_response"
         }
       },
       "options": {
@@ -806,14 +874,6 @@
           "name": "PASSWORD",
           "methods": {
             "process": "request_node_password_process"
-          }
-        },
-        {
-          "data_type": "string",
-          "description": "The content-type of the payload",
-          "name": "CONTENT_TYPE",
-          "methods": {
-            "process": "request_node_content_type_process"
           }
         },
         {

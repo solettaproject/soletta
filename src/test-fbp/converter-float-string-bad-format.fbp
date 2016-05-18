@@ -14,19 +14,19 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
-_(constant/float:value=3) OUT -> IN _(converter/float-to-string:format_spec="{4:f}") ERROR -> IN _(converter/error) MESSAGE -> IN[0] test_cmp_01(string/compare)
+_(constant/float:value=3) OUT -> IN _(converter/float-to-string-format:format_spec="{4:f}") ERROR -> IN _(converter/error) MESSAGE -> IN[0] test_cmp_01(string/compare)
 _(constant/string:value="Field index 4 does not exist for float type") OUT -> IN[1] test_cmp_01 EQUAL -> RESULT _(test/result)
 
-_(constant/float:value=3) OUT -> IN _(converter/float-to-string:format_spec="{4:f") ERROR -> IN _(converter/error) MESSAGE -> IN[0] test_cmp_02(string/compare)
+_(constant/float:value=3) OUT -> IN _(converter/float-to-string-format:format_spec="{4:f") ERROR -> IN _(converter/error) MESSAGE -> IN[0] test_cmp_02(string/compare)
 _(constant/string:value="unmatched '{' in format spec") OUT -> IN[1] test_cmp_02 EQUAL -> RESULT _(test/result)
 
-_(constant/float:value=3) OUT -> IN _(converter/float-to-string:format_spec="{:Q}") ERROR -> IN _(converter/error) MESSAGE -> IN[0] test_cmp_03(string/compare)
+_(constant/float:value=3) OUT -> IN _(converter/float-to-string-format:format_spec="{:Q}") ERROR -> IN _(converter/error) MESSAGE -> IN[0] test_cmp_03(string/compare)
 _(constant/string:value="Unknown format code 'Q' for object of type 'float'") OUT -> IN[1] test_cmp_03 EQUAL -> RESULT _(test/result)
 
-_(constant/float:value=3) OUT -> IN _(converter/float-to-string:format_spec="{vala:f}") ERROR -> IN _(converter/error) MESSAGE -> IN[0] test_cmp_04(string/compare)
+_(constant/float:value=3) OUT -> IN _(converter/float-to-string-format:format_spec="{vala:f}") ERROR -> IN _(converter/error) MESSAGE -> IN[0] test_cmp_04(string/compare)
 _(constant/string:value="Field vala does not exist for float type") OUT -> IN[1] test_cmp_04 EQUAL -> RESULT _(test/result)
 
-_(constant/float:value=3) OUT -> IN _(converter/float-to-string:format_spec="{:d}") ERROR -> IN _(converter/error) MESSAGE -> IN[0] test_cmp_05(string/compare)
+_(constant/float:value=3) OUT -> IN _(converter/float-to-string-format:format_spec="{:d}") ERROR -> IN _(converter/error) MESSAGE -> IN[0] test_cmp_05(string/compare)
 _(constant/string:value="Unknown format code 'd' for object of type 'float'") OUT -> IN[1] test_cmp_05 EQUAL -> RESULT _(test/result)
 
 ## TEST-OUTPUT-REGEX

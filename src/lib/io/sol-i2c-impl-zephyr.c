@@ -26,8 +26,6 @@
 #include "sol-log-internal.h"
 SOL_LOG_INTERNAL_DECLARE_STATIC(_log_domain, "i2c");
 
-#include "sol-io-common-zephyr.h"
-
 #include "sol-i2c.h"
 #include "sol-mainloop.h"
 #include "sol-util.h"
@@ -40,17 +38,14 @@ SOL_LOG_INTERNAL_DECLARE_STATIC(_log_domain, "i2c");
 
 struct i2c_dev {
     const char *name;
-    int refcnt;
 };
 
 static struct i2c_dev i2c_0_dev = {
-    .name = "I2C0",
-    .refcnt = 0
+    .name = "I2C_0",
 };
 
 static struct i2c_dev i2c_1_dev = {
-    .name = "I2C1",
-    .refcnt = 0
+    .name = "I2C_1",
 };
 
 static struct i2c_dev *devs[2] = {
@@ -138,23 +133,14 @@ sol_i2c_open_raw(uint8_t bus, enum sol_i2c_speed speed)
     }
 
     ret = i2c_configure(dev, config.raw);
-    if (ret != DEV_OK) {
+    if (ret < 0) {
         SOL_WRN("Failed to configure I2C device %s: %s", devs[bus]->name,
-            sol_util_strerrora(-zephyr_err_to_errno(ret)));
+            sol_util_strerrora(-ret));
         return NULL;
     }
 
     i2c = calloc(1, sizeof(struct sol_i2c));
     SOL_NULL_CHECK(i2c, NULL);
-
-    devs[bus]->refcnt++;
-    if (devs[bus]->refcnt == 1) {
-        if (i2c_resume(dev) < 0) {
-            SOL_WRN("Failed to resume I2C device %s", devs[bus]->name);
-            free(i2c);
-            return NULL;
-        }
-    }
 
     i2c->dev = dev;
     i2c->dev_ref = devs[bus];
@@ -171,12 +157,6 @@ sol_i2c_close_raw(struct sol_i2c *i2c)
     if (i2c->async.timeout)
         sol_i2c_pending_cancel
             (i2c, (struct sol_i2c_pending *)i2c->async.timeout);
-
-    if (!--(i2c->dev_ref->refcnt)) {
-        if (i2c_suspend(i2c->dev) < 0) {
-            SOL_WRN("Failed to suspend I2C device %s", i2c->dev_ref->name);
-        }
-    }
 
     free(i2c);
 }
@@ -211,8 +191,8 @@ i2c_read_timeout_cb(void *data)
 
     ret = i2c_read(i2c->dev, i2c->async.data, i2c->async.count,
         i2c->slave_address);
-    if (ret != DEV_OK)
-        i2c->async.status = zephyr_err_to_errno(ret);
+    if (ret < 0)
+        i2c->async.status = ret;
     else
         i2c->async.status = i2c->async.count;
 
@@ -261,8 +241,8 @@ i2c_write_timeout_cb(void *data)
 
     ret = i2c_write(i2c->dev, i2c->async.data, i2c->async.count,
         i2c->slave_address);
-    if (ret != DEV_OK)
-        i2c->async.status = zephyr_err_to_errno(ret);
+    if (ret < 0)
+        i2c->async.status = ret;
     else
         i2c->async.status = i2c->async.count;
 
@@ -329,8 +309,8 @@ i2c_read_reg_timeout_cb(void *data)
     msg[1].len = i2c->async.count;
 
     ret = i2c_transfer(i2c->dev, msg, 2, i2c->slave_address);
-    if (ret != DEV_OK)
-        i2c->async.status = zephyr_err_to_errno(ret);
+    if (ret < 0)
+        i2c->async.status = ret;
     else
         i2c->async.status = i2c->async.count;
 
@@ -388,7 +368,7 @@ i2c_read_reg_multiple_timeout_cb(void *data)
     msg.len = sizeof(i2c->async.reg);
 
     ret = i2c_transfer(i2c->dev, &msg, 1, i2c->slave_address);
-    if (ret != DEV_OK)
+    if (ret < 0)
         goto end;
 
     for (i = 0; i < i2c->async.times; i++) {
@@ -399,14 +379,14 @@ i2c_read_reg_multiple_timeout_cb(void *data)
         SOL_WRN("Flags: %d %d", msg.flags, (msg.flags & I2C_MSG_STOP) == I2C_MSG_STOP);
 
         ret = i2c_transfer(i2c->dev, &msg, 1, i2c->slave_address);
-        if (ret != DEV_OK)
+        if (ret < 0)
             break;
     }
 
-    if (ret == DEV_OK)
+    if (ret == 0)
         i2c->async.status = i2c->async.count * i2c->async.times;
     else
-        i2c->async.status = zephyr_err_to_errno(ret);
+        i2c->async.status = ret;
 
 end:
     i2c->async.timeout = NULL;
@@ -468,8 +448,8 @@ i2c_write_reg_timeout_cb(void *data)
     msg[1].len = i2c->async.count;
 
     ret = i2c_transfer(i2c->dev, msg, 2, i2c->slave_address);
-    if (ret != DEV_OK)
-        i2c->async.status = zephyr_err_to_errno(ret);
+    if (ret < 0)
+        i2c->async.status = ret;
     else
         i2c->async.status = i2c->async.count;
 

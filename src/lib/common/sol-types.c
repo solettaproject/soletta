@@ -23,12 +23,13 @@
 #include <errno.h>
 #include <float.h>
 #include <math.h>
+#include <string.h>
 
 
 /********** SOL_DRANGE **********/
 
 SOL_API int
-sol_drange_addition(const struct sol_drange *var0, const struct sol_drange *var1, struct sol_drange *result)
+sol_drange_add(const struct sol_drange *var0, const struct sol_drange *var1, struct sol_drange *result)
 {
     SOL_NULL_CHECK(var0, -EINVAL);
     SOL_NULL_CHECK(var1, -EINVAL);
@@ -43,7 +44,7 @@ sol_drange_addition(const struct sol_drange *var0, const struct sol_drange *var1
 }
 
 SOL_API int
-sol_drange_division(const struct sol_drange *var0, const struct sol_drange *var1, struct sol_drange *result)
+sol_drange_div(const struct sol_drange *var0, const struct sol_drange *var1, struct sol_drange *result)
 {
     SOL_NULL_CHECK(var0, -EINVAL);
     SOL_NULL_CHECK(var1, -EINVAL);
@@ -58,7 +59,7 @@ sol_drange_division(const struct sol_drange *var0, const struct sol_drange *var1
 }
 
 SOL_API int
-sol_drange_modulo(const struct sol_drange *var0, const struct sol_drange *var1, struct sol_drange *result)
+sol_drange_mod(const struct sol_drange *var0, const struct sol_drange *var1, struct sol_drange *result)
 {
     SOL_NULL_CHECK(var0, -EINVAL);
     SOL_NULL_CHECK(var1, -EINVAL);
@@ -79,7 +80,7 @@ sol_drange_modulo(const struct sol_drange *var0, const struct sol_drange *var1, 
 }
 
 SOL_API int
-sol_drange_multiplication(const struct sol_drange *var0, const struct sol_drange *var1, struct sol_drange *result)
+sol_drange_mul(const struct sol_drange *var0, const struct sol_drange *var1, struct sol_drange *result)
 {
     SOL_NULL_CHECK(var0, -EINVAL);
     SOL_NULL_CHECK(var1, -EINVAL);
@@ -94,7 +95,7 @@ sol_drange_multiplication(const struct sol_drange *var0, const struct sol_drange
 }
 
 SOL_API int
-sol_drange_subtraction(const struct sol_drange *var0, const struct sol_drange *var1, struct sol_drange *result)
+sol_drange_sub(const struct sol_drange *var0, const struct sol_drange *var1, struct sol_drange *result)
 {
     SOL_NULL_CHECK(var0, -EINVAL);
     SOL_NULL_CHECK(var1, -EINVAL);
@@ -109,36 +110,15 @@ sol_drange_subtraction(const struct sol_drange *var0, const struct sol_drange *v
 }
 
 SOL_API bool
-sol_drange_val_equal(double var0, double var1)
-{
-    double abs_var0, abs_var1, diff;
-
-    diff = fabs(var0 - var1);
-
-    /* when a or b are close to zero relative error isn't meaningful -
-     * it handles subnormal case */
-    if (fpclassify(var0) == FP_ZERO || fpclassify(var1) == FP_ZERO ||
-        isless(diff, DBL_MIN)) {
-        return isless(diff, (DBL_EPSILON * DBL_MIN));
-    }
-
-    /* use relative error for other cases */
-    abs_var0 = fabs(var0);
-    abs_var1 = fabs(var1);
-
-    return isless(diff / fmin((abs_var0 + abs_var1), DBL_MAX), DBL_EPSILON);
-}
-
-SOL_API bool
 sol_drange_equal(const struct sol_drange *var0, const struct sol_drange *var1)
 {
     SOL_NULL_CHECK(var0, false);
     SOL_NULL_CHECK(var1, false);
 
-    if (sol_drange_val_equal(var0->val, var1->val) &&
-        sol_drange_val_equal(var0->min, var1->min) &&
-        sol_drange_val_equal(var0->max, var1->max) &&
-        sol_drange_val_equal(var0->step, var1->step))
+    if (sol_util_double_equal(var0->val, var1->val) &&
+        sol_util_double_equal(var0->min, var1->min) &&
+        sol_util_double_equal(var0->max, var1->max) &&
+        sol_util_double_equal(var0->step, var1->step))
         return true;
 
     return false;
@@ -161,38 +141,38 @@ sol_drange_compose(const struct sol_drange_spec *spec, double value, struct sol_
 
 /********** SOL_IRANGE **********/
 
-#define SOL_IRANGE_ADDITION_OVERFLOW(var0, var1) \
+#define SOL_IRANGE_ADD_OVERFLOW(var0, var1) \
     ((var1 > 0) && (var0 > INT32_MAX - var1))
 
-#define SOL_IRANGE_ADDITION_UNDERFLOW(var0, var1) \
+#define SOL_IRANGE_ADD_UNDERFLOW(var0, var1) \
     ((var1 < 0) && (var0 < INT32_MIN - var1))
 
-#define SOL_IRANGE_SUBTRACTION_OVERFLOW(var0, var1) \
+#define SOL_IRANGE_SUB_OVERFLOW(var0, var1) \
     ((var1 < 0) && (var0 > INT32_MAX + var1))
 
-#define SOL_IRANGE_SUBTRACTION_UNDERFLOW(var0, var1) \
+#define SOL_IRANGE_SUB_UNDERFLOW(var0, var1) \
     ((var1 > 0) && (var0 < INT32_MIN + var1))
 
-#define SOL_IRANGE_MULTIPLICATION_OVERFLOW(var0, var1) \
+#define SOL_IRANGE_MUL_OVERFLOW(var0, var1) \
     ((var0 == INT32_MAX) && (var1 == -1)) || \
     ((var0 > 0) && (var1 > 0) && (var0 > INT32_MAX / var1)) || \
     ((var0 < 0) && (var1 < 0) && (var0 < INT32_MAX / var1))
 
-#define SOL_IRANGE_MULTIPLICATION_UNDERFLOW(var0, var1) \
+#define SOL_IRANGE_MUL_UNDERFLOW(var0, var1) \
     ((var0 > 0) && (var1 < -1) && (var0 > INT32_MIN / var1)) || \
     ((var0 < 0) && (var1 > 0) && (var0 < INT32_MIN / var1))
 
 SOL_API int
-sol_irange_addition(const struct sol_irange *var0, const struct sol_irange *var1, struct sol_irange *result)
+sol_irange_add(const struct sol_irange *var0, const struct sol_irange *var1, struct sol_irange *result)
 {
     SOL_NULL_CHECK(var0, -EINVAL);
     SOL_NULL_CHECK(var1, -EINVAL);
     SOL_NULL_CHECK(result, -EINVAL);
 
-    if (SOL_IRANGE_ADDITION_OVERFLOW(var0->val, var1->val)) {
+    if (SOL_IRANGE_ADD_OVERFLOW(var0->val, var1->val)) {
         SOL_WRN("Addition overflow: %" PRId32 ", %" PRId32, var0->val, var1->val);
         return -EOVERFLOW;
-    } else if (SOL_IRANGE_ADDITION_UNDERFLOW(var0->val, var1->val)) {
+    } else if (SOL_IRANGE_ADD_UNDERFLOW(var0->val, var1->val)) {
         SOL_WRN("Addition underflow: %" PRId32 ", %" PRId32, var0->val, var1->val);
         return -EOVERFLOW;
     } else
@@ -200,16 +180,16 @@ sol_irange_addition(const struct sol_irange *var0, const struct sol_irange *var1
 
     result->step = 1;
 
-    if (SOL_IRANGE_ADDITION_OVERFLOW(var0->min, var1->min))
+    if (SOL_IRANGE_ADD_OVERFLOW(var0->min, var1->min))
         result->min = INT32_MAX;
-    else if (SOL_IRANGE_ADDITION_UNDERFLOW(var0->min, var1->min))
+    else if (SOL_IRANGE_ADD_UNDERFLOW(var0->min, var1->min))
         result->min = INT32_MIN;
     else
         result->min = var0->min + var1->min;
 
-    if (SOL_IRANGE_ADDITION_OVERFLOW(var0->max, var1->max))
+    if (SOL_IRANGE_ADD_OVERFLOW(var0->max, var1->max))
         result->max = INT32_MAX;
-    else if (SOL_IRANGE_ADDITION_UNDERFLOW(var0->max, var1->max))
+    else if (SOL_IRANGE_ADD_UNDERFLOW(var0->max, var1->max))
         result->max = INT32_MIN;
     else
         result->max = var0->max + var1->max;
@@ -233,7 +213,7 @@ sol_irange_equal(const struct sol_irange *var0, const struct sol_irange *var1)
 }
 
 SOL_API int
-sol_irange_division(const struct sol_irange *var0, const struct sol_irange *var1, struct sol_irange *result)
+sol_irange_div(const struct sol_irange *var0, const struct sol_irange *var1, struct sol_irange *result)
 {
     SOL_NULL_CHECK(var0, -EINVAL);
     SOL_NULL_CHECK(var1, -EINVAL);
@@ -266,7 +246,7 @@ sol_irange_division(const struct sol_irange *var0, const struct sol_irange *var1
 }
 
 SOL_API int
-sol_irange_modulo(const struct sol_irange *var0, const struct sol_irange *var1, struct sol_irange *result)
+sol_irange_mod(const struct sol_irange *var0, const struct sol_irange *var1, struct sol_irange *result)
 {
     SOL_NULL_CHECK(var0, -EINVAL);
     SOL_NULL_CHECK(var1, -EINVAL);
@@ -280,12 +260,12 @@ sol_irange_modulo(const struct sol_irange *var0, const struct sol_irange *var1, 
 
     result->step = 1;
 
-    if (SOL_IRANGE_SUBTRACTION_UNDERFLOW(var1->min, 1))
+    if (SOL_IRANGE_SUB_UNDERFLOW(var1->min, 1))
         result->min = INT32_MIN;
     else
         result->min = var1->min - 1;
 
-    if (SOL_IRANGE_SUBTRACTION_UNDERFLOW(var1->max, 1))
+    if (SOL_IRANGE_SUB_UNDERFLOW(var1->max, 1))
         result->max = INT32_MIN;
     else
         result->max = var1->max - 1;
@@ -294,7 +274,7 @@ sol_irange_modulo(const struct sol_irange *var0, const struct sol_irange *var1, 
 }
 
 SOL_API int
-sol_irange_multiplication(const struct sol_irange *var0, const struct sol_irange *var1, struct sol_irange *result)
+sol_irange_mul(const struct sol_irange *var0, const struct sol_irange *var1, struct sol_irange *result)
 {
     SOL_NULL_CHECK(var0, -EINVAL);
     SOL_NULL_CHECK(var1, -EINVAL);
@@ -302,25 +282,25 @@ sol_irange_multiplication(const struct sol_irange *var0, const struct sol_irange
 
     result->step = 1;
 
-    if (SOL_IRANGE_MULTIPLICATION_OVERFLOW(var0->val, var1->val)) {
+    if (SOL_IRANGE_MUL_OVERFLOW(var0->val, var1->val)) {
         SOL_WRN("Multiplication overflow: %" PRId32 ", %" PRId32, var0->val, var1->val);
         return -EOVERFLOW;
-    } else if (SOL_IRANGE_MULTIPLICATION_UNDERFLOW(var0->val, var1->val)) {
+    } else if (SOL_IRANGE_MUL_UNDERFLOW(var0->val, var1->val)) {
         SOL_WRN("Multiplication underflow: %" PRId32 ", %" PRId32, var0->val, var1->val);
         return -EOVERFLOW;
     } else
         result->val = var0->val * var1->val;
 
-    if (SOL_IRANGE_MULTIPLICATION_OVERFLOW(var0->min, var1->min))
+    if (SOL_IRANGE_MUL_OVERFLOW(var0->min, var1->min))
         result->min = INT32_MAX;
-    else if (SOL_IRANGE_MULTIPLICATION_UNDERFLOW(var0->min, var1->min))
+    else if (SOL_IRANGE_MUL_UNDERFLOW(var0->min, var1->min))
         result->min = INT32_MIN;
     else
         result->min = var0->min * var1->min;
 
-    if (SOL_IRANGE_MULTIPLICATION_OVERFLOW(var0->max, var1->max))
+    if (SOL_IRANGE_MUL_OVERFLOW(var0->max, var1->max))
         result->max = INT32_MAX;
-    else if (SOL_IRANGE_MULTIPLICATION_UNDERFLOW(var0->max, var1->max))
+    else if (SOL_IRANGE_MUL_UNDERFLOW(var0->max, var1->max))
         result->max = INT32_MIN;
     else
         result->max = var0->max * var1->max;
@@ -329,16 +309,16 @@ sol_irange_multiplication(const struct sol_irange *var0, const struct sol_irange
 }
 
 SOL_API int
-sol_irange_subtraction(const struct sol_irange *var0, const struct sol_irange *var1, struct sol_irange *result)
+sol_irange_sub(const struct sol_irange *var0, const struct sol_irange *var1, struct sol_irange *result)
 {
     SOL_NULL_CHECK(var0, -EINVAL);
     SOL_NULL_CHECK(var1, -EINVAL);
     SOL_NULL_CHECK(result, -EINVAL);
 
-    if (SOL_IRANGE_SUBTRACTION_OVERFLOW(var0->val, var1->val)) {
+    if (SOL_IRANGE_SUB_OVERFLOW(var0->val, var1->val)) {
         SOL_WRN("Subtraction overflow: %" PRId32 ", %" PRId32, var0->val, var1->val);
         return -EOVERFLOW;
-    } else if (SOL_IRANGE_SUBTRACTION_UNDERFLOW(var0->val, var1->val)) {
+    } else if (SOL_IRANGE_SUB_UNDERFLOW(var0->val, var1->val)) {
         SOL_WRN("Subtraction underflow: %" PRId32 ", %" PRId32, var0->val, var1->val);
         return -EOVERFLOW;
     } else
@@ -346,16 +326,16 @@ sol_irange_subtraction(const struct sol_irange *var0, const struct sol_irange *v
 
     result->step = 1;
 
-    if (SOL_IRANGE_SUBTRACTION_OVERFLOW(var0->min, var1->min))
+    if (SOL_IRANGE_SUB_OVERFLOW(var0->min, var1->min))
         result->min = INT32_MAX;
-    else if (SOL_IRANGE_SUBTRACTION_UNDERFLOW(var0->min, var1->min))
+    else if (SOL_IRANGE_SUB_UNDERFLOW(var0->min, var1->min))
         result->min = INT32_MIN;
     else
         result->min = var0->min - var1->min;
 
-    if (SOL_IRANGE_SUBTRACTION_OVERFLOW(var0->max, var1->max))
+    if (SOL_IRANGE_SUB_OVERFLOW(var0->max, var1->max))
         result->max = INT32_MAX;
-    else if (SOL_IRANGE_SUBTRACTION_UNDERFLOW(var0->max, var1->max))
+    else if (SOL_IRANGE_SUB_UNDERFLOW(var0->max, var1->max))
         result->max = INT32_MIN;
     else
         result->max = var0->max - var1->max;
@@ -425,9 +405,42 @@ sol_rgb_set_max(struct sol_rgb *color, uint32_t max_value)
     return 0;
 }
 
-#undef SOL_IRANGE_ADDITION_OVERFLOW
-#undef SOL_IRANGE_ADDITION_UNDERFLOW
-#undef SOL_IRANGE_SUBTRACTION_OVERFLOW
-#undef SOL_IRANGE_SUBTRACTION_UNDERFLOW
-#undef SOL_IRANGE_MULTIPLICATION_OVERFLOW
-#undef SOL_IRANGE_MULTIPLICATION_UNDERFLOW
+SOL_API bool
+sol_rgb_equal(const struct sol_rgb *var0, const struct sol_rgb *var1)
+{
+    SOL_NULL_CHECK(var0, false);
+    SOL_NULL_CHECK(var1, false);
+
+    if (var0->red != var1->red ||
+        var0->blue != var1->blue ||
+        var0->green != var1->green ||
+        var0->red_max != var1->red_max ||
+        var0->blue_max != var1->blue_max ||
+        var0->green_max != var1->green_max)
+        return false;
+    return true;
+
+}
+
+SOL_API bool
+sol_direction_vector_equal(const struct sol_direction_vector *var0,
+    const struct sol_direction_vector *var1)
+{
+    SOL_NULL_CHECK(var0, false);
+    SOL_NULL_CHECK(var1, false);
+
+    if (sol_util_double_equal(var0->x, var1->x) &&
+        sol_util_double_equal(var0->y, var1->y) &&
+        sol_util_double_equal(var0->z, var1->z) &&
+        sol_util_double_equal(var0->min, var1->min) &&
+        sol_util_double_equal(var0->max, var1->max))
+        return true;
+    return false;
+}
+
+#undef SOL_IRANGE_ADD_OVERFLOW
+#undef SOL_IRANGE_ADD_UNDERFLOW
+#undef SOL_IRANGE_SUB_OVERFLOW
+#undef SOL_IRANGE_SUB_UNDERFLOW
+#undef SOL_IRANGE_MUL_OVERFLOW
+#undef SOL_IRANGE_MUL_UNDERFLOW

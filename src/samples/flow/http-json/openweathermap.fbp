@@ -32,7 +32,7 @@ _(constant/string:value="appid") OUT -> KEY param_appid
 _(constant/string:value="q") OUT -> KEY param_location
 
 #Make request
-url OUT -> URL result(http-client/get-json)
+url OUT -> URL result(http-client/json)
 url OUT -> GET result
 
 #Parse results

@@ -57,16 +57,6 @@ struct thingspeak_channel_update_data {
     char *status;
 };
 
-#define RESPONSE_CHECK_API(response_, mdata_) \
-    do { \
-        if (SOL_UNLIKELY(!response_)) { \
-            sol_flow_send_error_packet(mdata_->node, EINVAL, \
-                "Error while reaching Thingspeak"); \
-            return; \
-        } \
-        SOL_HTTP_RESPONSE_CHECK_API(response); \
-    } while (0)
-
 static bool
 init_talkback(struct talkback *talkback, const char *api_key,
     const char *talkback_id, const char *endpoint, const char *suffix)
@@ -117,7 +107,7 @@ thingspeak_execute_poll_finished(void *data,
     struct thingspeak_execute_data *mdata = data;
     char *body;
 
-    RESPONSE_CHECK_API(response, mdata);
+    SOL_NULL_CHECK(response);
 
     if (response->response_code != SOL_HTTP_STATUS_OK) {
         sol_flow_send_error_packet(mdata->node, EINVAL,
@@ -220,7 +210,7 @@ thingspeak_add_request_finished(void *data,
 {
     struct thingspeak_add_data *mdata = data;
 
-    RESPONSE_CHECK_API(response, mdata);
+    SOL_NULL_CHECK(response);
 
     if (!response->content.used) {
         sol_flow_send_error_packet(mdata->node, EINVAL,
@@ -355,7 +345,7 @@ thingspeak_channel_update_finished(void *data,
 {
     struct thingspeak_channel_update_data *mdata = data;
 
-    RESPONSE_CHECK_API(response, mdata);
+    SOL_NULL_CHECK(response);
 
     if (!strncmp(response->content.data, "0", response->content.used)) {
         sol_flow_send_error_packet(mdata->node, EINVAL,
@@ -389,7 +379,7 @@ thingspeak_channel_update_send(void *data)
         }
     }
 
-    for (i = 0; i < SOL_UTIL_ARRAY_SIZE(mdata->fields); i++) {
+    for (i = 0; i < sol_util_array_size(mdata->fields); i++) {
         if (!mdata->fields[i])
             continue;
 
@@ -442,7 +432,7 @@ thingspeak_channel_update_field_process(struct sol_flow_node *node,
     int n_field = port - SOL_FLOW_NODE_TYPE_THINGSPEAK_CHANNEL_UPDATE__IN__FIELD;
     const char *field;
 
-    if (n_field < 0 || n_field >= (int)SOL_UTIL_ARRAY_SIZE(mdata->fields)) {
+    if (n_field < 0 || n_field >= (int)sol_util_array_size(mdata->fields)) {
         SOL_WRN("Invalid field ID: %d, expecting 0 to 7", n_field);
         return -EINVAL;
     }
@@ -494,7 +484,7 @@ thingspeak_channel_update_close(struct sol_flow_node *node, void *data)
     struct sol_http_client_connection *connection;
     uint16_t i;
 
-    for (i = 0; i < SOL_UTIL_ARRAY_SIZE(mdata->fields); i++)
+    for (i = 0; i < sol_util_array_size(mdata->fields); i++)
         free(mdata->fields[i]);
     free(mdata->status);
 
@@ -530,7 +520,7 @@ thingspeak_channel_update_open(struct sol_flow_node *node, void *data, const str
         return -ENOMEM;
     }
 
-    for (i = 0; i < SOL_UTIL_ARRAY_SIZE(mdata->fields); i++)
+    for (i = 0; i < sol_util_array_size(mdata->fields); i++)
         mdata->fields[i] = NULL;
     mdata->status = NULL;
     mdata->timeout = NULL;

@@ -37,14 +37,16 @@
         }
       ],
       "methods": {
-        "close": "common_close",
-        "open": "check_open"
+        "close": "common_close"
       },
       "node_type": {
         "access": [
           "base"
         ],
-        "data_type": "struct update_node_type"
+        "data_type": "struct update_node_type",
+        "extra_methods": {
+          "progress_port": "SOL_FLOW_NODE_TYPE_UPDATE_CHECK__OUT__PROGRESS"
+	}
       },
       "name": "update/check",
       "out_ports": [
@@ -102,20 +104,22 @@
         }
       ],
       "methods": {
-        "close": "common_close",
-        "open": "fetch_open"
+        "close": "common_close"
       },
       "node_type": {
         "access": [
           "base"
         ],
-        "data_type": "struct update_node_type"
+        "data_type": "struct update_node_type",
+        "extra_methods": {
+          "progress_port": "SOL_FLOW_NODE_TYPE_UPDATE_FETCH__OUT__PROGRESS"
+	}
       },
       "name": "update/fetch",
       "out_ports": [
         {
           "data_type": "boolean",
-          "description": "If FETCH was successfuly completed",
+          "description": "If FETCH was successfully completed",
           "name": "SUCCESS"
         },
         {
@@ -156,20 +160,22 @@
         }
       ],
       "methods": {
-        "close": "common_close",
-        "open": "install_open"
+        "close": "common_close"
       },
       "node_type": {
         "access": [
           "base"
         ],
-        "data_type": "struct update_node_type"
+        "data_type": "struct update_node_type",
+        "extra_methods": {
+          "progress_port": "SOL_FLOW_NODE_TYPE_UPDATE_INSTALL__OUT__PROGRESS"
+	}
       },
       "name": "update/install",
       "out_ports": [
         {
           "data_type": "boolean",
-          "description": "If install completed successfuly, sends true, false otherwise. Note that errors packet may be sent in case of failure",
+          "description": "If install completed successfully, sends true, false otherwise. Note that errors packet may be sent in case of failure",
           "name": "SUCCESS"
         },
         {

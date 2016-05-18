@@ -38,17 +38,6 @@ struct update_node_type {
 };
 
 static int
-check_open(struct sol_flow_node *node, void *data, const struct sol_flow_node_options *options)
-{
-    struct update_node_type *type;
-
-    type = (struct update_node_type *)sol_flow_node_get_type(node);
-    type->progress_port = SOL_FLOW_NODE_TYPE_UPDATE_CHECK__OUT__PROGRESS;
-
-    return 0;
-}
-
-static int
 cancel_check_process(struct sol_flow_node *node, void *data, uint16_t port, uint16_t conn_id, const struct sol_flow_packet *packet)
 {
     struct update_data *mdata = data;
@@ -117,17 +106,6 @@ check_process(struct sol_flow_node *node, void *data, uint16_t port, uint16_t co
     return 0;
 }
 
-static int
-fetch_open(struct sol_flow_node *node, void *data, const struct sol_flow_node_options *options)
-{
-    struct update_node_type *type;
-
-    type = (struct update_node_type *)sol_flow_node_get_type(node);
-    type->progress_port = SOL_FLOW_NODE_TYPE_UPDATE_FETCH__OUT__PROGRESS;
-
-    return 0;
-}
-
 static void
 common_close(struct sol_flow_node *node, void *data)
 {
@@ -190,17 +168,6 @@ fetch_process(struct sol_flow_node *node, void *data, uint16_t port, uint16_t co
         sol_flow_send_error_packet(node, EINVAL, "Could not fetch update file");
         return -EINVAL;
     }
-
-    return 0;
-}
-
-static int
-install_open(struct sol_flow_node *node, void *data, const struct sol_flow_node_options *options)
-{
-    struct update_node_type *type;
-
-    type = (struct update_node_type *)sol_flow_node_get_type(node);
-    type->progress_port = SOL_FLOW_NODE_TYPE_UPDATE_INSTALL__OUT__PROGRESS;
 
     return 0;
 }

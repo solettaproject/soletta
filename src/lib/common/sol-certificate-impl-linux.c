@@ -21,6 +21,8 @@
 #include "sol-certificate.h"
 #define SOL_LOG_DOMAIN &_sol_certificate_log_domain
 #include "sol-log-internal.h"
+#include "sol-util-file.h"
+#include "sol-file-reader.h"
 #include "sol-util-internal.h"
 #include "sol-vector.h"
 
@@ -83,25 +85,25 @@ find_cert(const char *filename, const char *const paths[])
 }
 
 SOL_API struct sol_cert *
-sol_cert_load_from_file(const char *filename)
+sol_cert_load_from_id(const char *id)
 {
     struct sol_cert *cert;
     char *path;
     int idx;
     int r;
 
-    SOL_NULL_CHECK(filename, NULL);
+    SOL_NULL_CHECK(id, NULL);
 
     SOL_PTR_VECTOR_FOREACH_IDX (&storage, cert, idx) {
-        if (streq(cert->filename, filename)) {
+        if (streq(cert->filename, id)) {
             cert->refcnt++;
             return cert;
         }
     }
 
-    path = find_cert(filename, search_paths);
+    path = find_cert(id, search_paths);
     if (path == NULL) {
-        SOL_WRN("Certificate not found: %s", filename);
+        SOL_WRN("Certificate not found: %s", id);
         return NULL;
     }
 
@@ -141,9 +143,22 @@ sol_cert_unref(struct sol_cert *cert)
 }
 
 SOL_API const char *
-sol_cert_get_filename(const struct sol_cert *cert)
+sol_cert_get_file_name(const struct sol_cert *cert)
 {
     SOL_NULL_CHECK(cert, NULL);
 
     return cert->filename;
+}
+
+SOL_API struct sol_blob *
+sol_cert_get_contents(const struct sol_cert *cert)
+{
+    struct sol_file_reader *fr;
+
+    SOL_NULL_CHECK(cert, NULL);
+
+    fr = sol_file_reader_open(cert->filename);
+    SOL_NULL_CHECK(fr, NULL);
+
+    return sol_file_reader_to_blob(fr);
 }

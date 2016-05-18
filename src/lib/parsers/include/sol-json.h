@@ -29,6 +29,7 @@
 #include <sol-macros.h>
 #include <sol-str-slice.h>
 #include <sol-buffer.h>
+#include <sol-memdesc.h>
 
 #ifdef __cplusplus
 extern "C" {
@@ -223,6 +224,31 @@ sol_json_scanner_init_null(struct sol_json_scanner *scanner)
     scanner->mem = NULL;
     scanner->mem_end = NULL;
     scanner->current = NULL;
+}
+
+/**
+ * @brief Initialized a JSON scanner from a struct @ref sol_str_slice
+ *
+ * @param scanner JSON scanner
+ * @param slice The slice to initialized the JSON scanner
+ */
+static inline void
+sol_json_scanner_init_from_slice(struct sol_json_scanner *scanner, const struct sol_str_slice slice)
+{
+    sol_json_scanner_init(scanner, slice.data, slice.len);
+}
+
+/**
+ * @brief Initialized a JSON token from a struct @ref sol_str_slice
+ *
+ * @param token JSON token
+ * @param slice The slice to initialized the JSON scanner
+ */
+static inline void
+sol_json_token_init_from_slice(struct sol_json_token *token, const struct sol_str_slice slice)
+{
+    token->start = slice.data;
+    token->end = slice.data + slice.len;
 }
 
 /**
@@ -794,6 +820,51 @@ sol_json_serialize_null(struct sol_buffer *buffer)
 }
 
 /**
+ * @brief Appends the serialization of the given memory based on its description.
+ *
+ * If the SOL_MEMDESC_TYPE_STRUCTURE or SOL_MEMDESC_TYPE_PTR with
+ * children, then it will be serialized as an object with keys being
+ * the description name.
+ *
+ * @param buffer Buffer containing the new JSON document.
+ * @param desc the memory description to use when serializing.
+ * @param memory the memory described by @a desc.
+ * @param detailed_structures if false, all members of struct marked
+ *        as detailed will be omitted.
+ *
+ * @return @c 0 on success, error code (always negative) otherwise.
+ *
+ * @see sol_json_load_memdesc()
+ */
+int sol_json_serialize_memdesc(struct sol_buffer *buffer, const struct sol_memdesc *desc, const void *memory, bool detailed_structures) SOL_ATTR_NONNULL(1, 2, 3);
+
+/**
+ * @brief Loads the members of a memory from JSON according to its description.
+ *
+ * If the SOL_MEMDESC_TYPE_STRUCTURE or SOL_MEMDESC_TYPE_PTR with
+ * children, then it will be loaded from an object with keys being
+ * the description name.
+ *
+ * If defaults are desired, then call sol_memdesc_init_defaults()
+ * before calling this function.
+ *
+ * If not all required members of a structure where provided, then @c
+ * -ENODATA is returned. The code will try to load as much as possible
+ * before returning.
+ *
+ * @param token the token to convert to memory using description.
+ * @param desc the memory description to use when loading.
+ * @param memory the memory described by @a desc.
+ *
+ * @return @c 0 on success, error code (always negative)
+ *         otherwise. Note that @c -ENODATA will be returned if required
+ *         structure members were missing.
+ *
+ * @see sol_json_serialize_memdesc()
+ */
+int sol_json_load_memdesc(const struct sol_json_token *token, const struct sol_memdesc *desc, void *memory) SOL_ATTR_NONNULL(1, 2, 3);
+
+/**
  *  @brief Copy to a @ref sol_buffer the string pointed by @c token.
  *
  *  If token is of type string, quotes are removed and string is unescaped. If not,
@@ -926,12 +997,12 @@ int sol_json_path_scanner_init(struct sol_json_path_scanner *scanner, struct sol
  *        JSON Path segment.
  * @param end_reason A pointer to the field to be filled with the reason this
  *        function termination. SOL_JSON_LOOP_REASON_INVALID if an error
- *        occured when parsing the JSON Path. SOL_JSON_LOOP_REASON_OK if the
+ *        occurred when parsing the JSON Path. SOL_JSON_LOOP_REASON_OK if the
  *        next segment was updated in @a slice or if there is no more segments
  *        in this JSON Path.
  *
  * @return True if next segment was updated in @a value. False if an error
- *         ocurred or if there is no more segments available.
+ *         occurred or if there is no more segments available.
  */
 bool sol_json_path_get_next_segment(struct sol_json_path_scanner *scanner, struct sol_str_slice *slice, enum sol_json_loop_reason *end_reason) SOL_ATTR_NONNULL(1, 2, 3);
 
@@ -984,7 +1055,7 @@ sol_json_path_is_array_key(struct sol_str_slice slice)
  *        with the current key being visited.
  * @param end_reason A pointer to the field to be filled with the reason this
  *        macro termination. SOL_JSON_LOOP_REASON_INVALID if an error
- *        occured when parsing the JSON Path. SOL_JSON_LOOP_REASON_OK if
+ *        occurred when parsing the JSON Path. SOL_JSON_LOOP_REASON_OK if
  *        we reached the end of the JSON Path.
  *
  * Usage example:

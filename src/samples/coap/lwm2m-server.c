@@ -80,7 +80,7 @@ location_changed_cb(void *data,
     struct sol_lwm2m_server *server,
     struct sol_lwm2m_client_info *cinfo,
     const char *path,
-    sol_coap_responsecode_t response_code,
+    enum sol_coap_response_code response_code,
     enum sol_lwm2m_content_type content_type,
     struct sol_str_slice content)
 {
@@ -90,8 +90,8 @@ location_changed_cb(void *data,
     uint16_t i;
     struct sol_lwm2m_tlv *tlv;
 
-    if (response_code != SOL_COAP_RSPCODE_CHANGED &&
-        response_code != SOL_COAP_RSPCODE_CONTENT) {
+    if (response_code != SOL_COAP_RESPONSE_CODE_CHANGED &&
+        response_code != SOL_COAP_RESPONSE_CODE_CONTENT) {
         fprintf(stderr, "Could not get the location object value from"
             " client %s\n", name);
         return;
@@ -112,8 +112,7 @@ location_changed_cb(void *data,
 
     SOL_VECTOR_FOREACH_IDX (&tlvs, tlv, i) {
         const char *prop;
-        uint8_t *bytes;
-        uint16_t len;
+        SOL_BUFFER_DECLARE_STATIC(buf, 32);
 
         if (tlv->id == LATITUDE_ID)
             prop = "latitude";
@@ -122,17 +121,18 @@ location_changed_cb(void *data,
         else
             continue;
 
-        r = sol_lwm2m_tlv_get_bytes(tlv, &bytes, &len);
+        r = sol_lwm2m_tlv_get_bytes(tlv, &buf);
         if (r < 0) {
-            fprintf(stderr, "Could not the %s value from client %s\n",
+            fprintf(stderr, "Could not get the %s value from client %s\n",
                 prop, name);
             break;
         }
 
-        printf("Client %s %s is %.*s\n", name, prop, (int)len, bytes);
+        printf("Client %s %s is %.*s\n", name, prop, (int)buf.used, (char *)buf.data);
+        sol_buffer_fini(&buf);
     }
 
-    sol_lwm2m_tlv_array_clear(&tlvs);
+    sol_lwm2m_tlv_list_clear(&tlvs);
 }
 
 static void
@@ -155,11 +155,11 @@ static void
 create_cb(void *data,
     struct sol_lwm2m_server *server,
     struct sol_lwm2m_client_info *cinfo, const char *path,
-    sol_coap_responsecode_t response_code)
+    enum sol_coap_response_code response_code)
 {
     const char *name = sol_lwm2m_client_info_get_name(cinfo);
 
-    if (response_code != SOL_COAP_RSPCODE_CREATED) {
+    if (response_code != SOL_COAP_RESPONSE_CODE_CREATED) {
         fprintf(stderr, "The client %s could not create the location object.\n",
             name);
         return;
@@ -206,14 +206,14 @@ create_location_obj(struct sol_lwm2m_server *server,
         (int64_t)time(NULL));
 
     if (r < 0) {
-        fprintf(stderr, "Could not init the longitude resource\n");
+        fprintf(stderr, "Could not init the timestamp resource\n");
         return;
     }
 
-    r = sol_lwm2m_server_management_create(server, cinfo, "/6", res,
-        SOL_UTIL_ARRAY_SIZE(res), create_cb, NULL);
+    r = sol_lwm2m_server_create_object_instance(server, cinfo, "/6", res,
+        sol_util_array_size(res), create_cb, NULL);
 
-    for (i = 0; i < SOL_UTIL_ARRAY_SIZE(res); i++)
+    for (i = 0; i < sol_util_array_size(res); i++)
         sol_lwm2m_resource_clear(&res[i]);
 
     if (r < 0)

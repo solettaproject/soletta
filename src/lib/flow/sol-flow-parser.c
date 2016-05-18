@@ -66,7 +66,7 @@ struct declared_type {
 
 /* This state is kept during a single parse run, some of its members
  * are then taken to be stored in the main parser struct if the parser
- * was succesful. */
+ * was successful. */
 struct parse_state {
     struct sol_flow_parser *parser;
     struct sol_flow_builder *builder;
@@ -201,8 +201,8 @@ sol_flow_parser_new(
         resolver = sol_flow_get_default_resolver();
 #ifndef SOL_NO_API_VERSION
     else if (SOL_UNLIKELY(resolver->api_version != SOL_FLOW_RESOLVER_API_VERSION)) {
-        SOL_WRN("Couldn't open gpio that has unsupported version '%u', "
-            "expected version is '%u'",
+        SOL_WRN("Couldn't open gpio that has unsupported version '%" PRIu16 "', "
+            "expected version is '%" PRIu16 "'",
             resolver->api_version, SOL_FLOW_RESOLVER_API_VERSION);
         return NULL;
     }

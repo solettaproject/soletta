@@ -45,6 +45,9 @@
         }
       ],
       "name": "temperature/converter",
+      "aliases": [
+          "converter/temperature"
+      ],
       "out_ports": [
         {
           "data_type": "float",

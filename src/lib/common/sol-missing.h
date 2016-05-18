@@ -126,6 +126,40 @@ err:
 }
 #endif
 
+#if !defined(HAVE_GET_CURRENT_DIR_NAME) && defined(HAVE_UNIX)
+#include <errno.h>
+#include <limits.h>         /* for PATH_MAX */
+#include <stdlib.h>
+#include <unistd.h>
+
+static inline char *
+get_current_dir_name(void)
+{
+    size_t len = 0;
+    char *buffer = NULL;
+
+    while (1) {
+        len += PATH_MAX;
+        char *nb = (char *)realloc(buffer, len);
+
+        if (nb == NULL)
+            goto err_free;
+        nb = getcwd(buffer, len);
+        if (nb == NULL) {
+            if (errno == ERANGE)
+                continue;
+            goto err_free;
+        }
+        return buffer;
+    }
+
+err_free:
+    free(buffer);
+    return NULL;
+}
+
+#endif
+
 #ifndef HAVE_DECL_IFLA_INET6_MAX
 #define IFLA_INET6_UNSPEC 0
 #define IFLA_INET6_FLAGS 1
@@ -149,10 +183,6 @@ err:
 
 #ifndef I2C_RDRW_IOCTL_MAX_MSGS
 #define I2C_RDRW_IOCTL_MAX_MSGS 42
-#endif
-
-#ifndef SSIZE_MAX
-#define SSIZE_MAX LONG_MAX
 #endif
 
 #ifdef __cplusplus

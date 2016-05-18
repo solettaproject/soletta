@@ -59,6 +59,7 @@
 #define streq(a, b) (strcmp((a), (b)) == 0)
 #define streqn(a, b, n) (strncmp((a), (b), (n)) == 0)
 #define strstartswith(a, b) streqn((a), (b), strlen(b))
+#define strendswith(a, b) (strlen(b) < strlen(a) && streq(a + strlen(a) - strlen(b), b))
 
 #define STATIC_ASSERT_LITERAL(_s) ("" _s)
 
@@ -125,21 +126,9 @@ align_power2_short_uint(unsigned short u)
         pow2__aligned; \
     })
 
-/* These two macros will generate shadowing warnings if the same kind
- * is nested, but the warnings on type mismatch are a fair benefit.
- * Use temporary variables to address nested call cases. */
-#define sol_min(x, y) \
-    ({ \
-        __typeof__(x)_min1 = (x); \
-        __typeof__(y)_min2 = (y); \
-        (void)(&_min1 == &_min2); \
-        _min1 < _min2 ? _min1 : _min2; \
-    })
-
-#define sol_max(x, y) \
-    ({ \
-        __typeof__(x)_max1 = (x); \
-        __typeof__(y)_max2 = (y); \
-        (void)(&_max1 == &_max2); \
-        _max1 > _max2 ? _max1 : _max2; \
-    })
+/* abort() may not always be completely available on small systems */
+#ifdef SOL_PLATFORM_LINUX
+#define sol_abort() abort()
+#else
+#define sol_abort() exit(EXIT_FAILURE)
+#endif

@@ -1,0 +1,26 @@
+# This file is part of the Soletta Project
+#
+# Copyright (C) 2015 Intel Corporation. All rights reserved.
+#
+# Licensed under the Apache License, Version 2.0 (the "License");
+# you may not use this file except in compliance with the License.
+# You may obtain a copy of the License at
+#
+#     http://www.apache.org/licenses/LICENSE-2.0
+#
+# Unless required by applicable law or agreed to in writing, software
+# distributed under the License is distributed on an "AS IS" BASIS,
+# WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+# See the License for the specific language governing permissions and
+# limitations under the License.
+
+get-validator(test/string-validator:sequence="Hi!")
+post-validator(test/string-validator:sequence="Hi!|Bye!")
+
+_(constant/string:value="Hi!") OUT -> IN _(converter/string-to-blob) OUT -> IN server(http-server/blob:path="/test", port=8080)
+
+server OUT -> IN _(converter/blob-to-string) OUT -> IN post-validator OUT -> RESULT test-post(test/result:timeout=6000)
+
+_(constant/empty) OUT -> GET client(http-client/blob:url="http://localhost:8080/test") OUT -> IN _(converter/blob-to-string) OUT -> IN get-validator OUT -> RESULT test-get(test/result:timeout=6000)
+
+client OUT -> IN _(converter/empty-to-string:output_value="Bye!") OUT -> IN _(converter/string-to-blob) OUT -> POST client

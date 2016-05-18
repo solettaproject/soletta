@@ -18,6 +18,8 @@
 
 #pragma once
 
+#include <sol-common-buildopts.h>
+#include <sol-certificate.h>
 #include <sol-http.h>
 #include <sol-network.h>
 #include <time.h>
@@ -54,6 +56,29 @@ extern "C" {
 struct sol_http_server;
 
 /**
+ * @struct sol_http_server_config
+ * @brief
+ *
+ * It's created with sol_http_server_new() and should be later
+ * deleted with sol_http_server_del()
+ */
+struct sol_http_server_config {
+#ifndef SOL_NO_API_VERSION
+#define SOL_HTTP_SERVER_CONFIG_API_VERSION (1)  /**< compile time API version to be checked during runtime */
+    /**
+     * must match #SOL_HTTP_SERVER_CONFIG_API_VERSION at runtime.
+     */
+    uint16_t api_version;
+#endif
+
+    uint16_t port;
+    struct {
+        const struct sol_cert *cert;
+        const struct sol_cert *key;
+    } security;
+};
+
+/**
  * @struct sol_http_request
  * @brief Opaque handler for a request made to a HTTP server.
  *
@@ -68,34 +93,48 @@ struct sol_http_server;
 struct sol_http_request;
 
 /**
+ * @struct sol_http_progressive_response
+ * @brief Opaque handler used for send data progressively.
+ *
+ * Progressive responses can be used to create server sent events.
+ *
+ * This response is create with sol_http_server_send_progressive_response()
+ * and data can be given using sol_http_progressive_response_feed(),
+ * to delete it use sol_http_progressive_response_del().
+ */
+struct sol_http_progressive_response;
+
+/**
  * @brief Creates a HTTP server, binding on all interfaces
  * in the specified @a port.
  *
  * With the returned handle it's possible to register paths using
- * @c sol_http_server_register_handler
- * and dirs with @c sol_http_server_add_dir.
+ * @c sol_http_server_register_handler()
+ * and dirs with @c sol_http_server_add_dir().
  *
- * @note Only one instance of sol_http_server is possible per port.
+ * @note Only one instance of @c sol_http_server is possible per port.
  * Try to run a second instance in the
  * same port will result in fail.
  *
- * @param port The port where the server will bind.
+ * @param config The parameters to setup the server.
  *
  * @return a handle to the server on success, otherwise @c NULL is returned.
+ *
+ * @see sol_http_server_config
  */
-struct sol_http_server *sol_http_server_new(uint16_t port);
+struct sol_http_server *sol_http_server_new(const struct sol_http_server_config *config);
 
 /**
  * @brief Destroy the @a server instance.
  *
- * @param server The value got with @c sol_http_server_new
+ * @param server The value got with @c sol_http_server_new()
  */
 void sol_http_server_del(struct sol_http_server *server);
 
 /**
  * @brief Register a handler for a specific path.
  *
- * @param server The value got with @c sol_http_server_new
+ * @param server The value got with @c sol_http_server_new()
  * @param path The path where the handler will serve, it means, when a request comes in this path the
  * callback set will be called and a response should be sent back
  * @param request_cb The callback for the request received on the specified path
@@ -108,10 +147,10 @@ int sol_http_server_register_handler(struct sol_http_server *server, const char 
     const void *data);
 
 /**
- * @brief Removes a handler registered with @c sol_http_server_register_handler
+ * @brief Removes a handler registered with @c sol_http_server_register_handler()
  *
  * @param server The value got with @c sol_http_server_new
- * @param path The same path given on @c sol_http_server_register_handler
+ * @param path The same path given on @c sol_http_server_register_handler()
  *
  * @return @c 0 on success, error code (always negative) otherwise.
  */
@@ -125,7 +164,7 @@ int sol_http_server_unregister_handler(struct sol_http_server *server, const cha
  * root dirs set. The response will be sent as soon as a file matches
  * with the request.
  *
- * @param server The value got with @c sol_http_server_new
+ * @param server The value got with @c sol_http_server_new()
  * @param basename The base path of the requests where the server will
  * look for files on @c rootdir
  * @param rootdir The dir where the server will look for static files
@@ -135,22 +174,22 @@ int sol_http_server_unregister_handler(struct sol_http_server *server, const cha
 int sol_http_server_add_dir(struct sol_http_server *server, const char *basename, const char *rootdir);
 
 /**
- * @brief Removes a dir registered with @c sol_http_server_add_dir
+ * @brief Removes a dir registered with @c sol_http_server_add_dir()
  *
- * @param server The value got with @c sol_http_server_new
- * @param basename The same basename given on @c sol_http_server_add_dir
- * @param rootdir The same rootdir given on @c sol_http_server_add_dir
+ * @param server The value got with @c sol_http_server_new()
+ * @param basename The same basename given on @c sol_http_server_add_dir()
+ * @param rootdir The same rootdir given on @c sol_http_server_add_dir()
  *
  * @return @c 0 on success, error code (always negative) otherwise.
  */
 int sol_http_server_remove_dir(struct sol_http_server *server, const char *basename, const char *rootdir);
 
-#ifdef FEATURE_FILESYSTEM
+#ifdef SOL_FEATURE_FILESYSTEM
 
 /**
- * @breif Add a  page for a specific error code
+ * @brief Add a  page for a specific error code
  *
- * @param server The value got with @c sol_http_server_new
+ * @param server The value got with @c sol_http_server_new()
  * @param error The error code which @page_path will be served
  * @param page The path to a html file
  *
@@ -161,18 +200,18 @@ int sol_http_server_set_error_page(struct sol_http_server *server,
 
 /**
  * @brief Removes a default error page registered with
- * @c sol_http_server_add_default_error_page
+ * @c sol_http_server_add_default_error_page()
  *
- * @param server The value got with @c sol_http_server_new
+ * @param server The value got with @c sol_http_server_new()
  * @param error The same error given on
- * @c sol_http_server_add_default_error_page
+ * @c sol_http_server_add_default_error_page()
  *
  * @return @c 0 on success, error code (always negative) otherwise.
  */
 int sol_http_server_remove_error_page(struct sol_http_server *server,
     const enum sol_http_status_code error);
 
-#endif /*FEATURE_FILESYSTEM*/
+#endif /*SOL_FEATURE_FILESYSTEM*/
 
 /**
  * @brief Set the last time the specified path had its value modified.
@@ -184,8 +223,8 @@ int sol_http_server_remove_error_page(struct sol_http_server *server,
  *
  * @note: This is specific per @a server/@a path.
  *
- * @param server The value got with @c sol_http_server_new
- * @param path The same path given on @c sol_http_server_register_handler
+ * @param server The value got with @c sol_http_server_new()
+ * @param path The same path given on @c sol_http_server_register_handler()
  * @param modified The time it was modified
  *
  * @return @c 0 on success, error code (always negative) otherwise.
@@ -194,18 +233,107 @@ int sol_http_server_set_last_modified(struct sol_http_server *server, const char
 
 /**
  * @brief Send the response to request given in the callback registered on
- * @c sol_http_server_register_handler.
+ * @c sol_http_server_register_handler().
  *
  * After this call, @a request should not be used anymore.
  *
  * @param request The request given on the callback of
- * @c sol_http_server_register_handler
+ * @c sol_http_server_register_handler()
  * @param response The response for the request containing the data
  * and parameters (e.g http headers)
  *
  * @return @c 0 on success, error code (always negative) otherwise.
+ *
+ * @see sol_http_server_send_progressive_response()
  */
 int sol_http_server_send_response(struct sol_http_request *request, struct sol_http_response *response);
+
+/**
+ * @brief Set the necessary headers to allow server sent events
+ *
+ * @param response The response to set the headers
+ *
+ * @return @c 0 on success, error code (always negative) otherwise.
+ */
+static inline int
+sol_http_response_set_sse_headers(struct sol_http_response *response)
+{
+    const struct { const char *k; const char *v; } *itr, headers[] = {
+        { "Content-Type", "text/event-stream" },
+        { "Connection", "keep-alive" },
+        { "Cache-Control", "no-cache" },
+        { NULL, NULL }
+    };
+
+    if (!response)
+        return -EINVAL;
+
+    for (itr = headers; itr->k != NULL; itr++) {
+        if (!sol_http_param_add(&response->param,
+            SOL_HTTP_REQUEST_PARAM_HEADER(itr->k, itr->v))) {
+            return -ENOMEM;
+        }
+    }
+
+    return 0;
+}
+
+/**
+ * @brief Send the response and keep connection alive to request given in the
+ * callback registered on sol_http_server_register_handler().
+ *
+ * After this call, the caller will be resposible to close the connection calling
+ * sol_http_progressive_response_del(). @note all the necessary headers are set by this function.
+ *
+ * @param request The request given on the callback of
+ * sol_http_server_register_handler().
+ * @param response The response for the request containing the data
+ * and parameters (e.g http headers)
+ * @param on_close Callback called when the connection is closed.
+ * @param cb_data The data pointer to be passed to @a cb.
+ *
+ * @return @c sol_http_progressive_response on success, @c NULL otherwise.
+ *
+ * @see sol_http_server_send_response()
+ * @see sol_http_progressive_response_del()
+ * @see sol_http_progressive_response_feed()
+ */
+struct sol_http_progressive_response *sol_http_server_send_progressive_response(struct sol_http_request *request,
+    const struct sol_http_response *response,
+    void (*on_close)(void *data, const struct sol_http_progressive_response *progressive),
+    const void *cb_data);
+
+/**
+ * @brief Send data for the progressive response.
+ *
+ * @param progressive The progressive response created with
+ * sol_http_server_send_progressive_response()
+ * @param data The data to be sent.
+ *
+ * @return @c 0 on success, error code (always negative) otherwise.
+ *
+ * @see sol_http_progressive_response_del()
+ * @see sol_http_server_send_progressive_response()
+ */
+int sol_http_progressive_response_feed(struct sol_http_progressive_response *progressive,
+    const struct sol_str_slice data);
+
+/**
+ * @brief Delete the progressive response.
+ *
+ * This function deletes the progressive response and its resources and closes
+ * the connection. When the connection be closed the callback given on
+ * sol_http_server_send_progressive_response() will be called.
+ *
+ * @param progressive The progressive response created with
+ * sol_http_server_send_progressive_response()
+ * @param graceful_del If @c true all pending data will be sent before
+ * the connection be closed.
+ *
+ * @see sol_http_server_send_progressive_response()
+ * @see sol_http_progressive_response_feed()
+ */
+void sol_http_progressive_response_del(struct sol_http_progressive_response *progressive, bool graceful_del);
 
 /**
  * @brief Gets the URL from a given request.
@@ -237,12 +365,23 @@ enum sol_http_method sol_http_request_get_method(const struct sol_http_request *
 /**
  * @brief Gets the address of the interface that request comes.
  *
- * @param request The request which the URL is wanted.
+ * @param request The request.
  * @param address Will be filled with the interface address
  *
  * @return @c 0 on success, error code (always negative) otherwise.
+ * @see sol_http_request_get_client_address()
  */
 int sol_http_request_get_interface_address(const struct sol_http_request *request,
+    struct sol_network_link_addr *address);
+
+/**
+ * @brief Gets the client address that made the request.
+ *
+ * @param request The request.
+ * @param address Will be filled with the origin address.
+ * @see sol_http_request_get_interface_address()
+ */
+int sol_http_request_get_client_address(const struct sol_http_request *request,
     struct sol_network_link_addr *address);
 
 /**
@@ -251,7 +390,7 @@ int sol_http_request_get_interface_address(const struct sol_http_request *reques
  * This function changes the default request's buffer size, it is
  * used to store the post data. The default value is 4096 bytes.
  *
- * @param server The handle got with @c sol_http_server_new
+ * @param server The handle got with @c sol_http_server_new()
  * @param buf_size The size of the buffer.
  *
  * @return 0 in success, a negative value otherwise.
@@ -263,12 +402,12 @@ int sol_http_server_set_buffer_size(struct sol_http_server *server, size_t buf_s
 /**
  * @brief Get the request buffer's size.
  *
- * @param server The handle got with @c sol_http_server_new
+ * @param server The handle got with @c sol_http_server_new()
  * @param buf_size Variable to get the buffer's size.
  *
  * @return 0 in success, a negative value otherwise.
  *
- * @see sol_http_server_set_buffer_size
+ * @see sol_http_server_set_buffer_size()
  */
 int sol_http_server_get_buffer_size(struct sol_http_server *server, size_t *buf_size);
 

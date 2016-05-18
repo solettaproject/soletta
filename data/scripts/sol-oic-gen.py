@@ -20,39 +20,69 @@ import os
 import json
 import sys
 import traceback
+import re
 from collections import OrderedDict
+
+def merge_ref(directory, definitions, ref_link):
+    path, link = ref_link.split('#')
+    ref = load_json_schema(directory, path)
+    defnref = link.split('/')[-1]
+
+    definitions.update(ref[defnref])
 
 def merge_schema(directory, definitions, to_merge):
     for schema in to_merge:
         if not '$ref' in schema:
             raise ValueError("no $ref in allOf")
 
-        path, link = schema['$ref'].split('#')
-        ref = load_json_schema(directory, path)
-        defnref = link.split('/')[-1]
-        definitions.update(ref[defnref])
+        merge_ref(directory, definitions, schema['$ref'])
+
+def expand_json_schema(directory, schema):
+    if 'allOf' in schema:
+        merge_schema(directory, schema, schema['allOf'])
+        del schema['allOf']
+    if '$ref' in schema:
+        merge_ref(directory, schema, schema['$ref'])
+        del schema['$ref']
+    for key, value in schema.items():
+        if type(value) == dict and value.get('type', '') != 'array':
+                expand_json_schema(directory, value)
+
 
 def load_json_schema(directory, path, schemas={}):
     if path in schemas:
         return schemas[path]
 
     data = json.load(open(os.path.join(directory, path), "r", encoding='UTF-8'))
-    if not data['$schema'].startswith("http://json-schema.org/schema"):
+    if not data['$schema'].startswith("http://json-schema.org/"):
         raise ValueError("not a JSON schema")
 
     definitions = data.get("definitions", {})
     if not definitions:
         raise ValueError("empty definition block")
 
+    # if title is missing get it from file name
     if not 'title' in data:
-        raise ValueError("JSON schema without title")
+        title = path
+        if title.startswith('oic.r.'):
+            title = title[len('oic.r.'):]
+        elif title.startswith('core.'):
+            title = title[len('core.'):]
+        if title.endswith('.json'):
+            title = title[:-len('.json')]
+        title = title.replace(".", " ").title()
+    else:
+        title = data['title']
 
     required = set(data.get('required', []))
 
     for rt, descr in definitions.items():
-        if 'allOf' in descr:
-            merge_schema(directory, descr, descr['allOf'])
-            del descr['allOf']
+        if '$ref' in descr.get('properties', ()):
+            new_dict = {}
+            merge_ref(directory, new_dict, descr['properties']['$ref']);
+            descr['properties'].update(new_dict['properties'])
+            del descr['properties']['$ref']
+        expand_json_schema(directory, descr)
         if 'properties' in descr:
             for field, props in descr['properties'].items():
                 doc = props.get('description', '')
@@ -60,9 +90,11 @@ def load_json_schema(directory, path, schemas={}):
                 props['required'] = field in required
 
                 if props['read_only']:
-                    props['description'] = props['description'][len('ReadOnly,'):].strip()
+                    props['short_description'] = doc[len('ReadOnly,'):].strip()
+                else:
+                    props['short_description'] = props.get('description', None)
 
-        descr['title'] = data['title']
+        descr['title'] = title
 
     schemas[path] = definitions
     return definitions
@@ -122,7 +154,7 @@ def props_are_equivalent(p1, p2):
 def object_fields_common_c(state_struct_name, name, props):
     fields = []
     for prop_name, descr in props.items():
-        doc = '/* %s */' % descr.get('description', '???')
+        doc = '/* %s */' % descr.get('short_description', '???')
         if 'enum' in descr:
             var_type = 'enum %s_%s' % (state_struct_name, prop_name)
         else:
@@ -140,14 +172,14 @@ def generate_object_to_repr_vec_fn_common_c(state_struct_name, name, props, clie
 
         if 'enum' in prop_descr:
             tbl = '%s_%s_tbl' % (state_struct_name, prop_name)
-            val = '%s[state->state.%s]' % (tbl, prop_name)
-            vallen = 'strlen(%s)' % val
+            val = '%s[state->state.%s].key' % (tbl, prop_name)
+            vallen = '%s[state->state.%s].len' % (tbl, prop_name)
 
             ftype = 'SOL_OIC_REPR_TEXT_STRING'
             fargs = (val, vallen)
         elif prop_descr['type'] == 'boolean':
             val = 'state->state.%s' % prop_name
-        
+
             ftype = 'SOL_OIC_REPR_BOOLEAN'
             fargs = (val, )
         elif prop_descr['type'] == 'string':
@@ -174,8 +206,8 @@ def generate_object_to_repr_vec_fn_common_c(state_struct_name, name, props, clie
             'key': prop_name,
             'fargs': ', '.join(fargs)
         }
-        fields.append('''ret = sol_oic_map_append(repr_map, &%(ftype)s("%(key)s", %(fargs)s));
-        SOL_EXP_CHECK(!ret, false);
+        fields.append('''r = sol_oic_map_append(repr_map, &%(ftype)s("%(key)s", %(fargs)s));
+        SOL_INT_CHECK(r, < 0, false);
 ''' % vars)
 
     if not fields:
@@ -185,7 +217,7 @@ def generate_object_to_repr_vec_fn_common_c(state_struct_name, name, props, clie
 %(struct_name)s_to_repr_vec(void *data, struct sol_oic_map_writer *repr_map)
 {
     struct %(struct_name)s *state = (struct %(struct_name)s *)data;
-    bool ret;
+    int r;
 
     %(fields)s
 
@@ -204,7 +236,18 @@ def get_type_from_property(prop):
         return 'enum:%s' % ','.join(prop['enum'])
     raise ValueError('Unknown type for property')
 
+def all_props_are_read_only(props):
+    for prop_name, prop_descr in props.items():
+        if not prop_descr['read_only']:
+            return False
+
+    return True
+
+
 def object_to_repr_vec_fn_common_c(state_struct_name, name, props, client, equivalent={}):
+    if client and all_props_are_read_only(props):
+        return '';
+
     for item_name, item_props in equivalent.items():
         if item_props[0] == client and props_are_equivalent(props, item_props[1]):
             return '''static bool
@@ -354,31 +397,40 @@ def generate_object_from_repr_vec_fn_common_c(name, props):
 
     update_state = []
     for field_name, field_props in props.items():
-        if not 'enum' in field_props and field_props.get('type') == 'string':
-            update_state.append("""\
+        if not 'enum' in field_props:
+            if field_props.get('type') == 'string':
+                update_state.append("""\
     if (check_updated_string(state->%(name)s, fields.%(name)s)) {
         free(state->%(name)s);\
 """ % {"name": field_name})
 
+            else:
+                update_state.append("""\
+    if (%(c_check_updated)s(state->%(name)s, fields.%(name)s)) {\
+""" % {"name": field_name,
+       "c_check_updated": JSON_TO_FLOW_CHECK_UPDATED[field_props['type']]})
         else:
             update_state.append("""\
     if (%(c_check_updated)s(state->%(name)s, fields.%(name)s)) {\
 """ % {"name": field_name,
-       "c_check_updated": JSON_TO_FLOW_CHECK_UPDATED[field_props['type']]})
-
+       "c_check_updated": JSON_TO_FLOW_CHECK_UPDATED["integer"]})
 
         update_state.append("""\
-        state->%(name)s = fields.%(name)s;
+        state->%(name)s = fields.%(name)s;""" % {"name": field_name})
+        if not 'enum' in field_props and field_props.get('type') == 'string':
+            update_state.append("""\
+        fields.%(name)s = NULL;""" % {"name": field_name})
+        update_state.append("""\
         updated = true;
     }
-""" % {"name": field_name})
+""")
 
     return '''static int
 %(struct_name)s_from_repr_vec(struct %(struct_name)s *state,
     const struct sol_oic_map_reader *repr_vec, uint32_t decode_mask)
 {
     struct sol_oic_repr_field field;
-    enum sol_oic_map_loop_reason end_reason;
+    enum sol_oic_map_loop_status end_status;
     struct sol_oic_map_reader iterator;
     struct %(struct_name)s fields = {
 %(fields_init)s
@@ -386,18 +438,15 @@ def generate_object_from_repr_vec_fn_common_c(name, props):
     bool updated = false;
     int ret = 0;
 
-    SOL_OIC_MAP_LOOP(repr_vec, &field, &iterator, end_reason) {
+    SOL_OIC_MAP_LOOP(repr_vec, &field, &iterator, end_status) {
 %(fields)s
     }
-    if (end_reason != SOL_OIC_MAP_LOOP_OK)
+    if (end_status != SOL_OIC_MAP_LOOP_OK)
         goto out;
 
 %(update_state)s
 
-    if (!updated)
-        goto out;
-
-    return 1;
+    ret = updated ? 1 : 0;
 
 out:
 %(free_fields)s
@@ -483,7 +532,7 @@ def object_inform_flow_fn_common_c(state_struct_name, name, props, client):
         send_flow_pkts.append('''%(flow_send_fn)s(resource->node, SOL_FLOW_NODE_TYPE_%(STRUCT_NAME)s__OUT__%(FIELD_NAME)s, %(val)s);''' % {
             'flow_send_fn': fn,
             'STRUCT_NAME': name.upper(),
-            'FIELD_NAME': field_name.upper(),
+            'FIELD_NAME': get_port_name(field_name),
             'val': val
         })
 
@@ -546,7 +595,7 @@ def object_open_fn_client_c(state_struct_name, resource_type, name, props):
 }
 ''' % {
         'struct_name': name,
-        'STRUCT_NAME': name.upper(),
+        'STRUCT_NAME': get_port_name(name),
         'resource_type': resource_type,
         'field_init': '\n'.join(field_init),
         'to_repr_vec_fn': to_repr_vec_fn
@@ -742,12 +791,12 @@ def generate_enums_common_c(name, props):
     output = []
     for field, descr in props.items():
         if 'enum' in descr:
-            if 'description' in descr:
-                output.append('''/* %s */''' % descr['description'])
+            if 'short_description' in descr:
+                output.append('''/* %s */''' % descr['short_description'])
             output.append('''enum %(struct_name)s_%(field_name)s { %(items)s };''' % {
                 'struct_name': name,
                 'field_name': field,
-                'items': ', '.join(('%s_%s_%s' % (name, field, item)).upper() for item in descr['enum'])
+                'items': ', '.join(('%s_%s_%s' % (name, field, remove_special_chars(item))).upper() for item in descr['enum'])
             })
 
             output.append('''static const struct sol_str_table %(struct_name)s_%(field_name)s_tbl[] = {
@@ -757,7 +806,7 @@ def generate_enums_common_c(name, props):
                 'struct_name': name,
                 'field_name': field,
                 'items': ',\n'.join('SOL_STR_TABLE_ITEM(\"%s\", %s_%s_%s)' % (
-                    item, name.upper(), field.upper(), item.upper()) for item in descr['enum'])
+                    remove_special_chars(item), name.upper(), field.upper(), remove_special_chars(item).upper()) for item in descr['enum'])
             })
 
     return '\n'.join(output)
@@ -821,6 +870,14 @@ struct %(struct_name)s {
         'from_repr_vec_fn': object_from_repr_vec_fn_common_c(name, props),
     }
 
+# handle port_name, portName and PortName
+def get_port_name(name):
+    return re.sub('(?!^)([A-Z]+)', r'_\1', name).upper()
+
+# handle props name with '-' or other special chars
+def remove_special_chars(name):
+    return re.sub(r'[\W]+', '_', name)
+
 def generate_object_json(resource_type, struct_name, node_name, title, props, server):
     if server:
         in_ports = []
@@ -851,11 +908,11 @@ def generate_object_json(resource_type, struct_name, node_name, title, props, se
 
         in_ports.append({
             'data_type': JSON_TO_SOL_JSON[prop_descr.get('type', 'string')],
-            'description': prop_descr.get('description', '???'),
+            'description': prop_descr.get('short_description', '???'),
             'methods': {
                 'process': '%s_set_%s' % (struct_name, prop_name)
             },
-            'name': '%s' % prop_name.upper()
+            'name': '%s' % get_port_name(prop_name)
         })
 
     if server:
@@ -874,8 +931,8 @@ def generate_object_json(resource_type, struct_name, node_name, title, props, se
     for prop_name, prop_descr in props.items():
         out_ports.append({
             'data_type': JSON_TO_SOL_JSON[prop_descr.get('type', 'string')],
-            'description': prop_descr.get('description', '???'),
-            'name': '%s' % prop_name.upper()
+            'description': prop_descr.get('short_description', '???'),
+            'name': '%s' % get_port_name(prop_name)
         })
 
     output = {
@@ -940,7 +997,7 @@ def generate_object(rt, title, props, json_name):
 
     new_props = OrderedDict()
     for k, v in sorted(props.items(), key=type_value):
-        new_props[k] = v
+        new_props[remove_special_chars(k)] = v
     props = new_props
 
     retval = {
@@ -989,7 +1046,7 @@ def master_c_as_string(generated, oic_gen_c, oic_gen_h):
 
 #include "sol-coap.h"
 #include "sol-mainloop.h"
-#include "sol-oic-common.h"
+#include "sol-oic.h"
 #include "sol-oic-client.h"
 #include "sol-oic-server.h"
 #include "sol-str-slice.h"
@@ -1031,6 +1088,11 @@ struct client_resource {
 
     struct sol_oic_resource *resource;
 
+    struct pending {
+        struct sol_oic_pending *ipv4, *ipv6_local, *ipv6_site;
+    } discover_pending, scan_pending;
+    /* discover registered device IDs or scan for unknown IDs */
+
     struct sol_timeout *find_timeout;
     struct sol_timeout *update_schedule_timeout;
 
@@ -1064,7 +1126,7 @@ initialize_multicast_addresses_once(void)
     multicast_ipv4 = (struct sol_network_link_addr) { .family = SOL_NETWORK_FAMILY_INET, .port = DEFAULT_UDP_PORT };
     if (!sol_network_link_addr_from_str(&multicast_ipv4, MULTICAST_ADDRESS_IPv4)) {
         SOL_WRN("Could not parse multicast IP address");
-        return false;
+        multicast_ipv4.family = SOL_NETWORK_FAMILY_UNSPEC;
     }
     multicast_ipv6_local = (struct sol_network_link_addr) { .family = SOL_NETWORK_FAMILY_INET6, .port = DEFAULT_UDP_PORT };
     if (!sol_network_link_addr_from_str(&multicast_ipv6_local, MULTICAST_ADDRESS_IPv6_LOCAL)) {
@@ -1097,8 +1159,8 @@ client_resource_implements_type(struct sol_oic_resource *oic_res, const char *re
 }
 
 static void
-state_changed(sol_coap_responsecode_t response_code, struct sol_oic_client *oic_cli, const struct sol_network_link_addr *cliaddr,
-    const struct sol_oic_map_reader *repr_vec, void *data)
+state_changed(void *data, enum sol_coap_response_code response_code, struct sol_oic_client *oic_cli, const struct sol_network_link_addr *cliaddr,
+    const struct sol_oic_map_reader *repr_vec)
 {
     struct client_resource *resource = data;
 
@@ -1129,20 +1191,20 @@ state_changed(sol_coap_responsecode_t response_code, struct sol_oic_client *oic_
 }
 
 static bool
-found_resource(struct sol_oic_client *oic_cli, struct sol_oic_resource *oic_res, void *data)
+found_resource(void *data, struct sol_oic_client *oic_cli, struct sol_oic_resource *oic_res)
 {
     struct client_resource *resource = data;
     int r;
 
     if (!oic_res) {
         SOL_WRN("resource discovery timeout");
-        return false;
+        goto cancel;
     }
 
     /* Some OIC device sent this node a discovery response packet but node's already set up. */
     if (resource->resource) {
         SOL_DBG("Received discovery packet when resource already set up, ignoring");
-        return false;
+        goto cancel;
     }
 
     if (memcmp(oic_res->device_id.data, resource->device_id, 16) != 0) {
@@ -1157,16 +1219,11 @@ found_resource(struct sol_oic_client *oic_cli, struct sol_oic_resource *oic_res,
         return true;
     }
 
-    if (resource->find_timeout) {
-        sol_timeout_del(resource->find_timeout);
-        resource->find_timeout = NULL;
-    }
-
     SOL_INF("Found resource matching device_id");
     resource->resource = sol_oic_resource_ref(oic_res);
 
-    if (!sol_oic_client_resource_set_observable(oic_cli, resource->resource,
-        state_changed, resource, true)) {
+    if (sol_oic_client_resource_set_observable(oic_cli, resource->resource,
+        state_changed, resource, true) < 0) {
         SOL_WRN("Could not observe resource as requested, will try again");
     }
 
@@ -1175,7 +1232,42 @@ found_resource(struct sol_oic_client *oic_cli, struct sol_oic_resource *oic_res,
     if (r < 0)
         SOL_WRN("Could not send flow packet, will try again");
 
+cancel:
+    resource->find_timeout = NULL;
+    memset(&resource->discover_pending, 0, sizeof(resource->discover_pending));
     return false;
+}
+
+static void
+find_resources(struct client_resource *resource,
+    bool (*resource_found_cb)(void *data,
+    struct sol_oic_client *cli,
+    struct sol_oic_resource *res),
+    bool scan)
+{
+    struct pending *pending;
+
+    if (scan)
+        pending = &resource->scan_pending;
+    else
+        pending = &resource->discover_pending;
+
+    if (multicast_ipv4.family != SOL_NETWORK_FAMILY_UNSPEC) {
+        if (pending->ipv4)
+            sol_oic_pending_cancel(pending->ipv4);
+        pending->ipv4 = sol_oic_client_find_resources(resource->client,
+            &multicast_ipv4, resource->rt, NULL, resource_found_cb, resource);
+    }
+
+    if (pending->ipv6_local)
+        sol_oic_pending_cancel(pending->ipv6_local);
+    pending->ipv6_local = sol_oic_client_find_resources(resource->client,
+        &multicast_ipv6_local, resource->rt, NULL, resource_found_cb, resource);
+
+    if (pending->ipv6_site)
+        sol_oic_pending_cancel(pending->ipv6_site);
+    pending->ipv6_site = sol_oic_client_find_resources(resource->client,
+        &multicast_ipv6_site, resource->rt, NULL, resource_found_cb, resource);
 }
 
 static void
@@ -1186,12 +1278,7 @@ send_discovery_packets(struct client_resource *resource)
 
     sol_flow_send_boolean_packet(resource->node, resource->funcs->found_port, false);
 
-    sol_oic_client_find_resource(resource->client, &multicast_ipv4, resource->rt,
-        found_resource, resource);
-    sol_oic_client_find_resource(resource->client, &multicast_ipv6_local, resource->rt,
-        found_resource, resource);
-    sol_oic_client_find_resource(resource->client, &multicast_ipv6_site, resource->rt,
-        found_resource, resource);
+    find_resources(resource, found_resource, false);
 }
 
 static bool
@@ -1240,7 +1327,7 @@ binary_to_hex_ascii(const char *binary, char *ascii)
 }
 
 static bool
-scan_callback(struct sol_oic_client *oic_cli, struct sol_oic_resource *oic_res, void *data)
+scan_callback(void *data, struct sol_oic_client *oic_cli, struct sol_oic_resource *oic_res)
 {
     struct client_resource *resource = data;
     char ascii[DEVICE_ID_LEN * 2 + 1];
@@ -1250,7 +1337,7 @@ scan_callback(struct sol_oic_client *oic_cli, struct sol_oic_resource *oic_res, 
 
     if (!oic_res) {
         SOL_WRN("Scanning timeout");
-        return false;
+        goto cancel;
     }
 
     /* FIXME: Should this check move to sol-oic-client? Does it actually make sense? */
@@ -1282,6 +1369,10 @@ error:
     SOL_WRN("Failed to process id.");
     free(id);
     return true;
+
+cancel:
+    memset(&resource->discover_pending, 0, sizeof(resource->discover_pending));
+    return false;
 }
 
 static void
@@ -1299,23 +1390,26 @@ static void
 send_scan_packets(struct client_resource *resource)
 {
     clear_scanned_ids(&resource->scanned_ids);
-    sol_oic_client_find_resource(resource->client, &multicast_ipv4,
-         resource->rt, scan_callback, resource);
-    sol_oic_client_find_resource(resource->client, &multicast_ipv6_local,
-         resource->rt, scan_callback, resource);
-    sol_oic_client_find_resource(resource->client, &multicast_ipv6_site,
-         resource->rt, scan_callback, resource);
+    find_resources(resource, scan_callback, true);
 }
 
 static bool
 server_resource_perform_update(void *data)
 {
     struct server_resource *resource = data;
+    struct sol_oic_response *notification;
 
     SOL_NULL_CHECK(resource->funcs->to_repr_vec, false);
 
-    if (!sol_oic_notify_observers(resource->resource,
-        resource->funcs->to_repr_vec, resource)) {
+    notification = sol_oic_server_notification_new(resource->resource);
+    SOL_NULL_CHECK(notification, false);
+    if (!resource->funcs->to_repr_vec(resource,
+        sol_oic_server_response_get_writer(notification))) {
+        sol_oic_server_response_free(notification);
+        return false;
+    }
+
+    if (sol_oic_server_send_notification_to_observers(notification) < 0) {
         SOL_WRN("Error while serializing update message");
     } else {
         resource->funcs->inform_flow(resource);
@@ -1335,39 +1429,58 @@ server_resource_schedule_update(struct server_resource *resource)
         server_resource_perform_update, resource);
 }
 
-static sol_coap_responsecode_t
-server_handle_update(const struct sol_network_link_addr *cliaddr, const void *data,
-    const struct sol_oic_map_reader *repr_map, struct sol_oic_map_writer *output)
+static int
+server_handle_update(void *data, struct sol_oic_request *request)
 {
+    enum sol_coap_response_code code;
     struct server_resource *resource = (struct server_resource *)data;
+    struct sol_oic_map_reader *input;
     int r;
 
-    if (!resource->funcs->from_repr_vec)
-        return SOL_COAP_RSPCODE_NOT_IMPLEMENTED;
+    if (!resource->funcs->from_repr_vec) {
+        code = SOL_COAP_RESPONSE_CODE_NOT_IMPLEMENTED;
+        goto end;
+    }
 
-    r = resource->funcs->from_repr_vec(resource, repr_map);
+    input = sol_oic_server_request_get_reader(request);
+    r = resource->funcs->from_repr_vec(resource, input);
     if (r > 0) {
         server_resource_schedule_update(resource);
-        return SOL_COAP_RSPCODE_CHANGED;
+        code = SOL_COAP_RESPONSE_CODE_CHANGED;
     } else if (r == 0)
-        return SOL_COAP_RSPCODE_OK;
+        code = SOL_COAP_RESPONSE_CODE_OK;
     else
-        return SOL_COAP_RSPCODE_PRECONDITION_FAILED;
+        code = SOL_COAP_RESPONSE_CODE_PRECONDITION_FAILED;
+
+end:
+    return sol_oic_server_send_response(request, NULL, code);
 }
 
-static sol_coap_responsecode_t
-server_handle_get(const struct sol_network_link_addr *cliaddr, const void *data,
-    const struct sol_oic_map_reader *repr_map, struct sol_oic_map_writer *output)
+static int
+server_handle_get(void *data, struct sol_oic_request *request)
 {
     const struct server_resource *resource = data;
+    struct sol_oic_map_writer *output;
+    struct sol_oic_response *response;
 
     if (!resource->funcs->to_repr_vec)
-        return SOL_COAP_RSPCODE_NOT_IMPLEMENTED;
+        return sol_oic_server_send_response(request, NULL,
+            SOL_COAP_RESPONSE_CODE_NOT_IMPLEMENTED);
 
+    response = sol_oic_server_response_new(request);
+    SOL_NULL_CHECK_GOTO(response, error);
+    output = sol_oic_server_response_get_writer(response);
+    SOL_NULL_CHECK_GOTO(output, error);
     if (!resource->funcs->to_repr_vec((void *)resource, output))
-        return SOL_COAP_RSPCODE_INTERNAL_ERROR;
+        goto error;
 
-    return SOL_COAP_RSPCODE_CONTENT;
+    return sol_oic_server_send_response(request, response,
+        SOL_COAP_RESPONSE_CODE_CONTENT);
+
+error:
+    sol_oic_server_response_free(response);
+    return sol_oic_server_send_response(request, NULL,
+        SOL_COAP_RESPONSE_CODE_INTERNAL_ERROR);
 }
 
 // log_init() implementation happens within oic-gen.c
@@ -1392,7 +1505,7 @@ server_resource_init(struct server_resource *resource, struct sol_flow_node *nod
         .post = { .handle = server_handle_update },
     };
 
-    resource->resource = sol_oic_server_add_resource(&resource->type,
+    resource->resource = sol_oic_server_register_resource(&resource->type,
         resource, SOL_OIC_FLAG_DISCOVERABLE | SOL_OIC_FLAG_OBSERVABLE | SOL_OIC_FLAG_ACTIVE);
     if (resource->resource)
         return 0;
@@ -1405,7 +1518,7 @@ server_resource_close(struct server_resource *resource)
 {
     if (resource->update_schedule_timeout)
         sol_timeout_del(resource->update_schedule_timeout);
-    sol_oic_server_del_resource(resource->resource);
+    sol_oic_server_unregister_resource(resource->resource);
 }
 
 static unsigned int
@@ -1447,8 +1560,8 @@ client_connect(struct client_resource *resource, const char *device_id)
         sol_timeout_del(resource->find_timeout);
 
     if (resource->resource) {
-        if (!sol_oic_client_resource_set_observable(resource->client,
-            resource->resource, NULL, NULL, false)) {
+        if (sol_oic_client_resource_set_observable(resource->client,
+            resource->resource, NULL, NULL, false) < 0) {
             SOL_WRN("Could not unobserve resource");
         }
 
@@ -1498,6 +1611,17 @@ client_resource_init(struct sol_flow_node *node, struct client_resource *resourc
 }
 
 static void
+pending_free(struct pending *pending)
+{
+    if (pending->ipv4)
+        sol_oic_pending_cancel(pending->ipv4);
+    if (pending->ipv6_local)
+        sol_oic_pending_cancel(pending->ipv6_local);
+    if (pending->ipv6_site)
+        sol_oic_pending_cancel(pending->ipv6_site);
+}
+
+static void
 client_resource_close(struct client_resource *resource)
 {
     if (resource->find_timeout)
@@ -1505,10 +1629,12 @@ client_resource_close(struct client_resource *resource)
     if (resource->update_schedule_timeout)
         sol_timeout_del(resource->update_schedule_timeout);
 
+    pending_free(&resource->scan_pending);
+    pending_free(&resource->discover_pending);
+
     if (resource->resource) {
-        bool r = sol_oic_client_resource_set_observable(resource->client, resource->resource,
-            NULL, NULL, false);
-        if (!r)
+        if (sol_oic_client_resource_set_observable(resource->client,
+            resource->resource, NULL, NULL, false) < 0)
             SOL_WRN("Could not unobserve resource");
 
         sol_oic_resource_unref(resource->resource);
@@ -1519,8 +1645,8 @@ client_resource_close(struct client_resource *resource)
 }
 
 static void
-client_resource_update_ack(sol_coap_responsecode_t response_code, struct sol_oic_client *cli, const struct sol_network_link_addr *addr,
-    const struct sol_oic_map_reader *repr_vec, void *data)
+client_resource_update_ack(void *data, enum sol_coap_response_code response_code, struct sol_oic_client *cli, const struct sol_network_link_addr *addr,
+    const struct sol_oic_map_reader *repr_vec)
 {
     struct client_resource *resource = data;
 
@@ -1531,15 +1657,23 @@ static bool
 client_resource_perform_update(void *data)
 {
     struct client_resource *resource = data;
-    int r;
+    struct sol_oic_request *request;
+    struct sol_oic_pending *pending;
 
     SOL_NULL_CHECK_GOTO(resource->resource, disable_timeout);
     SOL_NULL_CHECK_GOTO(resource->funcs->to_repr_vec, disable_timeout);
 
-    r = sol_oic_client_resource_request(resource->client, resource->resource,
-        SOL_COAP_METHOD_PUT, resource->funcs->to_repr_vec, resource,
+    request = sol_oic_client_request_new(SOL_COAP_METHOD_PUT, resource->resource);
+    if (!request ||
+        !resource->funcs->to_repr_vec(resource,
+        sol_oic_client_request_get_writer(request))) {
+        SOL_WRN("Failed to create request. Will try again");
+        return true;
+    }
+
+    pending = sol_oic_client_request(resource->client, request,
         client_resource_update_ack, data);
-    if (r < 0) {
+    if (!pending) {
         SOL_WRN("Could not send update request to resource, will try again");
         return true;
     }
@@ -1610,7 +1744,7 @@ check_updated_boolean(const bool a, const bool b)
 static inline bool
 check_updated_number(const double a, const double b)
 {
-    return !sol_drange_val_equal(a, b);
+    return !sol_util_double_equal(a, b);
 }
 
 static inline int
@@ -1641,11 +1775,11 @@ send_string_packet(struct sol_flow_node *src, uint16_t src_port, const char *val
 if __name__ == '__main__':
     import argparse
     parser = argparse.ArgumentParser()
-    parser.add_argument("--schema-dir",
-                        help="Directory where JSON schemas are located. "
+    parser.add_argument("schema_dirs",
+                        help="Directories where JSON schemas are located. "
                         "Names must start with 'oic.r.' or 'core.' and use "
                         "extension '.json'",
-                        required=True)
+                        nargs="+")
     parser.add_argument("--node-type-json",
                         help="Path to store the master JSON with node type information",
                         required=True)
@@ -1663,6 +1797,10 @@ if __name__ == '__main__':
     args = parser.parse_args()
 
     def seems_schema(path):
+        # TODO properly handle update, batch and error files
+        if path.endswith('-Update.json') or path.endswith('-Error.json') or \
+            path.endswith('-Batch.json'):
+            return False
         return path.endswith('.json') and (path.startswith('oic.r.') or path.startswith('core.'))
 
     json_name = os.path.basename(args.node_type_json)
@@ -1671,22 +1809,24 @@ if __name__ == '__main__':
 
     generated = []
     print('Generating code for schemas: ', end='')
-    for path in (f for f in os.listdir(args.schema_dir) if seems_schema(f)):
-        print(path, end=', ')
+    for schema_dir in args.schema_dirs:
+        for path in (f for f in sorted(os.listdir(schema_dir)) if seems_schema(f)):
+            print(path, end=', ')
 
-        try:
-            for code in generate_for_schema(args.schema_dir, path, json_name):
-                generated.append(code)
-        except KeyError as e:
-            if e.args[0] == 'array':
-                print("(arrays unsupported)", end=' ')
-            else:
-                raise e
-        except Exception as e:
-            print('Ignoring %s due to exception in generator. '
-                  'Traceback follows:' % path, file=sys.stderr)
-            traceback.print_exc(e, file=sys.stderr)
-            continue
+            try:
+                for code in generate_for_schema(schema_dir, path, \
+                        json_name):
+                    generated.append(code)
+            except KeyError as e:
+                if e.args[0] in ('array', 'object'):
+                    print("(%ss unsupported)" % e.args[0], end=' ')
+                else:
+                    raise e
+            except Exception as e:
+                print('Ignoring %s due to exception in generator. '
+                      'Traceback follows:' % path, file=sys.stderr)
+                traceback.print_exc(file=sys.stderr)
+                continue
 
     print('\nWriting master JSON: %s' % args.node_type_json)
     open(args.node_type_json, 'w+', encoding='UTF-8').write(

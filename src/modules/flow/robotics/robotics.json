@@ -1,0 +1,296 @@
+{
+  "$schema": "http://solettaproject.github.io/soletta/schemas/node-type-genspec.schema",
+  "name": "robotics",
+  "meta": {
+    "author": "Intel Corporation",
+    "license": "Apache-2.0",
+    "version": "1"
+  },
+  "types": [
+    {
+      "category": "robotics/motor",
+      "description": "H-Bridge node, compatible with L293D.",
+      "in_ports": [
+        {
+          "data_type": "int",
+          "description": "0: coast motor; < 0: rotate counterclockwise; > 0 rotate clockwise. Non-zero value indicates throttle percentage.",
+          "name": "IN",
+          "methods": {
+            "process": "hbridge_process_in"
+          }
+        },
+        {
+          "data_type": "any",
+          "description": "Actively brake the motor.",
+          "name": "BRAKE",
+          "methods": {
+            "process": "hbridge_process_brake"
+          }
+        }
+      ],
+      "name": "robotics/hbridge-l293d",
+      "out_ports": [
+        {
+          "data_type": "boolean",
+          "description": "Connect to OUT[0] through OUT[3] to L293D 1A, 2A, 3A, and 4A respectively.",
+          "name": "OUT[4]"
+        },
+        {
+          "data_type": "int",
+          "description": "Throttle output, in percentage (compatible with PWM node type's DUTY_CYCLE_PERCENT input port).",
+          "name": "THROTTLE"
+        }
+      ],
+      "options": {
+        "version": 1,
+        "members": [
+          {
+            "data_type": "boolean",
+            "description": "Invert clockwise/counter-clockwise commands. Useful for skid-steering robots.",
+            "name": "inverted"
+          }
+        ]
+      },
+      "private_data_type": "hbridge_data",
+      "url": "http://solettaproject.org/doc/latest/components/robotics/hbridge-l293d.html",
+      "methods": {
+        "open": "hbridge_open"
+      },
+      "url": "http://solettaproject.org/doc/latest/components/robotics/hbridge-l293d.html"
+    },
+    {
+      "category": "robotics/encoders",
+      "description": "Tells if the shaft of a motor is stopped, rotating clockwise, or rotating counterclockwise.",
+      "methods": {
+        "open": "quadrature_encoder_open",
+        "close": "quadrature_encoder_close"
+      },
+      "private_data_type": "quadrature_encoder_data",
+      "in_ports": [
+        {
+          "data_type": "boolean",
+          "description": "Output A from the encoder",
+          "name": "A",
+          "methods": {
+            "process": "quadrature_encoder_process_port"
+          }
+        },
+        {
+          "data_type": "boolean",
+          "description": "Output B from the encoder",
+          "name": "B",
+          "methods": {
+            "process": "quadrature_encoder_process_port"
+          }
+        }
+      ],
+      "name": "robotics/quadrature-encoder",
+      "out_ports": [
+        {
+          "data_type": "int",
+          "description": "Tick delta. Positive value if rotating clockwise, negative if counter-clockwise.",
+          "name": "OUT"
+        }
+      ],
+      "options": {
+        "version": 1,
+        "members": [
+          {
+            "data_type": "int",
+            "description": "Time to wait before sending the tick delta, in ms. Default is 100ms.",
+            "name": "period",
+            "default": 100
+          }
+        ]
+      },
+      "url": "http://solettaproject.org/doc/latest/components/robotics/quadrature-encoder.html"
+    },
+    {
+      "category": "robotics/localization",
+      "description": "Calculates estimated relative position and heading angle from encoder input in a tracked robot.",
+      "methods": {
+        "open": "skid_steer_odometer_open",
+        "close": "skid_steer_odometer_close"
+      },
+      "in_ports": [
+        {
+          "data_type": "any",
+          "description": "Input from left quadrature encoder.",
+          "name": "LEFT",
+          "methods": {
+            "process": "skid_steer_odometer_process"
+          }
+        },
+        {
+          "data_type": "any",
+          "description": "Input from left quadrature encoder.",
+          "name": "RIGHT",
+          "methods": {
+            "process": "skid_steer_odometer_process"
+          }
+        }
+      ],
+      "name": "robotics/skid-steer-odometer",
+      "out_ports": [
+        {
+          "data_type": "direction-vector",
+          "description": "X, Y are the relative positions, and Z is the heading",
+          "name": "OUT"
+        }
+      ],
+      "private_data_type": "skid_steer_odometer_data",
+      "options": {
+        "version": 1,
+        "members": [
+          {
+            "data_type": "float",
+            "description": "Wheel diameter. Output will be in the same unit. Must be greater than zero.",
+            "name": "wheel_diameter"
+          },
+          {
+            "data_type": "float",
+            "description": "Encoder pulses per wheel revolution. Must be greater than zero.",
+            "name": "pulses_per_revolution"
+          },
+          {
+            "data_type": "float",
+            "description": "Axle length. Use a unit compatible with wheel_diameter. Must be greater than zero.",
+            "name": "axle_length"
+          },
+          {
+            "data_type": "int",
+            "description": "Update period, in ms. Default is 100ms.",
+            "name": "update_period",
+            "default": 100
+          }
+        ]
+      },
+      "url": "http://solettaproject.org/doc/latest/components/robotics/skid-steer-odometer.html"
+    },
+    {
+      "category": "robotics/steering",
+      "description": "Controls two motors for tracked robotic platforms.",
+      "methods": {
+        "open": "skid_steer_open",
+        "close": "skid_steer_close"
+      },
+      "in_ports": [
+        {
+          "data_type": "direction-vector",
+          "name": "CURDIR",
+          "description": "Current position and direction obtained from an odometry node.",
+          "methods": {
+            "process": "skid_steer_curdir_process"
+          }
+        },
+        {
+          "data_type": "float",
+          "name": "TURN_ANGLE",
+          "description": "Angle to turn robotic platform.",
+          "methods": {
+            "process": "skid_steer_turn_angle_process"
+          }
+        },
+        {
+          "data_type": "int",
+          "name": "THROTTLE",
+          "description": "Maximum throttle percentage (0 to 100) to send to motor controllers.",
+          "methods": {
+            "process": "skid_steer_throttle_process"
+          }
+        }
+      ],
+      "name": "robotics/skid-steer",
+      "out_ports": [
+        {
+          "data_type": "int",
+          "name": "LEFT_OUT",
+          "description": "Output to be connected to left motor controller."
+        },
+        {
+          "data_type": "int",
+          "name": "RIGHT_OUT",
+          "description": "Output to be connected to right motor controller."
+        }
+      ],
+      "options": {
+        "version": 1,
+        "members": [
+          {
+            "data_type": "int",
+            "description": "Minimum throttle to send to motor driver.",
+            "name": "min_throttle",
+            "default": 0
+          },
+          {
+            "data_type": "int",
+            "description": "Maximum throttle to send to motor driver.",
+            "name": "max_throttle",
+            "default": 100
+          }
+        ]
+      },
+      "private_data_type": "skid_steer_data",
+      "url": "http://solettaproject.org/doc/latest/components/robotics/skid-steer.html"
+    },
+    {
+      "category": "robotics/controllers",
+      "description": "PID (proportional, integral, derivative) controller.",
+      "methods": {
+        "open": "pid_controller_open"
+      },
+      "private_data_type": "pid_controller_data",
+      "in_ports": [
+        {
+          "data_type": "float",
+          "description": "Value obtained from the sensor.",
+          "name": "IN",
+          "methods": {
+            "process": "pid_controller_process"
+          }
+        }
+      ],
+      "out_ports": [
+        {
+          "data_type": "float",
+          "description": "Value to be fed to an actuator.",
+          "name": "OUT"
+        }
+      ],
+      "options": {
+        "version": 1,
+        "members": [
+          {
+            "data_type": "float",
+            "description": "Constant for the Proportional component.",
+            "name": "kp",
+            "default": 0
+          },
+          {
+            "data_type": "float",
+            "description": "Constant for the Integral component.",
+            "name": "ki",
+            "default": 0
+          },
+          {
+            "data_type": "float",
+            "description": "Constant for the Derivative component.",
+            "name": "kd",
+            "default": 0
+          },
+          {
+            "data_type": "float",
+            "description": "Desired output value.",
+            "name": "set_point",
+            "default": 0
+          }
+        ]
+      },
+      "name": "robotics/pid",
+      "methods": {
+        "open": "pid_controller_open"
+      },
+      "url": "http://solettaproject.org/doc/latest/components/robotics/pid.html"
+    }
+  ]
+}

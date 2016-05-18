@@ -21,7 +21,7 @@
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
-#include "sol-types.h"
+#include "sol-util.h"
 
 struct test {
     const char *name;

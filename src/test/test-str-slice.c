@@ -23,6 +23,42 @@
 
 #include "test.h"
 
+DEFINE_TEST(test_str_slice_split_iterate);
+
+static void
+test_str_slice_split_iterate(void)
+{
+    size_t i;
+
+    static const struct {
+        struct sol_str_slice to_split;
+        const char *delim;
+        size_t iterations;
+        const char *tokens[10];
+    } table[] = {
+        { SOL_STR_SLICE_LITERAL("something"), ";", 1, { "something", NULL } },
+        { SOL_STR_SLICE_LITERAL("something;i like it"), ";", 2, { "something", "i like it", NULL } },
+        { SOL_STR_SLICE_LITERAL("something;i like it;"), ";", 3, { "something", "i like it", "", NULL } },
+        { SOL_STR_SLICE_LITERAL("something;i like it;&&;1233;2;31"), ";", 6, { "something", "i like it", "&&", "1233", "2", "31", NULL } },
+        { SOL_STR_SLICE_LITERAL("something;i like it;&&;1233;2;31"), "&&", 2, { "something;i like it;", ";1233;2;31", NULL } },
+        { SOL_STR_SLICE_LITERAL("HelloThisIsMyDelimiterByeThisIsMyDelimiterWhatAHugeDelimiter"), "ThisIsMyDelimiter",
+          3, { "Hello", "Bye", "WhatAHugeDelimiter", NULL } }
+    };
+
+    for (i = 0; i < sol_util_array_size(table); i++) {
+        struct sol_str_slice token = SOL_STR_SLICE_EMPTY;
+        const char *itr = NULL;
+        size_t iterations = 0;
+
+        while (sol_str_slice_str_split_iterate(table[i].to_split, &token, &itr, table[i].delim)) {
+            ASSERT(table[i].tokens[iterations]);
+            ASSERT(sol_str_slice_str_eq(token, table[i].tokens[iterations++]));
+        }
+
+        ASSERT_INT_EQ(iterations, table[i].iterations);
+    }
+}
+
 DEFINE_TEST(test_str_slice_to_int);
 
 static void
@@ -52,7 +88,7 @@ test_str_slice_to_int(void)
         CONVERT_FAIL(100000000000000000000000000000, -ERANGE),
     };
 
-    for (i = 0; i < SOL_UTIL_ARRAY_SIZE(table); i++) {
+    for (i = 0; i < sol_util_array_size(table); i++) {
         int error, value = 0;
         error = sol_str_slice_to_int(table[i].input, &value);
         ASSERT_INT_EQ(error, table[i].output_error);
@@ -85,7 +121,7 @@ test_str_slice_str_eq(void)
         TEST_NOT_EQUAL("whatever", NULL),
     };
 
-    for (i = 0; i < SOL_UTIL_ARRAY_SIZE(table); i++) {
+    for (i = 0; i < sol_util_array_size(table); i++) {
         bool ret;
         ret = sol_str_slice_str_eq(table[i].input, table[i].cmp);
         ASSERT_INT_EQ(ret, table[i].output_value);
@@ -123,7 +159,7 @@ test_str_slice_remove_leading_whitespace(void)
         TEST_EQUAL("without leading whitespace"),
     };
 
-    for (i = 0; i < SOL_UTIL_ARRAY_SIZE(table); i++) {
+    for (i = 0; i < sol_util_array_size(table); i++) {
         struct sol_str_slice slice;
         slice = sol_str_slice_remove_leading_whitespace(table[i].input);
         ASSERT(sol_str_slice_eq(table[i].input, slice) == table[i].equal);
@@ -160,7 +196,7 @@ test_str_slice_remove_trailing_whitespace(void)
         TEST_EQUAL("without trailing whitespace"),
     };
 
-    for (i = 0; i < SOL_UTIL_ARRAY_SIZE(table); i++) {
+    for (i = 0; i < sol_util_array_size(table); i++) {
         struct sol_str_slice slice;
         slice = sol_str_slice_remove_trailing_whitespace(table[i].input);
         ASSERT(sol_str_slice_eq(table[i].input, slice) == table[i].equal);
@@ -203,7 +239,7 @@ test_str_slice_trim(void)
         TEST_EQUAL("without trailing whitespace"),
     };
 
-    for (i = 0; i < SOL_UTIL_ARRAY_SIZE(table); i++) {
+    for (i = 0; i < sol_util_array_size(table); i++) {
         struct sol_str_slice slice;
         slice = sol_str_slice_trim(table[i].input);
         ASSERT(sol_str_slice_eq(table[i].input, slice) == table[i].equal);
@@ -228,7 +264,7 @@ test_str_slice_to_string(void)
             "whose only purpose is to test if a long slice can yeld to a"
             "correct string. But why not? Maybe allocation problems, however, "
             "are allocations problems something to be concerned at? If we "
-            "have no more memory availble, a slice that can't be coverted "
+            "have no more memory available, a slice that can't be converted "
             "to raw C string, the infamous array of char, is not application "
             "main concern. I think that it's long enought, but maybe not. "
             "In hindsight, I believed that I've should used some lorem ipsum "
@@ -236,7 +272,7 @@ test_str_slice_to_string(void)
         SOL_STR_SLICE_LITERAL("")
     };
 
-    for (i = 0; i < SOL_UTIL_ARRAY_SIZE(input); i++) {
+    for (i = 0; i < sol_util_array_size(input); i++) {
         char *s = sol_str_slice_to_string(input[i]);
         ASSERT(sol_str_slice_str_eq(input[i], s));
         free(s);

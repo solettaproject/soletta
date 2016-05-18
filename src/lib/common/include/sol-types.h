@@ -21,6 +21,7 @@
 #include <stdbool.h>
 #include <stdint.h>
 #include <stdlib.h>
+#include <string.h>
 #include <float.h>
 #include <sol-common-buildopts.h>
 #include <sol-vector.h>
@@ -94,6 +95,20 @@ extern "C" {
 #define SOL_TYPE_CHECK(type, value) \
     _SOL_TYPE_CHECK(type, __dummy_ ## __COUNTER__, (value))
 
+#ifndef SSIZE_MAX
+/**
+ * @brief Maximum value of a ssize variable.
+ */
+#define SSIZE_MAX LONG_MAX
+#endif
+
+#ifndef SSIZE_MIN
+/**
+ * @brief Minimum value of a ssize variable.
+ */
+#define SSIZE_MIN LONG_MIN
+#endif
+
 /**
  * @}
  */
@@ -116,6 +131,16 @@ struct sol_direction_vector {
 };
 
 /**
+ * @brief Checks the ranges of @c var0 and @c var1 for equality.
+ *
+ * @param var0 The first direction vector
+ * @param var1 The second direction vector
+ *
+ * @return @c true if both are equal, @c false otherwise.
+ */
+bool sol_direction_vector_equal(const struct sol_direction_vector *var0, const struct sol_direction_vector *var1);
+
+/**
  * @brief Data type to describe a location.
  */
 struct sol_location {
@@ -135,6 +160,16 @@ struct sol_rgb {
     uint32_t green_max; /**< @brief Green component maximum value */
     uint32_t blue_max; /**< @brief Blue component maximum value */
 };
+
+/**
+ * @brief Checks the ranges of @c var0 and @c var1 for equality.
+ *
+ * @param var0 The first RGB
+ * @param var1 The second RGB
+ *
+ * @return @c true if both are equal, @c false otherwise.
+ */
+bool sol_rgb_equal(const struct sol_rgb *var0, const struct sol_rgb *var1);
 
 /**
  * @brief Set a maximum value for all components of a RGB color
@@ -203,7 +238,7 @@ struct sol_drange_spec {
  *
  * @return @c 0 on success, error code (always negative) otherwise.
  */
-int sol_drange_addition(const struct sol_drange *var0, const struct sol_drange *var1, struct sol_drange *result);
+int sol_drange_add(const struct sol_drange *var0, const struct sol_drange *var1, struct sol_drange *result);
 
 /**
  * @brief Divides the double range @c var0 by @c var1 and stores the result in @c result.
@@ -217,7 +252,7 @@ int sol_drange_addition(const struct sol_drange *var0, const struct sol_drange *
  *
  * @return @c 0 on success, error code (always negative) otherwise.
  */
-int sol_drange_division(const struct sol_drange *var0, const struct sol_drange *var1, struct sol_drange *result);
+int sol_drange_div(const struct sol_drange *var0, const struct sol_drange *var1, struct sol_drange *result);
 
 /**
  * @brief Calculates the module of the double range @c var0 by @c var1
@@ -232,7 +267,7 @@ int sol_drange_division(const struct sol_drange *var0, const struct sol_drange *
  *
  * @return @c 0 on success, error code (always negative) otherwise.
  */
-int sol_drange_modulo(const struct sol_drange *var0, const struct sol_drange *var1, struct sol_drange *result);
+int sol_drange_mod(const struct sol_drange *var0, const struct sol_drange *var1, struct sol_drange *result);
 
 /**
  * @brief Multiplies the double ranges @c var0 and @c var1 and stores the result in @c result.
@@ -246,7 +281,7 @@ int sol_drange_modulo(const struct sol_drange *var0, const struct sol_drange *va
  *
  * @return @c 0 on success, error code (always negative) otherwise.
  */
-int sol_drange_multiplication(const struct sol_drange *var0, const struct sol_drange *var1, struct sol_drange *result);
+int sol_drange_mul(const struct sol_drange *var0, const struct sol_drange *var1, struct sol_drange *result);
 
 /**
  * @brief Subtracts the double range @c var1 from @c var0 and stores the result in @c result.
@@ -260,20 +295,8 @@ int sol_drange_multiplication(const struct sol_drange *var0, const struct sol_dr
  *
  * @return @c 0 on success, error code (always negative) otherwise.
  */
-int sol_drange_subtraction(const struct sol_drange *var0, const struct sol_drange *var1, struct sol_drange *result);
+int sol_drange_sub(const struct sol_drange *var0, const struct sol_drange *var1, struct sol_drange *result);
 
-/**
- * @brief Checks @c var0 and @c var1 for equality.
- *
- * It uses relative comparison to account for impressions caused by floating point arithmetics,
- * so give preference to use this function instead of comparing the numbers directly.
- *
- * @param var0 First argument
- * @param var1 Second argument
- *
- * @return @c true if both values are equal, @c false otherwise.
- */
-bool sol_drange_val_equal(double var0, double var1);
 
 /**
  * @brief Checks the double ranges @c var0 and @c var1 for equality.
@@ -355,7 +378,7 @@ struct sol_irange_spec {
  *
  * @return @c 0 on success, error code (always negative) otherwise.
  */
-int sol_irange_addition(const struct sol_irange *var0, const struct sol_irange *var1, struct sol_irange *result);
+int sol_irange_add(const struct sol_irange *var0, const struct sol_irange *var1, struct sol_irange *result);
 
 /**
  * @brief Divides the integer range @c var0 by @c var1 and stores the result in @c result.
@@ -369,7 +392,7 @@ int sol_irange_addition(const struct sol_irange *var0, const struct sol_irange *
  *
  * @return @c 0 on success, error code (always negative) otherwise.
  */
-int sol_irange_division(const struct sol_irange *var0, const struct sol_irange *var1, struct sol_irange *result);
+int sol_irange_div(const struct sol_irange *var0, const struct sol_irange *var1, struct sol_irange *result);
 
 /**
  * @brief Calculates the module of the integer range @c var0 by @c var1
@@ -384,7 +407,7 @@ int sol_irange_division(const struct sol_irange *var0, const struct sol_irange *
  *
  * @return @c 0 on success, error code (always negative) otherwise.
  */
-int sol_irange_modulo(const struct sol_irange *var0, const struct sol_irange *var1, struct sol_irange *result);
+int sol_irange_mod(const struct sol_irange *var0, const struct sol_irange *var1, struct sol_irange *result);
 
 /**
  * @brief Multiplies the integer ranges @c var0 and @c var1 and stores the result in @c result.
@@ -398,7 +421,7 @@ int sol_irange_modulo(const struct sol_irange *var0, const struct sol_irange *va
  *
  * @return @c 0 on success, error code (always negative) otherwise.
  */
-int sol_irange_multiplication(const struct sol_irange *var0, const struct sol_irange *var1, struct sol_irange *result);
+int sol_irange_mul(const struct sol_irange *var0, const struct sol_irange *var1, struct sol_irange *result);
 
 /**
  * @brief Subtracts the integer range @c var1 from @c var0 and stores the result in @c result.
@@ -412,7 +435,7 @@ int sol_irange_multiplication(const struct sol_irange *var0, const struct sol_ir
  *
  * @return @c 0 on success, error code (always negative) otherwise.
  */
-int sol_irange_subtraction(const struct sol_irange *var0, const struct sol_irange *var1, struct sol_irange *result);
+int sol_irange_sub(const struct sol_irange *var0, const struct sol_irange *var1, struct sol_irange *result);
 
 /**
  * @brief Checks the integer ranges @c var0 and @c var1 for equality.
@@ -470,7 +493,7 @@ struct sol_blob_type {
  *
  * The default type uses free() to release the blob's memory
  */
-extern const struct sol_blob_type *SOL_BLOB_TYPE_DEFAULT;
+extern const struct sol_blob_type SOL_BLOB_TYPE_DEFAULT;
 
 /**
  * @brief Blob type object for the @c nofree implementation.
@@ -481,7 +504,15 @@ extern const struct sol_blob_type *SOL_BLOB_TYPE_DEFAULT;
  *
  * @note Blob's struct memory will be freed.
  */
-extern const struct sol_blob_type *SOL_BLOB_TYPE_NOFREE;
+extern const struct sol_blob_type SOL_BLOB_TYPE_NO_FREE_DATA;
+
+/**
+ * @brief Blob type object for the @c nofree implementation.
+ *
+ * The no-free type doesn't free blob's data memory and the blob itself.
+ * Used when creating a blob in the application's stack with constant data.
+ */
+extern const struct sol_blob_type SOL_BLOB_TYPE_NO_FREE;
 
 /**
  * @brief Creates a new blob instance of the given type @c type.
@@ -532,6 +563,65 @@ void sol_blob_unref(struct sol_blob *blob);
  * @param parent New parent
  */
 void sol_blob_set_parent(struct sol_blob *blob, struct sol_blob *parent);
+
+/**
+ * @brief Creates a new blob duplicating target memory,
+ *
+ * Instead creating a blob wrapping any given memory, it duplicates
+ * given memory. Useful, for instance, to create blobs for packet types.
+ *
+ * @param mem memory that blob will duplicate and refers to
+ * @param size size of memory block
+ *
+ * @return new sol_blob on success. @c NULL on failure
+ */
+static inline struct sol_blob *
+sol_blob_new_dup(const void *mem, size_t size)
+{
+    struct sol_blob *blob;
+    void *v;
+
+    if (!mem)
+        return NULL;
+
+    v = malloc(size);
+    if (!v)
+        return NULL;
+
+    memcpy(v, mem, size);
+
+    blob = sol_blob_new(&SOL_BLOB_TYPE_DEFAULT, NULL, v, size);
+    if (!blob)
+        goto fail;
+
+    return blob;
+
+fail:
+    free(v);
+    return NULL;
+}
+
+/**
+ * Helper macro to create a new blob duplicating target memory
+ * calculating target size
+ */
+#define SOL_BLOB_NEW_DUP(mem_) sol_blob_new_dup((&mem_), sizeof(mem_))
+
+/**
+ * @brief Creates a new blob duplicating target NUL terminated string
+ *
+ * @param str string to be duplicated in a blob.
+ *
+ * @return new sol_blob on success. @c NULL on failure
+ */
+static inline struct sol_blob *
+sol_blob_new_dup_str(const char *str)
+{
+    if (!str)
+        return NULL;
+
+    return sol_blob_new_dup(str, strlen(str) + 1);
+}
 
 /**
  * @brief Data type to describe <key, value> pairs of strings.

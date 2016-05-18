@@ -96,17 +96,17 @@ struct sol_pin_mux {
     int (*aio)(const int device, const int pin);
 
     /**
-     * @brief Callback to setup the given pin to operate as GPIO in the given direction (in or out).
+     * @brief Callback to setup the given pin to operate in the given GPIO configuration.
      *
      * Soletta will call this function so the module can execute the instructions
-     * needed to configure @c pin to operate as GPIO in direction @c dir.
+     * needed to configure @c pin to operate as configured by @c config.
      *
      * @param pin the gpio pin number.
-     * @param dir direction (in or out) that the pin should operate.
+     * @param config Desired configuration for the pin.
      *
      * @return @c 0 on success, error code (always negative) otherwise.
      */
-    int (*gpio)(const uint32_t pin, const enum sol_gpio_direction dir);
+    int (*gpio)(const uint32_t pin, const struct sol_gpio_config *config);
 
     /**
      * @brief Callback to setup the pins used of the given i2c bus number to operate in I2C mode.

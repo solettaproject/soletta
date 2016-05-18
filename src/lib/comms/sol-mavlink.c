@@ -54,7 +54,7 @@ SOL_LOG_INTERNAL_DECLARE(_sol_mavlink_log_domain, "mavlink");
 #define TYPE_MODE_MAPPING(_mode_map, _type) \
     { \
         .mapping = (struct sol_mavlink_mode_mapping *)_mode_map, \
-        .len = SOL_UTIL_ARRAY_SIZE(_mode_map), \
+        .len = sol_util_array_size(_mode_map), \
         .type = _type, \
     } \
 
@@ -255,7 +255,7 @@ sol_mavlink_armed_transition(struct sol_mavlink *mavlink, uint8_t base_mode)
     if (mavlink->custom_mode_enabled)
         mask = MAV_MODE_FLAG_CUSTOM_MODE_ENABLED;
 
-    for (i = 0; i < SOL_UTIL_ARRAY_SIZE(armed_transitions); i++) {
+    for (i = 0; i < sol_util_array_size(armed_transitions); i++) {
         uint8_t from, to;
         const struct sol_mavlink_armed_trans *curr = &armed_transitions[i];
 
@@ -685,22 +685,25 @@ sol_mavlink_connect(const char *addr, const struct sol_mavlink_config *config, c
 
     SOL_NULL_CHECK(addr, NULL);
     SOL_NULL_CHECK(config, NULL);
-    SOL_NULL_CHECK(config->handlers, NULL);
 
 #ifndef SOL_NO_API_VERSION
     if (SOL_UNLIKELY(config->api_version !=
         SOL_MAVLINK_CONFIG_API_VERSION)) {
-        SOL_ERR("Unexpected API version (config is %u, expected %u)",
+        SOL_ERR("Unexpected API version (config is %" PRIu16 ", expected %" PRIu16 ")",
             config->api_version, SOL_MAVLINK_CONFIG_API_VERSION);
         return NULL;
     }
 
+    SOL_NULL_CHECK(config->handlers, NULL);
+
     if (SOL_UNLIKELY(config->handlers->api_version !=
         SOL_MAVLINK_HANDLERS_API_VERSION)) {
-        SOL_ERR("Unexpected API version (config is %u, expected %u)",
+        SOL_ERR("Unexpected API version (config is %" PRIu16 ", expected %" PRIu16 ")",
             config->handlers->api_version, SOL_MAVLINK_HANDLERS_API_VERSION);
         return NULL;
     }
+#else
+    SOL_NULL_CHECK(config->handlers, NULL);
 #endif
 
     init = sol_mavlink_parse_addr_protocol(addr, &address, &port);

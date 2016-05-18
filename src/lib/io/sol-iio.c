@@ -82,18 +82,8 @@ struct resolve_name_path_data {
     int id;
 };
 
-struct create_and_resolve_path_data {
-    struct sol_str_slice slice;
-    struct sol_vector commands;
-    struct sol_buffer path;
-    char *addresses;
-    void (*cb)(void *data, int device_id);
-    const void *data;
-    int command_index;
-};
-
 struct resolve_absolute_path_data {
-    char *path;
+    const char *path;
     int id;
 };
 
@@ -132,8 +122,6 @@ struct resolve_absolute_path_data {
 #define REL_PATH_IDX 2
 #define DEV_NUMBER_IDX 3
 #define DEV_NAME_IDX 4
-
-static bool create_or_resolve_device_address_dispatch(void *data);
 
 SOL_ATTR_PRINTF(3, 4)
 static bool
@@ -228,10 +216,10 @@ check_manual_triggering(struct sol_iio_device *device)
     while (success == 0 && res) {
         if (strstartswith(ent->d_name, "trigger")) {
             if (check_trigger_name(ent->d_name, device->trigger_name)) {
-                device->manual_triggering = check_file_existence(
-                    SYSFS_TRIGGER_NAME_PATH, ent->d_name);
                 /* triggers dirs are of the form triggerX, so here we save X */
                 device->trigger_id = atoi(ent->d_name + strlen("trigger"));
+                device->manual_triggering = check_file_existence(
+                    SYSFS_TRIGGER_NOW_BY_ID_PATH, device->trigger_id);
                 result = true;
                 break;
             }
@@ -349,14 +337,14 @@ set_buffer_size(struct sol_iio_device *device, int buffer_size)
     char path[PATH_MAX];
     int r;
 
-    if (craft_filename_path(path, sizeof(path), BUFFER_LENGHT_DEVICE_PATH, device->device_id)) {
+    if (!craft_filename_path(path, sizeof(path), BUFFER_LENGHT_DEVICE_PATH, device->device_id)) {
         SOL_WRN("Could not set IIO device buffer size");
         return;
     }
 
     if ((r = sol_util_write_file(path, "%d", buffer_size)) < 0) {
         SOL_WRN("Could not set IIO device buffer size to %d at '%s': %s",
-            buffer_size, path, sol_util_strerrora(r));
+            buffer_size, path, sol_util_strerrora(-r));
     }
 
     return;
@@ -621,8 +609,8 @@ sol_iio_open(int device_id, const struct sol_iio_config *config)
     SOL_NULL_CHECK(config, NULL);
 #ifndef SOL_NO_API_VERSION
     if (SOL_UNLIKELY(config->api_version != SOL_IIO_CONFIG_API_VERSION)) {
-        SOL_WRN("IIO config version '%u' is unexpected, expected '%u'",
-            config->api_version, SOL_IIO_CONFIG_API_VERSION);
+        SOL_WRN("IIO config version '%" PRIu16 "' is unexpected, expected '%"
+            PRIu16 "'", config->api_version, SOL_IIO_CONFIG_API_VERSION);
         return NULL;
     }
 #endif
@@ -664,7 +652,6 @@ sol_iio_open(int device_id, const struct sol_iio_config *config)
             if (!set_current_trigger(device, config->trigger_name)) {
                 SOL_WRN("Could not set device%d current trigger",
                     device->device_id);
-                goto error;
             }
         }
 
@@ -677,7 +664,7 @@ sol_iio_open(int device_id, const struct sol_iio_config *config)
             set_buffer_size(device, config->buffer_size);
 
         if (!device->manual_triggering) {
-            SOL_WRN("No 'trigger_now' file on device%d current trigger. "
+            SOL_INF("No 'trigger_now' file on device%d current trigger. "
                 "It won't be possible to manually trigger a reading on device",
                 device->device_id);
         }
@@ -873,6 +860,9 @@ sol_iio_close(struct sol_iio_device *device)
     }
     sol_ptr_vector_clear(&device->channels);
 
+    if ((device->buffer_enabled) && (!set_buffer_enabled(device, false)))
+        SOL_WRN("Could not disable buffer for device%d", device->device_id);
+
     if (device->fd_handler) sol_fd_del(device->fd_handler);
     if (device->fd > -1) close(device->fd);
     if (device->name_fd > -1) close(device->name_fd);
@@ -910,7 +900,7 @@ sol_iio_add_channel(struct sol_iio_device *device, const char *name, const struc
 
 #ifndef SOL_NO_API_VERSION
     if (SOL_UNLIKELY(config->api_version != SOL_IIO_CHANNEL_CONFIG_API_VERSION)) {
-        SOL_WRN("IIO channel config version '%u' is unexpected, expected '%u'",
+        SOL_WRN("IIO channel config version '%" PRIu16 "' is unexpected, expected '%" PRIu16 "'",
             config->api_version, SOL_IIO_CHANNEL_CONFIG_API_VERSION);
         return NULL;
     }
@@ -1155,7 +1145,7 @@ sol_iio_device_start_buffer(struct sol_iio_device *device)
     return true;
 }
 
-static bool
+static enum sol_util_iterate_dir_reason
 resolve_name_path_cb(void *data, const char *dir_path, struct dirent *ent)
 {
     struct resolve_name_path_data *result = data;
@@ -1171,14 +1161,14 @@ resolve_name_path_cb(void *data, const char *dir_path, struct dirent *ent)
                 if (streq(name, result->name)) {
                     result->id = atoi(ent->d_name + strlen("iio:device"));
                     free(name);
-                    return true;
+                    return SOL_UTIL_ITERATE_DIR_STOP;
                 }
                 free(name);
             }
         }
     }
 
-    return false;
+    return SOL_UTIL_ITERATE_DIR_CONTINUE;
 }
 
 static int
@@ -1191,7 +1181,7 @@ resolve_name_path(const char *name)
     return data.id;
 }
 
-static bool
+static enum sol_util_iterate_dir_reason
 resolve_absolute_path_cb(void *data, const char *dir_path, struct dirent *ent)
 {
     struct resolve_absolute_path_data *result = data;
@@ -1203,12 +1193,12 @@ resolve_absolute_path_cb(void *data, const char *dir_path, struct dirent *ent)
         if (realpath(path, real_path)) {
             if (strstartswith(real_path, result->path)) {
                 result->id = atoi(ent->d_name + strlen("iio:device"));
-                return true;
+                return SOL_UTIL_ITERATE_DIR_STOP;
             }
         }
     }
 
-    return false;
+    return SOL_UTIL_ITERATE_DIR_CONTINUE;
 }
 
 static int
@@ -1216,10 +1206,22 @@ resolve_absolute_path(const char *address)
 {
     char real_path[PATH_MAX];
     struct resolve_absolute_path_data result = { .id = -1 };
+    struct timespec start = sol_util_timespec_get_current();
 
-    if (realpath(address, real_path)) {
-        result.path = real_path;
-        sol_util_iterate_dir(SYSFS_DEVICES_PATH, resolve_absolute_path_cb, &result);
+    /* Wait up to one second for the file to exist. Useful if we created
+     * via i2c */
+    while (result.id == -1) {
+        struct timespec elapsed, now;
+
+        if (realpath(address, real_path)) {
+            result.path = address;
+            sol_util_iterate_dir(SYSFS_DEVICES_PATH, resolve_absolute_path_cb, &result);
+        }
+
+        now = sol_util_timespec_get_current();
+        sol_util_timespec_sub(&now, &start, &elapsed);
+        if (elapsed.tv_sec > 0)
+            break;
     }
 
     return result.id;
@@ -1286,41 +1288,12 @@ resolve_device_address(const char *address)
     return resolve_name_path(address);
 }
 
-static void
-create_and_resolver_data_del(struct create_and_resolve_path_data *data)
+static char *
+create_device_address(struct sol_str_slice *command)
 {
-    sol_vector_clear(&data->commands);
-    sol_buffer_fini(&data->path);
-    free(data->addresses);
-    free(data);
-}
-
-/* This ifdef is here to avoid warnings by not having I2C support.
- * It'll probably be extended for other supported hardware */
-#ifdef USE_I2C
-static bool
-create_and_resolve_path_timeout_cb(void *data)
-{
-    struct create_and_resolve_path_data *dispatcher_data = data;
-    int r;
-
-    r = resolve_absolute_path((char *)dispatcher_data->path.data);
-    if (r > -1) {
-        dispatcher_data->cb((void *)dispatcher_data->data, r);
-        create_and_resolver_data_del(dispatcher_data);
-    } else
-        create_or_resolve_device_address_dispatch(dispatcher_data);
-
-    return false;
-}
-#endif
-
-static bool
-create_device_address(struct sol_str_slice *command, struct create_and_resolve_path_data *dispatcher_data)
-{
-    char *rel_path = NULL, *dev_number_s = NULL, *dev_name = NULL;
-    bool ret = false;
+    char *rel_path = NULL, *dev_number_s = NULL, *dev_name = NULL, *result = NULL;
     struct sol_vector instructions = SOL_VECTOR_INIT(struct sol_str_slice);
+    struct sol_buffer path = SOL_BUFFER_INIT_EMPTY;
 
     if (strstartswith(command->data, "create,i2c,")) {
 #ifndef USE_I2C
@@ -1356,17 +1329,10 @@ create_device_address(struct sol_str_slice *command, struct create_and_resolve_p
             *(const struct sol_str_slice *)sol_vector_get(&instructions, DEV_NAME_IDX));
         SOL_NULL_CHECK_GOTO(dev_name, end);
 
-        r = sol_i2c_create_device(rel_path, dev_name, dev_number,
-            &dispatcher_data->path);
+        r = sol_i2c_create_device(rel_path, dev_name, dev_number, &path);
 
-        if (r >= 0 || r == -EEXIST) {
-            /* Giving some time to sysfs update. Maybe listen for udev events? */
-            if (sol_timeout_add(1000, create_and_resolve_path_timeout_cb, dispatcher_data)) {
-                ret = true;
-            }
-        } else {
-            goto end;
-        }
+        if (r >= 0 || r == -EEXIST)
+            result = sol_buffer_steal(&path, NULL);
 #endif
     }
 
@@ -1375,73 +1341,50 @@ end:
     free(dev_number_s);
     free(dev_name);
     sol_vector_clear(&instructions);
+    sol_buffer_fini(&path);
 
-    return ret;
+    return result;
 }
 
-static bool
-create_or_resolve_device_address_dispatch(void *data)
+SOL_API int
+sol_iio_address_device(const char *commands)
 {
-    struct create_and_resolve_path_data *dispatcher_data = data;
+    struct sol_vector commands_vector;
     struct sol_str_slice *command;
-    int r = -1;
+    char *command_s;
+    int r = -1, command_index = 0;
+
+    SOL_NULL_CHECK(commands, -EINVAL);
+
+    commands_vector = sol_str_slice_split(sol_str_slice_from_str(commands), " ", 0);
 
     do {
-        command = sol_vector_get(&dispatcher_data->commands, dispatcher_data->command_index++);
+        command = sol_vector_get(&commands_vector, command_index++);
         if (!command) {
             SOL_WRN("Could not create or resolve device address using any of commands");
-            dispatcher_data->cb((void *)dispatcher_data->data, -1);
-            create_and_resolver_data_del(dispatcher_data);
 
-            return false;
+            r = -EINVAL;
+            goto end;
         }
 
         SOL_DBG("IIO device creation/resolving dispatching command: %.*s",
             SOL_STR_SLICE_PRINT(*command));
 
-        if (strstartswith(command->data, "create,")) {
-            if (create_device_address(command, dispatcher_data)) {
-                /* As this is an async call, lets wait it's answer */
-                return false;
-            }
-        } else {
-            char *command_s = sol_str_slice_to_string(*command);
-            if (command_s) {
-                r = resolve_device_address(command_s);
-                if (r > -1) {
-                    dispatcher_data->cb((void *)dispatcher_data->data, r);
-                    create_and_resolver_data_del(dispatcher_data);
-                }
-                free(command_s);
-            }
+        if (strstartswith(command->data, "create,"))
+            command_s = create_device_address(command);
+        else
+            command_s = sol_str_slice_to_string(*command);
+
+        if (command_s) {
+            r = resolve_device_address(command_s);
+            free(command_s);
         }
     } while (r < 0);
 
-    return false;
-}
+end:
+    sol_vector_clear(&commands_vector);
 
-SOL_API bool
-sol_iio_address_device(const char *commands, void (*cb)(void *data, int device_id), const void *data)
-{
-    struct create_and_resolve_path_data *dispatcher_data;
-
-    SOL_NULL_CHECK(commands, false);
-    SOL_NULL_CHECK(cb, false);
-
-    dispatcher_data = calloc(1, sizeof(struct create_and_resolve_path_data));
-    SOL_NULL_CHECK(dispatcher_data, false);
-
-    sol_buffer_init(&dispatcher_data->path);
-    dispatcher_data->cb = cb;
-    dispatcher_data->data = data;
-
-    dispatcher_data->addresses = strdup(commands);
-    dispatcher_data->slice = sol_str_slice_from_str(dispatcher_data->addresses);
-    dispatcher_data->commands = sol_str_slice_split(dispatcher_data->slice, " ", 0);
-
-    sol_idle_add(create_or_resolve_device_address_dispatch, dispatcher_data);
-
-    return true;
+    return r;
 }
 
 SOL_API struct sol_str_slice

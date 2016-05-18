@@ -28,7 +28,6 @@
 
 #include "string-ascii.h"
 #include "string-common.h"
-#include "string-regexp.h"
 #include "string-uuid.h"
 
 struct string_data {

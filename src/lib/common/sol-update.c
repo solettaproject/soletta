@@ -57,8 +57,8 @@ check_module(const char *path, const char *symbol_name, void *symbol)
 
 #ifndef SOL_NO_API_VERSION
     if ((*p_update)->api_version != SOL_UPDATE_API_VERSION) {
-        SOL_WRN("Module [%s] has incorrect api_version: %u expected %u", path,
-            (*p_update)->api_version, SOL_UPDATE_API_VERSION);
+        SOL_WRN("Module [%s] has incorrect api_version: %" PRIu16 " expected %"
+            PRIu16, path, (*p_update)->api_version, SOL_UPDATE_API_VERSION);
         return false;
     }
 #endif
@@ -66,7 +66,7 @@ check_module(const char *path, const char *symbol_name, void *symbol)
     return true;
 }
 
-static bool
+static enum sol_util_iterate_dir_reason
 iterate_dir_cb(void *data, const char *dir_path, struct dirent *ent)
 {
     size_t len;
@@ -78,11 +78,12 @@ iterate_dir_cb(void *data, const char *dir_path, struct dirent *ent)
     if (len > 3) {
         if (streq((ent->d_name + (len - 3)), ".so")) {
             *result = strndup(ent->d_name, len - 3);
-            return true;
+            SOL_NULL_CHECK(*result, -ENOMEM);
+            return SOL_UTIL_ITERATE_DIR_STOP;
         }
     }
 
-    return false;
+    return SOL_UTIL_ITERATE_DIR_CONTINUE;
 }
 
 static char *
@@ -106,8 +107,8 @@ get_first_module_on_dir(const char *dir_name)
         return NULL;
     }
 
-    if (!sol_util_iterate_dir(path, iterate_dir_cb, &result))
-        return NULL;
+    r = sol_util_iterate_dir(path, iterate_dir_cb, &result);
+    SOL_INT_CHECK(r, < 0, NULL);
 
     return result;
 }

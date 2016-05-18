@@ -38,7 +38,7 @@ struct sol_uuid {
     uint8_t bytes[16];
 };
 
-#if defined(HAVE_NEWLOCALE) && defined(HAVE_STRTOD_L)
+#if defined(HAVE_NEWLOCALE) && (defined(HAVE_STRTOD_L) || defined(HAVE_STRFTIME_L))
 static locale_t c_locale;
 static void
 clear_c_locale(void)
@@ -74,7 +74,7 @@ sol_util_memdup(const void *data, size_t len)
 }
 
 SOL_API long int
-sol_util_strtol(const char *nptr, char **endptr, ssize_t len, int base)
+sol_util_strtol_n(const char *nptr, char **endptr, ssize_t len, int base)
 {
     char *tmpbuf, *tmpbuf_endptr;
     long int r;
@@ -93,7 +93,7 @@ sol_util_strtol(const char *nptr, char **endptr, ssize_t len, int base)
 }
 
 SOL_API unsigned long int
-sol_util_strtoul(const char *nptr, char **endptr, ssize_t len, int base)
+sol_util_strtoul_n(const char *nptr, char **endptr, ssize_t len, int base)
 {
     char *tmpbuf, *tmpbuf_endptr;
     unsigned long int r;
@@ -111,7 +111,7 @@ sol_util_strtoul(const char *nptr, char **endptr, ssize_t len, int base)
 }
 
 SOL_API double
-sol_util_strtodn(const char *nptr, char **endptr, ssize_t len, bool use_locale)
+sol_util_strtod_n(const char *nptr, char **endptr, ssize_t len, bool use_locale)
 {
     char *tmpbuf, *tmpbuf_endptr;
     double value;
@@ -304,43 +304,70 @@ uuid_gen(struct sol_uuid *ret)
     return 0;
 }
 
-// 37 = 2 * 16 (chars) + 4 (hyphens) + 1 (\0)
 SOL_API int
-sol_util_uuid_gen(bool upcase,
-    bool with_hyphens,
-    char id[SOL_STATIC_ARRAY_SIZE(37)])
+sol_util_uuid_string_from_bytes(bool uppercase, bool with_hyphens, const uint8_t uuid_bytes[SOL_STATIC_ARRAY_SIZE(16)], struct sol_buffer *uuid_str)
 {
     static struct sol_str_slice hyphen = SOL_STR_SLICE_LITERAL("-");
+    const struct sol_str_slice uuid = SOL_STR_SLICE_STR((char *)uuid_bytes, 16);
     /* hyphens on positions 8, 13, 18, 23 (from 0) */
     static const int hyphens_pos[] = { 8, 13, 18, 23 };
-    struct sol_uuid uuid = { { 0 } };
     unsigned i;
     int r;
 
-    struct sol_buffer buf = { 0 };
+    SOL_NULL_CHECK(uuid_str, -EINVAL);
 
-    sol_buffer_init_flags(&buf, id, 37,
-        SOL_BUFFER_FLAGS_MEMORY_NOT_OWNED | SOL_BUFFER_FLAGS_NO_NUL_BYTE);
+    r = sol_buffer_append_as_base16(uuid_str, uuid, uppercase);
+    SOL_INT_CHECK(r, < 0, r);
+
+    if (with_hyphens) {
+        for (i = 0; i < sol_util_array_size(hyphens_pos); i++) {
+            r = sol_buffer_insert_slice(uuid_str, hyphens_pos[i], hyphen);
+            SOL_INT_CHECK(r, < 0, r);
+        }
+    }
+
+    return 0;
+}
+
+SOL_API int
+sol_util_uuid_bytes_from_string(struct sol_str_slice uuid_str, struct sol_buffer *uuid_bytes)
+{
+    /* hyphens on positions 8, 13, 18, 23 (from 0) */
+    static const int slices[] = { -1, 8, 13, 18, 23, 36 };
+    int r;
+    unsigned i;
+
+    SOL_NULL_CHECK(uuid_bytes, -EINVAL);
+
+    if (!sol_util_uuid_str_is_valid(uuid_str))
+        return -EINVAL;
+
+    if (uuid_str.len == 32)
+        return sol_buffer_append_from_base16(uuid_bytes, uuid_str, SOL_DECODE_BOTH);
+
+    for (i = 1; i < sol_util_array_size(slices); i++) {
+        uuid_str.len = slices[i] - slices[i - 1] - 1;
+        r = sol_buffer_append_from_base16(uuid_bytes, uuid_str, SOL_DECODE_BOTH);
+        SOL_INT_CHECK(r, < 0, r);
+        uuid_str.data += uuid_str.len + 1;
+    }
+
+    return 0;
+}
+
+SOL_API int
+sol_util_uuid_gen(bool uppercase, bool with_hyphens, struct sol_buffer *uuid_buf)
+{
+    int r;
+    struct sol_uuid uuid = { { 0 } };
+
+    SOL_NULL_CHECK(uuid_buf, -EINVAL);
 
     r = uuid_gen(&uuid);
     SOL_INT_CHECK(r, < 0, r);
 
-    for (i = 0; i < SOL_UTIL_ARRAY_SIZE(uuid.bytes); i++) {
-        r = sol_buffer_append_printf(&buf, upcase ? "%02hhX" : "%02hhx",
-            uuid.bytes[i]);
-        SOL_INT_CHECK_GOTO(r, < 0, err);
-    }
-
-    if (with_hyphens) {
-        for (i = 0; i < SOL_UTIL_ARRAY_SIZE(hyphens_pos); i++) {
-            r = sol_buffer_insert_slice(&buf, hyphens_pos[i], hyphen);
-            SOL_INT_CHECK_GOTO(r, < 0, err);
-        }
-    }
-
-err:
-    sol_buffer_fini(&buf);
-    return r;
+    return sol_util_uuid_string_from_bytes(uppercase, with_hyphens, uuid.bytes,
+        uuid_buf);
 }
 
 SOL_API int
@@ -599,7 +626,7 @@ sol_util_base16_decode(void *buf, size_t buflen, const struct sol_str_slice slic
 
     input = slice.data;
     output = buf;
-    a = decode_case == SOL_DECODE_UPERCASE ? 'A' : 'a';
+    a = decode_case == SOL_DECODE_UPPERCASE ? 'A' : 'a';
     f = a + 5;
     A = decode_case == SOL_DECODE_BOTH ? 'A' : a;
     F = A + 5;
@@ -883,20 +910,19 @@ sol_util_uint32_mul(const uint32_t a, const uint32_t b, uint32_t *out)
 }
 
 SOL_API bool
-sol_util_uuid_str_valid(const char *str)
+sol_util_uuid_str_is_valid(const struct sol_str_slice uuid)
 {
-    size_t i, len;
+    size_t i;
 
-    len = strlen(str);
-    if (len == 32) {
-        for (i = 0; i < len; i++) {
-            if (!isxdigit((uint8_t)str[i]))
+    if (uuid.len == 32) {
+        for (i = 0; i < uuid.len; i++) {
+            if (!isxdigit((uint8_t)uuid.data[i]))
                 return false;
         }
-    } else if (len == 36) {
+    } else if (uuid.len == 36) {
         char c;
-        for (i = 0; i < len; i++) {
-            c = str[i];
+        for (i = 0; i < uuid.len; i++) {
+            c = uuid.data[i];
 
             if (i == 8 || i == 13 || i == 18 || i == 23) {
                 if (c != '-')
@@ -1020,12 +1046,10 @@ sol_util_unescape_quotes(const struct sol_str_slice slice,
 
         if (len > 0) {
             sol_buffer_init_flags(buf, txt_start, len,
-                SOL_BUFFER_FLAGS_MEMORY_NOT_OWNED |
-                SOL_BUFFER_FLAGS_NO_NUL_BYTE);
+                SOL_BUFFER_FLAGS_MEMORY_NOT_OWNED);
             buf->used = buf->capacity;
         } else {
-            buf->flags |= SOL_BUFFER_FLAGS_MEMORY_NOT_OWNED |
-                SOL_BUFFER_FLAGS_NO_NUL_BYTE;
+            buf->flags |= SOL_BUFFER_FLAGS_MEMORY_NOT_OWNED;
         }
     } else {
         size_t len = slice.len - (last_append + (((char *)slice.data + slice.len) - txt_end) - 1);
@@ -1041,4 +1065,62 @@ sol_util_unescape_quotes(const struct sol_str_slice slice,
 err_exit:
     sol_buffer_fini(buf);
     return r;
+}
+
+SOL_API bool
+sol_util_double_equal(double var0, double var1)
+{
+    double abs_var0, abs_var1, diff;
+
+    diff = fabs(var0 - var1);
+
+    /* when a or b are close to zero relative error isn't meaningful -
+     * it handles subnormal case */
+    if (fpclassify(var0) == FP_ZERO || fpclassify(var1) == FP_ZERO ||
+        isless(diff, DBL_MIN)) {
+        return isless(diff, (DBL_EPSILON * DBL_MIN));
+    }
+
+    /* use relative error for other cases */
+    abs_var0 = fabs(var0);
+    abs_var1 = fabs(var1);
+
+    return isless(diff / fmin((abs_var0 + abs_var1), DBL_MAX), DBL_EPSILON);
+}
+
+ssize_t
+sol_util_strftime(struct sol_buffer *buf, const char *format,
+    const struct tm *timeptr, bool use_locale)
+{
+    size_t used;
+
+    SOL_NULL_CHECK(buf, -EINVAL);
+    SOL_NULL_CHECK(format, -EINVAL);
+    SOL_NULL_CHECK(timeptr, -EINVAL);
+
+#if defined(HAVE_NEWLOCALE) && defined(HAVE_STRFTIME_L)
+    if (!use_locale) {
+        if (!init_c_locale()) {
+            int r = -errno;
+            SOL_WRN("Could not init the 'C' locale");
+            return r;
+        }
+
+        used = strftime_l(sol_buffer_at_end(buf),
+            buf->capacity - buf->used, format, timeptr, c_locale);
+        buf->used += used;
+        return used;
+    }
+#endif
+
+    /**
+       Even with SOL_ATTR_STRFTIME() GCC still warns that the format parameter was not checked.
+       This is a known GCC bug: https://gcc.gnu.org/bugzilla/show_bug.cgi?id=39438
+       This cast was suggested in order to make the compiler happy.
+     */
+    used = ((size_t (*)(char *, size_t, const char *, const struct tm *))strftime)
+            (sol_buffer_at_end(buf),
+            buf->capacity - buf->used, format, timeptr);
+    buf->used += used;
+    return used;
 }

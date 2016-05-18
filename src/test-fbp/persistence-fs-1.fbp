@@ -17,10 +17,10 @@
 # This test will write to following files:
 # int, int_only_val, irange, byte, boolean, string, double, double_only_val,
 # drange, int_def, irange_def, byte_def, boolean_def, string_def, double_def,
-# drange_def
-# Those files need to not exist (or have size 0) prior running this test 
+# drange_def rgb dir_vector
+# Those files need to not exist (or have size 0) prior running this test
 
-## TEST-PRECONDITION rm -f int int_only_val irange byte boolean string double double_only_val drange int_def irange_def byte_def boolean_def string_def double_def drange_def
+## TEST-PRECONDITION rm -f int int_only_val irange byte boolean string double double_only_val drange int_def irange_def byte_def boolean_def string_def double_def drange_def rgb dir_vector
 ## TEST-SKIP-COMPILE This test uses some files, but path resolution is not decided yet
 
 int(constant/int:value=-12)
@@ -31,6 +31,8 @@ false(constant/boolean:value=false)
 string(constant/string:value="string")
 double(constant/float:value=2.568)
 drange(constant/float:value=5.5,value_spec=-40.0|40.0|0.4)
+rgb(constant/rgb:value=255|123|55)
+dir_vector(constant/direction-vector:value=23.4|100.2|-23.2)
 
 validator_int(test/int-validator:sequence="0 -12")
 validator_int_def(test/int-validator:sequence="400000000 -12")
@@ -44,6 +46,8 @@ validator_string(test/string-validator:sequence="|string")
 validator_string_def(test/string-validator:sequence="default|string")
 validator_double(test/float-validator:sequence="0 2.568")
 validator_double_def(test/float-validator:sequence="-179769313486231570814527423731704356798070567525844996598917476803157260780028538760589558632766878171540458953514382464234321326889464182768467546703537516986049910576551282076245490090389328944075868508455133942304583236903222948165808559332123348274797826204144723168738177180919299881250404026184124858368.000000 2.568")
+validator_rgb(test/int-validator:sequence="0 0 0 255 123 55")
+validator_dir_vector(test/float-validator:sequence="0 0 0 23.4 100.2 -23.2")
 
 int_map(int/map:output_range=min:0|max:100|step:1)
 int_def_map(int/map:output_range=min:0|max:100|step:1)
@@ -70,6 +74,18 @@ validator_drange(test/float-validator:sequence="0.0 5.5")
 validator_drange_map(test/float-validator:sequence="50.0 56.0")
 validator_drange_def(test/float-validator:sequence="-4.5 5.5")
 validator_drange_def_map(test/float-validator:sequence="5.0 56.0")
+
+persist_dir_vector(persistence/direction-vector:storage="fs", name="dir_vector")
+dir_vector OUT -> IN persist_dir_vector OUT -> IN dir_vector_to_float(converter/direction-vector-to-float)
+dir_vector_to_float X -> IN validator_dir_vector OUT -> RESULT _(test/result)
+dir_vector_to_float Y -> IN validator_dir_vector
+dir_vector_to_float Z -> IN validator_dir_vector
+
+persist_rgb(persistence/rgb:storage="fs", name="rgb")
+rgb OUT -> IN persist_rgb OUT -> IN rgb_to_int(converter/rgb-to-int)
+rgb_to_int RED -> IN validator_rgb OUT -> RESULT _(test/result)
+rgb_to_int GREEN -> IN validator_rgb
+rgb_to_int BLUE -> IN validator_rgb
 
 persist_int(persistence/int:storage="fs",name="int")
 int OUT -> IN persist_int OUT -> IN validator_int OUT -> RESULT _(test/result)

@@ -297,7 +297,7 @@ to_c_symbol(const char *str, struct sol_buffer *buf)
 
     if (buf->used == 0) {
         sol_buffer_init_flags(buf, (char *)str, p - str,
-            SOL_BUFFER_FLAGS_MEMORY_NOT_OWNED);
+            SOL_BUFFER_FLAGS_MEMORY_NOT_OWNED | SOL_BUFFER_FLAGS_NO_NUL_BYTE);
         buf->used = buf->capacity;
     } else if (start < p) {
         struct sol_str_slice slice = {
@@ -1426,12 +1426,12 @@ generate_memory_map_struct(const struct sol_ptr_vector *maps, int *elements)
             "};\n");
 
         out("\nstatic const struct sol_memmap_map _memmap%d = {\n"
-            "   .api_version = %u,\n"
+            "   .version = %u,\n"
             "   .path = \"%s\",\n"
             "   .timeout = %u,\n"
             "   .entries = _memmap%d_entries\n"
             "};\n",
-            i, map->api_version, map->path, map->timeout, i);
+            i, map->version, map->path, map->timeout, i);
     }
 
     *elements = i;
@@ -1655,15 +1655,15 @@ generate(struct sol_vector *fbp_data_vector)
         "static bool\n"
         "initialize_types(void)\n"
         "{\n"
-        "    const struct sol_flow_node_type *t;\n"
+        "    const struct sol_flow_node_type **t;\n"
         "    int i = 0;\n\n");
     SOL_VECTOR_FOREACH_IDX (&ctx->types_to_initialize, type, i) {
         out(
             "    if (sol_flow_get_node_type(\"%.*s\", %.*s, &t) < 0)\n"
             "        return false;\n"
-            "    if (t->init_type)\n"
-            "        t->init_type();\n"
-            "    external_types[i++] = t;\n",
+            "    if ((*t)->init_type)\n"
+            "        (*t)->init_type();\n"
+            "    external_types[i++] = *t;\n",
             SOL_STR_SLICE_PRINT(type->module),
             SOL_STR_SLICE_PRINT(type->symbol));
     }
@@ -2203,8 +2203,11 @@ resolve_node(struct fbp_data *data, struct type_store *common_store)
 
     SOL_VECTOR_FOREACH_IDX (&data->graph.nodes, n, i) {
         n->user_data = get_node_data(common_store, data->store, n, data->filename);
-        if (!n->user_data)
+        if (!n->user_data) {
+            SOL_ERR("Failed to resolve node %.*s",
+                SOL_STR_SLICE_PRINT(n->name));
             return false;
+        }
         SOL_DBG("Node %.*s resolved", SOL_STR_SLICE_PRINT(n->name));
     }
 
@@ -2224,19 +2227,17 @@ convert_metatype_options(struct sol_vector *metatype_options, struct sol_vector 
 
         o->name = opt->name;
         o->data_type = opt->data_type;
-
-        sol_vector_del(metatype_options, i);
     }
 
     sol_vector_clear(metatype_options);
     return 0;
 
 err:
-    SOL_VECTOR_FOREACH_IDX (options, o, i) {
+    SOL_VECTOR_FOREACH_IDX (metatype_options, o, i) {
         free(o->name);
         free(o->data_type);
     }
-    sol_vector_clear(metatype_options);
+    sol_vector_clear(options);
     return -ENOMEM;
 }
 
@@ -2478,10 +2479,8 @@ create_fbp_data(struct sol_vector *fbp_data_vector, struct sol_ptr_vector *file_
         }
     }
 
-    if (!resolve_node(data, common_store)) {
-        SOL_ERR("Failed to resolve node type.");
+    if (!resolve_node(data, common_store))
         return NULL;
-    }
 
     return data;
 }

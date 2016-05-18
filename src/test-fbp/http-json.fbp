@@ -1,0 +1,95 @@
+# This file is part of the Soletta Project
+#
+# Copyright (C) 2015 Intel Corporation. All rights reserved.
+#
+# Licensed under the Apache License, Version 2.0 (the "License");
+# you may not use this file except in compliance with the License.
+# You may obtain a copy of the License at
+#
+#     http://www.apache.org/licenses/LICENSE-2.0
+#
+# Unless required by applicable law or agreed to in writing, software
+# distributed under the License is distributed on an "AS IS" BASIS,
+# WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+# See the License for the specific language governing permissions and
+# limitations under the License.
+
+server_get(http-server/json:port=8080, path="/get")
+client_get(http-client/json:url="http://localhost:8080/get")
+server_post(http-server/json:port=8080, path="/post")
+client_post(http-client/json:url="http://localhost:8080/post")
+get_step(int/accumulator)
+post_step(int/accumulator)
+
+#Values for HTTP GET
+_(constant/string:value="[1, \"go\", true, 2.3]") OUT -> IN _(converter/string-to-json-array) OUT -> ARRAY server_get
+_(constant/string:value="Just A String") OUT -> IN[1] string_switcher(switcher/string:keep_state=true) OUT[0] -> STRING server_get
+get_step OUT -> IN_PORT string_switcher
+_(constant/empty) OUT -> IN[2] empty_switcher(switcher/empty:keep_state=true) OUT[0] -> NULL server_get
+get_step OUT -> IN_PORT empty_switcher
+_(constant/string:value="{\"key\":\"value\", \"key2\": 23}") OUT -> IN[3] object_switcher(switcher/string:keep_state=true) OUT[0] -> IN _(converter/string-to-json-object) OUT -> OBJECT server_get
+get_step OUT -> IN_PORT object_switcher
+_(constant/float:value=56.9) OUT -> IN[4] float_switcher(switcher/float:keep_state=true) OUT[0] -> FLOAT server_get
+get_step OUT -> IN_PORT float_switcher
+_(constant/int:value=100) OUT -> IN[5] int_switcher(switcher/int:keep_state=true) OUT[0] -> INT server_get
+get_step OUT -> IN_PORT int_switcher
+
+#Values for HTTP POST
+_(constant/string:value="[\"O Hai!\"]") OUT -> IN[0] post_array_switcher(switcher/string:keep_state=true) OUT[0] -> IN _(converter/string-to-json-array) OUT -> POST_ARRAY client_post
+post_step OUT -> IN_PORT post_array_switcher
+_(constant/string:value="Just Anoter String") OUT -> IN[1] post_string_switcher(switcher/string:keep_state=true) OUT[0] -> POST_STRING client_post
+post_step OUT -> IN_PORT post_string_switcher
+_(constant/empty) OUT -> IN[2] post_empty_switcher(switcher/empty:keep_state=true) OUT[0] -> POST_NULL client_post
+post_step OUT -> IN_PORT post_empty_switcher
+_(constant/string:value="{\"32\":null}") OUT -> IN[3] post_object_switcher(switcher/string:keep_state=true) OUT[0] -> IN _(converter/string-to-json-object) OUT -> POST_OBJECT client_post
+post_step OUT -> IN_PORT post_object_switcher
+_(constant/float:value=45.2) OUT -> IN[4] post_float_switcher(switcher/float:keep_state=true) OUT[0] -> POST_FLOAT client_post
+post_step OUT -> IN_PORT post_float_switcher
+_(constant/int:value=200) OUT -> IN[5] post_int_switcher(switcher/int:keep_state=true) OUT[0] -> POST_INT client_post
+post_step OUT -> IN_PORT post_int_switcher
+
+client_get ARRAY -> INC get_step
+client_get OBJECT -> INC get_step
+client_get INT -> INC get_step
+client_get FLOAT -> INC get_step
+client_get STRING -> INC get_step
+client_get NULL -> INC get_step
+
+server_post ARRAY -> INC post_step
+server_post OBJECT -> INC post_step
+server_post INT -> INC post_step
+server_post FLOAT -> INC post_step
+server_post STRING -> INC post_step
+server_post NULL -> INC post_step
+
+#Client_Get tests
+client_get INT -> IN _(test/int-validator:sequence="56 100") OUT -> RESULT _(test/result:timeout=6000)
+client_get FLOAT -> IN _(test/float-validator:sequence="56.9 100.0") OUT -> RESULT _(test/result:timeout=6000)
+client_get STRING -> IN _(test/string-validator:sequence="Just A String") OUT -> RESULT _(test/result:timeout=6000)
+client_get OBJECT -> IN _(converter/json-object-to-blob) OUT -> IN _(converter/blob-to-string) OUT -> IN _(test/string-validator:sequence="{\"key\":\"value\", \"key2\": 23}") OUT -> RESULT _(test/result:timeout=6000)
+client_get ARRAY -> IN _(converter/json-array-to-blob) OUT -> IN _(converter/blob-to-string) OUT -> IN _(test/string-validator:sequence="[1, \"go\", true, 2.3]") OUT -> RESULT _(test/result:timeout=6000)
+client_get NULL -> IN _(converter/empty-to-boolean:output_value=true) OUT -> RESULT _(test/result:timeout=6000)
+
+client_post INT -> IN _(test/int-validator:sequence="45 200") OUT -> RESULT _(test/result:timeout=6000)
+client_post FLOAT -> IN _(test/float-validator:sequence="45.2 200.0") OUT -> RESULT _(test/result:timeout=6000)
+client_post STRING -> IN _(test/string-validator:sequence="Just Anoter String") OUT -> RESULT _(test/result:timeout=6000)
+client_post OBJECT -> IN _(converter/json-object-to-blob) OUT -> IN _(converter/blob-to-string) OUT -> IN _(test/string-validator:sequence="{\"32\":null}") OUT -> RESULT _(test/result:timeout=6000)
+client_post ARRAY -> IN _(converter/json-array-to-blob) OUT -> IN _(converter/blob-to-string) OUT -> IN _(test/string-validator:sequence="[\"O Hai!\"]") OUT -> RESULT _(test/result:timeout=6000)
+client_post NULL -> IN _(converter/empty-to-boolean:output_value=true) OUT -> RESULT _(test/result:timeout=6000)
+
+#Server tests
+server_get INT -> IN _(test/int-validator:sequence="56 100") OUT -> RESULT _(test/result:timeout=6000)
+server_get FLOAT -> IN _(test/float-validator:sequence="56.9 100.0") OUT -> RESULT _(test/result:timeout=6000)
+server_get STRING -> IN _(test/string-validator:sequence="Just A String") OUT -> RESULT _(test/result:timeout=6000)
+server_get OBJECT -> IN _(converter/json-object-to-blob) OUT -> IN _(converter/blob-to-string) OUT -> IN _(test/string-validator:sequence="{\"key\":\"value\", \"key2\": 23}") OUT -> RESULT _(test/result:timeout=6000)
+server_get ARRAY -> IN _(converter/json-array-to-blob) OUT -> IN _(converter/blob-to-string) OUT -> IN _(test/string-validator:sequence="[1, \"go\", true, 2.3]") OUT -> RESULT _(test/result:timeout=6000)
+server_get NULL -> IN _(converter/empty-to-boolean:output_value=true) OUT -> RESULT _(test/result:timeout=6000)
+
+server_post INT -> IN _(test/int-validator:sequence="45 200") OUT -> RESULT _(test/result:timeout=6000)
+server_post FLOAT -> IN _(test/float-validator:sequence="45.2 200.0") OUT -> RESULT _(test/result:timeout=6000)
+server_post STRING -> IN _(test/string-validator:sequence="Just Anoter String") OUT -> RESULT _(test/result:timeout=6000)
+server_post OBJECT -> IN _(converter/json-object-to-blob) OUT -> IN _(converter/blob-to-string) OUT -> IN _(test/string-validator:sequence="{\"32\":null}") OUT -> RESULT _(test/result:timeout=6000)
+server_post ARRAY -> IN _(converter/json-array-to-blob) OUT -> IN _(converter/blob-to-string) OUT -> IN _(test/string-validator:sequence="[\"O Hai!\"]") OUT -> RESULT _(test/result:timeout=6000)
+server_post NULL -> IN _(converter/empty-to-boolean:output_value=true) OUT -> RESULT _(test/result:timeout=6000)
+
+_(constant/empty) OUT -> GET client_get

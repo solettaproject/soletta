@@ -18,7 +18,7 @@ constant-server(constant/int:value=1,value_spec=min:0|max:100|step:1)
 response-count(int/accumulator:setup_value=0|2)
 constant-client(converter/empty-to-int:output_value=5)
 string(constant/string:value="1")
-json-str(constant/string:value="{\"/test\":{\"value\":1,\"min\":0,\"max\":100,\"step\":1}}")
+json-str(constant/string:value="{\"value\":1,\"min\":0,\"max\":100,\"step\":1}")
 
 json-blob(converter/json-object-to-blob)
 blob-str(converter/blob-to-string)
@@ -26,9 +26,9 @@ blob-to-str(converter/blob-to-string)
 
 server(http-server/int:path=/test,port=8080)
 
-get-blob(http-client/get-blob:url="http://localhost:8080/test")
-get-string(http-client/get-string:url="http://localhost:8080/test")
-get-json(http-client/get-json:url="http://localhost:8080/test")
+get-blob(http-client/blob:url="http://localhost:8080/test")
+get-string(http-client/string:url="http://localhost:8080/test", accept="text/plain")
+get-json(http-client/json:url="http://localhost:8080/test")
 post(http-client/int:url="http://localhost:8080/test")
 
 server-validator(test/int-validator:sequence="1 5")
@@ -59,7 +59,7 @@ get-json OBJECT -> INC response-count
 response-count OVERFLOW -> IN constant-client
 constant-client OUT -> POST post
 
-server-validator OUT -> RESULT test_server_output(test/result)
-string-compare EQUAL -> RESULT test_string_output(test/result)
-blob-compare EQUAL -> RESULT test_blob_output(test/result)
-json-compare EQUAL -> RESULT test_json_output(test/result)
+server-validator OUT -> RESULT test_server_output(test/result:timeout=6000)
+string-compare EQUAL -> RESULT test_string_output(test/result:timeout=6000)
+blob-compare EQUAL -> RESULT test_blob_output(test/result:timeout=6000)
+json-compare EQUAL -> RESULT test_json_output(test/result:timeout=6000)

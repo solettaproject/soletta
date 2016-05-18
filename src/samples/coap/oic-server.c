@@ -53,7 +53,7 @@ get_scrolllock_led(void)
     return value & LED_SCR;
 }
 
-static int
+static bool
 set_scrolllock_led(bool on)
 {
     char old;
@@ -61,64 +61,81 @@ set_scrolllock_led(bool on)
     if (console_fd < 0) {
         printf("setting LED to %s\n", on ? "true" : "false");
         led_state = on;
-        return 0;
+        return true;
     }
 
     if (ioctl(console_fd, KDGETLED, (char *)&old)) {
         perror("Could not get led state");
-        return -1;
+        return false;
     }
 
     if (ioctl(console_fd, KDSETLED, on ? (old | LED_SCR) : (old & ~LED_SCR))) {
         perror("Could not set led state");
-        return -1;
+        return false;
     }
 
-    return 0;
+    return true;
 }
 
-static sol_coap_responsecode_t
-user_handle_get(const struct sol_network_link_addr *cliaddr, const void *data,
-    const struct sol_oic_map_reader *input, struct sol_oic_map_writer *output)
+static int
+user_handle_get(void *data, struct sol_oic_request *request)
 {
-    bool r;
+    int r;
     struct sol_oic_repr_field field;
+    struct sol_oic_response *response = NULL;
+    struct sol_oic_map_writer *output;
 
+    response = sol_oic_server_response_new(request);
+    SOL_NULL_CHECK_GOTO(response, error);
+    output = sol_oic_server_response_get_writer(response);
     field = SOL_OIC_REPR_BOOLEAN("state", get_scrolllock_led());
     r = sol_oic_map_append(output, &field);
-    SOL_EXP_CHECK(r == false, SOL_COAP_RSPCODE_INTERNAL_ERROR);
+    SOL_INT_CHECK_GOTO(r, < 0, error);
 
     field = SOL_OIC_REPR_INT("power", 13);
     r = sol_oic_map_append(output, &field);
-    SOL_EXP_CHECK(r == false, SOL_COAP_RSPCODE_INTERNAL_ERROR);
+    SOL_INT_CHECK_GOTO(r, < 0, error);
 
-    return SOL_COAP_RSPCODE_CONTENT;
+    return sol_oic_server_send_response(request, response,
+        SOL_COAP_RESPONSE_CODE_CONTENT);
+
+error:
+    if (response)
+        sol_oic_server_response_free(response);
+    return sol_oic_server_send_response(request, NULL,
+        SOL_COAP_RESPONSE_CODE_INTERNAL_ERROR);
 }
 
-static sol_coap_responsecode_t
-user_handle_put(const struct sol_network_link_addr *cliaddr, const void *data,
-    const struct sol_oic_map_reader *input, struct sol_oic_map_writer *output)
+static int
+user_handle_put(void *data, struct sol_oic_request *request)
 {
-    enum sol_oic_map_loop_reason reason;
+    enum sol_coap_response_code code = SOL_COAP_RESPONSE_CODE_BAD_REQUEST;
+    enum sol_oic_map_loop_status reason;
     struct sol_oic_repr_field field;
     struct sol_oic_map_reader iter;
+    struct sol_oic_map_reader *input;
 
+    input = sol_oic_server_request_get_reader(request);
     SOL_OIC_MAP_LOOP(input, &field, &iter, reason) {
         if (!strcmp(field.key, "state") && field.type == SOL_OIC_REPR_TYPE_BOOLEAN) {
             if (set_scrolllock_led(field.v_boolean))
-                return SOL_COAP_RSPCODE_OK;
+                code = SOL_COAP_RESPONSE_CODE_OK;
+            else
+                code = SOL_COAP_RESPONSE_CODE_INTERNAL_ERROR;
 
-            return SOL_COAP_RSPCODE_INTERNAL_ERROR;
+            sol_oic_repr_field_clear(&field);
+            goto end;
         }
     }
 
-    return SOL_COAP_RSPCODE_BAD_REQUEST;
+end:
+    return sol_oic_server_send_response(request, NULL, code);
 }
 
 static struct sol_oic_server_resource *
 register_light_resource_type(
-    sol_coap_responsecode_t (*handle_get)(const struct sol_network_link_addr *cliaddr, const void *data, const struct sol_oic_map_reader *input, struct sol_oic_map_writer *output),
-    sol_coap_responsecode_t (*handle_put)(const struct sol_network_link_addr *cliaddr, const void *data, const struct sol_oic_map_reader *input, struct sol_oic_map_writer *output),
+    int (*handle_get)(void *data, struct sol_oic_request *request),
+    int (*handle_put)(void *data, struct sol_oic_request *request),
     const char *resource_type)
 {
     /* This function will be auto-generated from the RAML definitions. */
@@ -135,7 +152,7 @@ register_light_resource_type(
         }
     };
 
-    return sol_oic_server_add_resource(&rt, NULL,
+    return sol_oic_server_register_resource(&rt, NULL,
         SOL_OIC_FLAG_DISCOVERABLE | SOL_OIC_FLAG_OBSERVABLE | SOL_OIC_FLAG_ACTIVE);
 }
 
@@ -172,7 +189,7 @@ main(int argc, char *argv[])
 
     sol_run();
 
-    sol_oic_server_del_resource(res);
+    sol_oic_server_unregister_resource(res);
 
     if (console_fd >= 0 && ioctl(console_fd, KDSETLED, old_led_state)) {
         SOL_ERR("Could not return the leds to the old state");

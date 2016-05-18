@@ -35,6 +35,7 @@
 struct network_data {
     struct sol_flow_node *node;
     bool connected;
+    bool regex_initialized;
 
     /*
      * Options to match the link
@@ -44,16 +45,24 @@ struct network_data {
 };
 
 static bool
-_compile_regex(regex_t *r, const char *text)
+_compile_regex(struct network_data *mdata, const char *text)
 {
     char error_message[256];
-    int status = regcomp(r, text, REG_EXTENDED | REG_NEWLINE);
+    int status;
 
-    if (!status)
+    if (mdata->regex_initialized)
+        regfree(&mdata->regex);
+
+    status = regcomp(&mdata->regex, text, REG_EXTENDED | REG_NEWLINE);
+
+    if (!status) {
+        mdata->regex_initialized = true;
         return true;
+    }
 
-    regerror(status, r, error_message, sizeof(error_message));
+    regerror(status, &mdata->regex, error_message, sizeof(error_message));
     SOL_WRN("Regex error compiling '%s': %s", text, error_message);
+    mdata->regex_initialized = false;
 
     return false;
 }
@@ -67,7 +76,8 @@ _match_link(const struct network_data *mdata, const struct sol_network_link *lin
 
     if (!name)
         return false;
-    if (!regexec(&mdata->regex, p, 1, &m, 0)) {
+
+    if (mdata->regex_initialized && !regexec(&mdata->regex, p, 1, &m, 0)) {
         free(name);
         return true;
     }
@@ -132,28 +142,18 @@ _on_network_event(void *data, const struct sol_network_link *link, enum sol_netw
 }
 
 static int
-network_open(struct sol_flow_node *node, void *data, const struct sol_flow_node_options *options)
+_setup_links(struct network_data *mdata, const char *addr)
 {
-    struct network_data *mdata = data;
     const struct sol_vector *links;
     struct sol_network_link *itr;
     uint16_t idx;
-    const struct sol_flow_node_type_network_boolean_options *opts =
-        (const struct sol_flow_node_type_network_boolean_options *)options;
 
-    SOL_FLOW_NODE_OPTIONS_SUB_API_CHECK(options,
-        SOL_FLOW_NODE_TYPE_NETWORK_BOOLEAN_OPTIONS_API_VERSION, -EINVAL);
-
-    SOL_NULL_CHECK(options, -EINVAL);
-
-    if (!_compile_regex(&mdata->regex, opts->address))
+    if (!_compile_regex(mdata, addr))
         return -EINVAL;
 
-    sol_ptr_vector_init(&mdata->links);
-    if (!sol_network_subscribe_events(_on_network_event, mdata))
-        goto err_net;
-
     links = sol_network_get_available_links();
+
+    sol_ptr_vector_clear(&mdata->links);
 
     if (links) {
         SOL_VECTOR_FOREACH_IDX (links, itr, idx) {
@@ -170,11 +170,7 @@ network_open(struct sol_flow_node *node, void *data, const struct sol_flow_node_
         }
     }
 
-    mdata->node = node;
-
-    return sol_flow_send_boolean_packet(node,
-        SOL_FLOW_NODE_TYPE_NETWORK_BOOLEAN__OUT__OUT,
-        _check_connected(&mdata->links));
+    return 0;
 
 err_net:
     SOL_WRN("Failed to subscribe to network events");
@@ -183,14 +179,61 @@ err_net:
     return -EINVAL;
 }
 
+static int
+network_open(struct sol_flow_node *node, void *data, const struct sol_flow_node_options *options)
+{
+    struct network_data *mdata = data;
+    int r;
+    const struct sol_flow_node_type_network_boolean_options *opts =
+        (const struct sol_flow_node_type_network_boolean_options *)options;
+
+    SOL_FLOW_NODE_OPTIONS_SUB_API_CHECK(options,
+        SOL_FLOW_NODE_TYPE_NETWORK_BOOLEAN_OPTIONS_API_VERSION, -EINVAL);
+
+    if (!sol_network_subscribe_events(_on_network_event, mdata))
+        return -EINVAL;
+
+    sol_ptr_vector_init(&mdata->links);
+    mdata->node = node;
+
+    if (!opts->address)
+        return 0;
+
+    r = _setup_links(mdata, opts->address);
+    SOL_INT_CHECK_GOTO(r, < 0, err_exit);
+
+    return sol_flow_send_boolean_packet(node,
+        SOL_FLOW_NODE_TYPE_NETWORK_BOOLEAN__OUT__OUT,
+        _check_connected(&mdata->links));
+
+err_exit:
+    sol_network_unsubscribe_events(_on_network_event, mdata);
+    return r;
+}
+
 static void
 network_close(struct sol_flow_node *node, void *data)
 {
     struct network_data *mdata = data;
 
-    regfree(&mdata->regex);
+    if (mdata->regex_initialized)
+        regfree(&mdata->regex);
     sol_ptr_vector_clear(&mdata->links);
     sol_network_unsubscribe_events(_on_network_event, mdata);
+}
+
+static int
+network_address_process(struct sol_flow_node *node, void *data,
+    uint16_t port, uint16_t conn_id, const struct sol_flow_packet *packet)
+{
+    struct network_data *mdata = data;
+    const char *reg;
+    int r;
+
+    r = sol_flow_packet_get_string(packet, &reg);
+    SOL_INT_CHECK(r, < 0, r);
+
+    return _setup_links(mdata, reg);
 }
 
 

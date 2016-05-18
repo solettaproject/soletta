@@ -55,17 +55,17 @@
 
 /* macro to check if option's sub_api is the one we expect */
 #ifndef SOL_NO_API_VERSION
-#define SOL_FLOW_NODE_OPTIONS_SUB_API_CHECK(options, expected, ...)      \
-    do {                                                                \
-        SOL_NULL_CHECK(options, __VA_ARGS__);                            \
+#define SOL_FLOW_NODE_OPTIONS_SUB_API_CHECK(options, expected, ...) \
+    do { \
+        SOL_NULL_CHECK(options, __VA_ARGS__); \
         if (((const struct sol_flow_node_options *)options)->sub_api != (expected)) { \
-            SOL_WRN("" # options "(%p)->sub_api(%hu) != "                \
-                "" # expected "(%hu)",                               \
-                (options),                                           \
+            SOL_WRN("" # options "(%p)->sub_api(%" PRIu16 ") != " \
+                "" # expected "(%" PRIu16 ")", \
+                (options), \
                 ((const struct sol_flow_node_options *)options)->sub_api, \
-                (expected));                                         \
-            return __VA_ARGS__;                                         \
-        }                                                               \
+                (expected)); \
+            return __VA_ARGS__; \
+        } \
     } while (0)
 #else
 #define SOL_FLOW_NODE_OPTIONS_SUB_API_CHECK(options, expected, ...)

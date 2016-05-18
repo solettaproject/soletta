@@ -21,7 +21,7 @@ if test "x${V}x" != "xx"; then
 fi
 
 SOLETTA_SEARCH_PATHS=$(node -p '
-	( "'"$(echo "$@" | sed 's/"/\\"/g')"'"
+	( "'"$(echo "${SOLETTA_CFLAGS}" | sed 's/"/\\"/g')"'"
 		.match( /-I\s*\S+/g ) || [] )
 		.map( function( item ) {
 			return item.replace( /-I\s*/, "" );
@@ -33,15 +33,9 @@ cat bindings/nodejs/generated/main.cc.prologue > bindings/nodejs/generated/main.
 cat bindings/nodejs/generated/main.h.prologue > bindings/nodejs/generated/main.h || exit 1
 
 # Add constants and enums from selected files
-FILES='
-sol-platform.h
-sol-network.h
-sol-oic-client.h
-sol-oic-common.h
-sol-coap.h
-'
+HEADER_FILES_TO_EXAMINE="$(cat bindings/nodejs/generated/header-files-list)"
 
-for file in $FILES; do
+for file in ${HEADER_FILES_TO_EXAMINE}; do
 	if test "x${file}x" = "xx"; then
 		continue
 	fi
@@ -56,8 +50,14 @@ done
 echo "" >> "bindings/nodejs/generated/main.h"
 
 # Add all the bound functions
-find bindings/nodejs/src -type f | while read filename; do
-	cat "${filename}" | grep '^NAN_METHOD' | while read method; do
+node -e '
+	JSON.parse( require( "fs" )
+		.readFileSync( "bindings/nodejs/generated/nodejs-bindings-sources.gyp" ) )
+			.sources.forEach( function( oneFile ) {
+		console.log( oneFile );
+	} );
+' | while read filename; do
+	cat "bindings/nodejs/generated/${filename}" | grep '^NAN_METHOD' | while read method; do
 		echo "${method}" | sed 's/).*$/);/' >> bindings/nodejs/generated/main.h
 		echo "${method}" | sed -r 's/^\s*NAN_METHOD\s*\(\s*bind_([^)]*).*$/  SET_FUNCTION(target, \1);/' >> bindings/nodejs/generated/main.cc
 	done

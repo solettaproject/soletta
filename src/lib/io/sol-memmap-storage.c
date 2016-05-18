@@ -20,7 +20,6 @@
 
 #include <errno.h>
 #include <fcntl.h>
-#include <sched.h>
 #include <stdio.h>
 #include <sys/stat.h>
 #include <unistd.h>
@@ -191,7 +190,7 @@ sol_memmap_write_raw_do(const char *path, const char *name, const struct sol_mem
         value |= (old_value & ~mask);
         fwrite(&value, entry->size, 1, file);
     } else {
-        fwrite(blob->mem, sol_min(entry->size, blob->size), 1, file);
+        fwrite(blob->mem, sol_util_min(entry->size, blob->size), 1, file);
     }
 
     if (ferror(file)) {
@@ -246,13 +245,11 @@ check_version(struct map_internal *map_internal)
     if (map_internal->checked)
         return true;
 
-#ifndef SOL_NO_API_VERSION
-    if (!map_internal->map->api_version || map_internal->map->api_version == UINT16_MAX) {
-        SOL_WRN("Invalid memory_map_version. Should be between 1 and %" PRIu16 ". Found %" PRIu16,
-            UINT16_MAX, map_internal->map->api_version);
+    if (!map_internal->map->version || map_internal->map->version == UINT8_MAX) {
+        SOL_WRN("Invalid memory_map_version. Should be between 1 and %" PRIu8 ". Found %" PRIu8,
+            UINT8_MAX, map_internal->map->version);
         return false;
     }
-#endif
 
     if (!get_entry_metadata_on_map(MEMMAP_VERSION_ENTRY, map_internal->map, &entry,
         &mask)) {
@@ -262,12 +259,12 @@ check_version(struct map_internal *map_internal)
     }
 
     ret = sol_memmap_read_raw_do(map_internal->resolved_path, entry, mask, &buf);
-    if (ret >= 0 && (version == 0 || version == 255)) {
-        blob = sol_blob_new(SOL_BLOB_TYPE_NOFREE, NULL, &map_internal->map->api_version, sizeof(uint16_t));
+    if (ret >= 0 && (version == 0 || version == UINT8_MAX)) {
+        blob = sol_blob_new(&SOL_BLOB_TYPE_NO_FREE_DATA, NULL, &map_internal->map->version, sizeof(uint8_t));
         SOL_NULL_CHECK(blob, false);
 
         /* No version on file, we should be initialising it */
-        version = map_internal->map->api_version;
+        version = map_internal->map->version;
         if ((ret = sol_memmap_write_raw_do(map_internal->resolved_path, MEMMAP_VERSION_ENTRY, entry, mask, blob, version_write_cb, NULL, NULL)) < 0) {
             SOL_WRN("Could not write current map version to file [%s]: %s",
                 map_internal->resolved_path,
@@ -282,9 +279,9 @@ check_version(struct map_internal *map_internal)
         return false;
     }
 
-    if (version != map_internal->map->api_version) {
-        SOL_WRN("Memory map version mismatch. Expected %d but found %d",
-            map_internal->map->api_version, version);
+    if (version != map_internal->map->version) {
+        SOL_WRN("Memory map version mismatch. Expected %" PRIu8 "but found %" PRIu8,
+            map_internal->map->version, version);
         return false;
     }
 
@@ -597,8 +594,6 @@ resolve_i2c_path(const char *path, char **resolved_path)
 
     if (ret >= 0 || ret == -EEXIST) {
         const struct sol_str_slice ending = SOL_STR_SLICE_LITERAL("/eeprom");
-        struct timespec start;
-        struct stat st;
 
         ret = sol_buffer_append_slice(&result_path, ending);
         if (ret < 0)
@@ -607,18 +602,11 @@ resolve_i2c_path(const char *path, char **resolved_path)
         *resolved_path = sol_buffer_steal(&result_path, NULL);
 
         ret = 0;
-        start = sol_util_timespec_get_current();
-        while (stat(*resolved_path, &st)) {
-            struct timespec elapsed, now = sol_util_timespec_get_current();
-
-            sol_util_timespec_sub(&now, &start, &elapsed);
-            /* Let's wait up to one second */
-            if (elapsed.tv_sec > 0) {
-                ret = -ENODEV;
-                goto end;
-            }
-
-            sched_yield();
+        /* Let's wait up to one second */
+        if (!sol_util_busy_wait_file(*resolved_path, SOL_UTIL_NSEC_PER_SEC)) {
+            ret = -ENODEV;
+            free(*resolved_path);
+            goto end;
         }
     }
 
@@ -698,6 +686,7 @@ sol_memmap_remove_map(const struct sol_memmap_map *map)
                 sol_timeout_del(map_internal->timeout);
                 perform_pending_writes(map_internal);
             }
+            free(map_internal->resolved_path);
             return sol_vector_del(&memory_maps, i);
         }
     }

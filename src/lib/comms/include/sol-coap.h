@@ -60,6 +60,12 @@ extern "C" {
  * as multicast support, very low overhead, and simplicity
  * for constrained environments.
  *
+ * Relevant RFCs:
+ * - https://tools.ietf.org/html/rfc7252: The Constrained Application
+ *   Protocol (CoAP)
+ * - https://tools.ietf.org/html/rfc7641: Observing Resources in the
+ *   Constrained Application Protocol (CoAP)
+ *
  * @{
  */
 
@@ -72,7 +78,7 @@ extern "C" {
  *
  * Refer to RFC 7252, section 12.2 for more information.
  */
-typedef enum {
+enum sol_coap_option_num {
     SOL_COAP_OPTION_IF_MATCH = 1,
     SOL_COAP_OPTION_URI_HOST = 3,
     SOL_COAP_OPTION_ETAG = 4,
@@ -88,14 +94,14 @@ typedef enum {
     SOL_COAP_OPTION_LOCATION_QUERY = 20,
     SOL_COAP_OPTION_PROXY_URI = 35,
     SOL_COAP_OPTION_PROXY_SCHEME = 39
-} sol_coap_option_num_t;
+};
 
 /**
  * @brief Available request methods.
  *
  * To be used with sol_coap_header_set_code() when crafting a request.
  */
-typedef enum {
+enum sol_coap_method {
     /** @brief A GET request. */
     SOL_COAP_METHOD_GET = 1,
     /** @brief A POST request. */
@@ -104,7 +110,7 @@ typedef enum {
     SOL_COAP_METHOD_PUT = 3,
     /** @brief A DELETE request. */
     SOL_COAP_METHOD_DELETE = 4,
-} sol_coap_method_t;
+};
 
 /**
  * @brief Mask of CoAP requests
@@ -126,7 +132,7 @@ typedef enum {
 /**
  * @brief CoAP packets may be of one of these types.
  */
-typedef enum {
+enum sol_coap_msgtype {
     /**
      * Confirmable messsage.
      *
@@ -145,7 +151,7 @@ typedef enum {
      * with a message of type #SOL_COAP_TYPE_RESET if the package could not
      * be processed due to being faulty.
      */
-    SOL_COAP_TYPE_NONCON = 1,
+    SOL_COAP_TYPE_NON_CON = 1,
     /**
      * Acknowledge.
      *
@@ -160,7 +166,7 @@ typedef enum {
      * type with the @c id of the corresponding source message.
      */
     SOL_COAP_TYPE_RESET = 3
-} sol_coap_msgtype_t;
+};
 
 /**
  * @brief Macro to create a response code.
@@ -171,36 +177,36 @@ typedef enum {
  *
  * It's usually represented as "c.dd". E.g.: 2.00 for "OK".
  */
-#define MAKE_RSPCODE(clas, det) ((clas << 5) | (det))
+#define sol_coap_make_response_code(clas, det) ((clas << 5) | (det))
 
 /**
  * @brief Set of response codes available for a response packet.
  *
  * To be used with sol_coap_header_set_code() when crafting a reply.
  */
-typedef enum {
-    SOL_COAP_RSPCODE_OK = MAKE_RSPCODE(2, 0),
-    SOL_COAP_RSPCODE_CREATED = MAKE_RSPCODE(2, 1),
-    SOL_COAP_RSPCODE_DELETED = MAKE_RSPCODE(2, 2),
-    SOL_COAP_RSPCODE_VALID = MAKE_RSPCODE(2, 3),
-    SOL_COAP_RSPCODE_CHANGED = MAKE_RSPCODE(2, 4),
-    SOL_COAP_RSPCODE_CONTENT = MAKE_RSPCODE(2, 5),
-    SOL_COAP_RSPCODE_BAD_REQUEST = MAKE_RSPCODE(4, 0),
-    SOL_COAP_RSPCODE_UNAUTHORIZED = MAKE_RSPCODE(4, 1),
-    SOL_COAP_RSPCODE_BAD_OPTION = MAKE_RSPCODE(4, 2),
-    SOL_COAP_RSPCODE_FORBIDDEN = MAKE_RSPCODE(4, 3),
-    SOL_COAP_RSPCODE_NOT_FOUND = MAKE_RSPCODE(4, 4),
-    SOL_COAP_RSPCODE_NOT_ALLOWED = MAKE_RSPCODE(4, 5),
-    SOL_COAP_RSPCODE_NOT_ACCEPTABLE = MAKE_RSPCODE(4, 6),
-    SOL_COAP_RSPCODE_PRECONDITION_FAILED = MAKE_RSPCODE(4, 12),
-    SOL_COAP_RSPCODE_REQUEST_TOO_LARGE = MAKE_RSPCODE(4, 13),
-    SOL_COAP_RSPCODE_INTERNAL_ERROR = MAKE_RSPCODE(5, 0),
-    SOL_COAP_RSPCODE_NOT_IMPLEMENTED = MAKE_RSPCODE(5, 1),
-    SOL_COAP_RSPCODE_BAD_GATEWAY = MAKE_RSPCODE(5, 2),
-    SOL_COAP_RSPCODE_SERVICE_UNAVAILABLE = MAKE_RSPCODE(5, 3),
-    SOL_COAP_RSPCODE_GATEWAY_TIMEOUT = MAKE_RSPCODE(5, 4),
-    SOL_COAP_RSPCODE_PROXYING_NOT_SUPPORTED = MAKE_RSPCODE(5, 5)
-} sol_coap_responsecode_t;
+enum sol_coap_response_code {
+    SOL_COAP_RESPONSE_CODE_OK = sol_coap_make_response_code(2, 0),
+    SOL_COAP_RESPONSE_CODE_CREATED = sol_coap_make_response_code(2, 1),
+    SOL_COAP_RESPONSE_CODE_DELETED = sol_coap_make_response_code(2, 2),
+    SOL_COAP_RESPONSE_CODE_VALID = sol_coap_make_response_code(2, 3),
+    SOL_COAP_RESPONSE_CODE_CHANGED = sol_coap_make_response_code(2, 4),
+    SOL_COAP_RESPONSE_CODE_CONTENT = sol_coap_make_response_code(2, 5),
+    SOL_COAP_RESPONSE_CODE_BAD_REQUEST = sol_coap_make_response_code(4, 0),
+    SOL_COAP_RESPONSE_CODE_UNAUTHORIZED = sol_coap_make_response_code(4, 1),
+    SOL_COAP_RESPONSE_CODE_BAD_OPTION = sol_coap_make_response_code(4, 2),
+    SOL_COAP_RESPONSE_CODE_FORBIDDEN = sol_coap_make_response_code(4, 3),
+    SOL_COAP_RESPONSE_CODE_NOT_FOUND = sol_coap_make_response_code(4, 4),
+    SOL_COAP_RESPONSE_CODE_NOT_ALLOWED = sol_coap_make_response_code(4, 5),
+    SOL_COAP_RESPONSE_CODE_NOT_ACCEPTABLE = sol_coap_make_response_code(4, 6),
+    SOL_COAP_RESPONSE_CODE_PRECONDITION_FAILED = sol_coap_make_response_code(4, 12),
+    SOL_COAP_RESPONSE_CODE_REQUEST_TOO_LARGE = sol_coap_make_response_code(4, 13),
+    SOL_COAP_RESPONSE_CODE_INTERNAL_ERROR = sol_coap_make_response_code(5, 0),
+    SOL_COAP_RESPONSE_CODE_NOT_IMPLEMENTED = sol_coap_make_response_code(5, 1),
+    SOL_COAP_RESPONSE_CODE_BAD_GATEWAY = sol_coap_make_response_code(5, 2),
+    SOL_COAP_RESPONSE_CODE_SERVICE_UNAVAILABLE = sol_coap_make_response_code(5, 3),
+    SOL_COAP_RESPONSE_CODE_GATEWAY_TIMEOUT = sol_coap_make_response_code(5, 4),
+    SOL_COAP_RESPONSE_CODE_PROXYING_NOT_SUPPORTED = sol_coap_make_response_code(5, 5)
+};
 
 /**
  * @brief Macro to indicates that the header code was not set.
@@ -214,13 +220,13 @@ typedef enum {
  *
  * Refer to RFC 7252, section 12.3 for more information.
  */
-typedef enum {
-    SOL_COAP_CONTENTTYPE_NONE = -1,
-    SOL_COAP_CONTENTTYPE_TEXT_PLAIN = 0,
-    SOL_COAP_CONTENTTYPE_APPLICATION_LINKFORMAT = 40,
-    SOL_COAP_CONTENTTYPE_APPLICATION_CBOR = 60, /* RFC7049 */
-    SOL_COAP_CONTENTTYPE_APPLICATION_JSON = 50,
-} sol_coap_content_type_t;
+enum sol_coap_content_type {
+    SOL_COAP_CONTENT_TYPE_NONE = -1,
+    SOL_COAP_CONTENT_TYPE_TEXT_PLAIN = 0,
+    SOL_COAP_CONTENT_TYPE_APPLICATION_LINK_FORMAT = 40,
+    SOL_COAP_CONTENT_TYPE_APPLICATION_CBOR = 60, /* RFC7049 */
+    SOL_COAP_CONTENT_TYPE_APPLICATION_JSON = 50,
+};
 
 /**
  * @brief Flags accepted by a #sol_coap_resource.
@@ -262,67 +268,67 @@ struct sol_coap_resource {
     /**
      * @brief GET request.
      *
+     * @param data User data pointer provided to sol_coap_server_register_resource().
      * @param server The server through which the request was made.
      * @param resource The resource the request mas made on.
      * @param req Packet containing the request data. It's not safe to keep a
      *            reference to it after this function returns.
      * @param cliaddr The source address of the request.
-     * @param data User data pointer provided to sol_coap_server_register_resource().
      *
      * @return 0 on success, -errno on failure.
      */
-    int (*get)(struct sol_coap_server *server,
+    int (*get)(void *data, struct sol_coap_server *server,
         const struct sol_coap_resource *resource,
         struct sol_coap_packet *req,
-        const struct sol_network_link_addr *cliaddr, void *data);
+        const struct sol_network_link_addr *cliaddr);
     /**
      * @brief POST request.
      *
+     * @param data User data pointer provided to sol_coap_server_register_resource().
      * @param server The server through which the request was made.
      * @param resource The resource the request mas made on.
      * @param req Packet containing the request data. It's not safe to keep a
      *            reference to it after this function returns.
      * @param cliaddr The source address of the request.
-     * @param data User data pointer provided to sol_coap_server_register_resource().
      *
      * @return 0 on success, -errno on failure.
      */
-    int (*post)(struct sol_coap_server *server,
+    int (*post)(void *data, struct sol_coap_server *server,
         const struct sol_coap_resource *resource,
         struct sol_coap_packet *req,
-        const struct sol_network_link_addr *cliaddr, void *data);
+        const struct sol_network_link_addr *cliaddr);
     /**
      * @brief PUT request.
      *
+     * @param data User data pointer provided to sol_coap_server_register_resource().
      * @param server The server through which the request was made.
      * @param resource The resource the request mas made on.
      * @param req Packet containing the request data. It's not safe to keep a
      *            reference to it after this function returns.
      * @param cliaddr The source address of the request.
-     * @param data User data pointer provided to sol_coap_server_register_resource().
      *
      * @return 0 on success, -errno on failure.
      */
-    int (*put)(struct sol_coap_server *server,
+    int (*put)(void *data, struct sol_coap_server *server,
         const struct sol_coap_resource *resource,
         struct sol_coap_packet *req,
-        const struct sol_network_link_addr *cliaddr, void *data);
+        const struct sol_network_link_addr *cliaddr);
     /**
      * @brief DELETE request.
      *
+     * @param data User data pointer provided to sol_coap_server_register_resource().
      * @param server The server through which the request was made.
      * @param resource The resource the request mas made on.
      * @param req Packet containing the request data. It's not safe to keep a
      *            reference to it after this function returns.
      * @param cliaddr The source address of the request.
-     * @param data User data pointer provided to sol_coap_server_register_resource().
      *
      * @return 0 on success, -errno on failure.
      */
-    int (*del)(struct sol_coap_server *server,
+    int (*del)(void *data, struct sol_coap_server *server,
         const struct sol_coap_resource *resource,
         struct sol_coap_packet *req,
-        const struct sol_network_link_addr *cliaddr, void *data);
+        const struct sol_network_link_addr *cliaddr);
     /**
      * @brief Bitwise OR-ed flags from #sol_coap_flags, if any is necessary.
      */
@@ -344,13 +350,13 @@ struct sol_coap_resource {
  *
  * @return 0 on success, negative number on error.
  */
-int sol_coap_header_get_ver(const struct sol_coap_packet *pkt, uint8_t *version);
+int sol_coap_header_get_version(const struct sol_coap_packet *pkt, uint8_t *version);
 
 /**
  * @brief Gets the type of the message container in the packet.
  *
  * @param pkt The packet containing the message.
- * @param type The type of the message, one of #sol_coap_msgtype_t.
+ * @param type The type of the message, one of #sol_coap_msgtype.
  *
  * @return 0 on success, negative number on error.
  */
@@ -364,16 +370,17 @@ int sol_coap_header_get_type(const struct sol_coap_packet *pkt, uint8_t *type);
  * @param pkt The packet with the token.
  * @param len Pointer where to store the length in bytes of the token.
  *
- * @return @c NULL in case of error, otherwise a pointer to an internal
- * buffer containint the token. It must not be modified.
+ * @return @c NULL in case of error (when @c errno will be set to @c
+ * EINVAL), otherwise a pointer to an internal buffer containint the
+ * token. It must not be modified.
  */
 uint8_t *sol_coap_header_get_token(const struct sol_coap_packet *pkt, uint8_t *len);
 
 /**
  * @brief Gets the request/response code in the packet.
  *
- * If the packet is a request, the code returned is one of #sol_coap_method_t.
- * If it's a response, it will be one of #sol_coap_responsecode_t.
+ * If the packet is a request, the code returned is one of #sol_coap_method.
+ * If it's a response, it will be one of #sol_coap_response_code.
  * If the code was not set, the returned code will be #SOL_COAP_CODE_EMPTY.
  *
  * @param pkt The packet to get the code from.
@@ -404,12 +411,12 @@ int sol_coap_header_get_id(const struct sol_coap_packet *pkt, uint16_t *id);
  *
  * @return 0 on success, negative error code on failure.
  */
-int sol_coap_header_set_ver(struct sol_coap_packet *pkt, uint8_t ver);
+int sol_coap_header_set_version(struct sol_coap_packet *pkt, uint8_t ver);
 
 /**
  * @brief Sets the message type in the packet's header.
  *
- * Must be one of #sol_coap_msgtype_t.
+ * Must be one of #sol_coap_msgtype.
  *
  * @param pkt The packet to set the type to.
  * @param type The message type to set.
@@ -439,8 +446,8 @@ int sol_coap_header_set_token(struct sol_coap_packet *pkt, uint8_t *token, uint8
 /**
  * @brief Sets the code of the message.
  *
- * For requests, it must be one of #sol_coap_method_t.
- * For responses, it must be one of #sol_coap_responsecode_t.
+ * For requests, it must be one of #sol_coap_method.
+ * For responses, it must be one of #sol_coap_response_code.
  *
  * @param pkt The packet on which to set the code.
  * @param code The request/response code.
@@ -469,7 +476,7 @@ int sol_coap_header_set_id(struct sol_coap_packet *pkt, uint16_t id);
  *
  * Creates a new, unsecured, CoAP server instance listening on address
  * @a addr. If the server cannot be created, NULL will be returned and
- * errno will be set to indicate the reason.
+ * @c errno will be set to indicate the reason.
  *
  * @param addr The address where the server will listen on.
  *
@@ -485,7 +492,7 @@ struct sol_coap_server *sol_coap_server_new(const struct sol_network_link_addr *
  * Creates a new, unsecured, CoAP server instance listening on address
  * @a addr. This server will encrypt communication with its endpoints
  * using DTLS. If the server cannot be created, NULL will be returned
- * and errno will be set to indicate the reason.
+ * and @c errno will be set to indicate the reason.
  *
  * @param addr The address where the server will listen on.
  *
@@ -522,10 +529,10 @@ void sol_coap_server_unref(struct sol_coap_server *server);
  * Creates a packet to send as a request or response.
  * If @a old is not @c NULL, its @c ID and @c token (if any) will be copied to
  * the new packet. This is useful when crafting a new packet as a response
- * to @a old. It's also important to note that if @a old has #sol_coap_msgtype_t
+ * to @a old. It's also important to note that if @a old has #sol_coap_msgtype
  * equal to #SOL_COAP_TYPE_CON, the new packet message type will be set to
- * #SOL_COAP_TYPE_ACK. If it has it equal to #SOL_COAP_TYPE_NONCON,
- * the new packet message type will be set to #SOL_COAP_TYPE_NONCON.
+ * #SOL_COAP_TYPE_ACK. If it has it equal to #SOL_COAP_TYPE_NON_CON,
+ * the new packet message type will be set to #SOL_COAP_TYPE_NON_CON.
  *
  * @param old An optional packet to use as basis.
  *
@@ -544,7 +551,7 @@ struct sol_coap_packet *sol_coap_packet_new(struct sol_coap_packet *old);
  *
  * @return A new packet, with @c id, @c method and @c type already set.
  */
-struct sol_coap_packet *sol_coap_packet_request_new(sol_coap_method_t method, sol_coap_msgtype_t type);
+struct sol_coap_packet *sol_coap_packet_new_request(enum sol_coap_method method, enum sol_coap_msgtype type);
 
 /**
  * @brief Convenience function to create a packet suitable to send as a notification.
@@ -563,7 +570,7 @@ struct sol_coap_packet *sol_coap_packet_request_new(sol_coap_method_t method, so
  *
  * @see sol_coap_packet_send_notification()
  */
-struct sol_coap_packet *sol_coap_packet_notification_new(struct sol_coap_server *server,
+struct sol_coap_packet *sol_coap_packet_new_notification(struct sol_coap_server *server,
     struct sol_coap_resource *resource);
 
 /**
@@ -631,7 +638,7 @@ bool sol_coap_packet_has_payload(struct sol_coap_packet *pkt);
  * Options must be added in order, according to their numeric definitions.
  *
  * @param pkt The packet to which the option will be added.
- * @param code The option code, one of #sol_coap_option_num_t.
+ * @param code The option code, one of #sol_coap_option_num.
  * @param value Pointer to the value of the option, or NULL if none.
  * @param len Length in bytes of @a value, or 0 if @a value is NULL.
  *
@@ -697,20 +704,31 @@ int sol_coap_send_packet(struct sol_coap_server *server, struct sol_coap_packet 
 /**
  * @brief Sends a packet to the given address.
  *
- * Sends the packet @a pkt to the destination address especified by @a cliaddr,
- * which may be a multicast address for discovery purposes.
+ * Sends the packet @a pkt to the destination address especified by @a
+ * cliaddr, which may be a multicast address for discovery purposes,
+ * and issues a given callback when a response arrives.
  *
- * When a response is received, the function @a reply_cb will be called.
- * As long as this function returns @c true, @a server will continue waiting
- * for more responses. When the function returns @c false, the internal response
- * handler will be freed and any new replies that arrive for this request
- * will be ignored. For unobserving packets server will also be notified using
- * an unobserve packet.
- * After internal timeout is reached reply_cb will be called with @c NULL
- * req and cliaddr. The same behavior is expected for reply_cb return, if
- * reply_cb returns @c true, @a server will continue waiting responses until
- * next timeout. If reply_cb returns @c false, @a server will terminate
- * response waiting.
+ * If @a reply_cb is @c NULL, this function will behave exactly like
+ * sol_coap_send_packet(). If a valid function is passed, when a
+ * response is received, the function @a reply_cb will be called. As
+ * long as this function returns @c true, @a server will continue
+ * waiting for more responses. When it returns @c false, the internal
+ * response handler will be freed and any new reply that may arrive
+ * for this request will be ignored. For unobserving packets, @a
+ * server will also be notified using an unobserve packet.
+ *
+ * After an internal timeout is reached, @a reply_cb will be called
+ * with @c NULL @c req and @c cliaddr. The same behavior is expected
+ * for its return: if @c true, @a server will issue a new timeout and
+ * continue waiting responses until it ends, otherwise @a server will
+ * terminate response waiting.
+ *
+ * @warning If @a pkt has the #SOL_COAP_OPTION_OBSERVE option and at
+ * least one response arrives before the internal timeout and @a
+ * reply_cb returns @c true, that will be interpreted as if the user
+ * wishes to wait for responses indefinetely and no timeout will apply
+ * anymore. The user is then responsible for cancelling the request
+ * with sol_coap_cancel_send_packet().
  *
  * @note This function will take the reference of the given @a pkt.
  *
@@ -720,13 +738,12 @@ int sol_coap_send_packet(struct sol_coap_server *server, struct sol_coap_packet 
  * @param reply_cb The function to call when a response is received.
  * @param data The user data pointer to pass to the @a reply_cb function.
  *
- * @return 0 on success, -errno otherwise.
+ * @return 0 on success, a negative error code otherwise.
  */
 int sol_coap_send_packet_with_reply(struct sol_coap_server *server, struct sol_coap_packet *pkt,
     const struct sol_network_link_addr *cliaddr,
-    bool (*reply_cb)(struct sol_coap_server *server,
-    struct sol_coap_packet *req, const struct sol_network_link_addr *cliaddr,
-    void *data), const void *data);
+    bool (*reply_cb)(void *data, struct sol_coap_server *server,
+    struct sol_coap_packet *req, const struct sol_network_link_addr *cliaddr), const void *data);
 
 /**
  * @brief Sends the notification packet to all registered observers.
@@ -757,7 +774,7 @@ int sol_coap_packet_send_notification(struct sol_coap_server *server,
  * @param resource The resource to register.
  * @param data User data pointer that will be passed to the requests callbacks.
  *
- * @return 0 on success, negative errno on error.
+ * @return 0 on success, negative @c errno on error.
  */
 int sol_coap_server_register_resource(struct sol_coap_server *server,
     const struct sol_coap_resource *resource, const void *data);
@@ -797,7 +814,7 @@ int sol_coap_server_unregister_resource(struct sol_coap_server *server,
  * @warning @a buf has be initialized before this call and must be
  * free/finished afterwards
  */
-int sol_coap_uri_path_to_buf(const struct sol_str_slice path[],
+int sol_coap_path_to_buffer(const struct sol_str_slice path[],
     struct sol_buffer *buf, size_t offset, size_t *size);
 
 /**
@@ -837,13 +854,13 @@ int sol_coap_cancel_send_packet(struct sol_coap_server *server, struct sol_coap_
  *         -ENOMEM Out of memory
  *         -EINVAL if some parameter is invalid.
  */
-int sol_coap_unobserve_server(struct sol_coap_server *server, const struct sol_network_link_addr *cliaddr, uint8_t *token, uint8_t tkl);
+int sol_coap_unobserve_by_token(struct sol_coap_server *server, const struct sol_network_link_addr *cliaddr, uint8_t *token, uint8_t tkl);
 
 
 /**
  * @brief Register a unknown handler callback.
  *
- * Everytime the @a server receives a request for a #sol_coap_resource that was not
+ * Every time the @a server receives a request for a #sol_coap_resource that was not
  * registered with sol_coap_server_register_resource() the @a handler will be called.
  *
  * @param server The server to register the unknown resource handler.

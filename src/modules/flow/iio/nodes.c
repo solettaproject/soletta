@@ -70,14 +70,13 @@ error:
     SOL_WRN("%s", errmsg);
 }
 
-static void
-create_device_cb(void *data, int device_id)
+static bool
+create_device_channels(struct gyroscope_data *mdata, int device_id)
 {
-    struct gyroscope_data *mdata = data;
     struct sol_iio_channel_config channel_config = SOL_IIO_CHANNEL_CONFIG_INIT;
 
     mdata->device = sol_iio_open(device_id, &mdata->config);
-    SOL_NULL_CHECK(mdata->device);
+    SOL_NULL_CHECK(mdata->device, false);
 
 #define ADD_CHANNEL(_axis) \
     if (!mdata->use_device_default_scale) \
@@ -95,12 +94,13 @@ create_device_cb(void *data, int device_id)
 
     sol_iio_device_start_buffer(mdata->device);
 
-    return;
+    return true;
 
 error:
     SOL_WRN("Could not create iio/gyroscope node. Failed to open IIO device %d",
         device_id);
     sol_iio_close(mdata->device);
+    return false;
 }
 
 static int
@@ -108,6 +108,7 @@ gyroscope_open(struct sol_flow_node *node, void *data, const struct sol_flow_nod
 {
     struct gyroscope_data *mdata = data;
     const struct sol_flow_node_type_iio_gyroscope_options *opts;
+    int device_id;
 
     SOL_FLOW_NODE_OPTIONS_SUB_API_CHECK(options, SOL_FLOW_NODE_TYPE_IIO_GYROSCOPE_OPTIONS_API_VERSION,
         -EINVAL);
@@ -135,11 +136,15 @@ gyroscope_open(struct sol_flow_node *node, void *data, const struct sol_flow_nod
     mdata->offset = opts->offset;
     mdata->out_range = opts->out_range;
 
-    if (!sol_iio_address_device(opts->iio_device, create_device_cb, mdata)) {
+    device_id = sol_iio_address_device(opts->iio_device);
+    if (device_id < 0) {
         SOL_WRN("Could not create iio/gyroscope node. Failed to open IIO device %s",
             opts->iio_device);
         goto err;
     }
+
+    if (!create_device_channels(mdata, device_id))
+        goto err;
 
     return 0;
 
@@ -216,7 +221,7 @@ magnet_reader_cb(void *data, struct sol_iio_device *device)
     if (!b) goto error;
 
     sol_flow_send_direction_vector_packet(node,
-        SOL_FLOW_NODE_TYPE_IIO_MAGNET__OUT__OUT, &out);
+        SOL_FLOW_NODE_TYPE_IIO_MAGNETOMETER__OUT__OUT, &out);
 
     return;
 
@@ -225,14 +230,13 @@ error:
     SOL_WRN("%s", errmsg);
 }
 
-static void
-magnet_create_device_cb(void *data, int device_id)
+static bool
+magnet_create_channels(struct magnet_data *mdata, int device_id)
 {
-    struct magnet_data *mdata = data;
     struct sol_iio_channel_config channel_config = SOL_IIO_CHANNEL_CONFIG_INIT;
 
     mdata->device = sol_iio_open(device_id, &mdata->config);
-    SOL_NULL_CHECK(mdata->device);
+    SOL_NULL_CHECK(mdata->device, false);
 
 #define ADD_CHANNEL(_axis) \
     if (!mdata->use_device_default_scale) \
@@ -250,23 +254,25 @@ magnet_create_device_cb(void *data, int device_id)
 
     sol_iio_device_start_buffer(mdata->device);
 
-    return;
+    return true;
 
 error:
     SOL_WRN("Could not create iio/magnet node. Failed to open IIO device %d",
         device_id);
     sol_iio_close(mdata->device);
+    return false;
 }
 
 static int
 magnet_open(struct sol_flow_node *node, void *data, const struct sol_flow_node_options *options)
 {
     struct magnet_data *mdata = data;
-    const struct sol_flow_node_type_iio_magnet_options *opts;
+    const struct sol_flow_node_type_iio_magnetometer_options *opts;
+    int device_id;
 
-    SOL_FLOW_NODE_OPTIONS_SUB_API_CHECK(options, SOL_FLOW_NODE_TYPE_IIO_MAGNET_OPTIONS_API_VERSION,
+    SOL_FLOW_NODE_OPTIONS_SUB_API_CHECK(options, SOL_FLOW_NODE_TYPE_IIO_MAGNETOMETER_OPTIONS_API_VERSION,
         -EINVAL);
-    opts = (const struct sol_flow_node_type_iio_magnet_options *)options;
+    opts = (const struct sol_flow_node_type_iio_magnetometer_options *)options;
 
     mdata->buffer_enabled = opts->buffer_size > -1;
 
@@ -289,11 +295,15 @@ magnet_open(struct sol_flow_node *node, void *data, const struct sol_flow_node_o
     mdata->offset = opts->offset;
     mdata->out_range = opts->out_range;
 
-    if (!sol_iio_address_device(opts->iio_device, magnet_create_device_cb, mdata)) {
+    device_id = sol_iio_address_device(opts->iio_device);
+    if (device_id < 0) {
         SOL_WRN("Could not create iio/magnet node. Failed to open IIO device %s",
             opts->iio_device);
         goto err;
     }
+
+    if (!magnet_create_channels(mdata, device_id))
+        goto err;
 
     return 0;
 
@@ -363,7 +373,7 @@ temp_reader_cb(void *data, struct sol_iio_device *device)
     if (!b) goto error;
 
     sol_flow_send_drange_value_packet(node,
-        SOL_FLOW_NODE_TYPE_IIO_TEMPERATURE__OUT__OUT, out.val);
+        SOL_FLOW_NODE_TYPE_IIO_THERMOMETER__OUT__OUT, out.val);
 
     return;
 
@@ -372,14 +382,13 @@ error:
     SOL_WRN("%s", errmsg);
 }
 
-static void
-temp_create_device_cb(void *data, int device_id)
+static bool
+temp_create_channels(struct temperature_data *mdata, int device_id)
 {
-    struct temperature_data *mdata = data;
     struct sol_iio_channel_config channel_config = SOL_IIO_CHANNEL_CONFIG_INIT;
 
     mdata->device = sol_iio_open(device_id, &mdata->config);
-    SOL_NULL_CHECK(mdata->device);
+    SOL_NULL_CHECK(mdata->device, false);
 
 #define ADD_CHANNEL(_val) \
     if (!mdata->use_device_default_scale) \
@@ -395,24 +404,26 @@ temp_create_device_cb(void *data, int device_id)
 
     sol_iio_device_start_buffer(mdata->device);
 
-    return;
+    return true;
 
 error:
-    SOL_WRN("Could not create iio/temperature node. Failed to open IIO device %d",
-        device_id);
+    SOL_WRN("Could not create iio/thermometer node. Failed to open"
+        " IIO device %d", device_id);
 
     sol_iio_close(mdata->device);
+    return false;
 }
 
 static int
 temperature_open(struct sol_flow_node *node, void *data, const struct sol_flow_node_options *options)
 {
     struct temperature_data *mdata = data;
-    const struct sol_flow_node_type_iio_temperature_options *opts;
+    const struct sol_flow_node_type_iio_thermometer_options *opts;
+    int device_id;
 
-    SOL_FLOW_NODE_OPTIONS_SUB_API_CHECK(options, SOL_FLOW_NODE_TYPE_IIO_TEMPERATURE_OPTIONS_API_VERSION,
+    SOL_FLOW_NODE_OPTIONS_SUB_API_CHECK(options, SOL_FLOW_NODE_TYPE_IIO_THERMOMETER_OPTIONS_API_VERSION,
         -EINVAL);
-    opts = (const struct sol_flow_node_type_iio_temperature_options *)options;
+    opts = (const struct sol_flow_node_type_iio_thermometer_options *)options;
 
     mdata->buffer_enabled = opts->buffer_size > -1;
 
@@ -435,11 +446,15 @@ temperature_open(struct sol_flow_node *node, void *data, const struct sol_flow_n
     mdata->offset = opts->offset;
     mdata->out_range = opts->out_range;
 
-    if (!sol_iio_address_device(opts->iio_device, temp_create_device_cb, mdata)) {
-        SOL_WRN("Could not create iio/temperature node. Failed to open IIO device %s",
-            opts->iio_device);
+    device_id = sol_iio_address_device(opts->iio_device);
+    if (device_id < 0) {
+        SOL_WRN("Could not create iio/thermometer node. Failed to"
+            " open IIO device %s", opts->iio_device);
         goto err;
     }
+
+    if (!temp_create_channels(mdata, device_id))
+        goto err;
 
     return 0;
 
@@ -510,7 +525,7 @@ pressure_reader_cb(void *data, struct sol_iio_device *device)
     if (!b) goto error;
 
     sol_flow_send_drange_value_packet(node,
-        SOL_FLOW_NODE_TYPE_IIO_PRESSURE__OUT__OUT, out.val);
+        SOL_FLOW_NODE_TYPE_IIO_PRESSURE_SENSOR__OUT__OUT, out.val);
 
     return;
 
@@ -519,14 +534,13 @@ error:
     SOL_WRN("%s", errmsg);
 }
 
-static void
-pressure_create_device_cb(void *data, int device_id)
+static bool
+pressure_create_channels(struct pressure_data *mdata, int device_id)
 {
-    struct pressure_data *mdata = data;
     struct sol_iio_channel_config channel_config = SOL_IIO_CHANNEL_CONFIG_INIT;
 
     mdata->device = sol_iio_open(device_id, &mdata->config);
-    SOL_NULL_CHECK(mdata->device);
+    SOL_NULL_CHECK(mdata->device, false);
 
 #define ADD_CHANNEL(_val) \
     if (!mdata->use_device_default_scale) \
@@ -542,24 +556,26 @@ pressure_create_device_cb(void *data, int device_id)
 
     sol_iio_device_start_buffer(mdata->device);
 
-    return;
+    return true;
 
 error:
     SOL_WRN("Could not create iio/pressure node. Failed to open IIO device %d",
         device_id);
 
     sol_iio_close(mdata->device);
+    return false;
 }
 
 static int
 pressure_open(struct sol_flow_node *node, void *data, const struct sol_flow_node_options *options)
 {
     struct pressure_data *mdata = data;
-    const struct sol_flow_node_type_iio_pressure_options *opts;
+    const struct sol_flow_node_type_iio_pressure_sensor_options *opts;
+    int device_id;
 
-    SOL_FLOW_NODE_OPTIONS_SUB_API_CHECK(options, SOL_FLOW_NODE_TYPE_IIO_PRESSURE_OPTIONS_API_VERSION,
+    SOL_FLOW_NODE_OPTIONS_SUB_API_CHECK(options, SOL_FLOW_NODE_TYPE_IIO_PRESSURE_SENSOR_OPTIONS_API_VERSION,
         -EINVAL);
-    opts = (const struct sol_flow_node_type_iio_pressure_options *)options;
+    opts = (const struct sol_flow_node_type_iio_pressure_sensor_options *)options;
 
     mdata->buffer_enabled = opts->buffer_size > -1;
 
@@ -582,11 +598,15 @@ pressure_open(struct sol_flow_node *node, void *data, const struct sol_flow_node
     mdata->offset = opts->offset;
     mdata->out_range = opts->out_range;
 
-    if (!sol_iio_address_device(opts->iio_device, pressure_create_device_cb, mdata)) {
+    device_id = sol_iio_address_device(opts->iio_device);
+    if (device_id < 0) {
         SOL_WRN("Could not create iio/pressure node. Failed to open IIO device %s",
             opts->iio_device);
         goto err;
     }
+
+    if (!pressure_create_channels(mdata, device_id))
+        goto err;
 
     return 0;
 
@@ -669,7 +689,7 @@ color_reader_cb(void *data, struct sol_iio_device *device)
     out.blue = tmp;
 
     sol_flow_send_rgb_packet(node,
-        SOL_FLOW_NODE_TYPE_IIO_COLOR__OUT__OUT, &out);
+        SOL_FLOW_NODE_TYPE_IIO_COLOR_SENSOR__OUT__OUT, &out);
 
     return;
 
@@ -678,14 +698,13 @@ error:
     SOL_WRN("%s", errmsg);
 }
 
-static void
-color_create_device_cb(void *data, int device_id)
+static bool
+color_create_channels(struct color_data *mdata, int device_id)
 {
-    struct color_data *mdata = data;
     struct sol_iio_channel_config channel_config = SOL_IIO_CHANNEL_CONFIG_INIT;
 
     mdata->device = sol_iio_open(device_id, &mdata->config);
-    SOL_NULL_CHECK(mdata->device);
+    SOL_NULL_CHECK(mdata->device, false);
 
 #define ADD_CHANNEL(_axis) \
     if (!mdata->use_device_default_scale) \
@@ -703,23 +722,25 @@ color_create_device_cb(void *data, int device_id)
 
     sol_iio_device_start_buffer(mdata->device);
 
-    return;
+    return true;
 
 error:
-    SOL_WRN("Could not create iio/color node. Failed to open IIO device %d",
-        device_id);
+    SOL_WRN("Could not create iio/color-sensor node. Failed to open IIO"
+        " device %d", device_id);
     sol_iio_close(mdata->device);
+    return false;
 }
 
 static int
 color_open(struct sol_flow_node *node, void *data, const struct sol_flow_node_options *options)
 {
     struct color_data *mdata = data;
-    const struct sol_flow_node_type_iio_color_options *opts;
+    const struct sol_flow_node_type_iio_color_sensor_options *opts;
+    int device_id;
 
-    SOL_FLOW_NODE_OPTIONS_SUB_API_CHECK(options, SOL_FLOW_NODE_TYPE_IIO_COLOR_OPTIONS_API_VERSION,
+    SOL_FLOW_NODE_OPTIONS_SUB_API_CHECK(options, SOL_FLOW_NODE_TYPE_IIO_COLOR_SENSOR_OPTIONS_API_VERSION,
         -EINVAL);
-    opts = (const struct sol_flow_node_type_iio_color_options *)options;
+    opts = (const struct sol_flow_node_type_iio_color_sensor_options *)options;
 
     mdata->buffer_enabled = opts->buffer_size > -1;
 
@@ -742,11 +763,15 @@ color_open(struct sol_flow_node *node, void *data, const struct sol_flow_node_op
     mdata->offset = opts->offset;
     mdata->out_range = opts->out_range;
 
-    if (!sol_iio_address_device(opts->iio_device, color_create_device_cb, mdata)) {
-        SOL_WRN("Could not create iio/color node. Failed to open IIO device %s",
-            opts->iio_device);
+    device_id = sol_iio_address_device(opts->iio_device);
+    if (device_id < 0) {
+        SOL_WRN("Could not create iio/color-sensor node. Failed to open"
+            " IIO device %s", opts->iio_device);
         goto err;
     }
+
+    if (!color_create_channels(mdata, device_id))
+        goto err;
 
     return 0;
 
@@ -823,7 +848,7 @@ accelerate_reader_cb(void *data, struct sol_iio_device *device)
     if (!b) goto error;
 
     sol_flow_send_direction_vector_packet(node,
-        SOL_FLOW_NODE_TYPE_IIO_ACCELERATE__OUT__OUT, &out);
+        SOL_FLOW_NODE_TYPE_IIO_ACCELEROMETER__OUT__OUT, &out);
 
     return;
 
@@ -832,14 +857,13 @@ error:
     SOL_WRN("%s", errmsg);
 }
 
-static void
-accelerate_create_device_cb(void *data, int device_id)
+static bool
+accelerate_create_channels(struct accelerate_data *mdata, int device_id)
 {
-    struct accelerate_data *mdata = data;
     struct sol_iio_channel_config channel_config = SOL_IIO_CHANNEL_CONFIG_INIT;
 
     mdata->device = sol_iio_open(device_id, &mdata->config);
-    SOL_NULL_CHECK(mdata->device);
+    SOL_NULL_CHECK(mdata->device, false);
 
 #define ADD_CHANNEL(_axis) \
     if (!mdata->use_device_default_scale) \
@@ -857,23 +881,25 @@ accelerate_create_device_cb(void *data, int device_id)
 
     sol_iio_device_start_buffer(mdata->device);
 
-    return;
+    return true;
 
 error:
     SOL_WRN("Could not create iio/accelerate node. Failed to open IIO device %d",
         device_id);
     sol_iio_close(mdata->device);
+    return false;
 }
 
 static int
 accelerate_open(struct sol_flow_node *node, void *data, const struct sol_flow_node_options *options)
 {
     struct accelerate_data *mdata = data;
-    const struct sol_flow_node_type_iio_accelerate_options *opts;
+    const struct sol_flow_node_type_iio_accelerometer_options *opts;
+    int device_id;
 
-    SOL_FLOW_NODE_OPTIONS_SUB_API_CHECK(options, SOL_FLOW_NODE_TYPE_IIO_ACCELERATE_OPTIONS_API_VERSION,
+    SOL_FLOW_NODE_OPTIONS_SUB_API_CHECK(options, SOL_FLOW_NODE_TYPE_IIO_ACCELEROMETER_OPTIONS_API_VERSION,
         -EINVAL);
-    opts = (const struct sol_flow_node_type_iio_accelerate_options *)options;
+    opts = (const struct sol_flow_node_type_iio_accelerometer_options *)options;
 
     mdata->buffer_enabled = opts->buffer_size > -1;
 
@@ -896,11 +922,15 @@ accelerate_open(struct sol_flow_node *node, void *data, const struct sol_flow_no
     mdata->offset = opts->offset;
     mdata->out_range = opts->out_range;
 
-    if (!sol_iio_address_device(opts->iio_device, accelerate_create_device_cb, mdata)) {
+    device_id = sol_iio_address_device(opts->iio_device);
+    if (device_id < 0) {
         SOL_WRN("Could not create iio/accelerate node. Failed to open IIO device %s",
             opts->iio_device);
         goto err;
     }
+
+    if (!accelerate_create_channels(mdata, device_id))
+        goto err;
 
     return 0;
 
@@ -970,7 +1000,7 @@ humidity_reader_cb(void *data, struct sol_iio_device *device)
     if (!b) goto error;
 
     sol_flow_send_drange_value_packet(node,
-        SOL_FLOW_NODE_TYPE_IIO_HUMIDITY__OUT__OUT, out.val);
+        SOL_FLOW_NODE_TYPE_IIO_HUMIDITY_SENSOR__OUT__OUT, out.val);
 
     return;
 
@@ -979,14 +1009,13 @@ error:
     SOL_WRN("%s", errmsg);
 }
 
-static void
-humidity_create_device_cb(void *data, int device_id)
+static bool
+humidity_create_channels(struct humidity_data *mdata, int device_id)
 {
-    struct humidity_data *mdata = data;
     struct sol_iio_channel_config channel_config = SOL_IIO_CHANNEL_CONFIG_INIT;
 
     mdata->device = sol_iio_open(device_id, &mdata->config);
-    SOL_NULL_CHECK(mdata->device);
+    SOL_NULL_CHECK(mdata->device, false);
 
 #define ADD_CHANNEL(_val) \
     if (!mdata->use_device_default_scale) \
@@ -1002,24 +1031,26 @@ humidity_create_device_cb(void *data, int device_id)
 
     sol_iio_device_start_buffer(mdata->device);
 
-    return;
+    return true;
 
 error:
     SOL_WRN("Could not create iio/humidity node. Failed to open IIO device %d",
         device_id);
 
     sol_iio_close(mdata->device);
+    return false;
 }
 
 static int
 humidity_open(struct sol_flow_node *node, void *data, const struct sol_flow_node_options *options)
 {
     struct humidity_data *mdata = data;
-    const struct sol_flow_node_type_iio_humidity_options *opts;
+    const struct sol_flow_node_type_iio_humidity_sensor_options *opts;
+    int device_id;
 
-    SOL_FLOW_NODE_OPTIONS_SUB_API_CHECK(options, SOL_FLOW_NODE_TYPE_IIO_HUMIDITY_OPTIONS_API_VERSION,
+    SOL_FLOW_NODE_OPTIONS_SUB_API_CHECK(options, SOL_FLOW_NODE_TYPE_IIO_HUMIDITY_SENSOR_OPTIONS_API_VERSION,
         -EINVAL);
-    opts = (const struct sol_flow_node_type_iio_humidity_options *)options;
+    opts = (const struct sol_flow_node_type_iio_humidity_sensor_options *)options;
 
     mdata->buffer_enabled = opts->buffer_size > -1;
 
@@ -1042,11 +1073,15 @@ humidity_open(struct sol_flow_node *node, void *data, const struct sol_flow_node
     mdata->offset = opts->offset;
     mdata->out_range = opts->out_range;
 
-    if (!sol_iio_address_device(opts->iio_device, humidity_create_device_cb, mdata)) {
+    device_id = sol_iio_address_device(opts->iio_device);
+    if (device_id < 0) {
         SOL_WRN("Could not create iio/humidity node. Failed to open IIO device %s",
             opts->iio_device);
         goto err;
     }
+
+    if (!humidity_create_channels(mdata, device_id))
+        goto err;
 
     return 0;
 
@@ -1126,14 +1161,13 @@ error:
     SOL_WRN("%s", errmsg);
 }
 
-static void
-adc_create_device_cb(void *data, int device_id)
+static bool
+adc_create_channels(struct adc_data *mdata, int device_id)
 {
-    struct adc_data *mdata = data;
     struct sol_iio_channel_config channel_config = SOL_IIO_CHANNEL_CONFIG_INIT;
 
     mdata->device = sol_iio_open(device_id, &mdata->config);
-    SOL_NULL_CHECK(mdata->device);
+    SOL_NULL_CHECK(mdata->device, false);
 
 #define ADD_CHANNEL(_val) \
     if (!mdata->use_device_default_scale) \
@@ -1149,13 +1183,14 @@ adc_create_device_cb(void *data, int device_id)
 
     sol_iio_device_start_buffer(mdata->device);
 
-    return;
+    return true;
 
 error:
     SOL_WRN("Could not create iio/adc node. Failed to open IIO device %d",
         device_id);
 
     sol_iio_close(mdata->device);
+    return false;
 }
 
 static int
@@ -1163,6 +1198,7 @@ adc_open(struct sol_flow_node *node, void *data, const struct sol_flow_node_opti
 {
     struct adc_data *mdata = data;
     const struct sol_flow_node_type_iio_adc_options *opts;
+    int device_id;
 
     SOL_FLOW_NODE_OPTIONS_SUB_API_CHECK(options, SOL_FLOW_NODE_TYPE_IIO_ADC_OPTIONS_API_VERSION,
         -EINVAL);
@@ -1189,11 +1225,15 @@ adc_open(struct sol_flow_node *node, void *data, const struct sol_flow_node_opti
     mdata->offset = opts->offset;
     mdata->out_range = opts->out_range;
 
-    if (!sol_iio_address_device(opts->iio_device, adc_create_device_cb, mdata)) {
+    device_id = sol_iio_address_device(opts->iio_device);
+    if (device_id < 0) {
         SOL_WRN("Could not create iio/adc node. Failed to open IIO device %s",
             opts->iio_device);
         goto err;
     }
+
+    if (!adc_create_channels(mdata, device_id))
+        goto err;
 
     return 0;
 
@@ -1264,7 +1304,7 @@ light_reader_cb(void *data, struct sol_iio_device *device)
     if (!b) goto error;
 
     sol_flow_send_drange_value_packet(node,
-        SOL_FLOW_NODE_TYPE_IIO_LIGHT__OUT__OUT, out.val);
+        SOL_FLOW_NODE_TYPE_IIO_LIGHT_SENSOR__OUT__OUT, out.val);
 
     return;
 
@@ -1273,14 +1313,13 @@ error:
     SOL_WRN("%s", errmsg);
 }
 
-static void
-light_create_device_cb(void *data, int device_id)
+static bool
+light_create_channels(struct light_data *mdata, int device_id)
 {
-    struct light_data *mdata = data;
     struct sol_iio_channel_config channel_config = SOL_IIO_CHANNEL_CONFIG_INIT;
 
     mdata->device = sol_iio_open(device_id, &mdata->config);
-    SOL_NULL_CHECK(mdata->device);
+    SOL_NULL_CHECK(mdata->device, false);
 
 #define ADD_CHANNEL(_val) \
     if (!mdata->use_device_default_scale) \
@@ -1298,24 +1337,26 @@ light_create_device_cb(void *data, int device_id)
 
     sol_iio_device_start_buffer(mdata->device);
 
-    return;
+    return true;
 
 error:
-    SOL_WRN("Could not create iio/light node. Failed to open IIO device %d",
-        device_id);
+    SOL_WRN("Could not create iio/light-sensor node. Failed to open IIO"
+        " device %d", device_id);
 
     sol_iio_close(mdata->device);
+    return false;
 }
 
 static int
 light_open(struct sol_flow_node *node, void *data, const struct sol_flow_node_options *options)
 {
     struct light_data *mdata = data;
-    const struct sol_flow_node_type_iio_light_options *opts;
+    const struct sol_flow_node_type_iio_light_sensor_options *opts;
+    int device_id;
 
-    SOL_FLOW_NODE_OPTIONS_SUB_API_CHECK(options, SOL_FLOW_NODE_TYPE_IIO_LIGHT_OPTIONS_API_VERSION,
+    SOL_FLOW_NODE_OPTIONS_SUB_API_CHECK(options, SOL_FLOW_NODE_TYPE_IIO_LIGHT_SENSOR_OPTIONS_API_VERSION,
         -EINVAL);
-    opts = (const struct sol_flow_node_type_iio_light_options *)options;
+    opts = (const struct sol_flow_node_type_iio_light_sensor_options *)options;
 
     mdata->buffer_enabled = opts->buffer_size > -1;
 
@@ -1338,11 +1379,15 @@ light_open(struct sol_flow_node *node, void *data, const struct sol_flow_node_op
     mdata->offset = opts->offset;
     mdata->out_range = opts->out_range;
 
-    if (!sol_iio_address_device(opts->iio_device, light_create_device_cb, mdata)) {
-        SOL_WRN("Could not create iio/light node. Failed to open IIO device %s",
-            opts->iio_device);
+    device_id = sol_iio_address_device(opts->iio_device);
+    if (device_id < 0) {
+        SOL_WRN("Could not create iio/light-sensor node. Failed to open"
+            " IIO device %s", opts->iio_device);
         goto err;
     }
+
+    if (!light_create_channels(mdata, device_id))
+        goto err;
 
     return 0;
 
@@ -1373,6 +1418,160 @@ light_tick(struct sol_flow_node *node, void *data, uint16_t port, uint16_t conn_
             goto error;
     } else {
         light_reader_cb(node, mdata->device);
+    }
+
+    return 0;
+
+error:
+    sol_flow_send_error_packet(node, EIO, "%s", errmsg);
+    SOL_WRN("%s", errmsg);
+
+    return -EIO;
+}
+
+struct proximity_data {
+    struct sol_iio_config config;
+    struct sol_drange_spec out_range;
+    double scale;
+    double offset;
+    struct sol_iio_device *device;
+    struct sol_iio_channel *channel_val;
+    bool buffer_enabled : 1;
+    bool use_device_default_scale : 1;
+    bool use_device_default_offset : 1;
+};
+
+static void
+proximity_reader_cb(void *data, struct sol_iio_device *device)
+{
+    static const char *errmsg = "Could not read channel buffer values";
+    struct sol_flow_node *node = data;
+    struct proximity_data *mdata = sol_flow_node_get_private_data(node);
+    struct sol_drange out = {
+        .min = mdata->out_range.min,
+        .max = mdata->out_range.max,
+        .step = mdata->out_range.step
+    };
+    bool b;
+
+    b = sol_iio_read_channel_value(mdata->channel_val, &out.val);
+    if (!b) goto error;
+
+    sol_flow_send_drange_value_packet(node,
+        SOL_FLOW_NODE_TYPE_IIO_PROXIMITY_SENSOR__OUT__OUT, out.val);
+
+    return;
+
+error:
+    sol_flow_send_error_packet_str(node, EIO, errmsg);
+    SOL_WRN("%s", errmsg);
+}
+
+static bool
+proximity_create_channels(struct proximity_data *mdata, int device_id)
+{
+    struct sol_iio_channel_config channel_config = SOL_IIO_CHANNEL_CONFIG_INIT;
+
+    mdata->device = sol_iio_open(device_id, &mdata->config);
+    SOL_NULL_CHECK(mdata->device, false);
+
+#define ADD_CHANNEL(_val) \
+    if (!mdata->use_device_default_scale) \
+        channel_config.scale = mdata->scale; \
+    if (!mdata->use_device_default_offset) \
+        channel_config.offset = mdata->offset; \
+    mdata->channel_ ## _val = sol_iio_add_channel(mdata->device, "in_proximity", &channel_config); \
+    if (!mdata->channel_ ## _val) \
+        mdata->channel_ ## _val = sol_iio_add_channel(mdata->device, "in_proximity2", &channel_config); \
+    SOL_NULL_CHECK_GOTO(mdata->channel_ ## _val, error);
+
+    ADD_CHANNEL(val);
+
+#undef ADD_CHANNEL
+
+    sol_iio_device_start_buffer(mdata->device);
+
+    return true;
+
+error:
+    SOL_WRN("Could not create iio/proximity-sensor node. Failed to open"
+        " IIO device %d", device_id);
+
+    sol_iio_close(mdata->device);
+    return false;
+}
+
+static int
+proximity_open(struct sol_flow_node *node, void *data, const struct sol_flow_node_options *options)
+{
+    struct proximity_data *mdata = data;
+    const struct sol_flow_node_type_iio_proximity_sensor_options *opts;
+    int device_id;
+
+    SOL_FLOW_NODE_OPTIONS_SUB_API_CHECK(options, SOL_FLOW_NODE_TYPE_IIO_PROXIMITY_SENSOR_OPTIONS_API_VERSION,
+        -EINVAL);
+    opts = (const struct sol_flow_node_type_iio_proximity_sensor_options *)options;
+
+    mdata->buffer_enabled = opts->buffer_size > -1;
+
+    SOL_SET_API_VERSION(mdata->config.api_version = SOL_IIO_CONFIG_API_VERSION; )
+
+    if (opts->iio_trigger_name) {
+        mdata->config.trigger_name = strdup(opts->iio_trigger_name);
+        SOL_NULL_CHECK(mdata->config.trigger_name, -ENOMEM);
+    }
+
+    mdata->config.buffer_size = opts->buffer_size;
+    mdata->config.sampling_frequency = opts->sampling_frequency;
+    if (mdata->buffer_enabled) {
+        mdata->config.sol_iio_reader_cb = proximity_reader_cb;
+        mdata->config.data = node;
+    }
+    mdata->use_device_default_scale = opts->use_device_default_scale;
+    mdata->use_device_default_offset = opts->use_device_default_offset;
+    mdata->scale = opts->scale;
+    mdata->offset = opts->offset;
+    mdata->out_range = opts->out_range;
+
+    device_id = sol_iio_address_device(opts->iio_device);
+    if (device_id < 0) {
+        SOL_WRN("Could not create iio/proximity-sensor node. Failed to open"
+            " IIO device %s", opts->iio_device);
+        goto err;
+    }
+
+    if (!proximity_create_channels(mdata, device_id))
+        goto err;
+
+    return 0;
+
+err:
+    free((char *)mdata->config.trigger_name);
+    return -EINVAL;
+
+}
+
+static void
+proximity_close(struct sol_flow_node *node, void *data)
+{
+    struct proximity_data *mdata = data;
+
+    free((char *)mdata->config.trigger_name);
+    if (mdata->device)
+        sol_iio_close(mdata->device);
+}
+
+static int
+proximity_tick(struct sol_flow_node *node, void *data, uint16_t port, uint16_t conn_id, const struct sol_flow_packet *packet)
+{
+    static const char *errmsg = "Could not read channel values";
+    struct proximity_data *mdata = data;
+
+    if (mdata->buffer_enabled) {
+        if (!sol_iio_device_trigger_now(mdata->device))
+            goto error;
+    } else {
+        proximity_reader_cb(node, mdata->device);
     }
 
     return 0;

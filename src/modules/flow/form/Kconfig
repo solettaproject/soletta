@@ -9,5 +9,5 @@ config FLOW_NODE_TYPE_FORM
 
 		These node types format a multi-line string to be
 		used by other node types doing visual output, such as
-		LCD display (grove/lcd-string), in conjuntion with others
+		LCD display (jhd1313m1), in conjuntion with others
 		providing input.

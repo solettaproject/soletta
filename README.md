@@ -58,7 +58,7 @@ Before you start, check the [build requirements](https://github.com/solettaproje
 
 Some Soletta parts depends on projects that can be fetched via
 git submodules:
- * OIC depends on [tinycbor](https://github.com/01org/tinycbor) and [tinydtls](https://projects.eclipse.org/projects/iot.tinydtls)
+ * OIC depends on [tinycbor](https://github.com/01org/tinycbor), [tinydtls](https://projects.eclipse.org/projects/iot.tinydtls) and [IoTDataModels](https://github.com/OpenInterConnect/IoTDataModels)
  * JS metatypes depends on [duktape](http://duktape.org/)
  * Mavlink API depends on [mavlink](http://qgroundcontrol.org/mavlink/start)
 
@@ -443,7 +443,11 @@ gpio/writer (a single boolean OUT port):
 Flow can be created directly in C using low-level primitives from
 sol-flow.h or using a higher-level API in sol-flow-builder.h. An
 alternative is to write the flow in a domain-specific
-language—"FBP"<sup>[1](#footnote_01)</sup>—that is easier to express.
+language—"FBP" that is easier to express.
+
+Note that Soletta expects that FBP files are UTF-8-encoded and that all
+floating point numbers in them are in the POSIX locale format.
+
 As an example imagine one wants to blink an LED linked to GPIO pin 123
 every 200ms:
 
@@ -592,7 +596,5 @@ By making a contribution to this project, I certify that:
     this project or the open source license(s) involved.
 ```
 
-<a name="footnote_01">1</a>: Soletta expects that FBP files are
-UTF-8-encoded and that all floating point numbers in them are in the
-POSIX locale format.
-
+More information about how to contribute may be found on
+[Contributing wiki page](https://github.com/solettaproject/soletta/wiki/Contributing)

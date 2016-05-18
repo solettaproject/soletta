@@ -45,6 +45,12 @@
     "default": 1000,
     "description": "Tick interval the timer will start with, in milliseconds.",
     "name": "interval"
+   },
+   {
+    "data_type": "boolean",
+    "default": true,
+    "description": "Set if timer starts enabled or disabled. After initialization state must be changed through input port ENABLED",
+    "name": "enabled"
    }
   ],
   "version": 1

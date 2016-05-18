@@ -39,6 +39,7 @@ extern "C" {
  * To store more complex data as value, please see @ref Str_Table_Ptr.
  *
  * @see Str_Table_Ptr
+ * @see Str_Table_INT64
  *
  * @{
  */
@@ -47,6 +48,9 @@ extern "C" {
  * @struct sol_str_table
  *
  * @brief String table element type.
+ *
+ * For larger integers see struct sol_str_table_int64, for pointers see
+ * struct sol_str_table_ptr.
  */
 struct sol_str_table {
     const char *key; /**< @brief Key string */
@@ -57,7 +61,10 @@ struct sol_str_table {
 /**
  * @def SOL_STR_TABLE_ITEM(_key, _val)
  *
- * @brief Helper macro to make easier to declare a <key, value> pair.
+ * @brief Helper macro to make easier to declare a <key, int16_t> pair.
+ *
+ * For larger integers see struct sol_str_table_int64, for pointers see
+ * struct sol_str_table_ptr.
  *
  * @param _key Pair's key (string)
  * @param _val Pair's value (integer)
@@ -75,7 +82,9 @@ struct sol_str_table {
  * @param key Key to search
  * @param fallback Fallback value
  *
- * @return If @c key is found, return it's value, otherwise @c fallback is returned.
+ * @return If @c key is found, return it's value, otherwise @c
+ *         fallback is returned and errno is set to @c ENOENT if item
+ *         is not found of @c EINVAL if parameters were invalid.
  */
 int16_t sol_str_table_lookup_fallback(const struct sol_str_table *table,
     const struct sol_str_slice key,
@@ -91,7 +100,9 @@ int16_t sol_str_table_lookup_fallback(const struct sol_str_table *table,
  *
  * @brief Similar to @ref sol_str_table_lookup_fallback, but returning true/false.
  *
- * Returns true/false depending if key is found/not found and write the found value in @c _pval.
+ * Returns true/false depending if key is found/not found and write
+ * the found value in @c _pval. If not found, errno is set to @c
+ * ENOENT. If parameters were invalid, errno is set to @c EINVAL.
  *
  * @note Uses @c SOL_STR_TABLE_NOT_FOUND as a flag to detect when key isn't found,
  * so this value cannot be used in the string table for use with this macro.
@@ -121,6 +132,7 @@ int16_t sol_str_table_lookup_fallback(const struct sol_str_table *table,
  * please check @ref Str_Table.
  *
  * @see Str_Table
+ * @see Str_Table_INT64
  *
  * @{
  */
@@ -159,7 +171,10 @@ struct sol_str_table_ptr {
  * @param key Key to search
  * @param fallback Fallback pointer
  *
- * @return If @c key is found, return it's value, otherwise @c fallback is returned.
+ * @return If @c key is found, return it's value, otherwise @c
+ *         fallback is returned is returned and errno is set to @c
+ *         ENOENT if item is not found of @c EINVAL if parameters were
+ *         invalid.
  */
 const void *sol_str_table_ptr_lookup_fallback(const struct sol_str_table_ptr *table_ptr,
     const struct sol_str_slice key,
@@ -170,7 +185,9 @@ const void *sol_str_table_ptr_lookup_fallback(const struct sol_str_table_ptr *ta
  *
  * @brief Similar to @ref sol_str_table_ptr_lookup_fallback, but returning true/false.
  *
- * Returns true/false depending if key is found/not found and write the found value in @c _pval.
+ * Returns true/false depending if key is found/not found and write
+ * the found value in @c _pval. If not found, errno is set to @c
+ * ENOENT. If parameters were invalid, errno is set to @c EINVAL.
  *
  * @param _table_ptr The string/pointer table
  * @param _key Key to search
@@ -184,6 +201,98 @@ const void *sol_str_table_ptr_lookup_fallback(const struct sol_str_table_ptr *ta
         if (_v != NULL) \
             *_pval = _v; \
         _v != NULL; \
+    })
+
+/**
+ * @}
+ */
+
+/**
+ * @}
+ */
+
+/**
+ * @defgroup Str_Table_INT64 String/int64_t table
+ * @ingroup Datatypes
+ *
+ * @brief String table is a data type to store <string, int64_t>
+ * pairs. To store simple integers (16-bit signed), please check @ref
+ * Str_Table.
+ *
+ * @see Str_Table
+ * @see Str_Table_Ptr
+ *
+ * @{
+ */
+
+/**
+ * @struct sol_str_table_int64
+ *
+ * @brief String/int64_t table type
+ */
+struct sol_str_table_int64 {
+    const char *key; /**< @brief Key string */
+    size_t len; /**< @brief Key string length */
+    int64_t val; /**< @brief Value (int64_t) */
+};
+
+/**
+ * @def SOL_STR_TABLE_INT64_ITEM(_key, _val)
+ *
+ * @brief Helper macro to make easier to declare a <key, value> pair.
+ *
+ * @param _key Pair's key (string)
+ * @param _val Pair's value (int64_t)
+ */
+#define SOL_STR_TABLE_INT64_ITEM(_key, _val) \
+    { .key = SOL_STR_STATIC_ASSERT_LITERAL(_key), \
+      .len = sizeof(_key) - 1, \
+      .val = _val }
+
+/**
+ * @brief Retrieves the value associated with a given key from the string/int64_t table.
+ *
+ * Searches the table table for @c key string and return its int64_t, if @c key isn't found,
+ * the int64_t @c fallback is returned.
+ *
+ * @param table_int64 String/int64_t table
+ * @param key Key to search
+ * @param fallback Fallback int64_t
+ *
+ * @return If @c key is found, return it's value, otherwise @c
+ *         fallback is returned and errno is set to @c ENOENT if item
+ *         is not found of @c EINVAL if parameters were invalid.
+ */
+int64_t sol_str_table_int64_lookup_fallback(const struct sol_str_table_int64 *table_int64,
+    const struct sol_str_slice key,
+    int64_t fallback) SOL_ATTR_NONNULL(1);
+
+/**
+ * @brief flag to detect key 'misses' in @ref sol_str_table_int64_lookup.
+ */
+#define SOL_STR_TABLE_INT64_NOT_FOUND INT64_MAX
+
+/**
+ * @def sol_str_table_int64_lookup(_table_int64, _key, _pval)
+ *
+ * @brief Similar to @ref sol_str_table_int64_lookup_fallback, but returning true/false.
+ *
+ * Returns true/false depending if key is found/not found and write
+ * the found value in @c _pval. If not found, errno is set to
+ * @c ENOENT. If parameters where invalid, errno is set to @c EINVAL.
+ *
+ * @param _table_int64 The string/int64_t table
+ * @param _key Key to search
+ * @param _pval int64_t to int64_t that will hold the found value
+ *
+ * @see sol_str_table_lookup_fallback
+ */
+#define sol_str_table_int64_lookup(_table_int64, _key, _pval) ({ \
+        int64_t _v = sol_str_table_int64_lookup_fallback(_table_int64, \
+            _key, SOL_STR_TABLE_INT64_NOT_FOUND); \
+        if (_v != SOL_STR_TABLE_INT64_NOT_FOUND) \
+            *_pval = _v; \
+        _v != SOL_STR_TABLE_INT64_NOT_FOUND; \
     })
 
 /**

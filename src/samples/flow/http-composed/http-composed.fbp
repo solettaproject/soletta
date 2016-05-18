@@ -1,0 +1,43 @@
+# This file is part of the Soletta Project
+#
+# Copyright (C) 2016 Intel Corporation. All rights reserved.
+#
+# Licensed under the Apache License, Version 2.0 (the "License");
+# you may not use this file except in compliance with the License.
+# You may obtain a copy of the License at
+#
+#     http://www.apache.org/licenses/LICENSE-2.0
+#
+# Unless required by applicable law or agreed to in writing, software
+# distributed under the License is distributed on an "AS IS" BASIS,
+# WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+# See the License for the specific language governing permissions and
+# limitations under the License.
+#
+
+DECLARE=ComposedServer:http-composed-server:STRING_VALUE(string)|INT_VALUE(int)|FLOAT_VALUE(float)
+DECLARE=ComposedClient:http-composed-client:STRING_VALUE(string)|INT_VALUE(int)|FLOAT_VALUE(float)
+DECLARE=ComposedSplitter:composed-split:STRING_VALUE(string)|INT_VALUE(int)|FLOAT_VALUE(float)
+
+client(ComposedClient:url="http://localhost:8000/composed/")
+server(ComposedServer:path="/composed/", port=8000)
+console(console)
+
+_(constant/string:value="Hello") OUT -> STRING_VALUE server
+_(constant/int:value=42) OUT -> INT_VALUE server
+_(constant/float:value=0.1) OUT -> FLOAT_VALUE server
+
+_(constant/empty) OUT -> GET client
+
+client OUT -> IN Splitter(ComposedSplitter)
+Splitter FLOAT_VALUE -> IN console
+Splitter INT_VALUE -> IN console
+Splitter STRING_VALUE -> IN console
+
+_(constant/string:value="Hello Back") OUT -> STRING_VALUE client
+_(constant/int:value=1764) OUT -> INT_VALUE client
+_(constant/float:value=0.2) OUT -> FLOAT_VALUE client
+
+_(constant/empty) OUT -> POST client
+
+server OUT -> IN Splitter

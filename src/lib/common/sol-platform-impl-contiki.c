@@ -206,13 +206,6 @@ sol_platform_unregister_timezone_monitor(void)
 }
 
 int
-sol_platform_unregister_timezone_monitor(void)
-{
-    SOL_WRN("Not implemented");
-    return -ENOTSUP;
-}
-
-int
 sol_platform_impl_set_locale(char **locales)
 {
     SOL_WRN("Not implemented");
@@ -223,7 +216,7 @@ const char *
 sol_platform_impl_get_locale(enum sol_platform_locale_category type)
 {
     SOL_WRN("Not implemented");
-    return -ENOTSUP;
+    return NULL;
 }
 
 int
@@ -251,7 +244,7 @@ int
 sol_platform_impl_load_locales(char **locale_cache)
 {
     SOL_WRN("Not implemented");
-    return -ENOTSUP;
+    return 0;
 }
 
 int

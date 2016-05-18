@@ -23,6 +23,7 @@
 #include "sol-vector.h"
 #include "sol-mainloop-impl.h"
 #include "sol-mainloop-common.h"
+#include "sol-atomic.h"
 
 struct sol_mainloop_source_common {
     const struct sol_mainloop_source_type *type;
@@ -35,7 +36,11 @@ static bool source_processing;
 static unsigned source_pending_deletion;
 static struct sol_ptr_vector source_vector = SOL_PTR_VECTOR_INIT;
 
+#ifdef THREADS
+static sol_atomic_int run_loop = SOL_ATOMIC_INIT(0);
+#else
 static bool run_loop;
+#endif
 
 static bool timeout_processing;
 static unsigned int timeout_pending_deletion;
@@ -94,7 +99,7 @@ bool
 sol_mainloop_common_loop_check(void)
 {
 #ifdef THREADS
-    return __atomic_load_n(&run_loop, __ATOMIC_SEQ_CST);
+    return sol_atomic_load(&run_loop, SOL_ATOMIC_RELAXED);
 #else
     return run_loop;
 #endif
@@ -104,7 +109,7 @@ void
 sol_mainloop_common_loop_set(bool val)
 {
 #ifdef THREADS
-    __atomic_store_n(&run_loop, (val), __ATOMIC_SEQ_CST);
+    sol_atomic_store(&run_loop, (val), SOL_ATOMIC_RELAXED);
 #else
     run_loop = val;
 #endif
@@ -194,7 +199,7 @@ sol_mainloop_common_timeout_process(void)
             continue;
         }
 
-        sol_util_timespec_sum(&now, &timeout->timeout, &timeout->expire);
+        sol_util_timespec_add(&now, &timeout->timeout, &timeout->expire);
         r = sol_ptr_vector_update_sorted(&TIMEOUT_PROCESS, i, timeout_compare);
         if (r < 0)
             break;
@@ -558,14 +563,14 @@ sol_mainloop_impl_timeout_add(uint32_t timeout_ms, bool (*cb)(void *data), const
 
     sol_mainloop_impl_lock();
 
-    timeout->timeout.tv_sec = timeout_ms / SOL_MSEC_PER_SEC;
-    timeout->timeout.tv_nsec = (timeout_ms % SOL_MSEC_PER_SEC) * SOL_NSEC_PER_MSEC;
+    timeout->timeout.tv_sec = timeout_ms / SOL_UTIL_MSEC_PER_SEC;
+    timeout->timeout.tv_nsec = (timeout_ms % SOL_UTIL_MSEC_PER_SEC) * SOL_UTIL_NSEC_PER_MSEC;
     timeout->cb = cb;
     timeout->data = data;
     timeout->remove_me = false;
 
     now = sol_util_timespec_get_current();
-    sol_util_timespec_sum(&now, &timeout->timeout, &timeout->expire);
+    sol_util_timespec_add(&now, &timeout->timeout, &timeout->expire);
     ret = sol_ptr_vector_insert_sorted(&timeout_vector, timeout, timeout_compare);
     SOL_INT_CHECK_GOTO(ret, < 0, clean);
 

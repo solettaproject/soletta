@@ -1,0 +1,17 @@
+
+menu "Data Type Options"
+
+config MEMDESC_DESCRIPTION
+    bool "Include description text in sol_memdesc"
+    default n if RIOT || CONTIKI || ZEPHYR
+    default y
+    help
+            Enable description text in sol_memdesc.
+
+            The textual description is used to provide nicer
+            introspection when using memory descriptions, however it
+            will increase binary size due larger read-only text
+            strings, sometimes it's not desired on smaller systems
+            where disk footprint matters.
+
+endmenu

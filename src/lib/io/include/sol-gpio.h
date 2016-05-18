@@ -227,6 +227,84 @@ struct sol_gpio_config {
 };
 
 /**
+ * @brief Converts a string GPIO direction to sol_gpio_direction.
+ *
+ * This function converts a string GPIO direction to enumeration sol_gpio_direction.
+ *
+ * @see sol_gpio_direction_to_str().
+ *
+ * @param direction Valid values are "in", "out".
+ *
+ * @return enumeration sol_gpio_direction.
+ */
+enum sol_gpio_direction sol_gpio_direction_from_str(const char *direction) SOL_ATTR_WARN_UNUSED_RESULT;
+
+/**
+ * @brief Converts sol_gpio_direction to a string name.
+ *
+ * This function converts sol_gpio_direction enumeration to a string GPIO direction name.
+ *
+ * @see sol_gpio_direction_from_str().
+ *
+ * @param direction sol_gpio_direction.
+ *
+ * @return String representation of the sol_gpio_direction.
+ */
+const char *sol_gpio_direction_to_str(enum sol_gpio_direction direction) SOL_ATTR_WARN_UNUSED_RESULT;
+
+/**
+ * @brief Converts a string GPIO edge to sol_gpio_edge
+ *
+ * This function converts a string GPIO edge to enumeration sol_gpio_edge
+ *
+ * @see sol_gpio_edge_to_str().
+ *
+ * @param edge Valid values are "none", "rising", "falling", "any".
+ *
+ * @return enumeration sol_gpio_edge
+ */
+enum sol_gpio_edge sol_gpio_edge_from_str(const char *edge) SOL_ATTR_WARN_UNUSED_RESULT;
+
+/**
+ * @brief Converts sol_gpio_edge to a string name.
+ *
+ * This function converts sol_gpio_edge enumeration to a string GPIO edge name
+ *
+ * @see sol_gpio_edge_from_str().
+ *
+ * @param edge sol_gpio_edge
+ *
+ * @return String representation of the sol_gpio_edge
+ */
+const char *sol_gpio_edge_to_str(enum sol_gpio_edge edge) SOL_ATTR_WARN_UNUSED_RESULT;
+
+/**
+ * @brief Converts a string GPIO drive to sol_gpio_drive.
+ *
+ * This function converts a string GPIO drive to enumeration sol_gpio_drive.
+ *
+ * @see sol_gpio_drive_to_str().
+ *
+ * @param drive Valid values are "none", "up", "down".
+ *
+ * @return enumeration sol_gpio_drive.
+ */
+enum sol_gpio_drive sol_gpio_drive_from_str(const char *drive) SOL_ATTR_WARN_UNUSED_RESULT;
+
+/**
+ * @brief Converts sol_gpio_drive to a string name.
+ *
+ * This function converts sol_gpio_drive enumeration to a string GPIO drive name.
+ *
+ * @see sol_gpio_drive_from_str().
+ *
+ * @param drive sol_gpio_drive.
+ *
+ * @return String representation of the sol_gpio_drive.
+ */
+const char *sol_gpio_drive_to_str(enum sol_gpio_drive drive) SOL_ATTR_WARN_UNUSED_RESULT;
+
+/**
  * @brief Opens a given pin by its board label as general purpose input or output.
  *
  * This function only works when the board was successfully detected

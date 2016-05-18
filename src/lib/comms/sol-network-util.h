@@ -18,32 +18,86 @@
 
 #pragma once
 
+#include <ctype.h>
+
+#include <sol-buffer.h>
 #include <sol-network.h>
 
-#include <netinet/in.h>
+enum sol_network_family sol_network_af_to_sol(int af);
+int sol_network_sol_to_af(enum sol_network_family snf);
 
-static inline enum sol_network_family
-sol_network_af_to_sol(int af)
+static inline struct sol_network_link_addr *
+sol_bluetooth_addr_from_str(struct sol_network_link_addr *addr, const char *str)
 {
-    switch (af) {
-    case AF_INET:
-        return SOL_NETWORK_FAMILY_INET;
-    case AF_INET6:
-        return SOL_NETWORK_FAMILY_INET6;
-    default:
-        return SOL_NETWORK_FAMILY_UNSPEC;
+    int i;
+    uint8_t *ba = addr->addr.bt_addr;
+    const char *ptr;
+    char *endptr = NULL;
+
+    /* FIXME */
+    addr->family = SOL_NETWORK_FAMILY_BLUETOOTH;
+    addr->addr.bt_type = SOL_NETWORK_BT_ADDR_BASIC_RATE;
+
+    ptr = str;
+
+    for (i = sizeof(addr->addr.bt_addr) - 1; i >= 0; i--) {
+        ba[i] = strtoul(ptr, &endptr, 16);
+        ptr = endptr + 1;
+        endptr = NULL;
     }
+
+    return addr;
 }
 
-static inline int
-sol_network_sol_to_af(enum sol_network_family snf)
+static inline bool
+sol_bluetooth_is_addr_str(const char *str)
 {
-    switch (snf) {
-    case SOL_NETWORK_FAMILY_INET:
-        return AF_INET;
-    case SOL_NETWORK_FAMILY_INET6:
-        return AF_INET6;
-    default:
-        return AF_UNSPEC;
+    const char *p = str;
+
+    while (*str) {
+        if (!isxdigit((int)*str++))
+            return false;
+
+        if (!isxdigit((int)*str++))
+            return false;
+
+        if (*str == '0')
+            break;
+
+        if (*str == '\0')
+            break;
+
+        if (*str++ != ':')
+            return false;
     }
+
+    return (str - p) == 17;
+}
+
+static inline const char *
+sol_bluetooth_addr_to_str(const struct sol_network_link_addr *addr,
+    struct sol_buffer *buffer)
+{
+    const uint8_t *ba = addr->addr.bt_addr;
+    int r;
+
+    r = sol_buffer_append_printf(buffer, "%2.2X:%2.2X:%2.2X:%2.2X:%2.2X:%2.2X",
+        ba[5], ba[4], ba[3], ba[2], ba[1], ba[0]);
+    if (r < 0)
+        return NULL;
+
+    return buffer->data;
+}
+
+static inline bool
+sol_bluetooth_is_family(int family)
+{
+    switch (family) {
+    case SOL_NETWORK_FAMILY_BLUETOOTH:
+    case SOL_NETWORK_FAMILY_BLUETOOTH_RFCOMM:
+    case SOL_NETWORK_FAMILY_BLUETOOTH_L2CAP:
+        return true;
+    }
+
+    return false;
 }

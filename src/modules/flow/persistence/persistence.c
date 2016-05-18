@@ -47,18 +47,10 @@ struct storage_fn {
 };
 
 struct persist_data {
+    const struct storage_fn *storage;
     void *value_ptr;
-
     char *name;
     char *fs_dir_path;
-
-    struct sol_flow_packet *(*packet_new_fn)(const struct persist_data *data);
-    int (*packet_data_get_fn)(size_t packet_data_size, const struct sol_flow_packet *packet, void *value_ptr);
-    int (*packet_send_fn)(struct sol_flow_node *node);
-    void *(*node_get_default_fn)(struct sol_flow_node *node);
-
-    const struct storage_fn *storage;
-
     size_t packet_data_size;
 };
 
@@ -66,6 +58,13 @@ struct write_cb_data {
     struct persist_data *mdata;
     struct sol_flow_node *node;
     bool send_packet;
+};
+
+struct persistence_node_type {
+    struct sol_flow_node_type base;
+    int (*get_packet_data)(size_t packet_data_size, const struct sol_flow_packet *packet, void *value_ptr);
+    int (*send_packet)(struct sol_flow_node *node);
+    void *(*get_default)(struct sol_flow_node *node);
 };
 
 #ifdef USE_FILESYSTEM
@@ -124,6 +123,10 @@ write_cb(void *data, const char *name, struct sol_blob *blob, int status)
     struct write_cb_data *cb_data = data;
     struct persist_data *mdata = cb_data->mdata;
     struct sol_flow_node *node = cb_data->node;
+    const struct persistence_node_type *type;
+
+    type = (const struct persistence_node_type *)
+        sol_flow_node_get_type(node);
 
     if (status < 0) {
         if (status == -ECANCELED)
@@ -136,7 +139,7 @@ write_cb(void *data, const char *name, struct sol_blob *blob, int status)
 
     if (update_node_value(mdata, blob->mem, blob->size)) {
         if (cb_data->send_packet)
-            mdata->packet_send_fn(node);
+            type->send_packet(node);
     }
 
 end:
@@ -156,7 +159,7 @@ storage_write(struct persist_data *mdata, void *data, size_t size, struct sol_fl
 
     memcpy(cp_data, data, size);
 
-    blob = sol_blob_new(SOL_BLOB_TYPE_DEFAULT, NULL, cp_data, size);
+    blob = sol_blob_new(&SOL_BLOB_TYPE_DEFAULT, NULL, cp_data, size);
     SOL_NULL_CHECK_GOTO(blob, error);
 
     cb_data = malloc(sizeof(struct write_cb_data));
@@ -210,7 +213,7 @@ persist_do(struct persist_data *mdata, struct sol_flow_node *node, void *value,
     else
         size = strlen(value) + 1; //To include the null terminating char
 
-    if (mdata->value_ptr && value) {
+    if (mdata->value_ptr) {
         if (mdata->packet_data_size)
             r = memcmp(mdata->value_ptr, value, mdata->packet_data_size);
         else
@@ -230,8 +233,12 @@ persist_reset(struct persist_data *mdata, struct sol_flow_node *node)
 {
     void *value;
     size_t size;
+    const struct persistence_node_type *type;
 
-    value = mdata->node_get_default_fn(node);
+    type = (const struct persistence_node_type *)
+        sol_flow_node_get_type(node);
+
+    value = type->get_default(node);
 
     if (mdata->packet_data_size)
         size = mdata->packet_data_size;
@@ -239,7 +246,7 @@ persist_reset(struct persist_data *mdata, struct sol_flow_node *node)
         size = strlen(value) + 1;
 
     if (update_node_value(mdata, value, size))
-        mdata->packet_send_fn(node);
+        type->send_packet(node);
 
     return persist_do(mdata, node, value, false);
 }
@@ -254,14 +261,18 @@ persist_process(struct sol_flow_node *node,
     struct persist_data *mdata = data;
     void *value;
     int r;
+    const struct persistence_node_type *type;
+
+    type = (const struct persistence_node_type *)
+        sol_flow_node_get_type(node);
 
     if (mdata->packet_data_size) {
         /* Using alloca() is OK here since packet_data_size is always
          * a sizeof() of a fixed struct. */
         value = alloca(mdata->packet_data_size);
-        r = mdata->packet_data_get_fn(mdata->packet_data_size, packet, value);
+        r = type->get_packet_data(mdata->packet_data_size, packet, value);
     } else
-        r = mdata->packet_data_get_fn(mdata->packet_data_size, packet, &value);
+        r = type->get_packet_data(mdata->packet_data_size, packet, &value);
 
     SOL_INT_CHECK(r, < 0, r);
 
@@ -289,6 +300,10 @@ persist_open(struct sol_flow_node *node,
     struct persist_data *mdata = data;
     struct sol_str_slice storage_slice;
     int r;
+    const struct persistence_node_type *type;
+
+    type = (const struct persistence_node_type *)
+        sol_flow_node_get_type(node);
 
     if (!storage || *storage == '\0') {
         SOL_WRN("Must define a storage type");
@@ -328,7 +343,7 @@ persist_open(struct sol_flow_node *node,
     }
     SOL_INT_CHECK_GOTO(r, < 0, err);
 
-    return mdata->packet_send_fn(node);
+    return type->send_packet(node);
 
 err:
     persist_close(node, mdata);
@@ -342,7 +357,7 @@ struct persist_boolean_data {
 };
 
 static void *
-persist_boolean_node_get_default(struct sol_flow_node *node)
+persist_boolean_get_default(struct sol_flow_node *node)
 {
     struct persist_boolean_data *mdata = sol_flow_node_get_private_data(node);
 
@@ -350,7 +365,7 @@ persist_boolean_node_get_default(struct sol_flow_node *node)
 }
 
 static int
-persist_boolean_packet_data_get(size_t packet_data_size,
+persist_boolean_get_packet_data(size_t packet_data_size,
     const struct sol_flow_packet *packet,
     void *value_ptr)
 {
@@ -362,22 +377,13 @@ persist_boolean_packet_data_get(size_t packet_data_size,
 }
 
 static int
-persist_boolean_packet_send(struct sol_flow_node *node)
+persist_boolean_send_packet(struct sol_flow_node *node)
 {
     struct persist_data *mdata = sol_flow_node_get_private_data(node);
 
     return sol_flow_send_boolean_packet
                (node, SOL_FLOW_NODE_TYPE_PERSISTENCE_BOOLEAN__OUT__OUT,
                *(bool *)mdata->value_ptr);
-}
-
-static struct sol_flow_packet *
-persist_boolean_packet_new(const struct persist_data *data)
-{
-    struct persist_boolean_data *mdata =
-        (struct persist_boolean_data *)data;
-
-    return sol_flow_packet_new_boolean(mdata->last_value);
 }
 
 static int
@@ -394,10 +400,6 @@ persist_boolean_open(struct sol_flow_node *node,
 
     mdata->base.packet_data_size = sizeof(bool);
     mdata->base.value_ptr = &mdata->last_value;
-    mdata->base.packet_new_fn = persist_boolean_packet_new;
-    mdata->base.packet_data_get_fn = persist_boolean_packet_data_get;
-    mdata->base.packet_send_fn = persist_boolean_packet_send;
-    mdata->base.node_get_default_fn = persist_boolean_node_get_default;
     mdata->default_value = opts->default_value;
 
     return persist_open(node, data, opts->storage, opts->name);
@@ -410,7 +412,7 @@ struct persist_byte_data {
 };
 
 static void *
-persist_byte_node_get_default(struct sol_flow_node *node)
+persist_byte_get_default(struct sol_flow_node *node)
 {
     struct persist_byte_data *mdata = sol_flow_node_get_private_data(node);
 
@@ -418,7 +420,7 @@ persist_byte_node_get_default(struct sol_flow_node *node)
 }
 
 static int
-persist_byte_packet_data_get(size_t packet_data_size,
+persist_byte_get_packet_data(size_t packet_data_size,
     const struct sol_flow_packet *packet,
     void *value_ptr)
 {
@@ -430,21 +432,13 @@ persist_byte_packet_data_get(size_t packet_data_size,
 }
 
 static int
-persist_byte_packet_send(struct sol_flow_node *node)
+persist_byte_send_packet(struct sol_flow_node *node)
 {
     struct persist_data *mdata = sol_flow_node_get_private_data(node);
 
     return sol_flow_send_byte_packet
                (node, SOL_FLOW_NODE_TYPE_PERSISTENCE_BYTE__OUT__OUT,
                *(unsigned char *)mdata->value_ptr);
-}
-
-static struct sol_flow_packet *
-persist_byte_packet_new(const struct persist_data *data)
-{
-    struct persist_byte_data *mdata = (struct persist_byte_data *)data;
-
-    return sol_flow_packet_new_byte(mdata->last_value);
 }
 
 static int
@@ -461,10 +455,6 @@ persist_byte_open(struct sol_flow_node *node,
 
     mdata->base.packet_data_size = sizeof(unsigned char);
     mdata->base.value_ptr = &mdata->last_value;
-    mdata->base.packet_new_fn = persist_byte_packet_new;
-    mdata->base.packet_data_get_fn = persist_byte_packet_data_get;
-    mdata->base.packet_send_fn = persist_byte_packet_send;
-    mdata->base.node_get_default_fn = persist_byte_node_get_default;
     mdata->default_value = opts->default_value;
 
     return persist_open(node, data, opts->storage, opts->name);
@@ -478,7 +468,7 @@ struct persist_irange_data {
 };
 
 static void *
-persist_irange_node_get_default(struct sol_flow_node *node)
+persist_irange_get_default(struct sol_flow_node *node)
 {
     struct persist_irange_data *mdata = sol_flow_node_get_private_data(node);
 
@@ -486,7 +476,7 @@ persist_irange_node_get_default(struct sol_flow_node *node)
 }
 
 static int
-persist_irange_packet_data_get(size_t packet_data_size,
+persist_irange_get_packet_data(size_t packet_data_size,
     const struct sol_flow_packet *packet,
     void *value_ptr)
 {
@@ -503,7 +493,7 @@ persist_irange_packet_data_get(size_t packet_data_size,
 }
 
 static int
-persist_irange_packet_send(struct sol_flow_node *node)
+persist_irange_send_packet(struct sol_flow_node *node)
 {
     struct persist_irange_data *mdata = sol_flow_node_get_private_data(node);
     struct sol_irange *val = mdata->base.value_ptr;
@@ -525,15 +515,6 @@ persist_irange_packet_send(struct sol_flow_node *node)
                (node, SOL_FLOW_NODE_TYPE_PERSISTENCE_INT__OUT__OUT, val);
 }
 
-static struct sol_flow_packet *
-persist_irange_packet_new(const struct persist_data *data)
-{
-    struct persist_irange_data *mdata =
-        (struct persist_irange_data *)data;
-
-    return sol_flow_packet_new_irange(&mdata->last_value);
-}
-
 static int
 persist_irange_open(struct sol_flow_node *node,
     void *data,
@@ -552,10 +533,6 @@ persist_irange_open(struct sol_flow_node *node,
     else
         mdata->base.packet_data_size = sizeof(struct sol_irange);
     mdata->base.value_ptr = &mdata->last_value;
-    mdata->base.packet_new_fn = persist_irange_packet_new;
-    mdata->base.packet_data_get_fn = persist_irange_packet_data_get;
-    mdata->base.packet_send_fn = persist_irange_packet_send;
-    mdata->base.node_get_default_fn = persist_irange_node_get_default;
     mdata->store_only_val = opts->store_only_val;
 
     r = sol_irange_compose(&opts->default_value_spec, opts->default_value,
@@ -573,7 +550,7 @@ struct persist_drange_data {
 };
 
 static void *
-persist_drange_node_get_default(struct sol_flow_node *node)
+persist_drange_get_default(struct sol_flow_node *node)
 {
     struct persist_drange_data *mdata = sol_flow_node_get_private_data(node);
 
@@ -581,7 +558,7 @@ persist_drange_node_get_default(struct sol_flow_node *node)
 }
 
 static int
-persist_drange_packet_data_get(size_t packet_data_size,
+persist_drange_get_packet_data(size_t packet_data_size,
     const struct sol_flow_packet *packet,
     void *value_ptr)
 {
@@ -598,13 +575,13 @@ persist_drange_packet_data_get(size_t packet_data_size,
 }
 
 static int
-persist_drange_packet_send(struct sol_flow_node *node)
+persist_drange_send_packet(struct sol_flow_node *node)
 {
     struct persist_drange_data *mdata = sol_flow_node_get_private_data(node);
     struct sol_drange *val = mdata->base.value_ptr;
-    bool no_defaults = sol_drange_val_equal(val->step, 0) &&
-        sol_drange_val_equal(val->min, 0) &&
-        sol_drange_val_equal(val->min, 0);
+    bool no_defaults = sol_util_double_equal(val->step, 0) &&
+        sol_util_double_equal(val->min, 0) &&
+        sol_util_double_equal(val->min, 0);
 
     if (mdata->store_only_val || no_defaults) {
         struct sol_drange value = {
@@ -621,15 +598,6 @@ persist_drange_packet_send(struct sol_flow_node *node)
 
     return sol_flow_send_drange_packet
                (node, SOL_FLOW_NODE_TYPE_PERSISTENCE_FLOAT__OUT__OUT, val);
-}
-
-static struct sol_flow_packet *
-persist_drange_packet_new(const struct persist_data *data)
-{
-    struct persist_drange_data *mdata =
-        (struct persist_drange_data *)data;
-
-    return sol_flow_packet_new_drange(&mdata->last_value);
 }
 
 static int
@@ -650,10 +618,6 @@ persist_drange_open(struct sol_flow_node *node,
     else
         mdata->base.packet_data_size = sizeof(struct sol_drange);
     mdata->base.value_ptr = &mdata->last_value;
-    mdata->base.packet_new_fn = persist_drange_packet_new;
-    mdata->base.packet_data_get_fn = persist_drange_packet_data_get;
-    mdata->base.packet_send_fn = persist_drange_packet_send;
-    mdata->base.node_get_default_fn = persist_drange_node_get_default;
     mdata->store_only_val = opts->store_only_val;
 
     r = sol_drange_compose(&opts->default_value_spec, opts->default_value,
@@ -670,7 +634,7 @@ struct persist_string_data {
 };
 
 static void *
-persist_string_node_get_default(struct sol_flow_node *node)
+persist_string_get_default(struct sol_flow_node *node)
 {
     struct persist_string_data *mdata = sol_flow_node_get_private_data(node);
 
@@ -678,7 +642,7 @@ persist_string_node_get_default(struct sol_flow_node *node)
 }
 
 static int
-persist_string_packet_data_get(size_t packet_data_size,
+persist_string_get_packet_data(size_t packet_data_size,
     const struct sol_flow_packet *packet,
     void *value_ptr)
 {
@@ -690,19 +654,13 @@ persist_string_packet_data_get(size_t packet_data_size,
 }
 
 static int
-persist_string_packet_send(struct sol_flow_node *node)
+persist_string_send_packet(struct sol_flow_node *node)
 {
     struct persist_data *mdata = sol_flow_node_get_private_data(node);
 
     return sol_flow_send_string_packet
                (node, SOL_FLOW_NODE_TYPE_PERSISTENCE_STRING__OUT__OUT,
                (const char *)mdata->value_ptr);
-}
-
-static struct sol_flow_packet *
-persist_string_packet_new(const struct persist_data *data)
-{
-    return sol_flow_packet_new_string(data->value_ptr);
 }
 
 static int
@@ -717,15 +675,9 @@ persist_string_open(struct sol_flow_node *node,
 
     SOL_FLOW_NODE_OPTIONS_SUB_API_CHECK(options,
         SOL_FLOW_NODE_TYPE_PERSISTENCE_STRING_OPTIONS_API_VERSION, -EINVAL);
-    mdata->base.packet_new_fn = persist_string_packet_new;
-    mdata->base.packet_data_get_fn = persist_string_packet_data_get;
-    mdata->base.packet_send_fn = persist_string_packet_send;
-    mdata->base.node_get_default_fn = persist_string_node_get_default;
 
-    if (opts->default_value) {
-        mdata->default_value = strdup((char *)opts->default_value);
-        SOL_NULL_CHECK(mdata->default_value, -ENOMEM);
-    }
+    mdata->default_value = strdup(opts->default_value);
+    SOL_NULL_CHECK(mdata->default_value, -ENOMEM);
 
     r = persist_open(node, data, opts->storage, opts->name);
     if (r < 0)
@@ -742,6 +694,113 @@ persist_string_close(struct sol_flow_node *node, void *data)
     free(mdata->default_value);
 
     persist_close(node, mdata);
+}
+
+struct persist_rgb_data {
+    struct persist_data base;
+    struct sol_rgb default_rgb;
+    struct sol_rgb last_value;
+};
+
+static int
+persist_rgb_get_packet_data(size_t packet_data_size,
+    const struct sol_flow_packet *packet, void *value_ptr)
+{
+    int r = sol_flow_packet_get_rgb(packet, value_ptr);
+
+    SOL_INT_CHECK(r, < 0, r);
+    return 0;
+}
+
+static int
+persist_rgb_send_packet(struct sol_flow_node *node)
+{
+    struct persist_data *mdata = sol_flow_node_get_private_data(node);
+
+    return sol_flow_send_rgb_packet(node,
+        SOL_FLOW_NODE_TYPE_PERSISTENCE_RGB__OUT__OUT,
+        (struct sol_rgb *)mdata->value_ptr);
+}
+
+static void *
+persist_rgb_get_default(struct sol_flow_node *node)
+{
+    struct persist_rgb_data *mdata = sol_flow_node_get_private_data(node);
+
+    return &mdata->default_rgb;
+}
+
+static int
+persist_rgb_open(struct sol_flow_node *node,
+    void *data,
+    const struct sol_flow_node_options *options)
+{
+    struct persist_rgb_data *mdata = data;
+    const struct sol_flow_node_type_persistence_rgb_options *opts =
+        (const struct sol_flow_node_type_persistence_rgb_options *)options;
+
+    SOL_FLOW_NODE_OPTIONS_SUB_API_CHECK(options,
+        SOL_FLOW_NODE_TYPE_PERSISTENCE_RGB_OPTIONS_API_VERSION, -EINVAL);
+
+    mdata->base.packet_data_size = sizeof(struct sol_rgb);
+    mdata->default_rgb = opts->default_value;
+    mdata->base.value_ptr = &mdata->last_value;
+
+    return persist_open(node, data, opts->storage, opts->name);
+}
+
+struct persist_direction_vector_data {
+    struct persist_data base;
+    struct sol_direction_vector default_direction_vector;
+    struct sol_direction_vector last_value;
+};
+
+static int
+persist_direction_vector_get_packet_data(size_t packet_data_size,
+    const struct sol_flow_packet *packet, void *value_ptr)
+{
+    int r = sol_flow_packet_get_direction_vector(packet, value_ptr);
+
+    SOL_INT_CHECK(r, < 0, r);
+    return 0;
+}
+
+static int
+persist_direction_vector_send_packet(struct sol_flow_node *node)
+{
+    struct persist_data *mdata = sol_flow_node_get_private_data(node);
+
+    return sol_flow_send_direction_vector_packet(node,
+        SOL_FLOW_NODE_TYPE_PERSISTENCE_DIRECTION_VECTOR__OUT__OUT,
+        (struct sol_direction_vector *)mdata->value_ptr);
+}
+
+static void *
+persist_direction_vector_get_default(struct sol_flow_node *node)
+{
+    struct persist_direction_vector_data *mdata =
+        sol_flow_node_get_private_data(node);
+
+    return &mdata->default_direction_vector;
+}
+
+static int
+persist_direction_vector_open(struct sol_flow_node *node,
+    void *data,
+    const struct sol_flow_node_options *options)
+{
+    struct persist_direction_vector_data *mdata = data;
+    const struct sol_flow_node_type_persistence_direction_vector_options *opts =
+        (const struct sol_flow_node_type_persistence_direction_vector_options *)options;
+
+    SOL_FLOW_NODE_OPTIONS_SUB_API_CHECK(options,
+        SOL_FLOW_NODE_TYPE_PERSISTENCE_DIRECTION_VECTOR_OPTIONS_API_VERSION, -EINVAL);
+
+    mdata->base.packet_data_size = sizeof(struct sol_direction_vector);
+    mdata->default_direction_vector = opts->default_value;
+    mdata->base.value_ptr = &mdata->last_value;
+
+    return persist_open(node, data, opts->storage, opts->name);
 }
 
 #include "persistence-gen.c"

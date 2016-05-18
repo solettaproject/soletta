@@ -1,0 +1,40 @@
+{
+    "$schema": "http://solettaproject.github.io/soletta/schemas/config.schema",
+    "nodetypes": [
+        {
+            "name": "QuitButton",
+            "options": {
+                "binary_code": 113
+            },
+            "type": "keyboard/boolean"
+        },
+        {
+            "name": "IncreaseButton",
+            "options": {
+                "binary_code": 106
+            },
+            "type": "keyboard/boolean"
+        },
+        {
+            "name": "DecreaseButton",
+            "options": {
+                "binary_code": 107
+            },
+            "type": "keyboard/boolean"
+        },
+        {
+            "name": "StateButton",
+            "options": {
+                "binary_code": 97
+            },
+            "type": "keyboard/boolean"
+        },
+        {
+            "name": "StartupMessage",
+            "options": {
+                "value": "Press 'a' to change state, 'j' to increase power and 'k' to decrease it, 'q' to quit."
+            },
+            "type": "constant/string"
+        }
+    ]
+}

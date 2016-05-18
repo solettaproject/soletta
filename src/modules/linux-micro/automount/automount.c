@@ -262,7 +262,7 @@ automount_get_fstype(char *dev)
 {
     unsigned int i;
 
-    for (i = 0; i < SOL_UTIL_ARRAY_SIZE(table); i++) {
+    for (i = 0; i < sol_util_array_size(table); i++) {
         const struct filesystem_magic *magic;
 
         for (magic = table[i].magic; magic->magic != NULL; magic++) {

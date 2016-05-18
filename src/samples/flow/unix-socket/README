@@ -8,7 +8,7 @@ it (if a writer). Servers should always be started before clients, as
 they will create the socket to accept connections.  By default writer
 nodes are server, unless defined as a node option.
 
-As both processes are local, no endianess conversion is done and the
+As both processes are local, no endianness conversion is done and the
 packets are considered to be of exact sizes, otherwise the peer may
 close the connection if it could not read or write the required
 amount.

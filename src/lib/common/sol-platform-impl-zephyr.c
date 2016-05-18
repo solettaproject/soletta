@@ -19,6 +19,7 @@
 #include <errno.h>
 #include <stdlib.h>
 #include <string.h>
+#include <version.h>
 
 #include "sol-platform.h"
 #include "sol-platform-impl.h"
@@ -84,10 +85,22 @@ sol_platform_impl_set_target(const char *target)
 }
 
 int
-sol_platform_impl_get_machine_id(char id[static 33])
+sol_platform_impl_get_machine_id(char id[SOL_STATIC_ARRAY_SIZE(33)])
 {
-    SOL_WRN("Not implemented");
+#ifdef SOL_MACHINE_ID
+    static const char ID[] = SOL_MACHINE_ID;
+    const char *ptr;
+    int i = 0;
+
+    for (ptr = ID; *ptr && i < 33; ptr++) {
+        id[i++] = *ptr;
+    }
+
+    return 0;
+#else
+    SOL_WRN("SOL_MACHINE_ID was not defined, unable to get a machine ID");
     return -ENOTSUP;
+#endif
 }
 
 int
@@ -100,8 +113,12 @@ sol_platform_impl_get_serial_number(char **number)
 int
 sol_platform_impl_get_os_version(char **version)
 {
-    SOL_WRN("Not implemented");
-    return -ENOTSUP;
+    SOL_NULL_CHECK(version, -EINVAL);
+
+    *version = strdup(KERNEL_VERSION_STRING);
+    SOL_NULL_CHECK(*version, -ENOMEM);
+
+    return 0;
 }
 
 int
@@ -157,7 +174,7 @@ sol_platform_impl_apply_locale(enum sol_platform_locale_category type, const cha
 int
 sol_platform_impl_load_locales(char **locale_cache)
 {
-    SOL_WRN("Not implemented");
+    SOL_WRN("Locales for Zephyr not implemented");
     return 0;
 }
 

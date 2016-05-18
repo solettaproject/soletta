@@ -16,10 +16,10 @@
 
 
 BlobPath(app/argv:index=1)
-get_string(http-client/get-string:url="https://raw.githubusercontent.com/solettaproject/soletta/master/src/modules/flow/aio/aio.c", content_type=null) OUT -> IN StringResponse(console)
+get_string(http-client/string:url="https://raw.githubusercontent.com/solettaproject/soletta/master/src/modules/flow/aio/aio.c", accept=null) OUT -> IN StringResponse(console)
 get_string ERROR -> IN ErrorString(console)
 
-_(constant/string:value="https://raw.githubusercontent.com/solettaproject/soletta/master/doc/node-types-html/images/button_back.png") OUT -> URL get_blob(http-client/get-blob)
+_(constant/string:value="https://raw.githubusercontent.com/solettaproject/soletta/master/doc/node-types-html/images/button_back.png") OUT -> URL get_blob(http-client/blob)
 
 get_blob ERROR -> IN ErrorBlob(console)
 

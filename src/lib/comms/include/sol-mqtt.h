@@ -23,6 +23,7 @@
 #include <sol-common-buildopts.h>
 #include <stdbool.h>
 #include <stdlib.h>
+#include <inttypes.h>
 
 #ifdef __cplusplus
 extern "C" {
@@ -97,7 +98,7 @@ enum sol_mqtt_conn_status {
     SOL_MQTT_DISCONNECTED = -1,
 
     /**
-     * Succesfully conencted to the broker
+     * Successfully connected to the broker
      */
     SOL_MQTT_CONNECTED = 0,
 
@@ -112,7 +113,7 @@ enum sol_mqtt_conn_status {
     SOL_MQTT_ID_REJECTED = 2,
 
     /**
-     * Broker anavailable at provided host
+     * Broker unavailable at provided host
      */
     SOL_MQTT_UNAVAILABLE = 3,
 };
@@ -197,7 +198,7 @@ struct sol_mqtt_handlers {
      *
      * Callback called when a connect request has been processed
      */
-    void (*connect) (void *data, struct sol_mqtt *mqtt);
+    void (*connect)(void *data, struct sol_mqtt *mqtt);
 
     /**
      * @brief On disconnect callback
@@ -288,6 +289,11 @@ struct sol_mqtt_config {
     bool clean_session;
 
     /**
+     * The host port to connect
+     */
+    uint16_t port;
+
+    /**
      * Time interval between PING messages that should be sent by the
      * broker to the client in miliseconds.
      */
@@ -330,6 +336,16 @@ struct sol_mqtt_config {
     const struct sol_cert *private_key;
 
     /**
+     * User data provided to the callbacks
+     */
+    const void *data;
+
+    /**
+     * The host address of the MQTT broker
+     */
+    const char *host;
+
+    /**
      * Handlers to be used with this connection
      */
     const struct sol_mqtt_handlers handlers;
@@ -338,14 +354,11 @@ struct sol_mqtt_config {
 /**
  * @brief Connect to a MQTT broker
  *
- * @param host The host address of the MQTT broker
- * @param port The host port to connect to
  * @param config Configuration and callbacks
- * @param data User data provided to the callbacks
  *
- * @return New mqtt object on sucess, NULL otherwise
+ * @return New mqtt object on success, NULL otherwise
  */
-struct sol_mqtt *sol_mqtt_connect(const char *host, uint16_t port, const struct sol_mqtt_config *config, const void *data);
+struct sol_mqtt *sol_mqtt_connect(const struct sol_mqtt_config *config);
 
 /**
  * @brief Reestablish the connection to the MQTT broker
@@ -411,7 +424,7 @@ int sol_mqtt_subscribe(const struct sol_mqtt *mqtt, const char *topic, sol_mqtt_
 #define SOL_MQTT_MESSAGE_CHECK_API_VERSION(msg_, ...) \
     if (SOL_UNLIKELY((msg_)->api_version != \
         SOL_MQTT_MESSAGE_API_VERSION)) { \
-        SOL_ERR("Unexpected API version (message is %u, expected %u)", \
+        SOL_ERR("Unexpected API version (message is %" PRIu16 ", expected %" PRIu16 ")", \
             (msg_)->api_version, SOL_MQTT_MESSAGE_API_VERSION); \
         return __VA_ARGS__; \
     }

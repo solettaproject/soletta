@@ -84,6 +84,11 @@ def print_port(outfile, port):
     "description": port["description"],
     })
 
+def print_alias(outfile, alias):
+    outfile.write("""\
+                    { name:"%s"},
+""" %(alias))
+
 def print_node_type(outfile, node_type, svgs, group_id):
     outfile.write("""\
             var entry = new Entry({
@@ -92,13 +97,23 @@ def print_node_type(outfile, node_type, svgs, group_id):
                 categoryName:fullCategoryName,
                 categoryId:"category_%(group_id)s",
                 description:"%(description)s",
-                inputs:[
+                aliases:[
 """ % {
     "name": node_type["name"],
     "description": node_type["description"].replace("\"", "\\\""),
     "group_id": group_id,
     "entry_id": node_type["name"].replace("/", "-")
     })
+
+    aliases = node_type.get("aliases")
+    if aliases:
+        for alias in aliases:
+            print_alias(outfile, alias)
+
+    outfile.write("""\
+                ],
+                inputs:[
+""")
 
     in_ports = node_type.get("in_ports")
     if in_ports:

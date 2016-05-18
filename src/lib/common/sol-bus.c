@@ -149,7 +149,7 @@ event_create_source(sd_event *event)
         on_sd_event_fd, ctx);
     SOL_NULL_CHECK_GOTO(ctx->fd_handler, error_fd);
 
-    source = sol_mainloop_source_add(&source_type, ctx);
+    source = sol_mainloop_add_source(&source_type, ctx);
     SOL_NULL_CHECK_GOTO(source, error_source);
 
     return source;
@@ -254,32 +254,32 @@ fail:
  * mainloop terminates.
  */
 SOL_API sd_bus *
-sol_bus_get(void (*bus_initialized)(sd_bus *bus))
+sol_bus_get(int (*bus_initialized)(sd_bus *bus))
 {
     int r;
 
-    if (_ctx.bus)
-        return _ctx.bus;
+    if (!_ctx.bus) {
+        if (!_ctx.mainloop_source) {
+            r = event_attach_mainloop();
+            SOL_INT_CHECK_GOTO(r, < 0, fail);
+        }
 
-    if (!_ctx.mainloop_source) {
-        r = event_attach_mainloop();
+        r = connect_bus();
         SOL_INT_CHECK_GOTO(r, < 0, fail);
+        sol_ptr_vector_init(&_ctx.clients);
     }
 
-    r = connect_bus();
-    SOL_INT_CHECK_GOTO(r, < 0, fail);
-
-    sol_ptr_vector_init(&_ctx.clients);
-
-    if (bus_initialized)
-        bus_initialized(_ctx.bus);
+    if (bus_initialized) {
+        r = bus_initialized(_ctx.bus);
+        SOL_INT_CHECK_GOTO(r, < 0, exit);
+    }
 
     return _ctx.bus;
 
 fail:
     SOL_WRN("D-Bus requested but connection could not be made");
     sol_quit();
-
+exit:
     return NULL;
 }
 
@@ -338,7 +338,7 @@ sol_bus_close(void)
 
         s = sol_mainloop_source_get_data(_ctx.mainloop_source);
         sd_event_unref(s->event);
-        sol_mainloop_source_del(_ctx.mainloop_source);
+        sol_mainloop_del_source(_ctx.mainloop_source);
         _ctx.mainloop_source = NULL;
     }
 }
@@ -383,9 +383,8 @@ sol_bus_client_free(struct sol_bus_client *client)
     if (!client)
         return;
 
-    destroy_client(client);
-
     sol_ptr_vector_remove(&_ctx.clients, client);
+    destroy_client(client);
 }
 
 SOL_API const char *
@@ -416,7 +415,8 @@ _message_map_all_properties(sd_bus_message *m,
 
     do {
         const struct sol_bus_properties *iter;
-        const char *member;
+        const char *member, *contents;
+        char type;
 
         r = sd_bus_message_enter_container(m, SD_BUS_TYPE_DICT_ENTRY, "sv");
         if (r <= 0) {
@@ -432,12 +432,21 @@ _message_map_all_properties(sd_bus_message *m,
                 break;
         }
 
+        r = sd_bus_message_peek_type(m, &type, &contents);
+        SOL_INT_CHECK_GOTO(r, < 0, end);
+
         if (iter->member) {
             bool changed;
+
+            r = sd_bus_message_enter_container(m, SD_BUS_TYPE_VARIANT, contents);
+            SOL_INT_CHECK_GOTO(r, < 0, end);
 
             changed = iter->set((void *)t->data, t->path, m);
             if (changed)
                 mask |= 1 << (iter - t->properties);
+
+            r = sd_bus_message_exit_container(m);
+            SOL_INT_CHECK_GOTO(r, < 0, end);
         } else {
             r = sd_bus_message_skip(m, "v");
             SOL_INT_CHECK_GOTO(r, < 0, end);
@@ -577,6 +586,9 @@ sol_bus_map_cached_properties(struct sol_bus_client *client,
     r = sol_ptr_vector_append(&client->property_tables, t);
     SOL_INT_CHECK_GOTO(r, < 0, fail);
 
+    if (client->managed_objects)
+        return 0;
+
     r = sd_bus_message_new_method_call(client->bus, &m, client->service, path,
         "org.freedesktop.DBus.Properties",
         "GetAll");
@@ -635,7 +647,7 @@ name_owner_changed(sd_bus_message *m, void *userdata, sd_bus_error *ret_error)
     if (sd_bus_message_read(m, "sss", &name, &old, &new) < 0)
         return 0;
 
-    if (new && client->connect) {
+    if (new && *new && client->connect) {
         /* Assuming that when a name is replaced, calling 'connected()' is
          * the right thing to do.
          */
@@ -682,22 +694,25 @@ static void
 filter_interfaces(struct sol_bus_client *client, sd_bus_message *m, sd_bus_error *ret_error)
 {
     const char *path;
+    int r;
 
-    if (sd_bus_message_read(m, "o", &path) < 0)
-        return;
+    r = sd_bus_message_read(m, "o", &path);
+    SOL_INT_CHECK(r, < 0);
 
-    if (sd_bus_message_enter_container(m, SD_BUS_TYPE_ARRAY, "{sa{sv}}") < 0)
-        return;
+    r = sd_bus_message_enter_container(m, SD_BUS_TYPE_ARRAY, "{sa{sv}}");
+    SOL_INT_CHECK(r, < 0);
 
     do {
         const struct sol_bus_interfaces *s;
         const char *iface;
 
-        if (sd_bus_message_enter_container(m, SD_BUS_TYPE_DICT_ENTRY, "sa{sv}") < 0)
+        r = sd_bus_message_enter_container(m, SD_BUS_TYPE_DICT_ENTRY, "sa{sv}");
+        if (r == -ENXIO)
             break;
+        SOL_INT_CHECK(r, < 0);
 
-        if (sd_bus_message_read_basic(m, SD_BUS_TYPE_STRING, &iface) < 0)
-            return;
+        r = sd_bus_message_read_basic(m, SD_BUS_TYPE_STRING, &iface);
+        SOL_INT_CHECK(r, < 0);
 
         s = find_interface(client, iface);
         if (s && s->appeared)
@@ -705,9 +720,8 @@ filter_interfaces(struct sol_bus_client *client, sd_bus_message *m, sd_bus_error
 
         filter_device_properties(m, iface, path, client, ret_error);
 
-        if (sd_bus_message_exit_container(m) < 0)
-            return;
-
+        r = sd_bus_message_exit_container(m);
+        SOL_INT_CHECK(r, < 0);
     } while (1);
 }
 
@@ -729,6 +743,8 @@ managed_objects_cb(sd_bus_message *m, void *userdata, sd_bus_error *ret_error)
 {
     struct sol_bus_client *client = userdata;
     int err;
+
+    client->managed_objects = sd_bus_slot_unref(client->managed_objects);
 
     if (sol_bus_log_callback(m, userdata, ret_error)) {
         err = -EINVAL;
@@ -758,7 +774,6 @@ managed_objects_cb(sd_bus_message *m, void *userdata, sd_bus_error *ret_error)
     err = 0;
 
 end:
-    client->managed_objects = sd_bus_slot_unref(client->managed_objects);
     return err;
 }
 

@@ -69,8 +69,8 @@ err:
 }
 
 static bool
-reply_cb(struct sol_coap_server *server, struct sol_coap_packet *req,
-    const struct sol_network_link_addr *cliaddr, void *data)
+reply_cb(void *data, struct sol_coap_server *server, struct sol_coap_packet *req,
+    const struct sol_network_link_addr *cliaddr)
 {
     struct sol_str_slice *path = data;
     static int count;
@@ -123,7 +123,7 @@ main(int argc, char *argv[])
         return -1;
     }
 
-    req = sol_coap_packet_request_new(SOL_COAP_METHOD_GET, SOL_COAP_TYPE_CON);
+    req = sol_coap_packet_new_request(SOL_COAP_METHOD_GET, SOL_COAP_TYPE_CON);
     if (!req) {
         SOL_WRN("Could not make a GET request to resource %s", argv[2]);
         return -1;
@@ -132,13 +132,13 @@ main(int argc, char *argv[])
     r = sol_coap_header_set_token(req, token, sizeof(token));
     if (r < 0) {
         SOL_WRN("Could not set coap header token.");
-        return -1;
+        goto err;
     }
 
     path = calloc(argc - 1, sizeof(*path));
     if (!path) {
-        sol_coap_packet_unref(req);
-        return -1;
+        SOL_WRN("Could not allocate the path");
+        goto err;
     }
 
     for (i = 2; i < argc; i++) {
@@ -153,9 +153,7 @@ main(int argc, char *argv[])
     cliaddr.family = SOL_NETWORK_FAMILY_INET6;
     if (!sol_network_link_addr_from_str(&cliaddr, argv[1])) {
         SOL_WRN("%s is an invalid IPv6 address", argv[1]);
-        free(path);
-        sol_coap_packet_unref(req);
-        return -1;
+        goto err_addr;
     }
 
     cliaddr.port = DEFAULT_UDP_PORT;
@@ -169,4 +167,10 @@ main(int argc, char *argv[])
     free(path);
 
     return 0;
+
+err_addr:
+    free(path);
+err:
+    sol_coap_server_unref(server);
+    return -1;
 }

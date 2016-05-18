@@ -1,10 +1,11 @@
 config COAP_SAMPLES
 	bool "CoAP samples"
+	depends on COAP
 	default y
 
 config COAP_CLIENT_SERVER_SAMPLES
 	bool "CoAP client/server samples"
-	depends on COAP && COAP_SAMPLES
+	depends on COAP_SAMPLES
 	default y
 
 config OIC_SAMPLES
@@ -14,5 +15,5 @@ config OIC_SAMPLES
 
 config LWM2M_SAMPLES
        bool "LWM2M samples"
-       depends on COAP && COAP_SAMPLES
+       depends on LWM2M && COAP_SAMPLES
        default y

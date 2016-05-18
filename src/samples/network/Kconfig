@@ -1,8 +1,19 @@
 config NETWORK_SAMPLES
 	bool "Network samples"
+        depends on NETWORK
 	default y
 
 config NETWORK_STATUS_SAMPLE
 	bool "Network status"
+	depends on NETWORK_SAMPLES
+	default y
+
+config ECHO_SERVER_SAMPLE
+	bool "Echo server"
+	depends on NETWORK_SAMPLES && NETWORK
+	default y
+
+config ECHO_CLIENT_SAMPLE
+	bool "Echo client"
 	depends on NETWORK_SAMPLES && NETWORK
 	default y

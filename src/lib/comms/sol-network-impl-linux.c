@@ -84,6 +84,9 @@ sol_network_link_addr_to_str(const struct sol_network_link_addr *addr,
     SOL_NULL_CHECK(addr, NULL);
     SOL_NULL_CHECK(buf, NULL);
 
+    if (sol_bluetooth_is_family(addr->family))
+        return sol_bluetooth_addr_to_str(addr, buf);
+
     while (1) {
         int err;
 
@@ -107,6 +110,9 @@ sol_network_link_addr_from_str(struct sol_network_link_addr *addr, const char *b
 {
     SOL_NULL_CHECK(addr, NULL);
     SOL_NULL_CHECK(buf, NULL);
+
+    if (sol_bluetooth_is_addr_str(buf))
+        return sol_bluetooth_addr_from_str(addr, buf);
 
     if (inet_pton(sol_network_sol_to_af(addr->family), buf, &addr->addr) != 1)
         return NULL;
@@ -584,31 +590,6 @@ SOL_API bool
 sol_network_link_down(uint16_t link_index)
 {
     return sol_network_link_set_status(link_index, IFF_UP, ~IFF_UP);
-}
-
-SOL_API bool
-sol_network_link_addr_eq(const struct sol_network_link_addr *a, const struct sol_network_link_addr *b)
-{
-    const uint8_t *addr_a, *addr_b;
-    size_t bytes;
-
-    if (a->family != b->family)
-        return false;
-
-    if (a->family == SOL_NETWORK_FAMILY_INET) {
-        addr_a = a->addr.in;
-        addr_b = b->addr.in;
-        bytes = sizeof(a->addr.in);
-    } else if (a->family == SOL_NETWORK_FAMILY_INET6) {
-        addr_a = a->addr.in6;
-        addr_b = b->addr.in6;
-        bytes = sizeof(a->addr.in6);
-    } else {
-        SOL_WRN("Unknown family type: %d", a->family);
-        return false;
-    }
-
-    return !memcmp(addr_a, addr_b, bytes);
 }
 
 static bool

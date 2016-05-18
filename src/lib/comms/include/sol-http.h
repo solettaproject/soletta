@@ -23,6 +23,7 @@
 #include <sol-macros.h>
 #include <sol-str-slice.h>
 #include <sol-vector.h>
+#include <inttypes.h>
 
 #ifdef __cplusplus
 extern "C" {
@@ -115,6 +116,22 @@ struct sol_http_params {
 };
 
 /**
+ * @brief Used to rank content type priorities.
+ *
+ * @see sol_http_parse_content_type_priorities()
+ * @see sol_http_content_type_priorities_array_clear()
+ */
+struct sol_http_content_type_priority {
+    struct sol_str_slice content_type; /**< The content type itself. Example: @c "text/html" */
+    struct sol_str_slice type; /**< The type. Example @c "text" */
+    struct sol_str_slice sub_type; /**< The sub type. Example @c "html"*/
+    struct sol_vector tokens; /**< An array of @ref sol_str_slice. For the following contet type @c "text/html;level=1;level2",
+                                 this array would contains @c "level=1" and @c "level=2" */
+    double qvalue; /**< The qvalue for the content type */
+    uint16_t index; /**< The original index as found in the content type/accept HTTP header */
+};
+
+/**
  * @brief Used to define a HTTP parameter
  *
  * A parameter is defined by it's type
@@ -197,7 +214,7 @@ struct sol_http_url {
 #define SOL_HTTP_RESPONSE_CHECK_API_VERSION(response_, ...) \
     if (SOL_UNLIKELY((response_)->api_version != \
         SOL_HTTP_RESPONSE_API_VERSION)) { \
-        SOL_ERR("Unexpected API version (response is %u, expected %u)", \
+        SOL_ERR("Unexpected API version (response is %" PRIu16 ", expected %" PRIu16 ")", \
             (response_)->api_version, SOL_HTTP_RESPONSE_API_VERSION); \
         return __VA_ARGS__; \
     }
@@ -231,7 +248,7 @@ struct sol_http_url {
 #define SOL_HTTP_RESPONSE_CHECK_API_VERSION_GOTO(response_, label) \
     if (SOL_UNLIKELY((response_)->api_version != \
         SOL_HTTP_RESPONSE_API_VERSION)) { \
-        SOL_ERR("Unexpected API version (response is %u, expected %u)", \
+        SOL_ERR("Unexpected API version (response is %" PRIu16 ", expected %" PRIu16 ")", \
             (response_)->api_version, SOL_HTTP_RESPONSE_API_VERSION); \
         goto label; \
     }
@@ -283,7 +300,7 @@ struct sol_http_url {
 #define SOL_HTTP_PARAMS_CHECK_API_VERSION(params_, ...) \
     if (SOL_UNLIKELY((params_)->api_version != \
         SOL_HTTP_PARAM_API_VERSION)) { \
-        SOL_ERR("Unexpected API version (response is %u, expected %u)", \
+        SOL_ERR("Unexpected API version (response is %" PRIu16 ", expected %" PRIu16 ")", \
             (params_)->api_version, SOL_HTTP_PARAM_API_VERSION); \
         return __VA_ARGS__; \
     }
@@ -301,7 +318,7 @@ struct sol_http_url {
 #define SOL_HTTP_PARAMS_CHECK_API_VERSION_GOTO(params_, label_) \
     if (SOL_UNLIKELY((params_)->api_version != \
         SOL_HTTP_PARAM_API_VERSION)) { \
-        SOL_ERR("Unexpected API version (params is %u, expected %u)", \
+        SOL_ERR("Unexpected API version (params is %" PRIu16 ", expected %" PRIu16 ")", \
             (params_)->api_version, SOL_HTTP_PARAM_API_VERSION); \
         goto label_; \
     }
@@ -627,7 +644,7 @@ sol_http_create_simple_uri_from_str(struct sol_buffer *buf, const char *base_url
  * @c sol_http_params struct.
  *
  * @param query A query to be splitted.
- * @param params Where the query paramters will be stored.
+ * @param params Where the query parameters will be stored.
  *
  * @return 0 on success, negative number on error.
  */
@@ -645,6 +662,26 @@ int sol_http_split_query(const char *query, struct sol_http_params *params);
  * @return 0 on success, negative number on error.
  */
 int sol_http_split_post_field(const char *query, struct sol_http_params *params);
+
+/**
+ * @brief Sort the content type slice based on its priorities
+ *
+ * For more information about how the content type is sorted check: https://www.w3.org/Protocols/rfc2616/rfc2616-sec14.html#sec14.1
+ *
+ * @param content_type A content type slice. Example: @c "text/html, application/json;q=0.5"
+ * @param priorities An array to store the content type prioriries - It will be initialized by this function.
+ * @see sol_http_content_type_priorities_array_clear()
+ * @see @ref sol_http_content_type_priority
+ */
+int sol_http_parse_content_type_priorities(const struct sol_str_slice content_type, struct sol_vector *priorities);
+
+/**
+ * @brief Clears the priorities array
+ *
+ * @param priorities An array of @ref sol_http_content_type_priority.
+ * @see sol_http_parse_content_type_priorities()
+ */
+void sol_http_content_type_priorities_array_clear(struct sol_vector *priorities);
 
 /**
  * @}

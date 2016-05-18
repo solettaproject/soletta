@@ -58,7 +58,7 @@ float_validator_open(
         val = sol_vector_append(&mdata->values);
         SOL_NULL_CHECK_GOTO(val, no_memory);
 
-        *val = sol_util_strtodn(it, &tail, -1, false);
+        *val = sol_util_strtod_n(it, &tail, -1, false);
         if (errno) {
             SOL_WRN("Failed do convert option 'sequence' to double %s: %d", it, errno);
             goto error;
@@ -104,7 +104,7 @@ float_validator_process(
     SOL_INT_CHECK(r, < 0, r);
     op = sol_vector_get(&mdata->values, mdata->next_index);
     SOL_NULL_CHECK(op, -EINVAL);
-    match = sol_drange_val_equal(input.val, *op);
+    match = sol_util_double_equal(input.val, *op);
     mdata->next_index++;
 
     if (mdata->next_index == mdata->values.len || !match) {

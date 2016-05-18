@@ -31,125 +31,107 @@
 #include <errno.h>
 
 SOL_API struct sol_socket *
-sol_socket_new(int domain, enum sol_socket_type type, int protocol)
+sol_socket_ip_new(const struct sol_socket_options *options)
 {
-    const struct sol_socket_impl *impl = NULL;
-    struct sol_socket *socket;
+    struct sol_socket *s;
+    struct sol_socket_ip_options *opts;
 
+    SOL_SOCKET_OPTIONS_CHECK_API_VERSION(options, NULL);
+
+    /*
+     * This SUB_API check should be done by constructors. This is being done
+     * here only because the strange behaviour/implementation of socket_dtls.
+     * TODO: Fix sol_socket_dtls
+     */
+    SOL_SOCKET_OPTIONS_CHECK_SUB_API_VERSION(options, SOL_SOCKET_IP_OPTIONS_SUB_API_VERSION, NULL);
+
+    opts = (struct sol_socket_ip_options *)options;
+
+    if (opts->secure) {
 #ifdef DTLS
-    bool dtls = false;
-
-    if (type == SOL_SOCKET_DTLS) {
-        dtls = true;
-        type = SOL_SOCKET_UDP;
+        s = sol_socket_default_dtls_new(options);
+#else
+        SOL_WRN("DTLS is not enabled, secure socket is not possible");
+        errno = ENOSYS;
+        return NULL;
+#endif
+    } else {
+        s = sol_socket_ip_default_new(options);
     }
-#endif
 
-#ifdef SOL_PLATFORM_LINUX
-    impl = sol_socket_linux_get_impl();
-#elif defined(SOL_PLATFORM_RIOT)
-    impl = sol_socket_riot_get_impl();
-#endif
-
-    SOL_NULL_CHECK(impl, NULL);
-
-    socket = impl->new(domain, type, protocol);
-    if (socket)
-        socket->impl = impl;
-
-#ifdef DTLS
-    if (dtls) {
-        struct sol_socket *dtls_wrapped = sol_socket_dtls_wrap_socket(socket);
-
-        if (dtls_wrapped)
-            return dtls_wrapped;
-
-        sol_socket_del(socket);
-        socket = NULL;
-    }
-#endif
-
-    return socket;
+    return s;
 }
 
 SOL_API void
 sol_socket_del(struct sol_socket *s)
 {
-    SOL_NULL_CHECK(s);
-    SOL_NULL_CHECK(s->impl->del);
+    SOL_EXP_CHECK(!(s && s->type));
+    SOL_SOCKET_TYPE_CHECK_API_VERSION(s->type);
+    SOL_NULL_CHECK(s->type->del);
 
-    s->impl->del(s);
+    s->type->del(s);
 }
 
 SOL_API int
-sol_socket_set_on_read(struct sol_socket *s, bool (*cb)(void *data, struct sol_socket *s), const void *data)
+sol_socket_set_read_monitor(struct sol_socket *s, bool on)
 {
-    SOL_NULL_CHECK(s, -EINVAL);
-    SOL_NULL_CHECK(s->impl->set_on_read, -ENOSYS);
+    SOL_EXP_CHECK(!(s && s->type), -EINVAL);
+    SOL_SOCKET_TYPE_CHECK_API_VERSION(s->type, -EINVAL);
+    SOL_NULL_CHECK(s->type->set_read_monitor, -ENOSYS);
 
-    return s->impl->set_on_read(s, cb, data);
+    return s->type->set_read_monitor(s, on);
 }
 
 SOL_API int
-sol_socket_set_on_write(struct sol_socket *s, bool (*cb)(void *data, struct sol_socket *s), const void *data)
+sol_socket_set_write_monitor(struct sol_socket *s, bool on)
 {
-    SOL_NULL_CHECK(s, -EINVAL);
-    SOL_NULL_CHECK(s->impl->set_on_write, -ENOSYS);
+    SOL_EXP_CHECK(!(s && s->type), -EINVAL);
+    SOL_SOCKET_TYPE_CHECK_API_VERSION(s->type, -EINVAL);
+    SOL_NULL_CHECK(s->type->set_write_monitor, -ENOSYS);
 
-    return s->impl->set_on_write(s, cb, data);
+    return s->type->set_write_monitor(s, on);
 }
 
 SOL_API ssize_t
-sol_socket_recvmsg(struct sol_socket *s, void *buf, size_t len, struct sol_network_link_addr *cliaddr)
+sol_socket_recvmsg(struct sol_socket *s, struct sol_buffer *buffer,
+    struct sol_network_link_addr *cliaddr)
 {
-    SOL_NULL_CHECK(s, -EINVAL);
-    SOL_NULL_CHECK(s->impl->recvmsg, -ENOSYS);
+    SOL_EXP_CHECK(!(s && s->type), -EINVAL);
+    SOL_SOCKET_TYPE_CHECK_API_VERSION(s->type, -EINVAL);
+    SOL_NULL_CHECK(s->type->recvmsg, -ENOSYS);
+    SOL_NULL_CHECK(buffer, -EINVAL);
 
-    return s->impl->recvmsg(s, buf, len, cliaddr);
+    return s->type->recvmsg(s, buffer, cliaddr);
 }
 
-SOL_API int
-sol_socket_sendmsg(struct sol_socket *s, const void *buf, size_t len,
+SOL_API ssize_t
+sol_socket_sendmsg(struct sol_socket *s, const struct sol_buffer *buffer,
     const struct sol_network_link_addr *cliaddr)
 {
-    SOL_NULL_CHECK(s, -EINVAL);
-    SOL_NULL_CHECK(s->impl->sendmsg, -ENOSYS);
+    SOL_EXP_CHECK(!(s && s->type), -EINVAL);
+    SOL_SOCKET_TYPE_CHECK_API_VERSION(s->type, -EINVAL);
+    SOL_NULL_CHECK(s->type->sendmsg, -ENOSYS);
+    SOL_NULL_CHECK(buffer, -EINVAL);
 
-    return s->impl->sendmsg(s, buf, len, cliaddr);
+    return s->type->sendmsg(s, buffer, cliaddr);
 }
 
 SOL_API int
 sol_socket_join_group(struct sol_socket *s, int ifindex, const struct sol_network_link_addr *group)
 {
-    SOL_NULL_CHECK(s, -EINVAL);
-    SOL_NULL_CHECK(s->impl->join_group, -ENOSYS);
+    SOL_EXP_CHECK(!(s && s->type), -EINVAL);
+    SOL_SOCKET_TYPE_CHECK_API_VERSION(s->type, -EINVAL);
+    SOL_NULL_CHECK(s->type->join_group, -ENOSYS);
 
-    return s->impl->join_group(s, ifindex, group);
+    return s->type->join_group(s, ifindex, group);
 }
 
 SOL_API int
 sol_socket_bind(struct sol_socket *s, const struct sol_network_link_addr *addr)
 {
-    SOL_NULL_CHECK(s, -EINVAL);
-    SOL_NULL_CHECK(s->impl->bind, -ENOSYS);
+    SOL_EXP_CHECK(!(s && s->type), -EINVAL);
+    SOL_SOCKET_TYPE_CHECK_API_VERSION(s->type, -EINVAL);
+    SOL_NULL_CHECK(s->type->bind, -ENOSYS);
 
-    return s->impl->bind(s, addr);
-}
-
-SOL_API int
-sol_socket_setsockopt(struct sol_socket *s, enum sol_socket_level level, enum sol_socket_option optname, const void *optval, size_t optlen)
-{
-    SOL_NULL_CHECK(s, -EINVAL);
-    SOL_NULL_CHECK(s->impl->setsockopt, -ENOSYS);
-
-    return s->impl->setsockopt(s, level, optname, optval, optlen);
-}
-
-SOL_API int
-sol_socket_getsockopt(struct sol_socket *s, enum sol_socket_level level, enum sol_socket_option optname, void *optval, size_t *optlen)
-{
-    SOL_NULL_CHECK(s, -EINVAL);
-    SOL_NULL_CHECK(s->impl->getsockopt, -ENOSYS);
-
-    return s->impl->getsockopt(s, level, optname, optval, optlen);
+    return s->type->bind(s, addr);
 }

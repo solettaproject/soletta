@@ -60,6 +60,10 @@ extern "C" {
  */
 #define SOL_INET_ADDR_STRLEN 48
 
+/**
+ * @brief String size of a Bluetooth address.
+ */
+#define SOL_BLUETOOTH_ADDR_STRLEN 18
 
 /**
  * @struct sol_network_hostname_handle
@@ -109,7 +113,26 @@ enum sol_network_family {
     /** @brief IPv4 family. */
     SOL_NETWORK_FAMILY_INET,
     /** @brief IPv6 family. */
-    SOL_NETWORK_FAMILY_INET6
+    SOL_NETWORK_FAMILY_INET6,
+    /** @brief Bluetooth "raw" family */
+    SOL_NETWORK_FAMILY_BLUETOOTH,
+    /** @brief Bluetooth RFCOMM family */
+    SOL_NETWORK_FAMILY_BLUETOOTH_RFCOMM,
+    /** @brief Bluetooth L2CAP family */
+    SOL_NETWORK_FAMILY_BLUETOOTH_L2CAP,
+};
+
+/**
+ * @brief Type of a Bluetooth address
+ *
+ * With the increased privacy allowed by Bluetooth Low Energy,
+ * a Bluetooth device may be identified by different types of
+ * addresses.
+ */
+enum sol_network_bt_addr_type {
+    SOL_NETWORK_BT_ADDR_BASIC_RATE,
+    SOL_NETWORK_BT_ADDR_LE_PUBLIC,
+    SOL_NETWORK_BT_ADDR_LE_RANDOM,
 };
 
 /**
@@ -120,6 +143,10 @@ struct sol_network_link_addr {
     union {
         uint8_t in[4];
         uint8_t in6[16];
+        struct {
+            uint8_t bt_type;
+            uint8_t bt_addr[6];
+        };
     } addr; /**< @brief The address itself */
     uint16_t port; /**< @brief The port associed with the IP address */
 };
@@ -200,8 +227,36 @@ const struct sol_network_link_addr *sol_network_link_addr_from_str(struct sol_ne
  *
  * @return @c true if they are equal, otherwise @c false.
  */
-bool sol_network_link_addr_eq(const struct sol_network_link_addr *a,
-    const struct sol_network_link_addr *b);
+static inline bool
+sol_network_link_addr_eq(const struct sol_network_link_addr *a,
+    const struct sol_network_link_addr *b)
+{
+    const uint8_t *addr_a, *addr_b;
+    size_t bytes;
+
+    if (a->family != b->family)
+        return false;
+
+    if (a->family == SOL_NETWORK_FAMILY_INET) {
+        addr_a = a->addr.in;
+        addr_b = b->addr.in;
+        bytes = sizeof(a->addr.in);
+    } else if (a->family == SOL_NETWORK_FAMILY_INET6) {
+        addr_a = a->addr.in6;
+        addr_b = b->addr.in6;
+        bytes = sizeof(a->addr.in6);
+    } else if (a->family == SOL_NETWORK_FAMILY_BLUETOOTH) {
+        if (a->addr.bt_type != b->addr.bt_type)
+            return false;
+
+        addr_a = a->addr.bt_addr;
+        addr_b = b->addr.bt_addr;
+        bytes = sizeof(a->addr.bt_addr);
+    } else
+        return false;
+
+    return !memcmp(addr_a, addr_b, bytes);
+}
 
 /**
  * @brief Subscribes on to receive network link events.

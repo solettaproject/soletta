@@ -84,7 +84,8 @@ http_composed_client_close(struct sol_flow_node *node, void *data)
     uint16_t i;
 
     for (i = 0; i < cdata->inputs_len; i++)
-        sol_flow_packet_del(cdata->inputs[i]);
+        if (cdata->inputs[i])
+            sol_flow_packet_del(cdata->inputs[i]);
 
     SOL_PTR_VECTOR_FOREACH_IDX (&cdata->pending_conns, connection, i)
         sol_http_client_connection_cancel(connection);
@@ -283,7 +284,6 @@ http_composed_client_request_finished(void *data,
             "Error while reaching %s", cdata->url);
         return;
     }
-    SOL_HTTP_RESPONSE_CHECK_API(response);
 
     if (response->response_code != SOL_HTTP_STATUS_OK) {
         sol_flow_send_error_packet(node, EINVAL,
@@ -292,11 +292,8 @@ http_composed_client_request_finished(void *data,
         return;
     }
 
-    if (!response->content.used) {
-        sol_flow_send_error_packet(node, EINVAL,
-            "Empty response from %s", cdata->url);
+    if (!response->content.used)
         return;
-    }
 
     if (streq(response->content_type, "application/json")) {
         struct sol_json_scanner scanner;
@@ -309,7 +306,8 @@ http_composed_client_request_finished(void *data,
 
             SOL_NULL_CHECK_GOTO(in, err);
 
-            sol_flow_packet_del(cdata->inputs[i]);
+            if (cdata->inputs[i])
+                sol_flow_packet_del(cdata->inputs[i]);
             cdata->inputs[i] = http_composed_client_create_packet(in->base.packet_type, &token);
             SOL_NULL_CHECK_GOTO(cdata->inputs[i], err);
             i++;
@@ -490,7 +488,8 @@ http_composed_client_in_process(struct sol_flow_node *node, void *data, uint16_t
     SOL_INT_CHECK(r, < 0, r);
 
     for (i = 0; i < len; i++) {
-        sol_flow_packet_del(cdata->inputs[i]);
+        if (cdata->inputs[i])
+            sol_flow_packet_del(cdata->inputs[i]);
         cdata->inputs[i] = sol_flow_packet_dup(children[i]);
         SOL_NULL_CHECK(cdata->inputs[i], -ENOMEM);
     }
@@ -536,22 +535,21 @@ static const struct sol_flow_node_type_description sol_flow_node_type_http_clien
     .license = "Apache-2.0",
     .version = "1",
     .options = &((const struct sol_flow_node_options_description){
-            .data_size = sizeof(struct http_composed_client_options),
-            SOL_SET_API_VERSION(.sub_api = SOL_FLOW_NODE_TYPE_HTTP_COMPOSED_CLIENT_OPTIONS_API_VERSION, )
-            .required = true,
-            .members = (const struct sol_flow_node_options_member_description[]){
-                {
-                    .name = "url",
-                    .description = "The URL used on requests",
-                    .data_type = "string",
-                    .required = false,
-                    .offset = offsetof(struct http_composed_client_options, url),
-                    .size = sizeof(const char *),
-                },
-                {},
-
+        .data_size = sizeof(struct http_composed_client_options),
+        SOL_SET_API_VERSION(.sub_api = SOL_FLOW_NODE_TYPE_HTTP_COMPOSED_CLIENT_OPTIONS_API_VERSION, )
+        .required = true,
+        .members = (const struct sol_flow_node_options_member_description[]){
+            {
+                .name = "url",
+                .description = "The URL used on requests",
+                .data_type = "string",
+                .required = false,
+                .offset = offsetof(struct http_composed_client_options, url),
+                .size = sizeof(const char *),
             },
-        }),
+            {},
+        },
+    }),
 };
 
 static int
@@ -660,22 +658,6 @@ http_composed_client_type_fini(struct http_composed_client_type *type)
 
     sol_vector_clear(&type->ports_in);
     sol_vector_clear(&type->ports_out);
-}
-
-static const struct sol_flow_packet_type *
-get_packet_type(const struct sol_str_slice type)
-{
-    if (sol_str_slice_str_eq(type, "int"))
-        return SOL_FLOW_PACKET_TYPE_IRANGE;
-    if (sol_str_slice_str_eq(type, "float"))
-        return SOL_FLOW_PACKET_TYPE_DRANGE;
-    if (sol_str_slice_str_eq(type, "string"))
-        return SOL_FLOW_PACKET_TYPE_STRING;
-    if (sol_str_slice_str_eq(type, "boolean"))
-        return SOL_FLOW_PACKET_TYPE_BOOLEAN;
-    if (sol_str_slice_str_eq(type, "byte"))
-        return SOL_FLOW_PACKET_TYPE_BYTE;
-    return NULL;
 }
 
 static int
@@ -805,7 +787,7 @@ setup_ports(struct sol_vector *in_ports, struct sol_vector *ports_out,
             goto err_exit;
         }
 
-        packet_type = get_packet_type(type_slice);
+        packet_type = sol_flow_packet_type_from_string(type_slice);
         if (!packet_type) {
             r = -EINVAL;
             SOL_ERR("It's not possible to use %.*s as a port type.",
@@ -1013,7 +995,7 @@ setup_ports_description(const struct sol_str_slice *contents,
         }
 
         r = sol_buffer_append_slice(&composed_type, type_slice);
-        SOL_INT_CHECK_GOTO(r, < 0, err_tokens); \
+        SOL_INT_CHECK_GOTO(r, < 0, err_tokens);
 
         if (buf_out) {
             r = sol_buffer_append_printf(buf_out,

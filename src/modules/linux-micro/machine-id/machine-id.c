@@ -45,7 +45,7 @@ validate_machine_id(char id[SOL_STATIC_ARRAY_SIZE(33)])
 {
     id[32] = '\0';
 
-    if (!sol_util_uuid_str_valid(id))
+    if (!sol_util_uuid_str_is_valid(sol_str_slice_from_str(id)))
         return -EINVAL;
 
     return 0;
@@ -63,8 +63,9 @@ write_machine_id(const char *path, char id[SOL_STATIC_ARRAY_SIZE(33)])
 static int
 run_do(void)
 {
+    SOL_BUFFER_DECLARE_STATIC(buf, 33);
     static const char *etc_path = "/etc/machine-id",
-    *run_path = "/run/machine-id";
+        *run_path = "/run/machine-id";
     char id[33];
     int r;
 
@@ -81,14 +82,14 @@ run_do(void)
         SOL_INT_CHECK(r, == 0, 0);
     }
 
-    r = sol_util_uuid_gen(false, false, id);
+    r = sol_util_uuid_gen(false, false, &buf);
     SOL_INT_CHECK_GOTO(r, < 0, err);
 
-    if (write_machine_id(etc_path, id) >= 0)
+    if (write_machine_id(etc_path, buf.data) >= 0)
         goto end;
 
     /* fallback to /run/ */
-    r = write_machine_id(run_path, id);
+    r = write_machine_id(run_path, buf.data);
     SOL_INT_CHECK_GOTO(r, < 0, err);
 
 end:

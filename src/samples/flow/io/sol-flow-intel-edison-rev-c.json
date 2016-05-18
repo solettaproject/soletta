@@ -28,6 +28,14 @@
     "pin": "3"
    },
    "type": "servo-motor/controller"
+  },
+  {
+   "name": "Ultrasonic",
+   "options": {
+    "echo": "3",
+    "trigger": "4"
+   },
+   "type": "hc-sr04/distance"
   }
  ]
 }

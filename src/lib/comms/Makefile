@@ -1,23 +1,26 @@
 obj-$(NETWORK) += networking.mod \
     dtls.mod
 
+obj-$(BLUETOOTH) += \
+    bluetooth.mod
+
 obj-networking-$(NETWORK) := \
     sol-comms.o \
     sol-socket.o
 
 obj-dtls-$(DTLS) += \
+    sol-socket-dtls-impl-tinydtls.o \
+    $(TINYDTLS_SRC_PATH)/aes/rijndael.o \
     $(TINYDTLS_SRC_PATH)/ccm.o \
     $(TINYDTLS_SRC_PATH)/crypto.o \
     $(TINYDTLS_SRC_PATH)/dtls.o \
     $(TINYDTLS_SRC_PATH)/dtls_time.o \
+    $(TINYDTLS_SRC_PATH)/ecc/ecc.o \
     $(TINYDTLS_SRC_PATH)/hmac.o \
     $(TINYDTLS_SRC_PATH)/netq.o \
     $(TINYDTLS_SRC_PATH)/peer.o \
     $(TINYDTLS_SRC_PATH)/session.o \
-    $(TINYDTLS_SRC_PATH)/ecc/ecc.o \
-    $(TINYDTLS_SRC_PATH)/aes/rijndael.o \
-    $(TINYDTLS_SRC_PATH)/sha2/sha2.o \
-    sol-socket-dtls-impl-tinydtls.o
+    $(TINYDTLS_SRC_PATH)/sha2/sha2.o
 
 obj-dtls-$(DTLS)-extra-cflags += \
     -I$(TINYDTLS_SRC_PATH) \
@@ -29,7 +32,22 @@ obj-networking-$(PLATFORM_RIOTOS) += \
 
 obj-networking-$(PLATFORM_LINUX) += \
     sol-network-impl-linux.o \
+    sol-network-util-impl-linux.o \
     sol-socket-impl-linux.o
+
+obj-networking-$(PLATFORM_ZEPHYR) += \
+    sol-network-impl-zephyr.o \
+    sol-network-util-impl-zephyr.o \
+    sol-socket-impl-zephyr.o
+
+obj-networking-$(PLATFORM_ZEPHYR)-extra-cflags += \
+    -I$(ZEPHYR_BASE)/net/ip/contiki \
+    -I$(ZEPHYR_BASE)/net/ip/contiki/os \
+    -I$(ZEPHYR_BASE)/net/ip
+
+obj-networking-$(PLATFORM_CONTIKI) += \
+    sol-network-impl-contiki.o \
+    sol-socket-impl-contiki.o
 
 obj-networking-$(COAP) += \
     coap.o \
@@ -57,12 +75,22 @@ obj-networking-$(OIC) += \
     sol-oic-client.o \
     sol-oic-common.o \
     sol-oic-server.o \
+    sol-oic-security.o
 
 obj-networking-$(OIC)-extra-cflags += \
     -Wno-cpp \
     -Wno-declaration-after-statement \
     -Wno-float-equal \
-    -Wno-undef
+    -Wno-undef \
+    -DOIC_MANUFACTURER_NAME=$(OIC_SERVER_MANUFACTURER_NAME) \
+    -DOIC_MANUFACTURER_URL=$(OIC_SERVER_MANUFACTURER_URL) \
+    -DOIC_MODEL_NUMBER=$(OIC_SERVER_MODEL_NUMBER) \
+    -DOIC_MANUFACTURE_DATE=$(OIC_SERVER_MANUFACTURE_DATE) \
+    -DOIC_PLATFORM_VERSION=$(OIC_SERVER_PLATFORM_VERSION) \
+    -DOIC_HARDWARE_VERSION=$(OIC_SERVER_HARDWARE_VERSION) \
+    -DOIC_FIRMWARE_VERSION=$(OIC_SERVER_FIRMWARE_VERSION) \
+    -DOIC_SUPPORT_URL=$(OIC_SERVER_SUPPORT_URL) \
+    -DOIC_DEVICE_NAME=$(OIC_SERVER_DEVICE_NAME)
 
 obj-networking-$(HTTP) += \
     sol-http-common.o
@@ -109,14 +137,30 @@ obj-networking-$(MAVLINK)-extra-cflags += \
 obj-networking-$(LWM2M) += \
 	sol-lwm2m.o
 
+obj-bluetooth-$(BLUETOOTH) += \
+	sol-bluetooth.o
+
+obj-bluetooth-$(BLUETOOTH_BLUEZ) += \
+	sol-bluetooth-impl-bluez.o \
+	sol-gatt-impl-bluez.o
+
+obj-bluetooth-$(BLUETOOTH_NONE) += \
+	sol-bluetooth-impl-none.o \
+	sol-gatt-impl-none.o
+
 headers-$(NETWORK) += \
-    include/sol-network.h
+    include/sol-network.h \
+    include/sol-socket.h
 
 headers-$(COAP) += \
     include/sol-coap.h
 
+headers-$(BLUETOOTH) += \
+    include/sol-bluetooth.h \
+    include/sol-gatt.h
+
 headers-$(OIC) += \
-    include/sol-oic-common.h \
+    include/sol-oic.h \
     include/sol-oic-client.h \
     include/sol-oic-server.h
 

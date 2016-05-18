@@ -1,0 +1,14 @@
+config FLOW_NODE_TYPE_REGEXP
+	tristate "Node type: regexp"
+        depends on HAVE_LIBPCRE
+	default y
+	help
+		The regexp (regular expressions) family of nodes
+		provides regular expression facilities on your flow,
+		acting on the strings contained in string packets:
+
+		 - replace regular expression patterns in a string
+		 - search for regular expression patterns in a string
+
+		Only one regular expressions backend is supported, for
+		now: libpcre.

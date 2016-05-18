@@ -171,8 +171,8 @@ static const struct sol_flow_node_type test_node_type = {
 
     .init_type = test_node_init_type,
 
-    .ports_in_count = SOL_UTIL_ARRAY_SIZE(test_ports_in),
-    .ports_out_count = SOL_UTIL_ARRAY_SIZE(test_ports_out),
+    .ports_in_count = sol_util_array_size(test_ports_in),
+    .ports_out_count = sol_util_array_size(test_ports_out),
     .get_port_in = test_node_get_port_in,
     .get_port_out = test_node_get_port_out,
     .options_size = sizeof(struct sol_flow_node_options),
@@ -499,7 +499,7 @@ add_node_by_type(void)
     builder = sol_flow_builder_new();
     sol_flow_builder_set_resolver(builder, &custom_resolver);
 
-    for (i = 0; i < SOL_UTIL_ARRAY_SIZE(inputs); i++) {
+    for (i = 0; i < sol_util_array_size(inputs); i++) {
         int err;
         char *name;
         bool built;

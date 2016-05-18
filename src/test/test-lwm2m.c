@@ -95,8 +95,7 @@ security_object_read(void *instance_data, void *user_data,
             SOL_LWM2M_RESOURCE_DATA_TYPE_BOOLEAN, false);
         break;
     case SECURITY_SERVER_ID:
-        SOL_LWM2M_RESOURCE_INIT(r, res, 10, 1,
-            SOL_LWM2M_RESOURCE_DATA_TYPE_INT, 101);
+        SOL_LWM2M_RESOURCE_INT_INIT(r, res, 10, 101);
         break;
     default:
         r = -EINVAL;
@@ -114,12 +113,10 @@ server_object_read(void *instance_data, void *user_data,
 
     switch (res_id) {
     case SERVER_OBJECT_SERVER_ID:
-        SOL_LWM2M_RESOURCE_INIT(r, res, 0, 1,
-            SOL_LWM2M_RESOURCE_DATA_TYPE_INT, 101);
+        SOL_LWM2M_RESOURCE_INT_INIT(r, res, 0, 101);
         break;
     case SERVER_OBJECT_LIFETIME:
-        SOL_LWM2M_RESOURCE_INIT(r, res, 1, 1,
-            SOL_LWM2M_RESOURCE_DATA_TYPE_INT, LIFETIME);
+        SOL_LWM2M_RESOURCE_INT_INIT(r, res, 1, LIFETIME);
         break;
     case SERVER_OBJECT_BINDING:
         SOL_LWM2M_RESOURCE_INIT(r, res, 7, 1,
@@ -135,7 +132,7 @@ server_object_read(void *instance_data, void *user_data,
 
 /*
    This function is used by the lwm2m client and server to check if the tlv
-   are its values are valid. However the lwm2m server will pass NULL as
+   and its values are valid. However the lwm2m server will pass NULL as
    the second argument.
  */
 static void
@@ -147,8 +144,8 @@ check_tlv_and_save(struct sol_vector *tlvs, struct dummy_ctx *ctx)
     int r;
 
     SOL_VECTOR_FOREACH_IDX (tlvs, tlv, i) {
-        uint8_t *buf;
-        uint16_t len, obj, instance;
+        SOL_BUFFER_DECLARE_STATIC(buf, 32); // watch sizes of STR and OPAQUE_STR
+        uint16_t obj, instance;
         bool b;
         int64_t int64;
         double fp;
@@ -156,27 +153,27 @@ check_tlv_and_save(struct sol_vector *tlvs, struct dummy_ctx *ctx)
         if (tlv->type == SOL_LWM2M_TLV_TYPE_RESOURCE_WITH_VALUE) {
             switch (tlv->id) {
             case DUMMY_OBJECT_STRING_ID:
-                r = sol_lwm2m_tlv_get_bytes(tlv, &buf, &len);
+                r = sol_lwm2m_tlv_get_bytes(tlv, &buf);
                 ASSERT(r == 0);
-                ASSERT(len == strlen(STR));
-                ASSERT(!memcmp(STR, buf, len));
+                ASSERT(buf.used == strlen(STR));
+                ASSERT(!memcmp(STR, buf.data, buf.used));
                 if (ctx) {
-                    ctx->str1 = strndup((const char *)buf, len);
+                    ctx->str1 = strndup((const char *)buf.data, buf.used);
                     ASSERT(ctx->str1 != NULL);
                 }
                 break;
             case DUMMY_OBJECT_OPAQUE_ID:
-                r = sol_lwm2m_tlv_get_bytes(tlv, &buf, &len);
+                r = sol_lwm2m_tlv_get_bytes(tlv, &buf);
                 ASSERT(r == 0);
-                ASSERT(len == strlen(OPAQUE_STR));
-                ASSERT(!memcmp(OPAQUE_STR, buf, len));
+                ASSERT(buf.used == strlen(OPAQUE_STR));
+                ASSERT(!memcmp(OPAQUE_STR, buf.data, buf.used));
                 if (ctx) {
-                    ctx->opaque = strndup((const char *)buf, len);
+                    ctx->opaque = strndup((const char *)buf.data, buf.used);
                     ASSERT(ctx->opaque != NULL);
                 }
                 break;
             case DUMMY_OBJECT_INT_ID:
-                r = sol_lwm2m_tlv_to_int(tlv, &int64);
+                r = sol_lwm2m_tlv_get_int(tlv, &int64);
                 ASSERT(r == 0);
                 if (first || !ctx)
                     ASSERT(int64 == INT_VALUE);
@@ -186,28 +183,28 @@ check_tlv_and_save(struct sol_vector *tlvs, struct dummy_ctx *ctx)
                     ctx->i = int64;
                 break;
             case DUMMY_OBJECT_BOOLEAN_FALSE_ID:
-                r = sol_lwm2m_tlv_to_bool(tlv, &b);
+                r = sol_lwm2m_tlv_get_bool(tlv, &b);
                 ASSERT(r == 0);
                 ASSERT(!b);
                 if (ctx)
                     ctx->f = b;
                 break;
             case DUMMY_OBJECT_BOOLEAN_TRUE_ID:
-                r = sol_lwm2m_tlv_to_bool(tlv, &b);
+                r = sol_lwm2m_tlv_get_bool(tlv, &b);
                 ASSERT(r == 0);
                 ASSERT(b);
                 if (ctx)
                     ctx->t = b;
                 break;
             case DUMMY_OBJECT_FLOAT_ID:
-                r = sol_lwm2m_tlv_to_float(tlv, &fp);
+                r = sol_lwm2m_tlv_get_float(tlv, &fp);
                 ASSERT(r == 0);
                 ASSERT(fp - FLOAT_VALUE <= 0.00);
                 if (ctx)
                     ctx->fp = fp;
                 break;
             case DUMMY_OBJECT_OBJ_LINK_ID:
-                r = sol_lwm2m_tlv_to_obj_link(tlv, &obj, &instance);
+                r = sol_lwm2m_tlv_get_obj_link(tlv, &obj, &instance);
                 ASSERT(r == 0);
                 ASSERT(obj == OBJ_VALUE);
                 ASSERT(instance == INSTANCE_VALUE);
@@ -223,7 +220,7 @@ check_tlv_and_save(struct sol_vector *tlvs, struct dummy_ctx *ctx)
             //This must be an array with two elements, so the ids must be 0 and 1
             if (tlv->id != 0 && tlv->id != 1)
                 ASSERT(1 == 2);
-            r = sol_lwm2m_tlv_to_int(tlv, &int64);
+            r = sol_lwm2m_tlv_get_int(tlv, &int64);
             ASSERT(r == 0);
             if (tlv->id == 0)
                 ASSERT(int64 == ARRAY_VALUE_ONE);
@@ -232,6 +229,7 @@ check_tlv_and_save(struct sol_vector *tlvs, struct dummy_ctx *ctx)
             if (ctx)
                 ctx->array[tlv->id] = int64;
         }
+        sol_buffer_fini(&buf);
     }
     first = false;
 }
@@ -254,7 +252,7 @@ create_dummy(void *user_data, struct sol_lwm2m_client *client,
     r = sol_lwm2m_parse_tlv(content, &tlvs);
     ASSERT(r == 0);
     check_tlv_and_save(&tlvs, ctx);
-    sol_lwm2m_tlv_array_clear(&tlvs);
+    sol_lwm2m_tlv_list_clear(&tlvs);
     return 0;
 }
 
@@ -297,8 +295,7 @@ read_dummy_resource(void *instance_data, void *user_data,
             sol_str_slice_from_str(ctx->opaque));
         break;
     case DUMMY_OBJECT_INT_ID:
-        SOL_LWM2M_RESOURCE_INIT(r, res, res_id, 1,
-            SOL_LWM2M_RESOURCE_DATA_TYPE_INT, ctx->i);
+        SOL_LWM2M_RESOURCE_INT_INIT(r, res, res_id, ctx->i);
         break;
     case DUMMY_OBJECT_BOOLEAN_FALSE_ID:
         SOL_LWM2M_RESOURCE_INIT(r, res, res_id, 1,
@@ -337,7 +334,7 @@ execute_dummy(void *instance_data, void *user_data,
     ASSERT(res_id == DUMMY_OBJECT_EXECUTE_ID);
     ASSERT(sol_str_slice_str_eq(args, EXECUTE_ARGS));
 
-    r = sol_lwm2m_send_update(client);
+    r = sol_lwm2m_client_send_update(client);
     ASSERT(r == 0);
     return 0;
 }
@@ -385,22 +382,22 @@ static void
 execute_cb(void *data,
     struct sol_lwm2m_server *server,
     struct sol_lwm2m_client_info *client, const char *path,
-    sol_coap_responsecode_t response_code)
+    enum sol_coap_response_code response_code)
 {
-    ASSERT(response_code == SOL_COAP_RSPCODE_CHANGED);
+    ASSERT(response_code == SOL_COAP_RESPONSE_CODE_CHANGED);
 }
 
 static void
 write_cb(void *data,
     struct sol_lwm2m_server *server,
     struct sol_lwm2m_client_info *client, const char *path,
-    sol_coap_responsecode_t response_code)
+    enum sol_coap_response_code response_code)
 {
     int r;
 
-    ASSERT(response_code == SOL_COAP_RSPCODE_CHANGED);
+    ASSERT(response_code == SOL_COAP_RESPONSE_CODE_CHANGED);
 
-    r = sol_lwm2m_server_management_execute(server, client, "/999/0/8",
+    r = sol_lwm2m_server_execute_resource(server, client, "/999/0/8",
         EXECUTE_ARGS, execute_cb, NULL);
     ASSERT(r == 0);
 }
@@ -410,7 +407,7 @@ read_cb(void *data,
     struct sol_lwm2m_server *server,
     struct sol_lwm2m_client_info *client,
     const char *path,
-    sol_coap_responsecode_t response_code,
+    enum sol_coap_response_code response_code,
     enum sol_lwm2m_content_type content_type,
     struct sol_str_slice content)
 {
@@ -418,7 +415,7 @@ read_cb(void *data,
     int r;
     struct sol_lwm2m_resource res;
 
-    ASSERT(response_code == SOL_COAP_RSPCODE_CONTENT);
+    ASSERT(response_code == SOL_COAP_RESPONSE_CODE_CONTENT);
     ASSERT(content_type == SOL_LWM2M_CONTENT_TYPE_TLV);
 
     r = sol_lwm2m_parse_tlv(content, &tlvs);
@@ -426,15 +423,13 @@ read_cb(void *data,
 
     check_tlv_and_save(&tlvs, NULL);
 
-    SOL_LWM2M_RESOURCE_INIT(r, &res, DUMMY_OBJECT_INT_ID, 1,
-        SOL_LWM2M_RESOURCE_DATA_TYPE_INT,
-        (int64_t)INT_REPLACE_VALUE);
+    SOL_LWM2M_RESOURCE_INT_INIT(r, &res, DUMMY_OBJECT_INT_ID, INT_REPLACE_VALUE);
     ASSERT(r == 0);
-    r = sol_lwm2m_server_management_write(server, client, "/999/0/2",
+    r = sol_lwm2m_server_write(server, client, "/999/0/2",
         &res, 1, write_cb, NULL);
     ASSERT(r == 0);
     sol_lwm2m_resource_clear(&res);
-    sol_lwm2m_tlv_array_clear(&tlvs);
+    sol_lwm2m_tlv_list_clear(&tlvs);
 }
 
 static void
@@ -442,7 +437,7 @@ observe_res_cb(void *data,
     struct sol_lwm2m_server *server,
     struct sol_lwm2m_client_info *client,
     const char *path,
-    sol_coap_responsecode_t response_code,
+    enum sol_coap_response_code response_code,
     enum sol_lwm2m_content_type content_type,
     struct sol_str_slice content)
 {
@@ -452,14 +447,14 @@ observe_res_cb(void *data,
     int64_t v;
     int r;
 
-    ASSERT(response_code == SOL_COAP_RSPCODE_CHANGED ||
-        response_code == SOL_COAP_RSPCODE_CONTENT);
+    ASSERT(response_code == SOL_COAP_RESPONSE_CODE_CHANGED ||
+        response_code == SOL_COAP_RESPONSE_CODE_CONTENT);
 
     r = sol_lwm2m_parse_tlv(content, &tlvs);
     ASSERT(r == 0);
     ASSERT(tlvs.len == 1);
-    tlv = sol_vector_get_nocheck(&tlvs, 0);
-    r = sol_lwm2m_tlv_to_int(tlv, &v);
+    tlv = sol_vector_get_no_check(&tlvs, 0);
+    r = sol_lwm2m_tlv_get_int(tlv, &v);
     ASSERT(r == 0);
 
     if (i == 0)
@@ -478,13 +473,13 @@ static void
 create_cb(void *data,
     struct sol_lwm2m_server *server,
     struct sol_lwm2m_client_info *client, const char *path,
-    sol_coap_responsecode_t response_code)
+    enum sol_coap_response_code response_code)
 {
     int r;
 
-    ASSERT(response_code == SOL_COAP_RSPCODE_CREATED);
+    ASSERT(response_code == SOL_COAP_RESPONSE_CODE_CREATED);
 
-    r = sol_lwm2m_server_management_read(server, client, "/999/0",
+    r = sol_lwm2m_server_read(server, client, "/999/0",
         read_cb, NULL);
     ASSERT(r == 0);
 
@@ -508,8 +503,7 @@ create_obj(struct sol_lwm2m_server *server, struct sol_lwm2m_client_info *cinfo)
         SOL_LWM2M_RESOURCE_DATA_TYPE_OPAQUE,
         sol_str_slice_from_str(OPAQUE_STR));
     ASSERT(r == 0);
-    SOL_LWM2M_RESOURCE_INIT(r, &res[2], DUMMY_OBJECT_INT_ID, 1,
-        SOL_LWM2M_RESOURCE_DATA_TYPE_INT, (int64_t)INT_VALUE);
+    SOL_LWM2M_RESOURCE_INT_INIT(r, &res[2], DUMMY_OBJECT_INT_ID, INT_VALUE);
     ASSERT(r == 0);
     SOL_LWM2M_RESOURCE_INIT(r, &res[3], DUMMY_OBJECT_BOOLEAN_FALSE_ID, 1,
         SOL_LWM2M_RESOURCE_DATA_TYPE_BOOLEAN, false);
@@ -526,11 +520,11 @@ create_obj(struct sol_lwm2m_server *server, struct sol_lwm2m_client_info *cinfo)
     SOL_LWM2M_RESOURCE_INIT(r, &res[7], DUMMY_OBJECT_ARRAY_ID, 2,
         SOL_LWM2M_RESOURCE_DATA_TYPE_INT, ARRAY_VALUE_ONE, ARRAY_VALUE_TWO);
     ASSERT(r == 0);
-    r = sol_lwm2m_server_management_create(server, cinfo, "/999", res,
-        SOL_UTIL_ARRAY_SIZE(res), create_cb, NULL);
+    r = sol_lwm2m_server_create_object_instance(server, cinfo, "/999", res,
+        sol_util_array_size(res), create_cb, NULL);
     ASSERT(r == 0);
 
-    for (i = 0; i < SOL_UTIL_ARRAY_SIZE(res); i++)
+    for (i = 0; i < sol_util_array_size(res); i++)
         sol_lwm2m_resource_clear(&res[i]);
 }
 
@@ -538,9 +532,9 @@ static void
 delete_cb(void *data,
     struct sol_lwm2m_server *server,
     struct sol_lwm2m_client_info *client, const char *path,
-    sol_coap_responsecode_t response_code)
+    enum sol_coap_response_code response_code)
 {
-    ASSERT(response_code == SOL_COAP_RSPCODE_DELETED);
+    ASSERT(response_code == SOL_COAP_RESPONSE_CODE_DELETED);
     sol_quit();
 }
 
@@ -558,7 +552,7 @@ registration_event_cb(void *data, struct sol_lwm2m_server *server,
         uint16_t i, objects_found = 0;
 
         ASSERT(!strcmp(CLIENT_NAME, sol_lwm2m_client_info_get_name(cinfo)));
-        ASSERT(!strcmp(SMS_NUMBER, sol_lwm2m_client_info_get_sms(cinfo)));
+        ASSERT(!strcmp(SMS_NUMBER, sol_lwm2m_client_info_get_sms_number(cinfo)));
         ASSERT(!strcmp("/my_path",
             sol_lwm2m_client_info_get_objects_path(cinfo)));
         r = sol_lwm2m_client_info_get_lifetime(cinfo, &lf);
@@ -585,7 +579,7 @@ registration_event_cb(void *data, struct sol_lwm2m_server *server,
         r = sol_lwm2m_server_del_observer(server, cinfo, "/999/0/2",
             observe_res_cb, NULL);
         ASSERT(r == 0);
-        r = sol_lwm2m_server_management_delete(server, cinfo, "/999/0",
+        r = sol_lwm2m_server_delete_object_instance(server, cinfo, "/999/0",
             delete_cb, NULL);
         ASSERT(r == 0);
     } else {

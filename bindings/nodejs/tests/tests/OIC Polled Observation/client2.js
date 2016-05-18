@@ -16,4 +16,4 @@
  * limitations under the License.
  */
 
-require( "../../observation-client" )( "Client 2: ", 1, 2 );
+require( "../../helpers/observation-client" )( "Client 2: ", 1, 2 );

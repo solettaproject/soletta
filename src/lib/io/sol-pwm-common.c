@@ -26,6 +26,8 @@ SOL_LOG_INTERNAL_DECLARE_STATIC(_log_domain, "pwm");
 #ifdef USE_PIN_MUX
 #include "sol-pin-mux.h"
 #endif
+#include "sol-str-table.h"
+#include "sol-util.h"
 
 static void
 _log_init(void)
@@ -72,4 +74,64 @@ sol_pwm_open(int device, int channel, const struct sol_pwm_config *config)
 #endif
 
     return pwm;
+}
+
+SOL_API enum sol_pwm_alignment
+sol_pwm_alignment_from_str(const char *pwm_alignment)
+{
+    static const struct sol_str_table table[] = {
+        SOL_STR_TABLE_ITEM("left", SOL_PWM_ALIGNMENT_LEFT),
+        SOL_STR_TABLE_ITEM("right", SOL_PWM_ALIGNMENT_RIGHT),
+        SOL_STR_TABLE_ITEM("center", SOL_PWM_ALIGNMENT_CENTER),
+        { }
+    };
+
+    SOL_NULL_CHECK(pwm_alignment, SOL_PWM_ALIGNMENT_LEFT);
+
+    return sol_str_table_lookup_fallback(table,
+        sol_str_slice_from_str(pwm_alignment), SOL_PWM_ALIGNMENT_LEFT);
+}
+
+SOL_API const char *
+sol_pwm_alignment_to_str(enum sol_pwm_alignment pwm_alignment)
+{
+    static const char *alignment_names[] = {
+        [SOL_PWM_ALIGNMENT_LEFT] = "left",
+        [SOL_PWM_ALIGNMENT_RIGHT] = "right",
+        [SOL_PWM_ALIGNMENT_CENTER] = "center"
+    };
+
+    if (pwm_alignment < sol_util_array_size(alignment_names))
+        return alignment_names[pwm_alignment];
+
+    return NULL;
+}
+
+SOL_API enum sol_pwm_polarity
+sol_pwm_polarity_from_str(const char *pwm_polarity)
+{
+    static const struct sol_str_table table[] = {
+        SOL_STR_TABLE_ITEM("normal", SOL_PWM_POLARITY_NORMAL),
+        SOL_STR_TABLE_ITEM("inversed", SOL_PWM_POLARITY_INVERSED),
+        { }
+    };
+
+    SOL_NULL_CHECK(pwm_polarity, SOL_PWM_POLARITY_NORMAL);
+
+    return sol_str_table_lookup_fallback(table,
+        sol_str_slice_from_str(pwm_polarity), SOL_PWM_POLARITY_NORMAL);
+}
+
+SOL_API const char *
+sol_pwm_polarity_to_str(enum sol_pwm_polarity pwm_polarity)
+{
+    static const char *polarity_names[] = {
+        [SOL_PWM_POLARITY_NORMAL] = "normal",
+        [SOL_PWM_POLARITY_INVERSED] = "inversed"
+    };
+
+    if (pwm_polarity < sol_util_array_size(polarity_names))
+        return polarity_names[pwm_polarity];
+
+    return NULL;
 }

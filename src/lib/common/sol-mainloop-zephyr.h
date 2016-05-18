@@ -23,6 +23,4 @@ struct mainloop_event {
     const void *data;
 };
 
-int sol_mainloop_zephyr_common_init(void);
 int sol_mainloop_event_post(const struct mainloop_event *me);
-void sol_mainloop_events_process(int32_t sleeptime);

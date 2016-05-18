@@ -108,7 +108,7 @@ change_location(void *data)
     printf("New latitude: %s - New longitude: %s\n", instance_ctx->latitude,
         instance_ctx->longitude);
 
-    r = sol_lwm2m_notify_observers(instance_ctx->client, paths);
+    r = sol_lwm2m_client_notify(instance_ctx->client, paths);
 
     if (r < 0) {
         fprintf(stderr, "Could not notify the observers\n");
@@ -169,20 +169,17 @@ create_location_obj(void *user_data, struct sol_lwm2m_client *client,
     }
 
     SOL_VECTOR_FOREACH_IDX (&tlvs, tlv, i) {
-        uint8_t *bytes;
-        uint16_t bytes_len;
+        SOL_BUFFER_DECLARE_STATIC(buf, 32);
         char **prop = NULL;
 
-        bytes_len = 0;
-
         if (tlv->id == LOCATION_OBJ_LATITUDE_RES_ID) {
-            r = sol_lwm2m_tlv_get_bytes(tlv, &bytes, &bytes_len);
+            r = sol_lwm2m_tlv_get_bytes(tlv, &buf);
             prop = &instance_ctx->latitude;
         } else if (tlv->id == LOCATION_OBJ_LONGITUDE_RES_ID) {
-            r = sol_lwm2m_tlv_get_bytes(tlv, &bytes, &bytes_len);
+            r = sol_lwm2m_tlv_get_bytes(tlv, &buf);
             prop = &instance_ctx->longitude;
         } else
-            r = sol_lwm2m_tlv_to_int(tlv, &instance_ctx->timestamp);
+            r = sol_lwm2m_tlv_get_int(tlv, &instance_ctx->timestamp);
 
         if (r < 0) {
             fprintf(stderr, "Could not get the tlv value for resource %"
@@ -190,8 +187,8 @@ create_location_obj(void *user_data, struct sol_lwm2m_client *client,
             goto err_free_tlvs;
         }
 
-        if (bytes_len) {
-            *prop = strndup((const char *)bytes, bytes_len);
+        if (buf.used) {
+            *prop = strndup((const char *)buf.data, buf.used);
             if (!*prop) {
                 r = -ENOMEM;
                 fprintf(stderr, "Could not copy the longitude/latitude"
@@ -199,18 +196,19 @@ create_location_obj(void *user_data, struct sol_lwm2m_client *client,
                 goto err_free_tlvs;
             }
         }
+        sol_buffer_fini(&buf);
     }
 
     instance_ctx->client = client;
     *instance_data = instance_ctx;
     *has_location_instance = true;
-    sol_lwm2m_tlv_array_clear(&tlvs);
+    sol_lwm2m_tlv_list_clear(&tlvs);
     printf("Location object created\n");
 
     return 0;
 
 err_free_tlvs:
-    sol_lwm2m_tlv_array_clear(&tlvs);
+    sol_lwm2m_tlv_list_clear(&tlvs);
 err_free_timeout:
     sol_timeout_del(instance_ctx->timeout);
     free(instance_ctx->longitude);
@@ -272,8 +270,7 @@ read_security_server_obj(void *instance_data, void *user_data,
             SOL_LWM2M_RESOURCE_DATA_TYPE_BOOLEAN, false);
         break;
     case SECURITY_SERVER_SERVER_ID_RES_ID:
-        SOL_LWM2M_RESOURCE_INIT(r, res, 10, 1,
-            SOL_LWM2M_RESOURCE_DATA_TYPE_INT, 101);
+        SOL_LWM2M_RESOURCE_INT_INIT(r, res, 10, 101);
         break;
     default:
         if (res_id >= 2 && res_id <= 11)
@@ -295,12 +292,10 @@ read_server_obj(void *instance_data, void *user_data,
     //It implements only the necassary info to connect to a LWM2M server Without encryption.
     switch (res_id) {
     case SERVER_OBJ_SHORT_RES_ID:
-        SOL_LWM2M_RESOURCE_INIT(r, res, res_id, 1,
-            SOL_LWM2M_RESOURCE_DATA_TYPE_INT, 101);
+        SOL_LWM2M_RESOURCE_INT_INIT(r, res, res_id, 101);
         break;
     case SERVER_OBJ_LIFETIME_RES_ID:
-        SOL_LWM2M_RESOURCE_INIT(r, res, res_id, 1,
-            SOL_LWM2M_RESOURCE_DATA_TYPE_INT, LIFETIME);
+        SOL_LWM2M_RESOURCE_INT_INIT(r, res, res_id, LIFETIME);
         break;
     case SERVER_OBJ_BINDING_RES_ID:
         SOL_LWM2M_RESOURCE_INIT(r, res, res_id, 1,
@@ -325,7 +320,7 @@ execute_server_obj(void *instance_data, void *user_data,
     if (res_id != SERVER_OBJ_REGISTRATION_UPDATE_RES_ID)
         return -EINVAL;
 
-    return sol_lwm2m_send_update(client);
+    return sol_lwm2m_client_send_update(client);
 }
 
 static int

@@ -162,9 +162,9 @@ sol_str_slice_caseeq(const struct sol_str_slice a, const struct sol_str_slice b)
  * @param haystack Slice that will be searched
  * @param needle Slice to search for in @c haystack
  *
- * @return @c true if @c needle is contained in @c haystack
+ * @return A pointer to the beginning of substring or @c NULL if not
  */
-bool sol_str_slice_contains(const struct sol_str_slice haystack, const struct sol_str_slice needle);
+char *sol_str_slice_contains(const struct sol_str_slice haystack, const struct sol_str_slice needle);
 
 /**
  * @brief Checks if @c haystack contains @c needle.
@@ -172,9 +172,13 @@ bool sol_str_slice_contains(const struct sol_str_slice haystack, const struct so
  * @param haystack Slice that will be searched
  * @param needle String to search for in @c haystack
  *
- * @return @c true if @c needle is contained in @c haystack
+ * @return A pointer to the beginning of substring or @c NULL if not
  */
-bool sol_str_slice_str_contains(const struct sol_str_slice haystack, const char *needle);
+static inline char *
+sol_str_slice_str_contains(const struct sol_str_slice haystack, const char *needle)
+{
+    return sol_str_slice_contains(haystack, SOL_STR_SLICE_STR(needle, strlen(needle)));
+}
 
 /**
  * @brief Copies the content of slice @c src into string @c dst.
@@ -202,7 +206,7 @@ sol_str_slice_copy(char *dst, const struct sol_str_slice src)
 static inline bool
 sol_str_slice_starts_with(const struct sol_str_slice slice, const struct sol_str_slice prefix)
 {
-    return slice.len >= prefix.len && strncmp(slice.data, prefix.data, prefix.len);
+    return slice.len >= prefix.len && strncmp(slice.data, prefix.data, prefix.len) == 0;
 }
 
 /**
@@ -247,6 +251,38 @@ static SOL_ATTR_NONNULL(1) inline struct sol_str_slice
 sol_str_slice_from_blob(const struct sol_blob *blob)
 {
     return SOL_STR_SLICE_STR((char *)blob->mem, blob->size);
+}
+
+/**
+ * @brief Creates a blob from a slice.
+ *
+ * This function creates @ref SOL_BLOB_TYPE_DEFAULT, this means that
+ * the memory used by the slice will be duplicated.
+ *
+ * @param slice Source slice
+ * @return A blob or @c NULL on error
+ */
+static inline struct sol_blob *
+sol_str_slice_to_blob(const struct sol_str_slice slice)
+{
+    void *blob_mem;
+    struct sol_blob *blob;
+
+    blob_mem = malloc(slice.len);
+    if (!blob_mem)
+        return NULL;
+
+    memcpy(blob_mem, slice.data, slice.len);
+
+    blob = sol_blob_new(&SOL_BLOB_TYPE_DEFAULT, NULL,
+        blob_mem, slice.len);
+
+    if (!blob) {
+        free(blob_mem);
+        return NULL;
+    }
+
+    return blob;
 }
 
 /**
@@ -348,8 +384,50 @@ sol_str_slice_trim(struct sol_str_slice slice)
  * @param maxsplit The maximum number of splits to make
  *
  * @return On success, vector of string slices of the words, @c NULL otherwise.
+ * @see sol_str_slice_split_iterate()
+ * @see sol_str_slice_str_split_iterate()
  */
 struct sol_vector sol_str_slice_split(const struct sol_str_slice slice, const char *delim, size_t maxsplit);
+
+/**
+ * @brief Do an one step split iteration over a slice.
+ *
+ * Usage example:
+ * @code{.c}
+ * struct sol_str_slice slice = SOL_STR_SLICE_LITERAL("one;two;three");
+ * struct sol_str_slice token;
+ * const char *itr = NULL;
+ * while (sol_str_slice_split_iterate(slice, &token, &itr, ";")) {
+ *    printf("%.*s\t", SOL_STR_SLICE_PRINT(token));
+ *    //It will print: one two three
+ * }
+ * @endcode
+ *
+ * @param slice The slice the be splitted
+ * @param token A splitted token
+ * @param itr An iterator - It should be @c NULL on the first call.
+ * @param delim The delimiter slice
+ * @return @c true if iteration should continue or @c false if iteration should be stopped.
+ * @see sol_str_slice_split()
+ * @see sol_str_slice_str_split_iterate()
+ */
+bool sol_str_slice_split_iterate(const struct sol_str_slice slice, struct sol_str_slice *token, const char **itr, const struct sol_str_slice delim);
+
+/**
+ * @brief Wrapper over sol_str_slice_split_iterate()
+ *
+ * @param slice The slice the be splitted
+ * @param token A splitted token
+ * @param itr An iterator - It should be @c NULL on the first call.
+ * @param delim The delimiter string
+ * @see sol_str_slice_split_iterate()
+ * @see sol_str_slice_split()
+ */
+static inline bool
+sol_str_slice_str_split_iterate(const struct sol_str_slice slice, struct sol_str_slice *token, const char **itr, const char *delim)
+{
+    return sol_str_slice_split_iterate(slice, token, itr, sol_str_slice_from_str(delim));
+}
 
 /**
  * @}

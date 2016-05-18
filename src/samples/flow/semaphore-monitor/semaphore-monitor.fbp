@@ -26,7 +26,7 @@
 #
 # It is an example of:
 #
-#  - http-client/get-string node type (get the SVG as plain text)
+#  - http-client/string node type (get the SVG as plain text)
 #
 #  - string/regexp-search node type (extract passed/failed string)
 #
@@ -43,5 +43,5 @@ INPORT=get_svg.GET:UPDATE
 OUTPORT=check_status.OUT:STATUS
 OPTION=get_svg.url:url
 
-get_svg(http-client/get-string:content_type=null)
+get_svg(http-client/string:accept=null)
 get_svg OUT -> IN check_status(string/regexp-search:regexp="(<text [^>]+>(passed|failed)</text>)",index=2)

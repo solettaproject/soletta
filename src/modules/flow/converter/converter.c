@@ -17,8 +17,8 @@
  */
 
 #include "sol-flow/converter.h"
-#include "string-format.h"
 #include "sol-mainloop.h"
+#include "sol-flow-internal.h"
 
 #include <sol-json.h>
 #include <limits.h>
@@ -30,6 +30,8 @@
 struct string_converter {
     struct sol_flow_node *node;
     char *format;
+    char *format_prefix;
+    char *format_suffix;
 };
 
 struct sol_converter_byte {
@@ -822,7 +824,18 @@ drange_to_string_convert(struct sol_flow_node *node, void *data, uint16_t port, 
     r = sol_flow_packet_get_drange(packet, &in_value);
     SOL_INT_CHECK(r, < 0, r);
 
-    r = do_float_markup(node, mdata->format, in_value, &out);
+    r = sol_buffer_append_slice(&out,
+        sol_str_slice_from_str(mdata->format_prefix));
+    SOL_INT_CHECK_GOTO(r, < 0, end);
+
+#pragma GCC diagnostic push
+#pragma GCC diagnostic ignored "-Wformat-nonliteral"
+    r = sol_buffer_append_printf(&out, mdata->format, in_value.val);
+    SOL_INT_CHECK_GOTO(r, < 0, end);
+#pragma GCC diagnostic pop
+
+    r = sol_buffer_append_slice(&out,
+        sol_str_slice_from_str(mdata->format_suffix));
     SOL_INT_CHECK_GOTO(r, < 0, end);
 
     r = sol_flow_send_string_slice_packet(node,
@@ -834,6 +847,48 @@ end:
     return r;
 }
 
+static bool
+validate_flags(const char *s)
+{
+    const char *ptr = s;
+
+    while (*ptr) {
+        switch (*ptr) {
+        case '#':
+        case '0':
+        case '-':
+        case ' ':
+        case '+':
+            ptr++;
+            continue;
+        default:
+            return false;
+        }
+    }
+
+    return true;
+}
+
+static bool
+validate_drange_conversion_specifier(const char *s)
+{
+    if ((s[0] == 'e' || s[0] == 'f' || s[0] == 'F' || s[0] == 'g' ||
+        s[0] == 'G' || s[0] == 'a' || s[0] == 'A') && s[1] == '\0')
+        return true;
+
+    return false;
+}
+
+static bool
+validate_irange_conversion_specifier(const char *s)
+{
+    if ((s[0] == 'd' || s[0] == 'i' || s[0] == 'o' || s[0] == 'u' ||
+        s[0] == 'x' || s[0] == 'X' || s[0] == 'c') && s[1] == '\0')
+        return true;
+
+    return false;
+}
+
 static int
 drange_to_string_open(struct sol_flow_node *node,
     void *data,
@@ -841,6 +896,7 @@ drange_to_string_open(struct sol_flow_node *node,
 {
     struct string_converter *mdata = data;
     const struct sol_flow_node_type_converter_float_to_string_options *opts;
+    bool flags = false, valid_conv = false;
 
     SOL_FLOW_NODE_OPTIONS_SUB_API_CHECK(options,
         SOL_FLOW_NODE_TYPE_CONVERTER_FLOAT_TO_STRING_OPTIONS_API_VERSION,
@@ -848,18 +904,48 @@ drange_to_string_open(struct sol_flow_node *node,
 
     opts = (const struct sol_flow_node_type_converter_float_to_string_options *)options;
 
-    mdata->format = strdup(opts->format_spec);
-    SOL_NULL_CHECK(mdata->format, -ENOMEM);
+    if (opts->format_prefix)
+        mdata->format_prefix = strdup(opts->format_prefix);
+    if (opts->format_suffix)
+        mdata->format_suffix = strdup(opts->format_suffix);
+    if (opts->format_flags) {
+        if (!validate_flags(opts->format_flags))
+            SOL_WRN("Invalid format flags provided: %s,"
+                " proceeding with no flags", opts->format_flags);
+        else
+            flags = true;
+    }
+    if (opts->format_conversion_specifier) {
+        if (!validate_drange_conversion_specifier
+                (opts->format_conversion_specifier))
+            SOL_WRN("Invalid format conversion specifier provided: %s,"
+                " proceeding with default one (f)",
+                opts->format_conversion_specifier);
+        else
+            valid_conv = true;
+    }
 
-    return 0;
+    if (opts->format_precision > 0)
+        return asprintf(&mdata->format, "%%%s%" PRId32 ".%" PRId32 "%s",
+            flags ? opts->format_flags : "",
+            opts->format_field_width,
+            opts->format_precision,
+            valid_conv ? opts->format_conversion_specifier : "f");
+    else
+        return asprintf(&mdata->format, "%%%s%" PRId32 "%s",
+            flags ? opts->format_flags : "",
+            opts->format_field_width,
+            valid_conv ? opts->format_conversion_specifier : "f");
 }
 
 static void
-drange_to_string_close(struct sol_flow_node *node, void *data)
+irange_drange_to_string_close(struct sol_flow_node *node, void *data)
 {
     struct string_converter *mdata = data;
 
     free(mdata->format);
+    free(mdata->format_prefix);
+    free(mdata->format_suffix);
 }
 
 static int
@@ -879,7 +965,18 @@ irange_to_string_convert(struct sol_flow_node *node,
     r = sol_flow_packet_get_irange(packet, &in_value);
     SOL_INT_CHECK(r, < 0, r);
 
-    r = do_integer_markup(node, mdata->format, in_value, &out);
+    r = sol_buffer_append_slice(&out,
+        sol_str_slice_from_str(mdata->format_prefix));
+    SOL_INT_CHECK_GOTO(r, < 0, end);
+
+#pragma GCC diagnostic push
+#pragma GCC diagnostic ignored "-Wformat-nonliteral"
+    r = sol_buffer_append_printf(&out, mdata->format, in_value.val);
+    SOL_INT_CHECK_GOTO(r, < 0, end);
+#pragma GCC diagnostic pop
+
+    r = sol_buffer_append_slice(&out,
+        sol_str_slice_from_str(mdata->format_suffix));
     SOL_INT_CHECK_GOTO(r, < 0, end);
 
     r = sol_flow_send_string_slice_packet(node,
@@ -898,6 +995,7 @@ irange_to_string_open(struct sol_flow_node *node,
 {
     struct string_converter *mdata = data;
     const struct sol_flow_node_type_converter_int_to_string_options *opts;
+    bool flags = false, valid_conv = false;
 
     SOL_FLOW_NODE_OPTIONS_SUB_API_CHECK(options,
         SOL_FLOW_NODE_TYPE_CONVERTER_INT_TO_STRING_OPTIONS_API_VERSION,
@@ -905,18 +1003,38 @@ irange_to_string_open(struct sol_flow_node *node,
 
     opts = (const struct sol_flow_node_type_converter_int_to_string_options *)options;
 
-    mdata->format = strdup(opts->format_spec);
-    SOL_NULL_CHECK(mdata->format, -ENOMEM);
+    if (opts->format_prefix)
+        mdata->format_prefix = strdup(opts->format_prefix);
+    if (opts->format_suffix)
+        mdata->format_suffix = strdup(opts->format_suffix);
+    if (opts->format_flags) {
+        if (!validate_flags(opts->format_flags))
+            SOL_WRN("Invalid format flags provided: %s,"
+                " proceeding with no flags", opts->format_flags);
+        else
+            flags = true;
+    }
+    if (opts->format_conversion_specifier) {
+        if (!validate_irange_conversion_specifier
+                (opts->format_conversion_specifier))
+            SOL_WRN("Invalid format conversion specifier provided: %s,"
+                " proceeding with default one (d)",
+                opts->format_conversion_specifier);
+        else
+            valid_conv = true;
+    }
 
-    return 0;
-}
-
-static void
-irange_to_string_close(struct sol_flow_node *node, void *data)
-{
-    struct string_converter *mdata = data;
-
-    free(mdata->format);
+    if (opts->format_precision > 0)
+        return asprintf(&mdata->format, "%%%s%" PRId32 ".%" PRId32 "%s",
+            flags ? opts->format_flags : "",
+            opts->format_field_width,
+            opts->format_precision,
+            valid_conv ? opts->format_conversion_specifier : "f");
+    else
+        return asprintf(&mdata->format, "%%%s%" PRId32 "%s",
+            flags ? opts->format_flags : "",
+            opts->format_field_width,
+            valid_conv ? opts->format_conversion_specifier : "f");
 }
 
 static int
@@ -1236,7 +1354,7 @@ string_to_drange_convert(struct sol_flow_node *node, void *data, uint16_t port, 
     r = sol_flow_packet_get_string(packet, &in_value);
     SOL_INT_CHECK(r, < 0, r);
 
-    out_value = sol_util_strtodn(in_value, &endptr, -1, false);
+    out_value = sol_util_strtod_n(in_value, &endptr, -1, false);
     if (errno) {
         SOL_WRN("Failed to convert string to float %s: %d", in_value, errno);
         return -errno;
@@ -1684,7 +1802,7 @@ direction_vector_convert(struct sol_flow_node *node, void *data, uint16_t port, 
         mdata->output_value.z = val;
     }
 
-    for (i = 0; i < SOL_UTIL_ARRAY_SIZE(mdata->output_initialized); i++) {
+    for (i = 0; i < sol_util_array_size(mdata->output_initialized); i++) {
         if (!mdata->output_initialized[i])
             return 0;
     }
@@ -1978,7 +2096,7 @@ get_string_convert_blob(struct sol_converter_string_blob *mdata, const struct so
         memcpy(mem, str, len);
     }
 
-    blob = sol_blob_new(SOL_BLOB_TYPE_DEFAULT, NULL, mem, len);
+    blob = sol_blob_new(&SOL_BLOB_TYPE_DEFAULT, NULL, mem, len);
     if (!blob) {
         free(mem);
         return NULL;

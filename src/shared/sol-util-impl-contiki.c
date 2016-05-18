@@ -30,7 +30,7 @@ sol_util_timespec_get_current(void)
     ticks = clock_time();
     ret.tv_sec = ticks / CLOCK_SECOND;
     ticks -= ret.tv_sec * CLOCK_SECOND;
-    ret.tv_nsec = (ticks * NSEC_PER_SEC) / CLOCK_SECOND;
+    ret.tv_nsec = (ticks * SOL_UTIL_NSEC_PER_SEC) / CLOCK_SECOND;
     return ret;
 }
 

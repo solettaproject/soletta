@@ -16,12 +16,12 @@
  * limitations under the License.
  */
 
-#include "sol-oic-common.h"
+#include "sol-oic.h"
 #include "sol-oic-cbor.h"
 #include "sol-log.h"
 #include <assert.h>
 
-SOL_API enum sol_oic_map_loop_reason
+SOL_API enum sol_oic_map_loop_status
 sol_oic_map_loop_init(const struct sol_oic_map_reader *map, struct sol_oic_map_reader *iterator, struct sol_oic_repr_field *repr)
 {
     SOL_NULL_CHECK(map, SOL_OIC_MAP_LOOP_ERROR);
@@ -46,8 +46,8 @@ sol_oic_map_loop_init(const struct sol_oic_map_reader *map, struct sol_oic_map_r
     return SOL_OIC_MAP_LOOP_OK;
 }
 
-static void
-repr_field_free(struct sol_oic_repr_field *field)
+SOL_API void
+sol_oic_repr_field_clear(struct sol_oic_repr_field *field)
 {
     if (field->type == SOL_OIC_REPR_TYPE_TEXT_STRING ||
         field->type == SOL_OIC_REPR_TYPE_BYTE_STRING)
@@ -57,14 +57,14 @@ repr_field_free(struct sol_oic_repr_field *field)
 }
 
 SOL_API bool
-sol_oic_map_loop_next(struct sol_oic_repr_field *repr, struct sol_oic_map_reader *iterator, enum sol_oic_map_loop_reason *reason)
+sol_oic_map_loop_next(struct sol_oic_repr_field *repr, struct sol_oic_map_reader *iterator, enum sol_oic_map_loop_status *reason)
 {
     CborError err;
 
     SOL_NULL_CHECK_GOTO(repr, err);
     SOL_NULL_CHECK_GOTO(iterator, err);
 
-    repr_field_free(repr);
+    sol_oic_repr_field_clear(repr);
     if (cbor_value_at_end((CborValue *)iterator))
         return false;
 
@@ -83,30 +83,31 @@ err:
     return false;
 }
 
-SOL_API bool
+SOL_API int
 sol_oic_map_append(struct sol_oic_map_writer *oic_map_writer, struct sol_oic_repr_field *repr)
 {
-    SOL_NULL_CHECK(oic_map_writer, false);
-    SOL_NULL_CHECK(repr, false);
+    SOL_NULL_CHECK(oic_map_writer, -EINVAL);
+    SOL_NULL_CHECK(repr, -EINVAL);
 
-    return sol_oic_packet_cbor_append(oic_map_writer, repr) == CborNoError;
+    return sol_oic_packet_cbor_append(oic_map_writer, repr) == CborNoError ? 0 :
+           -EIO;
 }
 
-SOL_API bool
+SOL_API int
 sol_oic_map_get_type(struct sol_oic_map_writer *oic_map_writer, enum sol_oic_map_type *type)
 {
-    SOL_NULL_CHECK(oic_map_writer, false);
-    SOL_NULL_CHECK(type, false);
+    SOL_NULL_CHECK(oic_map_writer, -EINVAL);
+    SOL_NULL_CHECK(type, -EINVAL);
 
     sol_cbor_map_get_type(oic_map_writer, type);
 
-    return true;
+    return 0;
 }
 
-SOL_API bool
+SOL_API int
 sol_oic_map_set_type(struct sol_oic_map_writer *oic_map_writer, enum sol_oic_map_type type)
 {
-    SOL_NULL_CHECK(oic_map_writer, false);
+    SOL_NULL_CHECK(oic_map_writer, -EINVAL);
 
     return sol_cbor_map_set_type(oic_map_writer, type);
 }

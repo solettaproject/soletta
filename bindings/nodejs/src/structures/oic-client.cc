@@ -57,13 +57,13 @@ Local<Object> SolOicClientResource::New(struct sol_oic_resource *resource) {
         js_sol_network_link_addr(&(resource->addr)));
     Nan::Set(jsResource, Nan::New("device_id").ToLocalChecked(),
         js_DeviceIdFromSlice(&(resource->device_id)));
-    Nan::Set(jsResource, Nan::New("href").ToLocalChecked(),
-        Nan::New<String>(resource->href.data,
-            resource->href.len).ToLocalChecked());
+    Nan::Set(jsResource, Nan::New("path").ToLocalChecked(),
+        Nan::New<String>(resource->path.data,
+            resource->path.len).ToLocalChecked());
     Nan::Set(jsResource, Nan::New("interfaces").ToLocalChecked(),
         jsStringArrayFromStrSliceVector(&(resource->interfaces)));
-    Nan::Set(jsResource, Nan::New("is_observing").ToLocalChecked(),
-        Nan::New(resource->is_observing));
+    Nan::Set(jsResource, Nan::New("is_observed").ToLocalChecked(),
+        Nan::New(resource->is_observed));
     Nan::Set(jsResource, Nan::New("observable").ToLocalChecked(),
         Nan::New(resource->observable));
     Nan::Set(jsResource, Nan::New("secure").ToLocalChecked(),

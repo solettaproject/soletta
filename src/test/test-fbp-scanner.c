@@ -458,7 +458,7 @@ run_table_tests(void)
 {
     unsigned int i;
 
-    for (i = 0; i < SOL_UTIL_ARRAY_SIZE(scan_tests); i++) {
+    for (i = 0; i < sol_util_array_size(scan_tests); i++) {
         struct test_entry *t;
         struct sol_fbp_scanner scanner;
         struct sol_str_slice input;
@@ -511,7 +511,7 @@ scan_errors(void)
         SOL_STR_SLICE_LITERAL("OPTION=A:B.C"),
     };
 
-    for (i = 0; i < SOL_UTIL_ARRAY_SIZE(tests); i++) {
+    for (i = 0; i < sol_util_array_size(tests); i++) {
         struct sol_fbp_scanner scanner;
         struct sol_vector v = SOL_VECTOR_INIT(enum sol_fbp_token_type);
         enum sol_fbp_token_type *type;
@@ -525,7 +525,7 @@ scan_errors(void)
 
         if (*type == SOL_FBP_TOKEN_EOF) {
             SOL_WRN(
-                "Expected ERROR when scanning string '%.*s' but got a succesful scan:\n",
+                "Expected ERROR when scanning string '%.*s' but got a successful scan:\n",
                 SOL_STR_SLICE_PRINT(tests[i]));
             SOL_VECTOR_FOREACH_IDX (&v, type, j) {
                 SOL_WRN("- %s\n", token_names[*type]);
@@ -584,7 +584,7 @@ token_position(void)
 
     sol_fbp_scanner_init(&scanner, sol_str_slice_from_str(input));
 
-    for (i = 0; i < SOL_UTIL_ARRAY_SIZE(expected); i++) {
+    for (i = 0; i < sol_util_array_size(expected); i++) {
         struct entry *e = &expected[i];
         struct sol_fbp_token *t = &scanner.token;
         char *token_contents;

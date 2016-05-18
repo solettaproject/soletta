@@ -63,8 +63,8 @@ sol_gpio_open_raw(uint32_t pin, const struct sol_gpio_config *config)
 
 #ifndef SOL_NO_API_VERSION
     if (SOL_UNLIKELY(config->api_version != SOL_GPIO_CONFIG_API_VERSION)) {
-        SOL_WRN("Couldn't open gpio that has unsupported version '%u', "
-            "expected version is '%u'",
+        SOL_WRN("Couldn't open gpio that has unsupported version '%" PRIu16 "', "
+            "expected version is '%" PRIu16 "'",
             config->api_version, SOL_GPIO_CONFIG_API_VERSION);
         return NULL;
     }
@@ -79,7 +79,7 @@ sol_gpio_open_raw(uint32_t pin, const struct sol_gpio_config *config)
 
     if (config->dir == SOL_GPIO_DIR_IN) {
         const struct sensors_sensor *sensor = sensors_first();
-        int i = 0;
+        uint32_t i = 0;
 
         while (sensor) {
             if (strcmp(sensor->type, BUTTON_SENSOR)) {
@@ -99,7 +99,7 @@ sol_gpio_open_raw(uint32_t pin, const struct sol_gpio_config *config)
             return NULL;
         }
     } else {
-        if (pin < 0 || pin > 7) {
+        if (pin > 7) {
             SOL_ERR("GPIO pin=%" PRIu32 " not found.", pin);
             return NULL;
         }

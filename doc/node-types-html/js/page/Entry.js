@@ -44,9 +44,19 @@
         el.on('click',onEntryMouseEvent);
         el.on('mouseover',onEntryMouseEvent);
 
-        /* adding the inputs */
+        /* adding the aliases */
         var i = 0;
         var list = $('<ul></ul>');
+        el.append('<div class="entry-separator">ALIASES</div>');
+        el.append(list);
+        for(i=0; i<_data['aliases'].length; i++){
+            list.append(
+                '<li>'+_data['aliases'][i]['name']+'</li>'
+            );
+        }
+
+        /* adding the inputs */
+        list = $('<ul></ul>');
         el.append('<div class="entry-separator">INPUT PORTS</div>');
         el.append(list);
         for(i=0; i<_data['inputs'].length; i++){

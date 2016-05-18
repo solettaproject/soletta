@@ -1013,11 +1013,11 @@ struct sol_flow_port_type_in {
     const struct sol_flow_packet_type *packet_type; /**< The packet type that the port will receive */
 
     /**
-     * @brief Member function issued everytime a new packet arrives to the port.
+     * @brief Member function issued every time a new packet arrives to the port.
      * */
     int (*process)(struct sol_flow_node *node, void *data, uint16_t port, uint16_t conn_id, const struct sol_flow_packet *packet);
-    int (*connect)(struct sol_flow_node *node, void *data, uint16_t port, uint16_t conn_id); /**< member function issued everytime a new connection is made to the port */
-    int (*disconnect)(struct sol_flow_node *node, void *data, uint16_t port, uint16_t conn_id); /**< member function issued everytime a connection is unmade on the port */
+    int (*connect)(struct sol_flow_node *node, void *data, uint16_t port, uint16_t conn_id); /**< member function issued every time a new connection is made to the port */
+    int (*disconnect)(struct sol_flow_node *node, void *data, uint16_t port, uint16_t conn_id); /**< member function issued every time a connection is unmade on the port */
 };
 
 /**
@@ -1053,14 +1053,14 @@ struct sol_flow_port_type_in {
 
 #define sol_flow_get_node_type(_mod, _type, _var) sol_flow_internal_get_node_type(_mod, #_type, _var)
 
-int sol_flow_internal_get_node_type(const char *module, const char *symbol, const struct sol_flow_node_type **type);
+int sol_flow_internal_get_node_type(const char *modname, const char *symbol, const struct sol_flow_node_type ***type);
 
 #define sol_flow_get_packet_type(_mod, _type, _var) sol_flow_internal_get_packet_type(_mod, #_type, _var)
 
 int sol_flow_internal_get_packet_type(const char *module, const char *symbol, const struct sol_flow_packet_type **type);
 
 #else
-#define sol_flow_get_node_type(_mod, _type, _var) ({ (*(_var)) = _type; 0; })
+#define sol_flow_get_node_type(_mod, _type, _var) ({ (*(_var)) = &_type; 0; })
 #define sol_flow_get_packet_type(_mod, _type, _var) ({ (*(_var)) = _type; 0; })
 #endif /* SOL_DYNAMIC_MODULES */
 

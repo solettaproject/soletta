@@ -19,6 +19,9 @@ config FEATURE_NETWORK
 config FEATURE_COAP
     bool
 
+config FEATURE_BLUETOOTH
+    bool
+
 config FEATURE_HTTP_CLIENT
     bool
 
@@ -41,6 +44,9 @@ config FEATURE_HW_SPI
     bool
 
 config FEATURE_HW_I2C
+    bool
+
+config FEATURE_HW_IPM
     bool
 
 config FEATURE_FLOW

@@ -25,6 +25,7 @@
 #include "sol-mainloop.h"
 #include "sol-network.h"
 #include "sol-network-util.h"
+#include "sol-util.h"
 #include "sol-util-internal.h"
 
 #include "sol-socket.h"
@@ -33,42 +34,48 @@
 struct sol_socket_linux {
     struct sol_socket base;
 
+    bool (*on_can_read)(void *data, struct sol_socket *s);
+    bool (*on_can_write)(void *data, struct sol_socket *s);
+    struct sol_fd *watch;
+    const void *data;
     int fd;
-    struct {
-        bool (*cb)(void *data, struct sol_socket *s);
-        const void *data;
-        struct sol_fd *watch;
-    } read, write;
 };
 
 static bool
-on_socket_read(void *data, int fd, unsigned int flags)
+on_socket_event(void *data, int fd, unsigned int flags)
 {
     struct sol_socket_linux *s = data;
+    uint32_t socket_flags = 0;
     bool ret;
 
-    ret = s->read.cb((void *)s->read.data, &s->base);
-    if (!ret) {
-        s->read.cb = NULL;
-        s->read.data = NULL;
-        s->read.watch = NULL;
+    if (flags & SOL_FD_FLAGS_IN) {
+        ret = s->on_can_read((void *)s->data, &s->base);
+        if (!ret) {
+            socket_flags = SOL_FD_FLAGS_IN;
+        }
     }
-    return ret;
-}
 
-static bool
-on_socket_write(void *data, int fd, unsigned int flags)
-{
-    struct sol_socket_linux *s = data;
-    bool ret;
-
-    ret = s->write.cb((void *)s->write.data, &s->base);
-    if (!ret) {
-        s->write.cb = NULL;
-        s->write.data = NULL;
-        s->write.watch = NULL;
+    if (flags & SOL_FD_FLAGS_OUT) {
+        ret = s->on_can_write((void *)s->data, &s->base);
+        if (!ret) {
+            socket_flags |= SOL_FD_FLAGS_OUT;
+        }
     }
-    return ret;
+
+    /*
+     * It's not possible to get the flags at the beginning and apply a ~ mask
+     * because the flags can change when the user callback is called.
+     */
+    if (socket_flags) {
+        if (socket_flags == (SOL_FD_FLAGS_IN | SOL_FD_FLAGS_OUT)) {
+            s->watch = NULL;
+            return false;
+        } else {
+            sol_fd_remove_flags(s->watch, socket_flags);
+        }
+    }
+
+    return true;
 }
 
 static int
@@ -134,112 +141,53 @@ to_sockaddr(const struct sol_network_link_addr *addr, struct sockaddr *sockaddr,
     return *socklen;
 }
 
-static struct sol_socket *
-sol_socket_linux_new(int domain, enum sol_socket_type type, int protocol)
-{
-    struct sol_socket_linux *s;
-    int fd, socktype = SOCK_CLOEXEC | SOCK_NONBLOCK;
-
-    switch (type) {
-    case SOL_SOCKET_UDP:
-        socktype |= SOCK_DGRAM;
-        break;
-    default:
-        SOL_WRN("Unsupported socket type: %d", type);
-        errno = EPROTOTYPE;
-        return NULL;
-    }
-
-    fd = socket(sol_network_sol_to_af(domain), socktype, protocol);
-    SOL_INT_CHECK(fd, < 0, NULL);
-
-    s = calloc(1, sizeof(*s));
-    SOL_NULL_CHECK_GOTO(s, calloc_error);
-
-    s->fd = fd;
-
-    return &s->base;
-calloc_error:
-    close(fd);
-    return NULL;
-}
-
 static void
 sol_socket_linux_del(struct sol_socket *socket)
 {
     struct sol_socket_linux *s = (struct sol_socket_linux *)socket;
 
-    if (s->read.watch)
-        sol_fd_del(s->read.watch);
-    if (s->write.watch)
-        sol_fd_del(s->write.watch);
+    if (s->watch)
+        sol_fd_del(s->watch);
     close(s->fd);
     free(s);
 }
 
-static int
-sol_socket_linux_set_on_read(struct sol_socket *socket, bool (*cb)(void *data, struct sol_socket *s), const void *data)
-{
-    struct sol_socket_linux *s = (struct sol_socket_linux *)socket;
-
-    if (cb && !s->read.watch) {
-        s->read.watch = sol_fd_add(s->fd, SOL_FD_FLAGS_IN, on_socket_read, s);
-        SOL_NULL_CHECK(s->read.watch, -ENOMEM);
-    } else if (!cb && s->read.watch) {
-        sol_fd_del(s->read.watch);
-        s->read.watch = NULL;
-    }
-
-    s->read.cb = cb;
-    s->read.data = data;
-
-    return 0;
-}
-
-static int
-sol_socket_linux_set_on_write(struct sol_socket *socket, bool (*cb)(void *data, struct sol_socket *s), const void *data)
-{
-    struct sol_socket_linux *s = (struct sol_socket_linux *)socket;
-
-    if (cb && !s->write.watch) {
-        s->write.watch = sol_fd_add(s->fd, SOL_FD_FLAGS_OUT, on_socket_write, s);
-        SOL_NULL_CHECK(s->write.watch, -ENOMEM);
-    } else if (!cb && s->write.watch) {
-        sol_fd_del(s->write.watch);
-        s->write.watch = NULL;
-    }
-
-    s->write.cb = cb;
-    s->write.data = data;
-
-    return 0;
-}
-
 static ssize_t
-sol_socket_linux_recvmsg(struct sol_socket *socket, void *buf, size_t len, struct sol_network_link_addr *cliaddr)
+sol_socket_linux_recvmsg(struct sol_socket *socket, struct sol_buffer *buf,
+    struct sol_network_link_addr *cliaddr)
 {
     struct sol_socket_linux *s = (struct sol_socket_linux *)socket;
     uint8_t sockaddr[sizeof(struct sockaddr_in6)] = { };
-    struct iovec iov = { .iov_base = buf,
-                         .iov_len = len };
+    struct iovec iov = { };
     struct msghdr msg = {
         .msg_name = &sockaddr,
         .msg_namelen = sizeof(sockaddr),
         .msg_iov = &iov,
-        .msg_iovlen = 1
+        .msg_iovlen = 1,
     };
     ssize_t r;
 
-    /* When more types of sockets (not just datagram) are accepted,
-     * remember to err if !buf && type != DGRAM */
-    if (!buf) {
+    if (SOL_BUFFER_CAN_RESIZE(buf)) {
         msg.msg_iov->iov_len = 0;
-        return recvmsg(s->fd, &msg, MSG_TRUNC | MSG_PEEK);
-    } else
-        r = recvmsg(s->fd, &msg, 0);
+        r = recvmsg(s->fd, &msg, MSG_TRUNC | MSG_PEEK);
 
-    if (r < 0)
-        return -errno;
+        r = sol_buffer_ensure(buf, r);
+        SOL_INT_CHECK(r, < 0, r);
+    }
+
+    iov.iov_len = buf->capacity;
+    iov.iov_base = buf->data;
+
+    r = recvmsg(s->fd, &msg, 0);
+    SOL_INT_CHECK(r, < 0, r);
+
+    buf->used = sol_util_min(r, (ssize_t)buf->capacity);
+    if (SOL_BUFFER_NEEDS_NUL_BYTE(buf)) {
+        int ret;
+
+        ret = sol_buffer_ensure_nul_byte(buf);
+        SOL_INT_CHECK(ret, < 0, ret);
+    }
 
     if (from_sockaddr((struct sockaddr *)sockaddr, sizeof(sockaddr), cliaddr) < 0)
         return -EINVAL;
@@ -247,7 +195,7 @@ sol_socket_linux_recvmsg(struct sol_socket *socket, void *buf, size_t len, struc
     return r;
 }
 
-static bool
+static ssize_t
 sendmsg_multicast_addrs(int fd, struct sol_network_link *net_link,
     struct msghdr *msg)
 {
@@ -257,7 +205,7 @@ sendmsg_multicast_addrs(int fd, struct sol_network_link *net_link,
     struct ipv6_mreq orig_ip6_mreq;
     struct sol_network_link_addr *addr;
     uint16_t idx;
-    bool success = false;
+    ssize_t ret = 0;
 
     SOL_VECTOR_FOREACH_IDX (&net_link->addrs, addr, idx) {
         void *p_orig, *p_new;
@@ -294,7 +242,8 @@ sendmsg_multicast_addrs(int fd, struct sol_network_link *net_link,
             continue;
         }
 
-        if (sendmsg(fd, msg, 0) < 0) {
+        ret = sendmsg(fd, msg, 0);
+        if (ret < 0) {
             SOL_DBG("Error while sending multicast message: %s",
                 sol_util_strerrora(errno));
             continue;
@@ -305,11 +254,9 @@ sendmsg_multicast_addrs(int fd, struct sol_network_link *net_link,
                 sol_util_strerrora(errno));
             continue;
         }
-
-        success = true;
     }
 
-    return success;
+    return ret >= 0 ? ret : -errno;
 }
 
 static int
@@ -319,19 +266,19 @@ sendmsg_multicast(int fd, struct msghdr *msg)
     const struct sol_vector *net_links = sol_network_get_available_links();
     struct sol_network_link *net_link;
     uint16_t idx;
-    bool had_success = false;
+    ssize_t ret = 0;
 
     if (!net_links || !net_links->len)
         return -ENOTCONN;
 
     SOL_VECTOR_FOREACH_IDX (net_links, net_link, idx) {
         if ((net_link->flags & running_multicast) == running_multicast) {
-            if (sendmsg_multicast_addrs(fd, net_link, msg))
-                had_success = true;
+            ret = sendmsg_multicast_addrs(fd, net_link, msg);
+            SOL_INT_CHECK(ret, < 0, ret);
         }
     }
 
-    return had_success ? 0 : -EIO;
+    return ret;
 }
 
 static bool
@@ -353,14 +300,14 @@ is_multicast(enum sol_network_family family, const struct sockaddr *sockaddr)
     return false;
 }
 
-static int
-sol_socket_linux_sendmsg(struct sol_socket *socket, const void *buf, size_t len,
+static ssize_t
+sol_socket_linux_sendmsg(struct sol_socket *socket, const struct sol_buffer *buf,
     const struct sol_network_link_addr *cliaddr)
 {
     struct sol_socket_linux *s = (struct sol_socket_linux *)socket;
     uint8_t sockaddr[sizeof(struct sockaddr_in6)] = { };
-    struct iovec iov = { .iov_base = (void *)buf,
-                         .iov_len = len };
+    struct iovec iov = { .iov_base = (void *)buf->data,
+                         .iov_len = buf->used };
     struct msghdr msg = { .msg_iov = &iov,
                           .msg_iovlen = 1 };
     socklen_t l;
@@ -375,10 +322,7 @@ sol_socket_linux_sendmsg(struct sol_socket *socket, const void *buf, size_t len,
     if (is_multicast(cliaddr->family, (struct sockaddr *)sockaddr))
         return sendmsg_multicast(s->fd, &msg);
 
-    if (sendmsg(s->fd, &msg, 0) < 0)
-        return -errno;
-
-    return 0;
+    return sendmsg(s->fd, &msg, 0);
 }
 
 static int
@@ -437,85 +381,124 @@ sol_socket_linux_bind(struct sol_socket *socket, const struct sol_network_link_a
 }
 
 static int
-sol_socket_option_to_linux(enum sol_socket_option option)
+sol_socket_linux_set_read_monitor(struct sol_socket *s, bool on)
 {
-    switch (option) {
-    case SOL_SOCKET_OPTION_REUSEADDR:
-        return SO_REUSEADDR;
-    case SOL_SOCKET_OPTION_REUSEPORT:
-        return SO_REUSEPORT;
-    default:
-        SOL_WRN("Invalid option %d", option);
-        break;
+    bool ret;
+    struct sol_socket_linux *sock = (struct sol_socket_linux *)s;
+
+    SOL_NULL_CHECK(sock->on_can_read, -EINVAL);
+
+    if (!sock->watch) {
+        sock->watch = sol_fd_add(sock->fd, SOL_FD_FLAGS_IN, on_socket_event, sock);
+        SOL_NULL_CHECK(sock->watch, -EBADF);
+        return 0;
     }
 
-    return -1;
+    if (on)
+        ret = sol_fd_add_flags(sock->watch, SOL_FD_FLAGS_IN);
+    else
+        ret = sol_fd_remove_flags(sock->watch, SOL_FD_FLAGS_IN);
+
+    return ret ? 0 : -EBADF;
 }
 
 static int
-sol_socket_level_to_linux(enum sol_socket_level level)
+sol_socket_linux_set_write_monitor(struct sol_socket *s, bool on)
 {
-    switch (level) {
-    case SOL_SOCKET_LEVEL_SOCKET:
-        return SOL_SOCKET;
-    case SOL_SOCKET_LEVEL_IP:
-        return IPPROTO_IP;
-    case SOL_SOCKET_LEVEL_IPV6:
-        return IPPROTO_IPV6;
-    default:
-        SOL_WRN("Invalid level %d", level);
-        break;
+    bool ret;
+    struct sol_socket_linux *sock = (struct sol_socket_linux *)s;
+
+    SOL_NULL_CHECK(sock->on_can_write, -EINVAL);
+
+    if (!sock->watch) {
+        sock->watch = sol_fd_add(sock->fd, SOL_FD_FLAGS_OUT, on_socket_event, sock);
+        SOL_NULL_CHECK(sock->watch, -EBADF);
+        return 0;
     }
 
-    return -1;
+    if (on)
+        ret = sol_fd_add_flags(sock->watch, SOL_FD_FLAGS_OUT);
+    else
+        ret = sol_fd_remove_flags(sock->watch, SOL_FD_FLAGS_OUT);
+
+    return ret ? 0 : -EBADF;
 }
 
-static int
-sol_socket_linux_setsockopt(struct sol_socket *socket, enum sol_socket_level level,
-    enum sol_socket_option optname, const void *optval, size_t optlen)
+struct sol_socket *
+sol_socket_ip_default_new(const struct sol_socket_options *options)
 {
-    int l, option;
-    struct sol_socket_linux *s = (struct sol_socket_linux *)socket;
-
-    l = sol_socket_level_to_linux(level);
-    option = sol_socket_option_to_linux(optname);
-
-    return setsockopt(s->fd, l, option, optval, optlen);
-}
-
-static int
-sol_socket_linux_getsockopt(struct sol_socket *socket, enum sol_socket_level level,
-    enum sol_socket_option optname, void *optval, size_t *optlen)
-{
-    int ret, l, option;
-    socklen_t len = 0;
-    struct sol_socket_linux *s = (struct sol_socket_linux *)socket;
-
-    option = sol_socket_option_to_linux(optname);
-    l = sol_socket_level_to_linux(level);
-
-    ret = getsockopt(s->fd, l, option, optval, &len);
-    SOL_INT_CHECK(ret, < 0, ret);
-
-    *optlen = len;
-    return 0;
-}
-
-const struct sol_socket_impl *
-sol_socket_linux_get_impl(void)
-{
-    static const struct sol_socket_impl impl = {
+    int ret = 0;
+    struct sol_socket_linux *s;
+    int fd, socktype = SOCK_DGRAM;
+    struct sol_socket_ip_options *opts;
+    static const struct sol_socket_type type = {
+        SOL_SET_API_VERSION(.api_version = SOL_SOCKET_TYPE_API_VERSION, )
         .bind = sol_socket_linux_bind,
         .join_group = sol_socket_linux_join_group,
         .sendmsg = sol_socket_linux_sendmsg,
         .recvmsg = sol_socket_linux_recvmsg,
-        .set_on_write = sol_socket_linux_set_on_write,
-        .set_on_read = sol_socket_linux_set_on_read,
         .del = sol_socket_linux_del,
-        .new = sol_socket_linux_new,
-        .setsockopt = sol_socket_linux_setsockopt,
-        .getsockopt = sol_socket_linux_getsockopt
+        .set_read_monitor = sol_socket_linux_set_read_monitor,
+        .set_write_monitor = sol_socket_linux_set_write_monitor,
     };
 
-    return &impl;
+    SOL_SOCKET_OPTIONS_CHECK_SUB_API_VERSION(options, SOL_SOCKET_IP_OPTIONS_SUB_API_VERSION, NULL);
+
+#ifdef SOCK_CLOEXEC
+    socktype |= SOCK_CLOEXEC | SOCK_NONBLOCK;
+#endif
+
+    opts = (struct sol_socket_ip_options *)options;
+    fd = socket(sol_network_sol_to_af(opts->family), socktype, 0);
+    SOL_INT_CHECK(fd, < 0, NULL);
+
+#ifndef SOCK_CLOEXEC
+    /* We need to set the socket to FD_CLOEXEC and non-blocking mode */
+    if (!sol_fd_add_flags(fd, FD_CLOEXEC | O_NONBLOCK)) {
+        SOL_WRN("Failed to set the socket to FD_CLOEXEC or O_NONBLOCK, %s",
+            sol_util_strerrora(errno));
+        ret = -EINVAL;
+        goto calloc_error;
+    }
+#endif
+
+    if (opts->reuse_port) {
+        int val = 1;
+        ret = setsockopt(fd, SOL_SOCKET, SO_REUSEPORT, &val, sizeof(val));
+        SOL_INT_CHECK_GOTO(ret, < 0, options_err);
+    }
+
+    if (opts->reuse_addr) {
+        int val = 1;
+        ret = setsockopt(fd, SOL_SOCKET, SO_REUSEADDR, &val, sizeof(val));
+        SOL_INT_CHECK_GOTO(ret, < 0, options_err);
+    }
+
+    s = calloc(1, sizeof(*s));
+    if (!s) {
+        ret = -ENOMEM;
+        goto calloc_error;
+    }
+
+    s->base.type = &type;
+    s->fd = fd;
+    s->data = options->data;
+    s->on_can_write = options->on_can_write;
+    s->on_can_read = options->on_can_read;
+
+    s->watch = sol_fd_add(fd, SOL_FD_FLAGS_NONE, on_socket_event, s);
+    if (!s->watch) {
+        ret = -errno;
+        goto watch_error;
+    }
+
+    return &s->base;
+
+watch_error:
+    free(s);
+options_err:
+calloc_error:
+    close(fd);
+    errno = -ret;
+    return NULL;
 }

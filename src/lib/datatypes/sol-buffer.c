@@ -30,6 +30,24 @@ nul_byte_size(const struct sol_buffer *buf)
     return (buf->flags & SOL_BUFFER_FLAGS_NO_NUL_BYTE) ? 0 : 1;
 }
 
+static void *
+secure_realloc(struct sol_buffer *buf, size_t new_size)
+{
+    char *new_data = NULL;
+
+    if (!new_size)
+        goto end;
+
+    new_data = malloc(new_size);
+    SOL_NULL_CHECK(new_data, NULL);
+    memcpy(new_data, buf->data, sol_util_min(new_size, buf->capacity));
+
+end:
+    sol_util_clear_memory_secure(buf->data, buf->capacity);
+    free(buf->data);
+    return new_data;
+}
+
 SOL_API int
 sol_buffer_resize(struct sol_buffer *buf, size_t new_size)
 {
@@ -41,7 +59,11 @@ sol_buffer_resize(struct sol_buffer *buf, size_t new_size)
     if (buf->capacity == new_size)
         return 0;
 
-    new_data = realloc(buf->data, new_size);
+    if (buf->flags & SOL_BUFFER_FLAGS_CLEAR_MEMORY)
+        new_data = secure_realloc(buf, new_size);
+    else
+        new_data = realloc(buf->data, new_size);
+
     if (!new_data && new_size)
         return -errno;
 
@@ -120,6 +142,8 @@ sol_buffer_append_bytes(struct sol_buffer *buf, const uint8_t *bytes, size_t siz
     int err;
 
     SOL_NULL_CHECK(buf, -EINVAL);
+    if (size == 0)
+        return 0;
 
     err = sol_buffer_expand(buf, size);
     if (err < 0)
@@ -135,6 +159,14 @@ sol_buffer_append_bytes(struct sol_buffer *buf, const uint8_t *bytes, size_t siz
 }
 
 SOL_API int
+sol_buffer_append_buffer(struct sol_buffer *dst, const struct sol_buffer *src)
+{
+    SOL_NULL_CHECK(src, -EINVAL);
+
+    return sol_buffer_append_bytes(dst, (uint8_t *)src->data, src->used);
+}
+
+SOL_API int
 sol_buffer_append_slice(struct sol_buffer *buf, const struct sol_str_slice slice)
 {
     return sol_buffer_append_bytes(buf, (uint8_t *)slice.data, slice.len);
@@ -147,6 +179,9 @@ sol_buffer_set_slice_at(struct sol_buffer *buf, size_t pos, const struct sol_str
     size_t nul_size;
 
     SOL_NULL_CHECK(buf, -EINVAL);
+    if (slice.len == 0)
+        return 0;
+
     if (buf->used < pos) {
         return -EINVAL;
     }
@@ -214,6 +249,9 @@ sol_buffer_insert_bytes(struct sol_buffer *buf, size_t pos, const uint8_t *bytes
 
     SOL_NULL_CHECK(buf, -EINVAL);
     SOL_INT_CHECK(pos, > buf->used, -EINVAL);
+
+    if (size == 0)
+        return 0;
 
     if (pos == buf->used)
         return sol_buffer_append_bytes(buf, bytes, size);
@@ -406,7 +444,7 @@ sol_buffer_ensure_nul_byte(struct sol_buffer *buf)
         return 0;
 
     if (buf->used >= SIZE_MAX - 1 ||
-        sol_buffer_ensure(buf, buf->used + 1) < 0)
+        sol_buffer_ensure(buf, buf->used) < 0)
         return -ENOMEM;
 
     *((char *)buf->data + buf->used) = '\0';
@@ -792,7 +830,7 @@ sol_buffer_append_from_base16(struct sol_buffer *buf, const struct sol_str_slice
 }
 
 SOL_API int
-sol_buffer_remove_data(struct sol_buffer *buf, size_t size, size_t offset)
+sol_buffer_remove_data(struct sol_buffer *buf, size_t offset, size_t size)
 {
     int r;
     size_t total;
@@ -830,8 +868,8 @@ sol_buffer_fini(struct sol_buffer *buf)
 {
     if (!buf)
         return;
-    if ((buf->flags & SOL_BUFFER_FLAGS_CLEAR_MEMORY) == SOL_BUFFER_FLAGS_CLEAR_MEMORY)
-        sol_util_secure_clear_memory(buf->data, buf->capacity);
+    if (buf->flags & SOL_BUFFER_FLAGS_CLEAR_MEMORY)
+        sol_util_clear_memory_secure(buf->data, buf->capacity);
     if (!(buf->flags & SOL_BUFFER_FLAGS_NO_FREE))
         free(buf->data);
     buf->data = NULL;

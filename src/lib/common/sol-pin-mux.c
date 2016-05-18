@@ -75,8 +75,8 @@ _load_mux(const char *name)
 
 #ifndef SOL_NO_API_VERSION
     if (p_sym->api_version != SOL_PIN_MUX_API_VERSION) {
-        SOL_WRN("Mux '%s' has incorrect api_version: %u expected %u", path, p_sym->api_version,
-            SOL_PIN_MUX_API_VERSION);
+        SOL_WRN("Mux '%s' has incorrect api_version: %" PRIu16 " expected %"
+            PRIu16, path, p_sym->api_version, SOL_PIN_MUX_API_VERSION);
         goto error;
     }
 #endif
@@ -191,9 +191,9 @@ sol_pin_mux_setup_aio(const int device, const int pin)
 }
 
 SOL_API int
-sol_pin_mux_setup_gpio(const uint32_t pin, const enum sol_gpio_direction dir)
+sol_pin_mux_setup_gpio(const uint32_t pin, const struct sol_gpio_config *config)
 {
-    return (mux && mux->gpio) ? mux->gpio(pin, dir) : 0;
+    return (mux && mux->gpio) ? mux->gpio(pin, config) : 0;
 }
 
 SOL_API int

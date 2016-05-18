@@ -1,10 +1,10 @@
-config FLOW_SUPPORT
+config USE_FLOW
 	bool "Flow support"
 	default y
 
 config NODE_DESCRIPTION
 	bool "Node description support"
-	depends on FLOW_SUPPORT && FEATURE_RUNNABLE_PROGRAMS
+	depends on USE_FLOW && FEATURE_RUNNABLE_PROGRAMS
 	default y
 	help
             Add node description support to enable runtime introspection.
@@ -15,19 +15,32 @@ config RESOLVER_CONFFILE
 	bool "Resolver conffile"
 	depends on NODE_DESCRIPTION && FEATURE_FILESYSTEM
 	default y
+	help
+            For the sol-fbp-runner tool, have the ability to parse
+            configuration files declaring node types. This is a way to
+            parametrize flows for different platforms/situations and
+            still keep a single flow logic. If you know you won't be
+            using this feature on the runner tool and want to save
+            some space, say N.
+
+            NB.: The sol-fbp-generator tool will always be able to
+            resolve from configuration files.
+
+            If unsure, say Y.
 
 config INSPECTOR
 	bool "Inspector"
-	depends on FLOW_SUPPORT && FEATURE_RUNNABLE_PROGRAMS
+	depends on USE_FLOW && FEATURE_RUNNABLE_PROGRAMS
 	default y
 
 menu "Metatypes"
 source "src/modules/flow-metatype/js/Kconfig"
 source "src/modules/flow-metatype/http-composed-client/Kconfig"
+source "src/modules/flow-metatype/http-composed-server/Kconfig"
 endmenu
 
 menu "Node Types"
-	depends on FLOW_SUPPORT
+	depends on USE_FLOW
 source "src/modules/flow/accelerometer/Kconfig"
 source "src/modules/flow/aio/Kconfig"
 source "src/modules/flow/am2315/Kconfig"
@@ -46,14 +59,18 @@ source "src/modules/flow/filter-repeated/Kconfig"
 source "src/modules/flow/float/Kconfig"
 source "src/modules/flow/flower-power/Kconfig"
 source "src/modules/flow/form/Kconfig"
+source "src/modules/flow/format/Kconfig"
 source "src/modules/flow/gpio/Kconfig"
 source "src/modules/flow/grove/Kconfig"
 source "src/modules/flow/gtk/Kconfig"
 source "src/modules/flow/gyroscope/Kconfig"
+source "src/modules/flow/hc-sr04/Kconfig"
 source "src/modules/flow/http-client/Kconfig"
 source "src/modules/flow/http-server/Kconfig"
 source "src/modules/flow/iio/Kconfig"
 source "src/modules/flow/int/Kconfig"
+source "src/modules/flow/jhd1313m1/Kconfig"
+source "src/modules/flow/ipm/Kconfig"
 source "src/modules/flow/json/Kconfig"
 source "src/modules/flow/keyboard/Kconfig"
 source "src/modules/flow/led-7seg/Kconfig"
@@ -72,7 +89,10 @@ source "src/modules/flow/power-supply/Kconfig"
 source "src/modules/flow/process/Kconfig"
 source "src/modules/flow/pwm/Kconfig"
 source "src/modules/flow/random/Kconfig"
+source "src/modules/flow/regexp/Kconfig"
+source "src/modules/flow/robotics/Kconfig"
 source "src/modules/flow/servo-motor/Kconfig"
+source "src/modules/flow/si114x/Kconfig"
 source "src/modules/flow/string/Kconfig"
 source "src/modules/flow/stts751/Kconfig"
 source "src/modules/flow/switcher/Kconfig"

@@ -71,7 +71,7 @@ create_sub_json(struct sol_blob *parent, struct sol_json_scanner *scanner, struc
     const char *mem;
 
     if (sol_json_mem_get_type(token->end - 1) == type)
-        return sol_blob_new(SOL_BLOB_TYPE_NOFREE, parent, token->start,
+        return sol_blob_new(&SOL_BLOB_TYPE_NO_FREE_DATA, parent, token->start,
             token->end - token->start);
 
     mem = token->start;
@@ -83,7 +83,7 @@ create_sub_json(struct sol_blob *parent, struct sol_json_scanner *scanner, struc
         return NULL;
     }
 
-    return sol_blob_new(SOL_BLOB_TYPE_NOFREE, parent, mem, token->end - mem);
+    return sol_blob_new(&SOL_BLOB_TYPE_NO_FREE_DATA, parent, mem, token->end - mem);
 }
 
 static int
@@ -109,7 +109,7 @@ send_token_packet(struct sol_flow_node *node, struct sol_json_scanner *scanner, 
         return r;
     case SOL_JSON_TYPE_ARRAY_START:
         if (sol_json_token_get_size(token) > 1) {
-            new_blob = sol_blob_new(SOL_BLOB_TYPE_NOFREE,
+            new_blob = sol_blob_new(&SOL_BLOB_TYPE_NO_FREE_DATA,
                 json, token->start, sol_json_token_get_size(token));
             SOL_NULL_CHECK(new_blob, -errno);
             r = sol_flow_send_json_array_packet(node,
@@ -1125,7 +1125,7 @@ json_node_create_process(struct sol_flow_node *node, void *data, uint16_t port, 
 
     str = sol_buffer_steal(&buffer, &size);
     SOL_NULL_CHECK(str, -ENOMEM);
-    blob = sol_blob_new(SOL_BLOB_TYPE_DEFAULT, NULL, str, size);
+    blob = sol_blob_new(&SOL_BLOB_TYPE_DEFAULT, NULL, str, size);
     SOL_NULL_CHECK(blob, -errno);
 
     type = (struct json_node_create_type *)sol_flow_node_get_type(node);

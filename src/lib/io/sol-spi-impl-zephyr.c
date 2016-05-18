@@ -26,8 +26,6 @@
 #include "sol-log-internal.h"
 SOL_LOG_INTERNAL_DECLARE_STATIC(_log_domain, "spi");
 
-#include "sol-io-common-zephyr.h"
-
 #include "sol-macros.h"
 #include "sol-mainloop.h"
 #include "sol-spi.h"
@@ -144,11 +142,11 @@ sol_spi_open(unsigned int bus, const struct sol_spi_config *cfg)
      * = 2. */
 
     /* min 2 */
-    if (freq > 1600000) {
+    if (freq > 16000000) {
         SOL_WRN("SPI controller frequency has to be at most 16Mhz"
             " (%" PRIu32 "Hz was passed), using the maximum value.",
             freq);
-        freq = 1600000;
+        freq = 16000000;
     }
 
     /* max 32k */
@@ -209,8 +207,8 @@ spi_read_timeout_cb(void *data)
     ret = spi_transceive(spi->dev, (uint8_t *)spi->transfer.tx,
         spi->transfer.tx ? spi->transfer.count : 0, spi->transfer.rx,
         spi->transfer.rx ? spi->transfer.count : 0);
-    if (ret != DEV_OK)
-        spi->transfer.status = zephyr_err_to_errno(ret);
+    if (ret < 0)
+        spi->transfer.status = ret;
     else
         spi->transfer.status = spi->transfer.count;
 

@@ -33,7 +33,7 @@ sol_str_slice_to_int(const struct sol_str_slice s, int *value)
     SOL_INT_CHECK(s.len, == 0, -EINVAL);
     SOL_NULL_CHECK(value, -EINVAL);
 
-    v = sol_util_strtol(s.data, &endptr, s.len, 0);
+    v = sol_util_strtol_n(s.data, &endptr, s.len, 0);
 
     if (errno)
         return -errno;
@@ -48,16 +48,12 @@ sol_str_slice_to_int(const struct sol_str_slice s, int *value)
     return 0;
 }
 
-SOL_API bool
+SOL_API char *
 sol_str_slice_contains(const struct sol_str_slice haystack, const struct sol_str_slice needle)
 {
-    return memmem(haystack.data, haystack.len, needle.data, needle.len) != NULL;
-}
-
-SOL_API bool
-sol_str_slice_str_contains(const struct sol_str_slice haystack, const char *needle)
-{
-    return memmem(haystack.data, haystack.len, needle, strlen(needle)) != NULL;
+    if (needle.len == 1)
+        return memchr(haystack.data, (int)needle.data[0], haystack.len);
+    return memmem(haystack.data, haystack.len, needle.data, needle.len);
 }
 
 SOL_API struct sol_vector
@@ -112,4 +108,38 @@ sol_str_slice_split(const struct sol_str_slice slice,
 err:
     sol_vector_clear(&v);
     return v;
+}
+
+SOL_API bool
+sol_str_slice_split_iterate(const struct sol_str_slice slice,
+    struct sol_str_slice *token, const char **itr, const struct sol_str_slice delim)
+{
+    struct sol_str_slice to_search;
+    char *sep;
+
+    SOL_NULL_CHECK(itr, false);
+
+    if (!*itr)
+        to_search = slice;
+    else {
+        to_search.data = *itr;
+        to_search.len = slice.len - (*itr - slice.data);
+
+        if (!to_search.len)
+            return false;
+
+        to_search.data += delim.len;
+        to_search.len -= delim.len;
+    }
+
+    sep = sol_str_slice_contains(to_search, delim);
+
+    if (!sep)
+        *token = to_search;
+    else {
+        token->data = to_search.data;
+        token->len = sep - token->data;
+    }
+    *itr = token->data + token->len;
+    return true;
 }

@@ -65,35 +65,37 @@ extern "C" {
  */
 enum sol_buffer_flags {
     /**
-     * default flags: buffer may be resized and memory will be free'd
+     * @brief Default flags: buffer may be resized and memory will be free'd
      * at the end.
      */
     SOL_BUFFER_FLAGS_DEFAULT = 0,
     /**
-     * fixed capacity buffers won't be resized, sol_buffer_resize()
+     * @brief Fixed capacity buffers won't be resized, sol_buffer_resize()
      * will fail with -EPERM.
      */
     SOL_BUFFER_FLAGS_FIXED_CAPACITY = (1 << 0),
     /**
-     * no free buffers won't call @c free(buf->data) at
+     * @brief No free buffers won't call @c free(buf->data) at
      * sol_buffer_fini().
      */
     SOL_BUFFER_FLAGS_NO_FREE = (1 << 1),
     /**
-     * buffers where the @c buf->data is not owned by sol_buffer, that
+     * @brief Buffers where the @c buf->data is not owned by sol_buffer, that
      * is, it can't be resized and free() should not be called at it
      * at sol_buffer_fini().
      */
     SOL_BUFFER_FLAGS_MEMORY_NOT_OWNED = (SOL_BUFFER_FLAGS_FIXED_CAPACITY | SOL_BUFFER_FLAGS_NO_FREE),
     /**
-     * do not reserve space for the NUL byte
+     * @brief Do not reserve space for the NUL byte.
      */
     SOL_BUFFER_FLAGS_NO_NUL_BYTE = (1 << 2),
     /**
-     * securely clear buffer data before finishing; this implies the flag
-     * SOL_BUFFER_FLAGS_MEMORY_NOT_OWNED
+     * @brief Securely clear buffer data before finishing. Prefer using this
+     * flag combined with SOL_BUFFER_FLAGS_FIXED_CAPACITY, because of resizing
+     * overhead: every time buffer is resized, new memory is allocated, old
+     * memory is copied to new destination and old memory is cleared.
      */
-    SOL_BUFFER_FLAGS_CLEAR_MEMORY = (1 << 3) | SOL_BUFFER_FLAGS_MEMORY_NOT_OWNED,
+    SOL_BUFFER_FLAGS_CLEAR_MEMORY = (1 << 3),
 };
 
 /**
@@ -104,6 +106,14 @@ enum sol_buffer_flags {
  * trailing nul byte terminator.
  */
 #define SOL_BUFFER_NEEDS_NUL_BYTE(buf) (!((buf)->flags & SOL_BUFFER_FLAGS_NO_NUL_BYTE))
+
+/**
+ * @def SOL_BUFFER_CAN_RESIZE()
+ *
+ * Convenience flag to check if the buffer is resizable.
+ */
+#define SOL_BUFFER_CAN_RESIZE(buf) \
+    (!(buf->flags & (SOL_BUFFER_FLAGS_FIXED_CAPACITY | SOL_BUFFER_FLAGS_MEMORY_NOT_OWNED)))
 
 /**
  * @struct sol_buffer
@@ -131,7 +141,7 @@ struct sol_buffer {
  * Used by functions @ref sol_buffer_append_from_base16 or @ref sol_buffer_insert_from_base16.
  */
 enum sol_decode_case {
-    SOL_DECODE_UPERCASE,
+    SOL_DECODE_UPPERCASE,
     SOL_DECODE_LOWERCASE,
     SOL_DECODE_BOTH
 };
@@ -294,7 +304,7 @@ int sol_buffer_resize(struct sol_buffer *buf, size_t new_size);
  * be able to fit @c bytes.
  *
  * If buffer has null-bytes (ie: null terminated strings), then the
- * resized ammount will include that null byte automatically. See
+ * resized amount will include that null byte automatically. See
  * SOL_BUFFER_FLAGS_NO_NUL_BYTE.
  *
  * @param buf The buffer
@@ -310,7 +320,7 @@ int sol_buffer_expand(struct sol_buffer *buf, size_t bytes);
  * @brief Ensures that @c buf has at least @c min_size.
  *
  * If buffer has null-bytes (ie: null terminated strings), then the
- * resized ammount will include that null byte automatically. See
+ * resized amount will include that null byte automatically. See
  * SOL_BUFFER_FLAGS_NO_NUL_BYTE.
  *
  * It may allocate more than requested to avoid subsequent reallocs,
@@ -353,6 +363,26 @@ sol_buffer_get_slice(const struct sol_buffer *buf)
     if (!buf)
         return SOL_STR_SLICE_STR(NULL, 0);
     return SOL_STR_SLICE_STR((char *)buf->data, buf->used);
+}
+
+/**
+ * @brief Copy @c src into @c dst, ensuring that will fit.
+ *
+ * If data exists, then it won't be moved/shiffted, instead it will be
+ * overriden.
+ *
+ * @param dst The buffer's destiny
+ * @param src The source data
+ *
+ * @return @c 0 on success, error code (always negative) otherwise
+ */
+static inline int
+sol_buffer_set_buffer(struct sol_buffer *dst, const struct sol_buffer *src)
+{
+    if (!dst || !src)
+        return -EINVAL;
+
+    return sol_buffer_set_slice(dst, sol_buffer_get_slice(src));
 }
 
 /**
@@ -420,6 +450,17 @@ int sol_buffer_append_slice(struct sol_buffer *buf, const struct sol_str_slice s
 int sol_buffer_append_bytes(struct sol_buffer *buf, const uint8_t *bytes, size_t size);
 
 /**
+ * @brief Appends the contents of the buffer @c from in the end of @c buf,
+ * reallocating @c if necessary.
+ *
+ * @param dst Destination buffer
+ * @param src The buffer from where the data will be copied
+ *
+ * @return @c 0 on success, error code (always negative) otherwise
+ */
+int sol_buffer_append_buffer(struct sol_buffer *dst, const struct sol_buffer *src);
+
+/**
  * @brief Set the string slice @c slice into @c buf at position @c pos,
  * reallocating if necessary.
  *
@@ -442,6 +483,27 @@ int sol_buffer_append_bytes(struct sol_buffer *buf, const uint8_t *bytes, size_t
  * @return @c 0 on success, error code (always negative) otherwise
  */
 int sol_buffer_set_slice_at(struct sol_buffer *buf, size_t pos, const struct sol_str_slice slice);
+
+/**
+ * @brief Copy @c src into @c dst at position @c pos,
+ * ensuring that will fit.
+ *
+ * The memory regions of @a src and @a dst may overlap.
+ *
+ * @param dst The buffer's destiny
+ * @param pos Start position
+ * @param src The source data
+ *
+ * @return @c 0 on success, error code (always negative) otherwise
+ */
+static inline int
+sol_buffer_set_buffer_at(struct sol_buffer *dst, size_t pos, const struct sol_buffer *src)
+{
+    if (!dst || !src)
+        return -EINVAL;
+
+    return sol_buffer_set_slice_at(dst, pos, sol_buffer_get_slice(src));
+}
 
 /**
  * @brief Set character @c c into @c buf at position @c pos,
@@ -485,6 +547,25 @@ int sol_buffer_insert_bytes(struct sol_buffer *buf, size_t pos, const uint8_t *b
  */
 int sol_buffer_insert_slice(struct sol_buffer *buf, size_t pos, const struct sol_str_slice slice);
 
+/**
+ * @brief Insert the @c dst into @c src at position @c pos, reallocating if necessary.
+ *
+ * If pos == src->end, then the behavior is the same as @ref sol_buffer_append_buffer
+ *
+ * @param dst Destination buffer
+ * @param pos Start position
+ * @param src Source buffer
+ *
+ * @return @c 0 on success, error code (always negative) otherwise
+ */
+static inline int
+sol_buffer_insert_buffer(struct sol_buffer *dst, size_t pos, const struct sol_buffer *src)
+{
+    if (!dst || !src)
+        return -EINVAL;
+
+    return sol_buffer_insert_slice(dst, pos, sol_buffer_get_slice(src));
+}
 
 // TODO: move this to some other file? where
 /**
@@ -627,7 +708,7 @@ int sol_buffer_append_as_base16(struct sol_buffer *buf, const struct sol_str_sli
  *        sol_buffer_append_from_base16().
  * @param slice the slice to decode, it must be a set of 0-9 or
  *        letters A-F (if uppercase) or a-f, otherwise decode fails.
- * @param decode_case if SOL_DECODE_UPERCASE, uppercase letters ABCDEF are
+ * @param decode_case if SOL_DECODE_UPPERCASE, uppercase letters ABCDEF are
  *        used, if SOL_DECODE_LOWERCASE, lowercase abcdef are used instead.
  *        If SOL_DECODE_BOTH both, lowercase and uppercase, letters can be
  *        used.
@@ -650,7 +731,7 @@ int sol_buffer_insert_from_base16(struct sol_buffer *buf, size_t pos, const stru
  *        slice.
  * @param slice the slice to decode, it must be a set of 0-9 or
  *        letters A-F (if uppercase) or a-f, otherwise decode fails.
- * @param decode_case if SOL_DECODE_UPERCASE, uppercase letters ABCDEF are
+ * @param decode_case if SOL_DECODE_UPPERCASE, uppercase letters ABCDEF are
  *        used, if SOL_DECODE_LOWERCASE, lowercase abcdef are used instead.
  *        If SOL_DECODE_BOTH both, lowercase and uppercase, letters can be
  *        used.
@@ -741,7 +822,7 @@ sol_buffer_insert_printf(struct sol_buffer *buf, size_t pos, const char *fmt, ..
  * @brief Frees memory that is not in being used by the buffer.
  *
  * If buffer has null-bytes (ie: null terminated strings), then the
- * resized ammount will include that null byte automatically. See
+ * resized amount will include that null byte automatically. See
  * SOL_BUFFER_FLAGS_NO_NUL_BYTE.
  *
  * @param buf The buffer
@@ -885,8 +966,8 @@ int sol_buffer_ensure_nul_byte(struct sol_buffer *buf);
  * It's removed up to the buffer's size in case of @c size greater than used data.
  *
  * @param buf The buffer (already-initialized)
- * @param size Amount of data (in bytes) that should be removed
  * @param offset Position (from begin of the buffer) where
+ * @param size Amount of data (in bytes) that should be removed
  * @c size bytes will be removed
  *
  * @return @c 0 on success, error code (always negative) otherwise
@@ -894,7 +975,7 @@ int sol_buffer_ensure_nul_byte(struct sol_buffer *buf);
  * @note the buffer keeps its capacity after this function, it means,
  * the data is not released. If that is wanted, one should call @ref sol_buffer_trim
  */
-int sol_buffer_remove_data(struct sol_buffer *buf, size_t size, size_t offset);
+int sol_buffer_remove_data(struct sol_buffer *buf, size_t offset, size_t size);
 
 /**
  * @}

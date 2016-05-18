@@ -375,7 +375,7 @@ _sol_message_digest_setup_receive_digest(struct sol_message_digest *handle)
     mem = malloc(handle->digest_size);
     SOL_NULL_CHECK(mem);
 
-    handle->digest = sol_blob_new(SOL_BLOB_TYPE_DEFAULT, NULL,
+    handle->digest = sol_blob_new(&SOL_BLOB_TYPE_DEFAULT, NULL,
         mem, handle->digest_size);
     SOL_NULL_CHECK_GOTO(handle->digest, error);
 
@@ -586,7 +586,7 @@ _sol_message_digest_thread_iterate(void *data)
         return false;
 
     current = _sol_message_digest_peek_first_pending_blob(handle);
-    while (current && !sol_worker_thread_cancel_check(handle->thread)) {
+    while (current && !sol_worker_thread_is_cancelled(handle->thread)) {
         struct sol_blob *blob;
 
         _sol_message_digest_feed_blob(handle);
@@ -596,7 +596,7 @@ _sol_message_digest_thread_iterate(void *data)
             break;
     }
 
-    while (handle->digest && !sol_worker_thread_cancel_check(handle->thread))
+    while (handle->digest && !sol_worker_thread_is_cancelled(handle->thread))
         _sol_message_digest_receive_digest(handle);
 
     return true;
@@ -673,8 +673,8 @@ static int
 _sol_message_digest_thread_start(struct sol_message_digest *handle)
 {
 #ifdef MESSAGE_DIGEST_USE_THREAD
-    struct sol_worker_thread_spec spec = {
-        SOL_SET_API_VERSION(.api_version = SOL_WORKER_THREAD_SPEC_API_VERSION, )
+    struct sol_worker_thread_config config = {
+        SOL_SET_API_VERSION(.api_version = SOL_WORKER_THREAD_CONFIG_API_VERSION, )
         .data = handle,
         .iterate = _sol_message_digest_thread_iterate,
         .finished = _sol_message_digest_thread_finished,
@@ -685,7 +685,7 @@ _sol_message_digest_thread_start(struct sol_message_digest *handle)
         goto end;
 
     _sol_message_digest_ref(handle);
-    handle->thread = sol_worker_thread_new(&spec);
+    handle->thread = sol_worker_thread_new(&config);
     SOL_NULL_CHECK_GOTO(handle->thread, error);
 
 end:

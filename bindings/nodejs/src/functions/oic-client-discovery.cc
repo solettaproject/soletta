@@ -26,8 +26,8 @@
 
 using namespace v8;
 
-static bool resourceFound(struct sol_oic_client *client,
-    struct sol_oic_resource *resource, void *data) {
+static bool resourceFound(void *data, struct sol_oic_client *client,
+    struct sol_oic_resource *resource) {
     Nan::HandleScope scope;
 
     // If Soletta tells us there are no more resources, we detach this callback
@@ -62,12 +62,13 @@ static bool resourceFound(struct sol_oic_client *client,
     return keepDiscovering;
 }
 
-NAN_METHOD(bind_sol_oic_client_find_resource) {
+NAN_METHOD(bind_sol_oic_client_find_resources) {
     VALIDATE_ARGUMENT_COUNT(info, 4);
     VALIDATE_ARGUMENT_TYPE(info, 0, IsObject);
     VALIDATE_ARGUMENT_TYPE(info, 1, IsObject);
     VALIDATE_ARGUMENT_TYPE(info, 2, IsString);
-    VALIDATE_ARGUMENT_TYPE(info, 3, IsFunction);
+    VALIDATE_ARGUMENT_TYPE(info, 3, IsString);
+    VALIDATE_ARGUMENT_TYPE(info, 4, IsFunction);
 
     struct sol_network_link_addr theAddress;
     if (!c_sol_network_link_addr(Nan::To<Object>(info[1]).ToLocalChecked(),
@@ -83,18 +84,21 @@ NAN_METHOD(bind_sol_oic_client_find_resource) {
     }
 
     OicCallbackData *callbackData =
-        OicCallbackData::New(jsClient, Local<Function>::Cast(info[3]));
+        OicCallbackData::New(jsClient, Local<Function>::Cast(info[4]));
     if (!callbackData) {
         return;
     }
 
-    bool result = sol_oic_client_find_resource((struct sol_oic_client *)client,
-        &theAddress, (const char *)*String::Utf8Value(info[2]), resourceFound,
-        callbackData);
+    struct sol_oic_pending *pending =
+        (sol_oic_client_find_resources((struct sol_oic_client *)client,
+        &theAddress, (const char *)*String::Utf8Value(info[2]),
+        (const char *)*String::Utf8Value(info[3]), resourceFound,
+        callbackData) == 0);
 
-    if (!result) {
+    if (!pending) {
         delete callbackData;
     }
 
-    info.GetReturnValue().Set(Nan::New(result));
+    //FIXME: properly expose pending handle to JS
+    info.GetReturnValue().Set(Nan::New(pending));
 }

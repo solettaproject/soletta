@@ -54,6 +54,7 @@ struct sol_flow_packet_composed_type {
 };
 
 static struct sol_ptr_vector composed_types_cache = SOL_PTR_VECTOR_INIT;
+static const struct sol_str_slice composed_prefix = SOL_STR_SLICE_LITERAL("composed:");
 
 static inline void *
 sol_flow_packet_get_memory(const struct sol_flow_packet *packet)
@@ -130,8 +131,9 @@ sol_flow_packet_new(const struct sol_flow_packet_type *type, const void *value)
 
 #ifndef SOL_NO_API_VERSION
     if (SOL_UNLIKELY(type->api_version != SOL_FLOW_PACKET_TYPE_API_VERSION)) {
-        SOL_WRN("Couldn't create packet with type '%s' that has unsupported version '%u', expected version is '%u'",
-            type->name ? : "", type->api_version, SOL_FLOW_PACKET_TYPE_API_VERSION);
+        SOL_WRN("Couldn't create packet with type '%s' that has unsupported version '%" PRIu16
+            "', expected version is '%" PRIu16 "'", type->name ? : "",
+            type->api_version, SOL_FLOW_PACKET_TYPE_API_VERSION);
         return NULL;
     }
 #endif
@@ -1030,7 +1032,7 @@ sol_flow_packet_type_composed_new(const struct sol_flow_packet_type **types)
 
     sol_buffer_init(&buf);
 
-    r = sol_buffer_append_slice(&buf, sol_str_slice_from_str("composed:"));
+    r = sol_buffer_append_slice(&buf, composed_prefix);
     SOL_INT_CHECK_GOTO(r, < 0, err_buf);
     for (i = 0; i < types_len; i++) {
         type_name = types[i]->name;
@@ -1148,6 +1150,85 @@ sol_flow_packet_get_packet_type_as_string(const struct sol_str_slice type)
         SOL_STR_TABLE_PTR_ITEM("http-response", "SOL_FLOW_PACKET_TYPE_HTTP_RESPONSE"),
         { }
     };
+
+    return sol_str_table_ptr_lookup_fallback(map, type, NULL);
+}
+
+static const struct sol_flow_packet_type *
+composed_type_from_string(struct sol_str_slice type)
+{
+    const struct sol_flow_packet_composed_type *ctype;
+    struct sol_ptr_vector types = SOL_PTR_VECTOR_INIT;
+    struct sol_str_slice sub;
+    const struct sol_flow_packet_type *packet_type = NULL;
+    const char *itr = NULL;
+    uint16_t i;
+    int r;
+
+    type.len -= composed_prefix.len;
+    type.data += composed_prefix.len;
+    if (type.len == 0)
+        return NULL;
+
+    SOL_PTR_VECTOR_FOREACH_IDX (&composed_types_cache, ctype, i) {
+        if (sol_str_slice_str_eq(type, ctype->self.name + composed_prefix.len)) {
+            return &ctype->self;
+        }
+    }
+
+    while (sol_str_slice_str_split_iterate(type, &sub, &itr, ",")) {
+        const struct sol_flow_packet_type *pt;
+
+        sub = sol_str_slice_trim(sub);
+        pt = sol_flow_packet_type_from_string(sub);
+        if (!pt) {
+            SOL_DBG("no packet type %.*s", SOL_STR_SLICE_PRINT(sub));
+            goto error;
+        }
+
+        r = sol_ptr_vector_append(&types, pt);
+        SOL_INT_CHECK_GOTO(r, < 0, error);
+    }
+
+    if (sol_ptr_vector_get_len(&types) < 2)
+        goto error;
+
+    r = sol_ptr_vector_append(&types, NULL);
+    SOL_INT_CHECK_GOTO(r, < 0, error);
+
+    packet_type = sol_flow_packet_type_composed_new(types.base.data);
+
+error:
+    sol_ptr_vector_clear(&types);
+    return packet_type;
+}
+
+SOL_API const struct sol_flow_packet_type *
+sol_flow_packet_type_from_string(const struct sol_str_slice type)
+{
+    static const struct sol_str_table_ptr map[] = {
+        SOL_STR_TABLE_PTR_ITEM("any", &_SOL_FLOW_PACKET_TYPE_ANY),
+        SOL_STR_TABLE_PTR_ITEM("empty", &_SOL_FLOW_PACKET_TYPE_EMPTY),
+        SOL_STR_TABLE_PTR_ITEM("int", &_SOL_FLOW_PACKET_TYPE_IRANGE),
+        SOL_STR_TABLE_PTR_ITEM("float", &_SOL_FLOW_PACKET_TYPE_DRANGE),
+        SOL_STR_TABLE_PTR_ITEM("string", &_SOL_FLOW_PACKET_TYPE_STRING),
+        SOL_STR_TABLE_PTR_ITEM("boolean", &_SOL_FLOW_PACKET_TYPE_BOOLEAN),
+        SOL_STR_TABLE_PTR_ITEM("byte", &_SOL_FLOW_PACKET_TYPE_BYTE),
+        SOL_STR_TABLE_PTR_ITEM("blob", &_SOL_FLOW_PACKET_TYPE_BLOB),
+        SOL_STR_TABLE_PTR_ITEM("rgb", &_SOL_FLOW_PACKET_TYPE_RGB),
+        SOL_STR_TABLE_PTR_ITEM("location", &_SOL_FLOW_PACKET_TYPE_LOCATION),
+        SOL_STR_TABLE_PTR_ITEM("timestamp", &_SOL_FLOW_PACKET_TYPE_TIMESTAMP),
+        SOL_STR_TABLE_PTR_ITEM("direction-vector",
+            &_SOL_FLOW_PACKET_TYPE_DIRECTION_VECTOR),
+        SOL_STR_TABLE_PTR_ITEM("error", &_SOL_FLOW_PACKET_TYPE_ERROR),
+        SOL_STR_TABLE_PTR_ITEM("json-object", &_SOL_FLOW_PACKET_TYPE_JSON_OBJECT),
+        SOL_STR_TABLE_PTR_ITEM("json-array", &_SOL_FLOW_PACKET_TYPE_JSON_ARRAY),
+        SOL_STR_TABLE_PTR_ITEM("http-response", &_SOL_FLOW_PACKET_TYPE_HTTP_RESPONSE),
+        { }
+    };
+
+    if (sol_str_slice_starts_with(type, composed_prefix))
+        return composed_type_from_string(type);
 
     return sol_str_table_ptr_lookup_fallback(map, type, NULL);
 }

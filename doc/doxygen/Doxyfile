@@ -100,7 +100,7 @@ WARN_LOGFILE           = $(build_doxygen_logfile)
 # Configuration options related to the input files
 #---------------------------------------------------------------------------
 INPUT                  = \
-    doc/doxygen/examples.dox \
+    $(build_doxygen_targetdir)/examples.dox \
     src/samples \
     src/lib/common/include \
     src/lib/comms/include \
@@ -117,9 +117,9 @@ EXCLUDE                =
 EXCLUDE_SYMLINKS       = NO
 EXCLUDE_PATTERNS       =
 EXCLUDE_SYMBOLS        =
-EXAMPLE_PATH           =
+EXAMPLE_PATH           = src/samples
 EXAMPLE_PATTERNS       =
-EXAMPLE_RECURSIVE      = NO
+EXAMPLE_RECURSIVE      = YES
 IMAGE_PATH             =
 INPUT_FILTER           =
 FILTER_PATTERNS        =
@@ -272,7 +272,7 @@ EXPAND_ONLY_PREDEF     = YES
 SEARCH_INCLUDES        = YES
 INCLUDE_PATH           =
 INCLUDE_FILE_PATTERNS  =
-PREDEFINED             = __attribute__((x))=
+PREDEFINED             = __attribute__((x))=  DOXYGEN_RUN
 EXPAND_AS_DEFINED      =
 SKIP_FUNCTION_MACROS   = YES
 #---------------------------------------------------------------------------

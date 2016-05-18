@@ -58,11 +58,13 @@ static bool _inited = false;
         if (SOL_UNLIKELY(!_inited)) { \
             fprintf(stderr, "CRITICAL:%s:%d:%s() " \
                 "SOL_LOG used before initialization. "fmt "\n", \
-                __FILE__, __LINE__, __PRETTY_FUNCTION__, ## __VA_ARGS__); \
-            abort(); \
+                SOL_LOG_FILE, \
+                __LINE__, \
+                SOL_LOG_FUNCTION, \
+                ## __VA_ARGS__); \
+            sol_abort(); \
         } \
     } while (0)
-
 
 SOL_API struct sol_log_domain *sol_log_global_domain = &_global_domain;
 
@@ -307,7 +309,7 @@ sol_log_vprint(const struct sol_log_domain *domain, uint8_t message_level, const
             "ERROR: sol_log_print() called with format == NULL "
             "from function=%s, file=%s, line=%d\n",
             function, file, line);
-        abort();
+        sol_abort();
         return;
     }
 
@@ -321,7 +323,7 @@ sol_log_vprint(const struct sol_log_domain *domain, uint8_t message_level, const
             "ERROR: sol_log_print() cannot lock "
             "from function=%s, file=%s, line=%d\n",
             function, file, line);
-        abort();
+        sol_abort();
         return;
     }
     _print_function((void *)_print_function_data,
@@ -329,7 +331,7 @@ sol_log_vprint(const struct sol_log_domain *domain, uint8_t message_level, const
     sol_log_impl_unlock();
 
     if (message_level <= _abort_level)
-        abort();
+        sol_abort();
     errno = errno_bkp;
 }
 
@@ -368,7 +370,7 @@ sol_log_level_to_str(uint8_t level, char *buf, size_t buflen)
     if (buflen < 1)
         return;
 
-    if (level < SOL_UTIL_ARRAY_SIZE(level_names)) {
+    if (level < sol_util_array_size(level_names)) {
         if (level_names[level]) {
             strncpy(buf, level_names[level], buflen - 1);
             buf[buflen - 1] = '\0';
@@ -391,7 +393,7 @@ sol_log_get_level_color(uint8_t level)
     };
 
     SOL_LOG_INIT_CHECK("level=%hhu", level);
-    if (level < SOL_UTIL_ARRAY_SIZE(level_colors)) {
+    if (level < sol_util_array_size(level_colors)) {
         if (level_colors[level])
             return level_colors[level];
     }

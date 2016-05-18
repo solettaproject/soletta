@@ -14,6 +14,6 @@ config PLATFORM_SIMPLE_SAMPLE
 
 config UART_SAMPLE
 	bool "UART"
-	depends on COMMON_SAMPLES
+	depends on COMMON_SAMPLES && USE_UART
 	default y
 

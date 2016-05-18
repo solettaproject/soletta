@@ -29,6 +29,7 @@
 #include "sol-vector.h"
 
 #include "sol-network.h"
+#include "sol-network-util.h"
 
 static struct sol_vector links = SOL_VECTOR_INIT(struct sol_network_link);
 
@@ -41,6 +42,9 @@ sol_network_link_addr_to_str(const struct sol_network_link_addr *addr,
 
     SOL_NULL_CHECK(addr, NULL);
     SOL_NULL_CHECK(buf, NULL);
+
+    if (sol_bluetooth_is_family(addr->family))
+        return sol_bluetooth_addr_to_str(addr, buf);
 
     if (addr->family != SOL_NETWORK_FAMILY_INET6)
         return NULL;
@@ -68,10 +72,13 @@ sol_network_link_addr_to_str(const struct sol_network_link_addr *addr,
 SOL_API const struct sol_network_link_addr *
 sol_network_link_addr_from_str(struct sol_network_link_addr *addr, const char *buf)
 {
-#if MODULE_GNRC_IPV6_NETIF
     SOL_NULL_CHECK(addr, NULL);
     SOL_NULL_CHECK(buf, NULL);
 
+    if (sol_bluetooth_is_addr_str(buf))
+        return sol_bluetooth_addr_from_str(addr, buf);
+
+#if MODULE_GNRC_IPV6_NETIF
     if (addr->family != SOL_NETWORK_FAMILY_INET6)
         return NULL;
 
@@ -81,31 +88,6 @@ sol_network_link_addr_from_str(struct sol_network_link_addr *addr, const char *b
 #else
     return NULL;
 #endif
-}
-
-SOL_API bool
-sol_network_link_addr_eq(const struct sol_network_link_addr *a, const struct sol_network_link_addr *b)
-{
-    const uint8_t *addr_a, *addr_b;
-    size_t bytes;
-
-    if (a->family != b->family)
-        return false;
-
-    if (a->family == SOL_NETWORK_FAMILY_INET) {
-        addr_a = a->addr.in;
-        addr_b = b->addr.in;
-        bytes = sizeof(a->addr.in);
-    } else if (a->family == SOL_NETWORK_FAMILY_INET6) {
-        addr_a = a->addr.in6;
-        addr_b = b->addr.in6;
-        bytes = sizeof(a->addr.in6);
-    } else {
-        SOL_WRN("Unknown family type: %d", a->family);
-        return false;
-    }
-
-    return !memcmp(addr_a, addr_b, bytes);
 }
 
 static int

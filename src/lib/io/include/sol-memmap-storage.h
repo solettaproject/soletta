@@ -87,7 +87,7 @@ extern "C" {
     SOL_MEMMAP_ENTRY_BIT_SIZE(_name, _offset, 1, _bit_offset, 1)
 
 struct sol_memmap_map {
-    uint16_t api_version; /**< Version of map. Functions will refuse to read/write on storage if this version and the one storad differs */
+    uint8_t version; /**< Version of map. Functions will refuse to read/write on storage if this version and the one storad differs */
     const char *path; /**< Where to find the storage. Under Linux, it is the file mapping the storage, like @c /dev/nvram.
                        * Optionally, it can also be of form <tt> create,\<bus_type\>,\<rel_path\>,\<devnumber\>,\<devname\> </tt>, where:
                        * @arg @a bus_type is the bus type, supported values are: i2c
@@ -112,7 +112,7 @@ struct sol_memmap_entry {
  * @brief Writes buffer contents to storage.
  *
  * Note that as writing operations are asynchronous, to check if it completely
- * succeded, one needs to register a callback that will inform writing result.
+ * succeeded, one needs to register a callback that will inform writing result.
  * A negative status on callback means failure; -ECANCELED for instance, means
  * that another write to the same property took place before this one was
  * completed.
@@ -171,7 +171,7 @@ int sol_memmap_remove_map(const struct sol_memmap_map *map);
  * @param map map to have its timeout changed
  * @param timeout new timeout, in milliseconds.
  *
- * @return true if successfuly set map timeout.
+ * @return true if successfully set map timeout.
  *
  * @note This change will take effect after current active timer expires.
  * Active ones will remain unchanged
@@ -206,7 +206,7 @@ uint32_t sol_memmap_get_timeout(const struct sol_memmap_map *map);
     void *v = malloc(_s); \
     SOL_NULL_CHECK(v, -ENOMEM); \
     memcpy(v, _val, _s); \
-    blob = sol_blob_new(SOL_BLOB_TYPE_DEFAULT, NULL, v, _s); \
+    blob = sol_blob_new(&SOL_BLOB_TYPE_DEFAULT, NULL, v, _s); \
     if (!blob) { \
         free(v); \
         return -EINVAL; \
@@ -373,7 +373,7 @@ sol_memmap_write_string(const char *name, const char *value,
     string = strdup(value);
     SOL_NULL_CHECK(string, -ENOMEM);
 
-    blob = sol_blob_new(SOL_BLOB_TYPE_DEFAULT, NULL, string, strlen(value) + 1);
+    blob = sol_blob_new(&SOL_BLOB_TYPE_DEFAULT, NULL, string, strlen(value) + 1);
     SOL_NULL_CHECK_GOTO(blob, error);
 
     r = sol_memmap_write_raw(name, blob, cb, data);

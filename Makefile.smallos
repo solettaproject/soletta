@@ -1,0 +1,73 @@
+# Makefile magic to determine the Soletta directory based on this very file.
+thisdir := $(realpath $(dir $(lastword $(MAKEFILE_LIST))))
+
+# Set variables that the build system including this file can use
+soletta_sysroot := $(thisdir)/build/soletta_sysroot
+soletta_include_dir := $(soletta_sysroot)/usr/include/soletta
+soletta_lib_dir := $(soletta_sysroot)/usr/lib
+soletta_node_descriptions := $(soletta_sysroot)/usr/share/soletta/flow/descriptions
+soletta_target := $(soletta_lib_dir)/libsoletta.a
+# End of usable variables
+
+ifdef TOOLCHAIN_PREFIX
+export TOOLCHAIN_PREFIX
+got_cc := yes
+got_ar := yes
+else
+ifdef TARGETCC
+export TARGETCC
+got_cc := yes
+endif
+ifdef TARGETAR
+export TARGETAR
+got_ar := yes
+endif
+endif
+
+ifneq (yesyes,$(got_cc)$(got_ar))
+$(error "Build toolchain not set. Missing variables TOOLCHAIN_PREFIX or TARGETCC and TARGETAR.")
+endif
+
+ifndef CFLAGS
+$(warning "CFLAGS not set. This is probably an error")
+endif
+ifndef LDFLAGS
+$(warning "LDFLAGS not set. This is probably an error")
+endif
+
+# No pkg-config for small OSes, so ensure the dependency resolver doesn't find
+# and try to use things we don't want.
+export PKG_CONFIG_LIBDIR=
+
+# Make sure that variables that some OSes use on their build don't get
+# propagated to Soletta's build, as they may conflict.
+unexport BINDIR PREFIX
+
+# Make CFLAGS and LDFLAGS available to Soletta's build system for configuration.
+export CFLAGS LDFLAGS
+
+soletta_config := $(thisdir)/.config
+
+# Target local variables, so we are able to re-define them for Soletta without
+# touching the OS build system
+$(soletta_target) $(soletta_config): private override MAKEFLAGS=""
+$(soletta_target) $(soletta_config): private export PYTHON=python3
+
+$(soletta_target): $(soletta_config)
+	@echo "Building Soletta..."
+	@$(MAKE) -C $(thisdir)
+
+# If there's a SOL_CONF set, we need to merge it with the generated configuration,
+# otherwise, just use alldefconfig.
+ifneq (,$(SOLETTA_CONF))
+$(soletta_config): $(SOLETTA_CONF)
+	@echo "Configuring Soletta..."
+	@$(MAKE) -C $(thisdir) alldefconfig
+	@echo "Merging user configuration..."
+	@cd $(thisdir) && \
+		tools/kconfig/merge_config.sh .config $(SOLETTA_CONF)
+else
+$(soletta_config):
+	@echo "Configuring Soletta..."
+	@$(MAKE) -C $(thisdir) alldefconfig
+endif

@@ -240,7 +240,7 @@ runner_attach_simulation(struct runner *r)
         idx = port_desc->array_size > 0 ? i - port_desc->base_port_idx : -1;
         found = false;
 
-        for (k = 0; k < SOL_UTIL_ARRAY_SIZE(input_nodes); k++) {
+        for (k = 0; k < sol_util_array_size(input_nodes); k++) {
             if (port_in->packet_type == *(input_nodes[k].packet_type)) {
                 node_name = get_node_name(port_desc->name, port_in->packet_type->name, idx);
                 SOL_NULL_CHECK_GOTO(node_name, nomem);
@@ -268,7 +268,7 @@ runner_attach_simulation(struct runner *r)
         idx = port_desc->array_size > 0 ? i - port_desc->base_port_idx : -1;
         found = false;
 
-        for (k = 0; k < SOL_UTIL_ARRAY_SIZE(output_nodes); k++) {
+        for (k = 0; k < sol_util_array_size(output_nodes); k++) {
             if (port_out->packet_type == *(output_nodes[k].packet_type)) {
                 node_name = get_node_name(port_desc->name, port_out->packet_type->name, idx);
                 SOL_NULL_CHECK_GOTO(node_name, nomem);
@@ -320,7 +320,7 @@ parse_options(struct runner *r, const char **options_strv, struct sol_flow_node_
     if (err < 0) {
         /* TODO: improve return value from the init function so we can
          * give better error messages. */
-        fprintf(stderr, "Invalid options\n");
+        fputs("Error: Options given with '-o' argument are not usable by this flow.\n", stderr);
         goto end;
     }
 
@@ -331,7 +331,7 @@ parse_options(struct runner *r, const char **options_strv, struct sol_flow_node_
         opts.members = calloc(count, member_size);
         if (!opts.members) {
             err = -errno;
-            fprintf(stderr,  "Not enough memory to build options.\n");
+            fputs("Error: Not enough memory to build options.\n", stderr);
             goto end;
         }
 
@@ -345,7 +345,7 @@ parse_options(struct runner *r, const char **options_strv, struct sol_flow_node_
     if (opts.count > 0) {
         err = sol_flow_node_options_new(r->root_type, &opts, &r->root_options);
         if (err < 0) {
-            fprintf(stderr, "Couldn't create options");
+            fputs("Error: Couldn't create options from '-o'  argument for this flow.\n", stderr);
             goto end;
         }
         sol_flow_node_named_options_fini(&opts);
@@ -437,7 +437,7 @@ runner_new_from_type(
         err = sol_flow_resolve(NULL, typename,
             (const struct sol_flow_node_type **)&r->root_type, &resolved_opts);
         if (err < 0) {
-            fprintf(stderr, "Couldn't find type '%s'\n", typename);
+            fprintf(stderr, "Error: Couldn't find type '%s'\n", typename);
             errno = -err;
             goto error;
         }

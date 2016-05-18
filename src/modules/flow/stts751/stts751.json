@@ -24,7 +24,10 @@
         "close": "temperature_stts751_close",
         "open": "temperature_stts751_open"
       },
-      "name": "stts751/temperature",
+      "name": "stts751",
+      "aliases": [
+          "thermometer/stts751"
+      ],
       "options": {
         "members": [
           {
@@ -54,7 +57,8 @@
           "name": "KELVIN"
         }
       ],
-      "private_data_type": "stts751_data"
+      "private_data_type": "stts751_data",
+      "url": "http://solettaproject.org/doc/latest/node_types/stts751/thermometer.html"
     }
   ]
 }
