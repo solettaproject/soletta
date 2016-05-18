@@ -151,15 +151,27 @@ struct sol_message_digest_config {
      * @li @c handle the handle used to push data.
      * @li @c input the input data originally pushed/fed. There is no
      *     need to sol_blob_unref() it is done automatically.
+     * @li @c status 0 on success -errno on error.
      *
      * @note it is safe to delete the message digest handle from
      *       inside this callback.
      */
-    void (*on_feed_done)(void *data, struct sol_message_digest *handle, struct sol_blob *input);
+    void (*on_feed_done)(void *data, struct sol_message_digest *handle, struct sol_blob *input, int status);
     /**
      * The context data to give to all callbacks.
      */
     const void *data;
+
+    /**
+     * The feed buffer max size. The value @c 0 means unlimited data.
+     * Since sol_message_digest_feed() works with blobs, no extra buffers will be allocated in order
+     * to store @c feed_size bytes. All the blobs that are schedule to be written will be referenced
+     * and the sum of all queued blobs must not be equal or exceed @c feed_size.
+     * If it happens sol_message_digest_feed() will return @c -ENOSPC and one must start to control the
+     * writing flow until @c on_feed_done is called.
+     * @see sol_message_digest_feed()
+     */
+    size_t feed_size;
 };
 
 /**
@@ -218,8 +230,8 @@ void sol_message_digest_del(struct sol_message_digest *handle);
  *        @c config->on_digest_ready() is called with the resulting digest
  *        as a blob.
  *
- * @return 0 on success, -errno otherwise. If error, then the input reference
- *         is not taken.
+ * @return 0 on success, @c -ENOSPC if sol_message_digest_config::feed_size is not zero and there's
+ * no more space left or -errno on error. If error or -ENOPSC, If error, then the input reference is not taken.
  */
 int sol_message_digest_feed(struct sol_message_digest *handle, struct sol_blob *input, bool is_last);
 

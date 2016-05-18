@@ -76,7 +76,7 @@ struct sol_message_digest_pending_dispatch {
 
 struct sol_message_digest {
     void (*on_digest_ready)(void *data, struct sol_message_digest *handle, struct sol_blob *output);
-    void (*on_feed_done)(void *data, struct sol_message_digest *handle, struct sol_blob *input);
+    void (*on_feed_done)(void *data, struct sol_message_digest *handle, struct sol_blob *input, int status);
     const void *data;
     const struct sol_message_digest_common_ops *ops;
 #ifdef MESSAGE_DIGEST_USE_THREAD
@@ -97,6 +97,8 @@ struct sol_message_digest {
     struct sol_vector pending_feed;
     size_t digest_offset;
     size_t digest_size;
+    size_t feed_size;
+    size_t accumulated_tx;
     uint32_t refcnt;
     bool finished;
     bool deleted;
@@ -221,6 +223,8 @@ _sol_message_digest_thread_fini(struct sol_message_digest *handle)
 #endif
 
     SOL_VECTOR_FOREACH_IDX (&handle->pending_dispatch, pd, i) {
+        if (!pd->is_digest && handle->on_feed_done)
+            handle->on_feed_done((void *)handle->data, handle, pd->blob, -ECANCELED);
         sol_blob_unref(pd->blob);
     }
     sol_vector_clear(&handle->pending_dispatch);
@@ -284,6 +288,7 @@ sol_message_digest_common_new(const struct sol_message_digest_common_new_params 
     handle->on_digest_ready = config->on_digest_ready;
     handle->on_feed_done = config->on_feed_done;
     handle->data = config->data;
+    handle->feed_size = config->feed_size;
     sol_vector_init(&handle->pending_feed,
         sizeof(struct sol_message_digest_pending_feed));
 
@@ -317,6 +322,8 @@ _sol_message_digest_free(struct sol_message_digest *handle)
     _sol_message_digest_thread_fini(handle);
 
     SOL_VECTOR_FOREACH_IDX (&handle->pending_feed, pf, i) {
+        if (handle->on_feed_done)
+            handle->on_feed_done((void *)handle->data, handle, pf->blob, -ECANCELED);
         sol_blob_unref(pf->blob);
     }
     sol_vector_clear(&handle->pending_feed);
@@ -414,7 +421,7 @@ error:
     _sol_message_digest_ref(handle);
 
     if (handle->on_feed_done)
-        handle->on_feed_done((void *)handle->data, handle, input);
+        handle->on_feed_done((void *)handle->data, handle, input, 0);
 
     sol_blob_unref(input);
     _sol_message_digest_unref(handle);
@@ -497,6 +504,7 @@ _sol_message_digest_feed_blob(struct sol_message_digest *handle)
             pf = sol_vector_get(&handle->pending_feed, 0);
             SOL_NULL_CHECK_GOTO(pf, error);
             pf->offset += n;
+            handle->accumulated_tx -= n;
             _sol_message_digest_unlock(handle);
             return;
         }
@@ -505,6 +513,9 @@ _sol_message_digest_feed_blob(struct sol_message_digest *handle)
             _sol_message_digest_setup_receive_digest(handle);
 
         _sol_message_digest_lock(handle);
+
+        handle->accumulated_tx -= n;
+
         sol_vector_del(&handle->pending_feed, 0);
         _sol_message_digest_unlock(handle);
 
@@ -632,7 +643,7 @@ _sol_message_digest_thread_feedback(void *data)
             if (pd->is_digest)
                 handle->on_digest_ready((void *)handle->data, handle, pd->blob);
             else if (handle->on_feed_done)
-                handle->on_feed_done((void *)handle->data, handle, pd->blob);
+                handle->on_feed_done((void *)handle->data, handle, pd->blob, 0);
         }
         sol_blob_unref(pd->blob);
     }
@@ -712,6 +723,7 @@ SOL_API int
 sol_message_digest_feed(struct sol_message_digest *handle, struct sol_blob *input, bool is_last)
 {
     struct sol_message_digest_pending_feed *pf;
+    size_t total;
     int r;
 
     SOL_NULL_CHECK(handle, -EINVAL);
@@ -721,12 +733,23 @@ sol_message_digest_feed(struct sol_message_digest *handle, struct sol_blob *inpu
     SOL_NULL_CHECK(input, -EINVAL);
 
     _sol_message_digest_lock(handle);
+
+    r = sol_util_size_add(handle->accumulated_tx, input->size, &total);
+    SOL_INT_CHECK_GOTO(r, < 0, error_overflow);
+
+    if (handle->feed_size && total >= handle->feed_size) {
+        r = -ENOSPC;
+        goto error_nospc;
+    }
+
     pf = sol_vector_append(&handle->pending_feed);
     SOL_NULL_CHECK_GOTO(pf, error_append);
 
     pf->blob = sol_blob_ref(input);
     pf->offset = 0;
     pf->is_last = is_last;
+
+    handle->accumulated_tx = total;
 
     _sol_message_digest_unlock(handle);
 
@@ -742,13 +765,21 @@ sol_message_digest_feed(struct sol_message_digest *handle, struct sol_blob *inpu
     return 0;
 
 error:
+
+    _sol_message_digest_lock(handle);
+    handle->accumulated_tx -= input->size;
+    _sol_message_digest_unlock(handle);
+
     sol_blob_unref(input);
     sol_vector_del_last(&handle->pending_feed);
 
     return -ENOMEM;
 
 error_append:
+    r = -ENOMEM;
+error_overflow:
+error_nospc:
     _sol_message_digest_unlock(handle);
 
-    return -ENOMEM;
+    return r;
 }
