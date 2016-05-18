@@ -92,7 +92,14 @@ struct resource_observer {
     uint8_t token[0];
 };
 
+enum pending_reply_freshness {
+    PENDING_REPLY_QUIET,
+    PENDING_REPLY_PENDING,
+    PENDING_REPLY_FREE_ME
+};
+
 struct pending_reply {
+    enum pending_reply_freshness freshness;
     struct sol_coap_server *server;
     struct sol_timeout *timeout;
     bool (*cb)(void *data, struct sol_coap_server *server, struct sol_coap_packet *req,
@@ -633,6 +640,11 @@ pending_reply_free(struct pending_reply *reply)
     if (!reply)
         return;
 
+    if (reply->freshness == PENDING_REPLY_PENDING) {
+        reply->freshness = PENDING_REPLY_FREE_ME;
+        return;
+    }
+
     if (reply->observing)
         free(reply->path);
 
@@ -892,6 +904,7 @@ sol_coap_send_packet_with_reply(struct sol_coap_server *server, struct sol_coap_
     }
 
     sol_coap_header_get_id(pkt, &reply->id);
+    reply->freshness = PENDING_REPLY_QUIET;
     reply->cb = reply_cb;
     reply->data = data;
     reply->observing = observing;
@@ -1503,11 +1516,21 @@ respond_packet(struct sol_coap_server *server, struct sol_coap_packet *req,
     /* If it isn't a request. */
     if (code & ~SOL_COAP_REQUEST_MASK) {
         bool found_reply = false;
+        bool reply_callback_result = false;
+        bool reply_was_quiet = true;
         SOL_PTR_VECTOR_FOREACH_REVERSE_IDX (&server->pending, reply, i) {
             if (!match_reply(reply, req))
                 continue;
 
-            if (!reply->cb((void *)reply->data, server, req, cliaddr)) {
+            reply_was_quiet = (reply->freshness == PENDING_REPLY_QUIET);
+            reply->freshness = PENDING_REPLY_PENDING;
+            reply_callback_result = reply->cb((void *)reply->data, server, req,
+                cliaddr);
+            if (reply_was_quiet && reply->freshness != PENDING_REPLY_FREE_ME) {
+                reply->freshness = PENDING_REPLY_QUIET;
+            }
+
+            if (!reply_callback_result) {
                 sol_ptr_vector_del(&server->pending, i);
                 if (reply->observing) {
                     r = send_unobserve_packet(server, cliaddr, reply->path,
@@ -1659,6 +1682,7 @@ sol_coap_server_destroy(struct sol_coap_server *server)
     struct resource_context *c;
     struct pending_reply *reply;
     struct outgoing *o;
+    bool reply_was_quiet;
     uint16_t i;
 
     sol_socket_del(server->socket);
@@ -1670,7 +1694,12 @@ sol_coap_server_destroy(struct sol_coap_server *server)
 
     SOL_PTR_VECTOR_FOREACH_REVERSE_IDX (&server->pending, reply, i) {
         sol_ptr_vector_del(&server->pending, i);
+        reply_was_quiet = (reply->freshness == PENDING_REPLY_QUIET);
+        reply->freshness = PENDING_REPLY_PENDING;
         reply->cb((void *)reply->data, server, NULL, NULL);
+        if (reply_was_quiet && reply->freshness != PENDING_REPLY_FREE_ME) {
+            reply->freshness = PENDING_REPLY_QUIET;
+        }
         pending_reply_free(reply);
     }
 
@@ -2003,6 +2032,7 @@ sol_coap_unobserve_by_token(struct sol_coap_server *server, const struct sol_net
     int r;
     uint16_t i;
     struct pending_reply *reply;
+    bool reply_was_quiet;
 
     SOL_NULL_CHECK(server, -EINVAL);
 
@@ -2010,7 +2040,12 @@ sol_coap_unobserve_by_token(struct sol_coap_server *server, const struct sol_net
         if (!match_observe_reply(reply, token, tkl))
             continue;
 
+        reply_was_quiet = (reply->freshness == PENDING_REPLY_QUIET);
+        reply->freshness = PENDING_REPLY_PENDING;
         reply->cb((void *)reply->data, server, NULL, NULL);
+        if (reply_was_quiet && reply->freshness != PENDING_REPLY_FREE_ME) {
+            reply->freshness = PENDING_REPLY_QUIET;
+        }
         sol_ptr_vector_del(&server->pending, i);
 
         r = send_unobserve_packet(server, cliaddr, reply->path, token, tkl);

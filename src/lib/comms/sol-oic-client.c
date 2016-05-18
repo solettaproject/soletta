@@ -71,7 +71,14 @@ struct sol_oic_client {
     struct sol_oic_security *security;
 };
 
+enum ctx_freshness {
+    CTX_QUIET,
+    CTX_PENDING,
+    CTX_FREE_ME
+};
+
 struct ctx {
+    enum ctx_freshness freshness;
     struct sol_coap_server *server;
     struct sol_oic_client *client;
     struct sol_coap_packet *req;
@@ -350,6 +357,15 @@ error:
     return false;
 }
 
+#define CALL_INFO_CALLBACK(ctx, cb, info) \
+    do { \
+        bool ctx_was_quiet = ((ctx)->base.freshness == CTX_QUIET); \
+        (cb)((void *)(ctx)->base.data, (ctx)->base.client, (info)); \
+        if (ctx_was_quiet && (ctx)->base.freshness != CTX_FREE_ME) { \
+            (ctx)->base.freshness = CTX_QUIET; \
+        } \
+    } while (0)
+
 static bool
 _platform_info_reply_cb(void *data, struct sol_coap_server *server,
     struct sol_coap_packet *req, const struct sol_network_link_addr *addr)
@@ -381,7 +397,7 @@ _platform_info_reply_cb(void *data, struct sol_coap_server *server,
     if (_parse_platform_info_payload(&info, sol_buffer_at(buf, offset),
         buf->used - offset)) {
         SOL_SET_API_VERSION(info.api_version = SOL_OIC_PLATFORM_INFO_API_VERSION; )
-        ctx->cb((void *)ctx->base.data, ctx->base.client, &info);
+        CALL_INFO_CALLBACK(ctx, ctx->cb, &info);
     } else {
         SOL_WRN("Could not parse payload");
         goto error;
@@ -401,9 +417,10 @@ _platform_info_reply_cb(void *data, struct sol_coap_server *server,
     goto free_ctx;
 
 error:
-    ctx->cb((char *)ctx->base.data, ctx->base.client, NULL);
+    CALL_INFO_CALLBACK(ctx, ctx->cb, NULL);
 free_ctx:
-    free(ctx);
+    if (ctx->base.freshness != CTX_PENDING)
+        free(ctx);
     return false;
 }
 
@@ -444,7 +461,7 @@ _server_info_reply_cb(void *data, struct sol_coap_server *server,
         SOL_SET_API_VERSION(info.api_version = SOL_OIC_DEVICE_INFO_API_VERSION; )
         cb = (void (*)(void *data, struct sol_oic_client *cli,
             const struct sol_oic_device_info *info))ctx->cb;
-        cb((void *)ctx->base.data, ctx->base.client, &info);
+        CALL_INFO_CALLBACK(ctx, cb, &info);
     } else {
         SOL_WRN("Could not parse payload");
         goto error;
@@ -457,9 +474,10 @@ _server_info_reply_cb(void *data, struct sol_coap_server *server,
     goto free_ctx;
 
 error:
-    ctx->cb((void *)ctx->base.data, ctx->base.client, NULL);
+    CALL_INFO_CALLBACK(ctx, ctx->cb, NULL);
 free_ctx:
-    free(ctx);
+    if (ctx->base.freshness != CTX_PENDING)
+        free(ctx);
     return false;
 }
 
@@ -659,6 +677,26 @@ extract_list_from_map(const CborValue *map, const char *key, char **data, struct
 }
 
 static bool
+call_discovery_callback(struct find_resource_ctx *ctx,
+    struct sol_oic_resource *res)
+{
+    bool ctx_was_quiet = (ctx->base.freshness == CTX_QUIET);
+    bool return_value;
+
+    ctx->base.freshness = CTX_PENDING;
+    return_value = ctx->cb((void *)ctx->base.data, ctx->base.client, res);
+    if (ctx_was_quiet && ctx->base.freshness != CTX_FREE_ME) {
+        ctx->base.freshness = CTX_QUIET;
+    }
+
+    /*
+       Discovery ends if somebody cancels the handle, even if the callback
+       returns true
+     */
+    return return_value && (ctx->base.freshness != CTX_FREE_ME);
+}
+
+static bool
 _iterate_over_resource_reply_payload(struct sol_coap_packet *req,
     const struct sol_network_link_addr *addr,
     const struct find_resource_ctx *ctx, bool *cb_return)
@@ -755,7 +793,8 @@ _iterate_over_resource_reply_payload(struct sol_coap_packet *req,
             if (!res->device_id.data)
                 goto error;
             res->device_id.len = device_id.used;
-            if (!ctx->cb((void *)ctx->base.data, ctx->base.client, res)) {
+            if (!call_discovery_callback(
+                (struct find_resource_ctx *)ctx, res)) {
                 sol_oic_resource_unref(res);
                 sol_buffer_fini(&device_id);
                 *cb_return  = false;
@@ -782,15 +821,16 @@ _find_resource_reply_cb(void *data, struct sol_coap_server *server,
     struct find_resource_ctx *ctx = data;
     bool cb_return;
 
-    if (!ctx->cb) {
+    if (!ctx->cb && ctx->base.freshness != CTX_PENDING) {
         SOL_WRN("No user callback provided");
         free(ctx);
         return false;
     }
 
     if (!req || !addr) {
-        if (!ctx->cb((void *)ctx->base.data, ctx->base.client, NULL)) {
-            free(ctx);
+        if (!call_discovery_callback(ctx, NULL)) {
+            if (ctx->base.freshness != CTX_PENDING)
+                free(ctx);
             return false;
         }
         return true;
@@ -834,6 +874,7 @@ sol_oic_client_find_resources(struct sol_oic_client *client,
     SOL_NULL_CHECK_ERRNO(client, EINVAL, NULL);
 
     ctx = sol_util_memdup(&(struct find_resource_ctx) {
+            .base.freshness = CTX_QUIET,
             .base.client = client,
             .base.server = client->server,
             .cb = resource_found_cb,
@@ -898,6 +939,20 @@ out_no_pkt:
     return NULL;
 }
 
+static void
+call_resource_request_callback(struct resource_request_ctx *ctx,
+    enum sol_coap_response_code code, const struct sol_network_link_addr *address,
+    const struct sol_oic_map_reader *reader)
+{
+    bool ctx_was_quiet = (ctx->base.freshness == CTX_QUIET);
+
+    ctx->base.freshness = CTX_PENDING;
+    ctx->cb((void *)ctx->base.data, code, ctx->base.client, address, reader);
+    if (ctx_was_quiet && ctx->base.freshness != CTX_FREE_ME) {
+        ctx->base.freshness = CTX_QUIET;
+    }
+}
+
 static bool
 _resource_request_cb(void *data, struct sol_coap_server *server,
     struct sol_coap_packet *req, const struct sol_network_link_addr *addr)
@@ -914,8 +969,9 @@ _resource_request_cb(void *data, struct sol_coap_server *server,
     if (!ctx->cb)
         return false;
     if (!req || !addr) {
-        ctx->cb((void *)ctx->base.data, SOL_COAP_CODE_EMPTY, ctx->base.client, NULL, NULL);
-        free(data);
+        call_resource_request_callback(ctx, SOL_COAP_CODE_EMPTY, NULL, NULL);
+        if (ctx->base.freshness != CTX_PENDING)
+            free(data);
         return false;
     }
     if (!_pkt_has_same_token(req, ctx->base.token))
@@ -938,7 +994,7 @@ _resource_request_cb(void *data, struct sol_coap_server *server,
 
 empty_payload:
     sol_coap_header_get_code(req, &code);
-    ctx->cb((void *)ctx->base.data, code, ctx->base.client, addr, map_reader);
+    call_resource_request_callback(ctx, code, addr, map_reader);
 
     return true;
 }
@@ -947,16 +1003,17 @@ static bool
 _one_shot_resource_request_cb(void *data, struct sol_coap_server *server,
     struct sol_coap_packet *req, const struct sol_network_link_addr *addr)
 {
+    struct resource_request_ctx *ctx = data;
+
     if (req && addr)
         _resource_request_cb(data, server, req, addr);
     else {
-        struct resource_request_ctx *ctx = data;
-
-        ctx->cb((void *)ctx->base.data, SOL_COAP_CODE_EMPTY, ctx->base.client, NULL, NULL);
+        call_resource_request_callback(ctx, SOL_COAP_CODE_EMPTY, NULL, NULL);
     }
 
     /* free the ctx */
-    free(data);
+    if (ctx->base.freshness != CTX_PENDING)
+        free(ctx);
     return false;
 }
 
@@ -1149,7 +1206,12 @@ sol_oic_pending_cancel(struct sol_oic_pending *pending)
         return;
 
     sol_coap_cancel_send_packet(ctx->server, ctx->req, &ctx->addr);
-    free(ctx);
+
+    if (ctx->freshness != CTX_PENDING) {
+        free(ctx);
+    } else {
+        ctx->freshness = CTX_FREE_ME;
+    }
 }
 
 static bool
