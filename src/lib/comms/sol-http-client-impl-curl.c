@@ -70,6 +70,7 @@ struct sol_http_client_connection {
     CURL *curl;
     struct curl_slist *headers;
     struct curl_httppost *formpost;
+    struct sol_timeout *del_timeout;
     struct sol_buffer buffer;
     struct sol_vector watches;
     struct sol_http_params response_params;
@@ -77,7 +78,21 @@ struct sol_http_client_connection {
     const void *data;
 
     bool error;
+    bool in_use;
 };
+
+static void destroy_connection(struct sol_http_client_connection *c);
+
+static bool
+schedule_del(void *data)
+{
+    struct sol_http_client_connection *c = data;
+
+    c->del_timeout = NULL;
+    sol_ptr_vector_remove(&global.connections, c);
+    destroy_connection(c);
+    return false;
+}
 
 static void
 destroy_connection(struct sol_http_client_connection *c)
@@ -98,6 +113,9 @@ destroy_connection(struct sol_http_client_connection *c)
         sol_fd_del(cwatch->watch);
 
     sol_vector_clear(&c->watches);
+
+    if (c->del_timeout)
+        sol_timeout_del(c->del_timeout);
 
     free(c);
     sol_http_client_shutdown_lazy();
@@ -170,13 +188,19 @@ call_connection_finish_cb(struct sol_http_client_connection *connection)
 
     response->param = connection->response_params;
 
-    if (connection->interface.response_cb)
-        connection->interface.response_cb((void *)connection->data, connection, response);
+    if (connection->interface.on_response) {
+        connection->in_use = true;
+        connection->interface.on_response((void *)connection->data, connection, response);
+        connection->in_use = false;
+    }
     goto end;
 
 err:
-    if (connection->interface.response_cb)
-        connection->interface.response_cb((void *)connection->data, connection, NULL);
+    if (connection->interface.on_response) {
+        connection->in_use = true;
+        connection->interface.on_response((void *)connection->data, connection, NULL);
+        connection->in_use = false;
+    }
 end:
     sol_buffer_fini(&response->content);
     destroy_connection(connection);
@@ -196,10 +220,12 @@ write_cb(char *data, size_t size, size_t nmemb, void *connp)
         SOL_STR_SLICE_STR(data, data_size));
     SOL_INT_CHECK(r, < 0, 0);
 
-    if (connection->interface.recv_cb) {
+    if (connection->interface.on_data) {
         ssize_t ret;
 
-        ret = connection->interface.recv_cb((void *)connection->data, connection, &connection->buffer);
+        connection->in_use = true;
+        ret = connection->interface.on_data((void *)connection->data, connection, &connection->buffer);
+        connection->in_use = false;
         if (ret < 0)
             return 0;
 
@@ -226,8 +252,10 @@ read_cb(char *data, size_t size, size_t nitems, void *connp)
     buffer = SOL_BUFFER_INIT_FLAGS(data, data_size,
         SOL_BUFFER_FLAGS_MEMORY_NOT_OWNED | SOL_BUFFER_FLAGS_NO_NUL_BYTE);
 
-    ret = connection->interface.send_cb((void *)connection->data,
+    connection->in_use = true;
+    ret = connection->interface.on_send((void *)connection->data,
         connection, &buffer);
+    connection->in_use = false;
 
     sol_buffer_fini(&buffer);
 
@@ -558,6 +586,8 @@ perform_multi(CURL *curl, struct curl_slist *headers,
     const void *data)
 {
     struct sol_http_client_connection *connection;
+    void *buf;
+    size_t data_size;
     int running;
 
     SOL_INT_CHECK(global.ref, <= 0, NULL);
@@ -574,13 +604,22 @@ perform_multi(CURL *curl, struct curl_slist *headers,
     connection->error = false;
     sol_vector_init(&connection->watches, sizeof(struct connection_watch));
 
-    sol_buffer_init(&connection->buffer);
+    data_size = interface->data_buffer_size;
+    if (data_size) {
+        buf = malloc(data_size);
+        SOL_NULL_CHECK_GOTO(buf, err_buf);
+
+        sol_buffer_init_flags(&connection->buffer, buf, data_size,
+            SOL_BUFFER_FLAGS_NO_NUL_BYTE | SOL_BUFFER_FLAGS_FIXED_CAPACITY);
+    } else
+        sol_buffer_init_flags(&connection->buffer, NULL, 0,
+            SOL_BUFFER_FLAGS_NO_NUL_BYTE | SOL_BUFFER_FLAGS_DEFAULT);
     sol_http_params_init(&connection->response_params);
 
     curl_easy_setopt(curl, CURLOPT_WRITEFUNCTION, write_cb);
     curl_easy_setopt(curl, CURLOPT_WRITEDATA, connection);
 
-    if (interface->send_cb) {
+    if (interface->on_send) {
         curl_easy_setopt(curl, CURLOPT_READFUNCTION, read_cb);
         curl_easy_setopt(curl, CURLOPT_READDATA, connection);
     }
@@ -635,6 +674,7 @@ remove_handle:
 
 free_buffer:
     sol_buffer_fini(&connection->buffer);
+err_buf:
     free(connection);
     return NULL;
 }
@@ -1037,7 +1077,7 @@ failed_easy_init:
 SOL_API struct sol_http_client_connection *
 sol_http_client_request(enum sol_http_method method,
     const char *url, const struct sol_http_params *params,
-    void (*cb)(void *data, const struct sol_http_client_connection *connection,
+    void (*cb)(void *data, struct sol_http_client_connection *connection,
     struct sol_http_response *response),
     const void *data)
 {
@@ -1045,7 +1085,7 @@ sol_http_client_request(enum sol_http_method method,
     const struct sol_http_request_interface *interface =
         &(struct sol_http_request_interface) {
         SOL_SET_API_VERSION(.api_version = SOL_HTTP_REQUEST_INTERFACE_API_VERSION, )
-        .response_cb = cb
+        .on_response = cb
     };
 
     pending = client_request_internal(method, url, params, interface, data);
@@ -1058,6 +1098,13 @@ SOL_API void
 sol_http_client_connection_cancel(struct sol_http_client_connection *pending)
 {
     SOL_NULL_CHECK(pending);
+
+    if (pending->in_use && !pending->del_timeout) {
+        pending->del_timeout = sol_timeout_add(0, schedule_del, pending);
+        SOL_NULL_CHECK(pending->del_timeout);
+        return;
+    } else if (pending->in_use && pending->del_timeout)
+        return;
 
     SOL_INT_CHECK(sol_ptr_vector_remove(&global.connections, pending), < 0);
     destroy_connection(pending);

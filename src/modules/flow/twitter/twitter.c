@@ -92,7 +92,7 @@ end:
 
 static void
 twitter_request_finished(void *data,
-    const struct sol_http_client_connection *connection,
+    struct sol_http_client_connection *connection,
     struct sol_http_response *response)
 {
     int r = EINVAL;
