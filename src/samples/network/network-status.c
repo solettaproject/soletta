@@ -107,7 +107,7 @@ _on_network_event(void *data, const struct sol_network_link *link, enum sol_netw
         struct sol_network_link_addr *addr;
         uint16_t i;
 
-        SOL_BUFFER_DECLARE_STATIC(addr_str, SOL_INET_ADDR_STRLEN);
+        SOL_BUFFER_DECLARE_STATIC(addr_str, SOL_NETWORK_INET_ADDR_STR_LEN);
 
         printf("\tUP ");
         SOL_VECTOR_FOREACH_IDX (&link->addrs, addr, i) {
