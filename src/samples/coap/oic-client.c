@@ -30,7 +30,7 @@ got_get_response(void *data, enum sol_coap_response_code response_code, struct s
     enum sol_oic_map_loop_status end_status;
     struct sol_oic_map_reader iterator;
 
-    SOL_BUFFER_DECLARE_STATIC(addr, SOL_INET_ADDR_STRLEN);
+    SOL_BUFFER_DECLARE_STATIC(addr, SOL_NETWORK_INET_ADDR_STR_LEN);
 
     if (!srv_addr) {
         SOL_WRN("Response timeout");
@@ -94,7 +94,7 @@ found_resource(void *data, struct sol_oic_client *cli, struct sol_oic_resource *
     struct sol_oic_request *request;
     uint16_t idx;
 
-    SOL_BUFFER_DECLARE_STATIC(addr, SOL_INET_ADDR_STRLEN);
+    SOL_BUFFER_DECLARE_STATIC(addr, SOL_NETWORK_INET_ADDR_STR_LEN);
 
     if (!res)
         return false;
