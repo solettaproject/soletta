@@ -202,7 +202,7 @@ sol_network_link_get_name(const struct sol_network_link *link)
 }
 
 SOL_API int
-sol_network_cancel_get_hostname_address_info(
+sol_network_hostname_pending_cancel(
     struct sol_network_hostname_handle *handle)
 {
     return -ENOTSUP;

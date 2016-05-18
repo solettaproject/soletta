@@ -709,7 +709,7 @@ err_append:
 }
 
 SOL_API int
-sol_network_cancel_get_hostname_address_info(
+sol_network_hostname_pending_cancel(
     struct sol_network_hostname_handle *handle)
 {
     int r;

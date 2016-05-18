@@ -71,10 +71,10 @@ extern "C" {
  * @brief A handle to sol_network_get_hostname_address_info()
  *
  * This handle can be used to cancel get sol_network_get_hostname_address_info()
- * by calling sol_network_cancel_get_hostname_address_info()
+ * by calling sol_network_hostname_pending_cancel()
  *
  * @see sol_network_get_hostname_address_info()
- * @see sol_network_cancel_get_hostname_address_info()
+ * @see sol_network_hostname_pending_cancel()
  */
 struct sol_network_hostname_handle;
 
@@ -356,7 +356,7 @@ bool sol_network_link_down(uint16_t link_index);
  * @param host_info_cb A callback to be called with the address list.
  * @param data Data to @c host_info_cb.
  * @return A handle to a hostname or @c NULL on error.
- * @see sol_network_cancel_get_hostname_address_info()
+ * @see sol_network_hostname_pending_cancel()
  * @see #sol_network_family
  */
 struct sol_network_hostname_handle *
@@ -372,7 +372,7 @@ sol_network_get_hostname_address_info(const struct sol_str_slice hostname,
  * @return 0 on success, -errno on error.
  * @see sol_network_get_hostname_address_info()
  */
-int sol_network_cancel_get_hostname_address_info(struct sol_network_hostname_handle *handle);
+int sol_network_hostname_pending_cancel(struct sol_network_hostname_handle *handle);
 
 /**
  * @}
