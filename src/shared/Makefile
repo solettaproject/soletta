@@ -39,6 +39,7 @@ obj-libshared-y-extra-cflags += -fvisibility=default
 obj-libshared-y-extra-ldflags += -lm
 
 headers-y += \
+    include/sol-reentrant.h \
     include/sol-util.h
 
 headers-$(FEATURE_FILESYSTEM) += \
