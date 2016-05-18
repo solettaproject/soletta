@@ -46,7 +46,7 @@ sol_network_link_addr_to_str(const struct sol_network_link_addr *addr,
     if (addr->family != SOL_NETWORK_FAMILY_INET6)
         return NULL;
 
-    if (buf->capacity - buf->used < SOL_INET_ADDR_STRLEN)
+    if (buf->capacity - buf->used < SOL_NETWORK_INET_ADDR_STR_LEN)
         return NULL;
 
     p = sol_buffer_at_end(buf);
@@ -164,20 +164,20 @@ sol_network_shutdown(void)
     return;
 }
 
-SOL_API bool
+SOL_API int
 sol_network_subscribe_events(void (*cb)(void *data, const struct sol_network_link *link,
     enum sol_network_event event),
     const void *data)
 {
-    return false;
+    return -ENOSYS;
 }
 
-SOL_API bool
+SOL_API int
 sol_network_unsubscribe_events(void (*cb)(void *data, const struct sol_network_link *link,
     enum sol_network_event event),
     const void *data)
 {
-    return false;
+    return -ENOSYS;
 }
 
 SOL_API const struct sol_vector *
