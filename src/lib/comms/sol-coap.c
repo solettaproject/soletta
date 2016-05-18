@@ -662,8 +662,11 @@ pending_timeout_cb(void *data)
     struct pending_reply *reply = data;
     struct sol_coap_server *server = reply->server;
 
-    if (reply->cb((void *)reply->data, server, NULL, NULL))
-        return true;
+    if (reply->cb((void *)reply->data, server, NULL, NULL)) {
+        if (reply->freshness != PENDING_REPLY_FREE_ME) {
+            return true;
+        }
+    }
 
     sol_ptr_vector_remove(&server->pending, reply);
 
@@ -1530,7 +1533,8 @@ respond_packet(struct sol_coap_server *server, struct sol_coap_packet *req,
                 reply->freshness = PENDING_REPLY_QUIET;
             }
 
-            if (!reply_callback_result) {
+            if (!reply_callback_result ||
+                reply->freshness == PENDING_REPLY_FREE_ME) {
                 sol_ptr_vector_del(&server->pending, i);
                 if (reply->observing) {
                     r = send_unobserve_packet(server, cliaddr, reply->path,
