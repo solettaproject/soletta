@@ -28,6 +28,7 @@
 #include "sol-macros.h"
 #include "sol-mainloop.h"
 #include "sol-random.h"
+#include "sol-reentrant.h"
 #include "sol-util-internal.h"
 
 #include "sol-oic-client.h"
@@ -72,6 +73,7 @@ struct sol_oic_client {
 };
 
 struct ctx {
+    struct sol_reentrant reentrant;
     struct sol_coap_server *server;
     struct sol_oic_client *client;
     struct sol_coap_packet *req;
@@ -381,7 +383,9 @@ _platform_info_reply_cb(void *data, struct sol_coap_server *server,
     if (_parse_platform_info_payload(&info, sol_buffer_at(buf, offset),
         buf->used - offset)) {
         SOL_SET_API_VERSION(info.api_version = SOL_OIC_PLATFORM_INFO_API_VERSION; )
-        ctx->cb((void *)ctx->base.data, ctx->base.client, &info);
+        SOL_REENTRANT_CALL(ctx->base.reentrant) {
+            ctx->cb((void *)ctx->base.data, ctx->base.client, &info);
+        }
     } else {
         SOL_WRN("Could not parse payload");
         goto error;
@@ -401,9 +405,13 @@ _platform_info_reply_cb(void *data, struct sol_coap_server *server,
     goto free_ctx;
 
 error:
-    ctx->cb((char *)ctx->base.data, ctx->base.client, NULL);
+    SOL_REENTRANT_CALL(ctx->base.reentrant) {
+        ctx->cb((void *)ctx->base.data, ctx->base.client, NULL);
+    }
 free_ctx:
-    free(ctx);
+    SOL_REENTRANT_FREE(ctx->base.reentrant) {
+        free(ctx);
+    }
     return false;
 }
 
@@ -444,7 +452,9 @@ _server_info_reply_cb(void *data, struct sol_coap_server *server,
         SOL_SET_API_VERSION(info.api_version = SOL_OIC_DEVICE_INFO_API_VERSION; )
         cb = (void (*)(void *data, struct sol_oic_client *cli,
             const struct sol_oic_device_info *info))ctx->cb;
-        cb((void *)ctx->base.data, ctx->base.client, &info);
+        SOL_REENTRANT_CALL(ctx->base.reentrant) {
+            cb((void *)ctx->base.data, ctx->base.client, &info);
+        }
     } else {
         SOL_WRN("Could not parse payload");
         goto error;
@@ -457,9 +467,13 @@ _server_info_reply_cb(void *data, struct sol_coap_server *server,
     goto free_ctx;
 
 error:
-    ctx->cb((void *)ctx->base.data, ctx->base.client, NULL);
+    SOL_REENTRANT_CALL(ctx->base.reentrant) {
+        ctx->cb((void *)ctx->base.data, ctx->base.client, NULL);
+    }
 free_ctx:
-    free(ctx);
+    SOL_REENTRANT_FREE(ctx->base.reentrant) {
+        free(ctx);
+    }
     return false;
 }
 
@@ -477,6 +491,8 @@ client_get_info(struct sol_oic_client *client,
     int r = 0;
 
     ctx = sol_util_memdup(&(struct server_info_ctx) {
+            .base.reentrant.in_use = false,
+            .base.reentrant.delete_me = false,
             .base.client = client,
             .base.server = server,
             .cb = info_received_cb,
@@ -512,7 +528,9 @@ client_get_info(struct sol_oic_client *client,
 out:
     sol_coap_packet_unref(ctx->base.req);
 out_no_pkt:
-    free(ctx);
+    SOL_REENTRANT_FREE(ctx->base.reentrant) {
+        free(ctx);
+    }
     errno = -r;
     return NULL;
 }
@@ -673,6 +691,7 @@ _iterate_over_resource_reply_payload(struct sol_coap_packet *req,
     CborValue bitmap_value, secure_value;
     uint64_t bitmap;
     bool secure;
+    bool discovery_callback_result;
 
 
     *cb_return  = true;
@@ -755,7 +774,13 @@ _iterate_over_resource_reply_payload(struct sol_coap_packet *req,
             if (!res->device_id.data)
                 goto error;
             res->device_id.len = device_id.used;
-            if (!ctx->cb((void *)ctx->base.data, ctx->base.client, res)) {
+            SOL_REENTRANT_CALL((*(struct sol_reentrant *)(&(ctx->base.reentrant)))) {
+                discovery_callback_result =
+                    ctx->cb((void *)ctx->base.data, ctx->base.client, res);
+            }
+
+            if (!discovery_callback_result ||
+                SOL_REENTRANT_IS_STALE(ctx->base.reentrant)) {
                 sol_oic_resource_unref(res);
                 sol_buffer_fini(&device_id);
                 *cb_return  = false;
@@ -781,16 +806,26 @@ _find_resource_reply_cb(void *data, struct sol_coap_server *server,
 {
     struct find_resource_ctx *ctx = data;
     bool cb_return;
+    bool discovery_callback_result;
 
     if (!ctx->cb) {
         SOL_WRN("No user callback provided");
-        free(ctx);
+        SOL_REENTRANT_FREE(ctx->base.reentrant) {
+            free(ctx);
+        }
         return false;
     }
 
     if (!req || !addr) {
-        if (!ctx->cb((void *)ctx->base.data, ctx->base.client, NULL)) {
-            free(ctx);
+        SOL_REENTRANT_CALL(ctx->base.reentrant) {
+            discovery_callback_result =
+                ctx->cb((void *)ctx->base.data, ctx->base.client, NULL);
+        }
+        if (!discovery_callback_result ||
+            SOL_REENTRANT_IS_STALE(ctx->base.reentrant)) {
+            SOL_REENTRANT_FREE(ctx->base.reentrant) {
+                free(ctx);
+            }
             return false;
         }
         return true;
@@ -812,7 +847,9 @@ _find_resource_reply_cb(void *data, struct sol_coap_server *server,
     }
 
     if (!cb_return)
-        free(ctx);
+        SOL_REENTRANT_FREE(ctx->base.reentrant) {
+            free(ctx);
+        }
     return cb_return;
 }
 
@@ -834,6 +871,8 @@ sol_oic_client_find_resources(struct sol_oic_client *client,
     SOL_NULL_CHECK_ERRNO(client, EINVAL, NULL);
 
     ctx = sol_util_memdup(&(struct find_resource_ctx) {
+            .base.reentrant.in_use = false,
+            .base.reentrant.delete_me = false,
             .base.client = client,
             .base.server = client->server,
             .cb = resource_found_cb,
@@ -893,7 +932,9 @@ sol_oic_client_find_resources(struct sol_oic_client *client,
 out:
     sol_coap_packet_unref(ctx->base.req);
 out_no_pkt:
-    free(ctx);
+    SOL_REENTRANT_FREE(ctx->base.reentrant) {
+        free(ctx);
+    }
     errno = -r;
     return NULL;
 }
@@ -914,7 +955,10 @@ _resource_request_cb(void *data, struct sol_coap_server *server,
     if (!ctx->cb)
         return false;
     if (!req || !addr) {
-        ctx->cb((void *)ctx->base.data, SOL_COAP_CODE_EMPTY, ctx->base.client, NULL, NULL);
+        SOL_REENTRANT_CALL(ctx->base.reentrant) {
+            ctx->cb((void *)ctx->base.data, SOL_COAP_CODE_EMPTY,
+                ctx->base.client, NULL, NULL);
+        }
         free(data);
         return false;
     }
@@ -938,7 +982,10 @@ _resource_request_cb(void *data, struct sol_coap_server *server,
 
 empty_payload:
     sol_coap_header_get_code(req, &code);
-    ctx->cb((void *)ctx->base.data, code, ctx->base.client, addr, map_reader);
+    SOL_REENTRANT_CALL(ctx->base.reentrant) {
+        ctx->cb((void *)ctx->base.data, code, ctx->base.client, addr,
+            map_reader);
+    }
 
     return true;
 }
@@ -947,16 +994,21 @@ static bool
 _one_shot_resource_request_cb(void *data, struct sol_coap_server *server,
     struct sol_coap_packet *req, const struct sol_network_link_addr *addr)
 {
+    struct resource_request_ctx *ctx = data;
+
     if (req && addr)
         _resource_request_cb(data, server, req, addr);
     else {
-        struct resource_request_ctx *ctx = data;
-
-        ctx->cb((void *)ctx->base.data, SOL_COAP_CODE_EMPTY, ctx->base.client, NULL, NULL);
+        SOL_REENTRANT_CALL(ctx->base.reentrant) {
+            ctx->cb((void *)ctx->base.data, SOL_COAP_CODE_EMPTY,
+                ctx->base.client, NULL, NULL);
+        }
     }
 
     /* free the ctx */
-    free(data);
+    SOL_REENTRANT_FREE(ctx->base.reentrant) {
+        free(ctx);
+    }
     return false;
 }
 
@@ -981,6 +1033,8 @@ _resource_request(struct sol_oic_client_request *request,
 {
     struct resource_request_ctx *ctx = sol_util_memdup
             (&(struct resource_request_ctx) {
+                .base.reentrant.in_use = false,
+                .base.reentrant.delete_me = false,
                 .base.client = client,
                 .cb = callback,
                 .base.data = data,
@@ -1024,7 +1078,9 @@ cbor_error:
     SOL_ERR("Could not encode CBOR representation: %s", cbor_error_string(err));
     r = -EBADMSG;
 error:
-    free(ctx);
+    SOL_REENTRANT_FREE(ctx->base.reentrant) {
+        free(ctx);
+    }
     sol_oic_client_request_free((struct sol_oic_request *)request);
     errno = r;
     return NULL;
@@ -1149,7 +1205,9 @@ sol_oic_pending_cancel(struct sol_oic_pending *pending)
         return;
 
     sol_coap_cancel_send_packet(ctx->server, ctx->req, &ctx->addr);
-    free(ctx);
+    SOL_REENTRANT_FREE(ctx->reentrant) {
+        free(ctx);
+    }
 }
 
 static bool
@@ -1160,7 +1218,9 @@ _poll_resource(void *data)
 
     if (ctx->res->observe.clear_data) {
         ctx->res->observe.clear_data--;
-        free(ctx);
+        SOL_REENTRANT_FREE(ctx->base.reentrant) {
+            free(ctx);
+        }
         return false;
     }
 
@@ -1186,6 +1246,8 @@ _observe_with_polling(struct sol_oic_client *client, struct sol_oic_resource *re
     void *data)
 {
     struct resource_request_ctx *ctx = sol_util_memdup(&(struct resource_request_ctx) {
+            .base.reentrant.in_use = false,
+            .base.reentrant.delete_me = false,
             .base.client = client,
             .cb = callback,
             .base.data = data,
@@ -1197,7 +1259,9 @@ _observe_with_polling(struct sol_oic_client *client, struct sol_oic_resource *re
     SOL_INF("Resource does not support observation, polling every %dms", POLL_OBSERVE_TIMEOUT_MS);
     res->observe.timeout = sol_timeout_add(POLL_OBSERVE_TIMEOUT_MS, _poll_resource, ctx);
     if (!res->observe.timeout) {
-        free(ctx);
+        SOL_REENTRANT_FREE(ctx->base.reentrant) {
+            free(ctx);
+        }
         SOL_WRN("Could not add timeout to observe resource via polling");
         return -ENOMEM;
     }
