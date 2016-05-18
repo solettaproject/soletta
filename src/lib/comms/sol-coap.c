@@ -610,7 +610,7 @@ timeout_cb(void *data)
     struct outgoing *outgoing = data;
     struct sol_coap_server *server = outgoing->server;
 
-    SOL_BUFFER_DECLARE_STATIC(addr, SOL_INET_ADDR_STRLEN);
+    SOL_BUFFER_DECLARE_STATIC(addr, SOL_NETWORK_INET_ADDR_STR_LEN);
 
     outgoing->timeout = NULL;
 
@@ -782,7 +782,7 @@ on_can_write(void *data, struct sol_socket *s)
     sol_coap_packet_debug(outgoing->pkt);
     if (ret < 0) {
         uint16_t id;
-        SOL_BUFFER_DECLARE_STATIC(addr, SOL_INET_ADDR_STRLEN);
+        SOL_BUFFER_DECLARE_STATIC(addr, SOL_NETWORK_INET_ADDR_STR_LEN);
 
         sol_network_link_addr_to_str(&outgoing->cliaddr, &addr);
         sol_coap_header_get_id(outgoing->pkt, &id);
@@ -911,7 +911,7 @@ sol_coap_send_packet_with_reply(struct sol_coap_server *server, struct sol_coap_
 done:
     err = enqueue_packet(server, pkt, NULL, cliaddr);
     if (err < 0) {
-        SOL_BUFFER_DECLARE_STATIC(addr, SOL_INET_ADDR_STRLEN);
+        SOL_BUFFER_DECLARE_STATIC(addr, SOL_NETWORK_INET_ADDR_STR_LEN);
 
         sol_network_link_addr_to_str(cliaddr, &addr);
         SOL_WRN("Could not enqueue packet %p to %.*s (%d): %s", pkt,
@@ -987,7 +987,7 @@ sol_coap_packet_send_notification(struct sol_coap_server *server,
 
         r = enqueue_packet(server, pkt, header, &o->cliaddr);
         if (r < 0) {
-            SOL_BUFFER_DECLARE_STATIC(addr, SOL_INET_ADDR_STRLEN);
+            SOL_BUFFER_DECLARE_STATIC(addr, SOL_NETWORK_INET_ADDR_STR_LEN);
 
             sol_network_link_addr_to_str(&o->cliaddr, &addr);
             SOL_WRN("Failed to enqueue packet %p to %.*s", header,

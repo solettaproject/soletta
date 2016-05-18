@@ -339,7 +339,7 @@ end:
 static char *
 get_callback_url(const struct sol_http_request *request, const char *basename)
 {
-    SOL_BUFFER_DECLARE_STATIC(buf, SOL_INET_ADDR_STRLEN);
+    SOL_BUFFER_DECLARE_STATIC(buf, SOL_NETWORK_INET_ADDR_STR_LEN);
     char *url;
     struct sol_network_link_addr addr;
     int r;

@@ -85,7 +85,7 @@ found_resource_print(void *data, struct sol_oic_client *cli, struct sol_oic_reso
     char device_id[DEVICE_ID_LEN * 2];
     static bool resource_found = false;
 
-    SOL_BUFFER_DECLARE_STATIC(addr, SOL_INET_ADDR_STRLEN);
+    SOL_BUFFER_DECLARE_STATIC(addr, SOL_NETWORK_INET_ADDR_STR_LEN);
 
     if (!res) {
         if (!resource_found) {
@@ -244,7 +244,7 @@ resource_notify(void *data, enum sol_coap_response_code response_code, struct so
     struct Context *ctx = data;
     static uint8_t notify_count = 0;
 
-    SOL_BUFFER_DECLARE_STATIC(addr, SOL_INET_ADDR_STRLEN);
+    SOL_BUFFER_DECLARE_STATIC(addr, SOL_NETWORK_INET_ADDR_STR_LEN);
 
     if (!cliaddr) {
         printf("Timeout reached\n");
@@ -298,7 +298,7 @@ print_response(void *data, enum sol_coap_response_code response_code, struct sol
     struct sol_buffer buf = SOL_BUFFER_INIT_EMPTY;
     struct sol_oic_request *request;
 
-    SOL_BUFFER_DECLARE_STATIC(addr, SOL_INET_ADDR_STRLEN);
+    SOL_BUFFER_DECLARE_STATIC(addr, SOL_NETWORK_INET_ADDR_STR_LEN);
 
     if (!cliaddr) {
         printf("Timeout reached\n");

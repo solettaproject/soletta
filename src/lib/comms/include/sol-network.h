@@ -58,7 +58,7 @@ extern "C" {
 /**
  * @brief String size of an IPv4/v6 address.
  */
-#define SOL_INET_ADDR_STRLEN 48
+#define SOL_NETWORK_INET_ADDR_STR_LEN 48
 
 /**
  * @brief String size of a Bluetooth address.
@@ -66,17 +66,17 @@ extern "C" {
 #define SOL_BLUETOOTH_ADDR_STRLEN 18
 
 /**
- * @struct sol_network_hostname_handle
+ * @struct sol_network_hostname_pending
  *
  * @brief A handle to sol_network_get_hostname_address_info()
  *
  * This handle can be used to cancel get sol_network_get_hostname_address_info()
- * by calling sol_network_cancel_get_hostname_address_info()
+ * by calling sol_network_hostname_pending_cancel()
  *
  * @see sol_network_get_hostname_address_info()
- * @see sol_network_cancel_get_hostname_address_info()
+ * @see sol_network_hostname_pending_cancel()
  */
-struct sol_network_hostname_handle;
+struct sol_network_hostname_pending;
 
 /**
  * @brief Type of events generated for a network link.
@@ -268,11 +268,11 @@ sol_network_link_addr_eq(const struct sol_network_link_addr *a,
  * @param cb The callback used to notify the user.
  * @param data The user data given in the callback.
  *
- * @return @c true on success, @c false on error
+ * @return @c true on success, @c -errno on error
  *
  * @see sol_network_unsubscribe_events()
  */
-bool sol_network_subscribe_events(void (*cb)(void *data, const struct sol_network_link *link,
+int sol_network_subscribe_events(void (*cb)(void *data, const struct sol_network_link *link,
     enum sol_network_event event),
     const void *data);
 
@@ -285,18 +285,18 @@ bool sol_network_subscribe_events(void (*cb)(void *data, const struct sol_networ
  * @param cb The callback given on @ref sol_network_subscribe_events.
  * @param data The data given on @ref sol_network_subscribe_events.
  *
- * @return @c true on success, @c false on error
+ * @return @c O on success, @c -errno on error
  *
  * @note It should be the same pair (callback/userdata) given on @ref
  * sol_network_subscribe_events()
  */
-bool sol_network_unsubscribe_events(void (*cb)(void *data, const struct sol_network_link *link,
+int sol_network_unsubscribe_events(void (*cb)(void *data, const struct sol_network_link *link,
     enum sol_network_event event),
     const void *data);
 /**
  * @brief Retrieve the available network links on system.
  *
- * @return A vector containing the available links @see sol_network_link
+ * @return A vector containing the available links @see sol_network_link, in case of error @return -EFAULT
  *
  * @note This vector is updated as soon as the SO notifies about a
  * network link. This is information is cached, so it's possible that
@@ -321,11 +321,11 @@ char *sol_network_link_get_name(const struct sol_network_link *link);
  * able to get a network address.
  *
  * @param link_index The index of a @ref sol_network_link structure.
- * @return @c true on success, @c false on error.
+ * @return @c true on success, @c -errno on error.
  *
  * @see sol_network_linke_down()
  */
-bool sol_network_link_up(uint16_t link_index);
+int sol_network_link_up(uint16_t link_index);
 
 /**
  * @brief Sets a network link down.
@@ -334,11 +334,11 @@ bool sol_network_link_up(uint16_t link_index);
  * able to get a network address.
  *
  * @param link_index The index of a @ref sol_network_link structure.
- * @return @c true on success, @c false on error.
+ * @return @c 0 on success, @c -ENOSYS on error.
  *
  * @see sol_network_linke_up()
  */
-bool sol_network_link_down(uint16_t link_index);
+int sol_network_link_down(uint16_t link_index);
 
 /**
  * @brief Gets a hostname address info.
@@ -356,10 +356,10 @@ bool sol_network_link_down(uint16_t link_index);
  * @param host_info_cb A callback to be called with the address list.
  * @param data Data to @c host_info_cb.
  * @return A handle to a hostname or @c NULL on error.
- * @see sol_network_cancel_get_hostname_address_info()
+ * @see sol_network_hostname_pending_cancel()
  * @see #sol_network_family
  */
-struct sol_network_hostname_handle *
+struct sol_network_hostname_pending *
 sol_network_get_hostname_address_info(const struct sol_str_slice hostname,
     enum sol_network_family family, void (*host_info_cb)(void *data,
     const struct sol_str_slice hostname, const struct sol_vector *addrs_list),
@@ -372,7 +372,7 @@ sol_network_get_hostname_address_info(const struct sol_str_slice hostname,
  * @return 0 on success, -errno on error.
  * @see sol_network_get_hostname_address_info()
  */
-int sol_network_cancel_get_hostname_address_info(struct sol_network_hostname_handle *handle);
+int sol_network_hostname_pending_cancel(struct sol_network_hostname_pending *handle);
 
 /**
  * @}

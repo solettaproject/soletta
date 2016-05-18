@@ -474,7 +474,7 @@ _sol_oic_server_res(void *data, struct sol_coap_server *server,
 
 err:
     if (err != CborNoError) {
-        SOL_BUFFER_DECLARE_STATIC(addr, SOL_INET_ADDR_STRLEN);
+        SOL_BUFFER_DECLARE_STATIC(addr, SOL_NETWORK_INET_ADDR_STR_LEN);
 
         sol_network_link_addr_to_str(cliaddr, &addr);
         SOL_WRN("Error building response for /oic/res, server %p client %.*s: %s",
