@@ -77,7 +77,7 @@ reply_cb(void *data, struct sol_coap_server *server, struct sol_coap_packet *req
     struct sol_buffer *buf;
     size_t offset;
 
-    SOL_BUFFER_DECLARE_STATIC(addr, SOL_INET_ADDR_STRLEN);
+    SOL_BUFFER_DECLARE_STATIC(addr, SOL_NETWORK_INET_ADDR_STR_LEN);
 
     if (!req || !cliaddr) //timeout
         return false;

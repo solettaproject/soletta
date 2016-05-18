@@ -51,7 +51,7 @@ struct callback {
     const void *data;
 };
 
-struct sol_network_hostname_handle {
+struct sol_network_hostname_pending {
     char *hostname;
     enum sol_network_family family;
     void (*cb)(void *data, const struct sol_str_slice hostname,
@@ -96,7 +96,7 @@ sol_network_link_addr_to_str(const struct sol_network_link_addr *addr,
         if (r || (!r && errno != ENOSPC))
             break;
 
-        err = sol_buffer_expand(buf, SOL_INET_ADDR_STRLEN);
+        err = sol_buffer_expand(buf, SOL_NETWORK_INET_ADDR_STR_LEN);
         SOL_INT_CHECK(err, < 0, NULL);
     }
 
@@ -413,7 +413,7 @@ sol_network_init(void)
 }
 
 static void
-hostname_handle_free(struct sol_network_hostname_handle *ctx)
+hostname_handle_free(struct sol_network_hostname_pending *ctx)
 {
     free(ctx->hostname);
     free(ctx);
@@ -424,7 +424,7 @@ sol_network_shutdown(void)
 {
     struct sol_network_link *link;
     uint16_t idx;
-    struct sol_network_hostname_handle *ctx;
+    struct sol_network_hostname_pending *ctx;
 
     if (!network)
         return;
@@ -455,7 +455,7 @@ sol_network_shutdown(void)
     network = NULL;
 }
 
-SOL_API bool
+SOL_API int
 sol_network_subscribe_events(void (*cb)(void *data, const struct sol_network_link *link,
     enum sol_network_event event),
     const void *data)
@@ -464,7 +464,7 @@ sol_network_subscribe_events(void (*cb)(void *data, const struct sol_network_lin
 
     SOL_NULL_CHECK(cb, false);
 
-    if (sol_network_start_netlink() < 0) return false;
+    if (sol_network_start_netlink() < 0) return -errno;
 
     callback = sol_vector_append(&network->callbacks);
     SOL_NULL_CHECK(callback, false);
@@ -472,16 +472,16 @@ sol_network_subscribe_events(void (*cb)(void *data, const struct sol_network_lin
     callback->cb = cb;
     callback->data = data;
 
-    return true;
+    return 0;
 }
 
-SOL_API bool
+SOL_API int
 sol_network_unsubscribe_events(void (*cb)(void *data, const struct sol_network_link *link,
     enum sol_network_event event),
     const void *data)
 {
     struct callback *callback;
-    bool ret = false;
+    int ret = -EFAULT;
     uint16_t idx;
 
     SOL_NULL_CHECK(network, false);
@@ -490,7 +490,7 @@ sol_network_unsubscribe_events(void (*cb)(void *data, const struct sol_network_l
     SOL_VECTOR_FOREACH_REVERSE_IDX (&network->callbacks, callback, idx) {
         if ((callback->cb == cb) && (callback->data == data)) {
             sol_vector_del(&network->callbacks, idx);
-            ret = true;
+            ret = 0;
         }
     }
 
@@ -580,13 +580,13 @@ sol_network_link_set_status(uint16_t link_index, unsigned int changes, unsigned 
     return true;
 }
 
-SOL_API bool
+SOL_API int
 sol_network_link_up(uint16_t link_index)
 {
     return sol_network_link_set_status(link_index, IFF_UP, IFF_UP);
 }
 
-SOL_API bool
+SOL_API int
 sol_network_link_down(uint16_t link_index)
 {
     return sol_network_link_set_status(link_index, IFF_UP, ~IFF_UP);
@@ -596,7 +596,7 @@ static bool
 hostname_worker(void *data)
 {
     uint16_t i;
-    struct sol_network_hostname_handle *ctx;
+    struct sol_network_hostname_pending *ctx;
     int r;
     struct addrinfo hints = { };
     uint8_t **base_data = network->hostname_handles.base.data;
@@ -669,19 +669,19 @@ err_getaddr:
     return false;
 }
 
-SOL_API struct sol_network_hostname_handle *
+SOL_API struct sol_network_hostname_pending *
 sol_network_get_hostname_address_info(const struct sol_str_slice hostname,
     enum sol_network_family family, void (*host_info_cb)(void *data,
     const struct sol_str_slice host, const struct sol_vector *addrs_list),
     const void *data)
 {
-    struct sol_network_hostname_handle *ctx;
+    struct sol_network_hostname_pending *ctx;
     int r;
 
     SOL_NULL_CHECK(host_info_cb, NULL);
     SOL_NULL_CHECK(network, NULL);
 
-    ctx = calloc(1, sizeof(struct sol_network_hostname_handle));
+    ctx = calloc(1, sizeof(struct sol_network_hostname_pending));
     SOL_NULL_CHECK(ctx, NULL);
 
     r = sol_ptr_vector_append(&network->hostname_handles, ctx);
@@ -709,8 +709,8 @@ err_append:
 }
 
 SOL_API int
-sol_network_cancel_get_hostname_address_info(
-    struct sol_network_hostname_handle *handle)
+sol_network_hostname_pending_cancel(
+    struct sol_network_hostname_pending *handle)
 {
     int r;
 

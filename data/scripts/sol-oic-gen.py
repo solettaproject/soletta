@@ -1168,8 +1168,8 @@ state_changed(void *data, enum sol_coap_response_code response_code, struct sol_
         return;
 
     if (!sol_network_link_addr_eq(cliaddr, &resource->resource->addr)) {
-        SOL_BUFFER_DECLARE_STATIC(resaddr, SOL_INET_ADDR_STRLEN);
-        SOL_BUFFER_DECLARE_STATIC(respaddr, SOL_INET_ADDR_STRLEN);
+        SOL_BUFFER_DECLARE_STATIC(resaddr, SOL_NETWORK_INET_ADDR_STR_LEN);
+        SOL_BUFFER_DECLARE_STATIC(respaddr, SOL_NETWORK_INET_ADDR_STR_LEN);
 
         if (!sol_network_link_addr_to_str(&resource->resource->addr, &resaddr)) {
             SOL_WRN("Could not convert network address to string");

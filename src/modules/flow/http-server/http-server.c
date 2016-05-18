@@ -375,7 +375,7 @@ common_response_cb(void *data, struct sol_http_request *request)
         .response_code = SOL_HTTP_STATUS_INTERNAL_SERVER_ERROR
     };
 
-    SOL_BUFFER_DECLARE_STATIC(addr_buf, SOL_INET_ADDR_STRLEN);
+    SOL_BUFFER_DECLARE_STATIC(addr_buf, SOL_NETWORK_INET_ADDR_STR_LEN);
 
     type = (const struct http_server_node_type *)
         sol_flow_node_get_type(node);

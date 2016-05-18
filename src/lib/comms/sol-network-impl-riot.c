@@ -173,20 +173,20 @@ sol_network_shutdown(void)
     return;
 }
 
-SOL_API bool
+SOL_API int
 sol_network_subscribe_events(void (*cb)(void *data, const struct sol_network_link *link,
     enum sol_network_event event),
     const void *data)
 {
-    return false;
+    return -errno;
 }
 
-SOL_API bool
+SOL_API int
 sol_network_unsubscribe_events(void (*cb)(void *data, const struct sol_network_link *link,
     enum sol_network_event event),
     const void *data)
 {
-    return false;
+    return -EFAULT;
 }
 
 SOL_API const struct sol_vector *
@@ -202,27 +202,27 @@ sol_network_link_get_name(const struct sol_network_link *link)
 }
 
 SOL_API int
-sol_network_cancel_get_hostname_address_info(
-    struct sol_network_hostname_handle *handle)
+sol_network_hostname_pending_cancel(
+    struct sol_network_hostname_pending *handle)
 {
     return -ENOTSUP;
 }
 
-SOL_API bool
+SOL_API int
 sol_network_link_up(uint16_t link_index)
 {
     SOL_WRN("Not implemented");
-    return false;
+    return -ENOSYS;
 }
 
-SOL_API bool
+SOL_API int
 sol_network_link_down(uint16_t link_index)
 {
     SOL_WRN("Not implemented");
-    return false;
+    return -ENOSYS;
 }
 
-SOL_API struct sol_network_hostname_handle *
+SOL_API struct sol_network_hostname_pending *
 sol_network_get_hostname_address_info(const struct sol_str_slice hostname,
     enum sol_network_family family, void (*host_info_cb)(void *data,
     const struct sol_str_slice host, const struct sol_vector *addrs_list),
