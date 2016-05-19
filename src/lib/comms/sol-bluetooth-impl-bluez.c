@@ -939,6 +939,20 @@ done:
 }
 
 static int
+append_empty_dict(sd_bus_message *m)
+{
+    int r;
+
+    r = sd_bus_message_open_container(m, 'a', "{sv}");
+    SOL_INT_CHECK(r, < 0, r);
+
+    r = sd_bus_message_close_container(m);
+    SOL_INT_CHECK(r, < 0, r);
+
+    return r;
+}
+
+static int
 remote_attr_read(struct sol_gatt_pending *op,
     uint16_t offset)
 {
@@ -947,6 +961,7 @@ remote_attr_read(struct sol_gatt_pending *op,
     const char *service = sol_bus_client_get_service(ctx->bluez);
     const struct sol_gatt_attr *attr = op->attr;
     const char *interface, *path = attr->_priv;
+    sd_bus_message *m;
     int r;
 
     if (attr->type == SOL_GATT_ATTR_TYPE_DESCRIPTOR)
@@ -954,8 +969,15 @@ remote_attr_read(struct sol_gatt_pending *op,
     else
         interface = "org.bluez.GattCharacteristic1";
 
-    r = sd_bus_call_method_async(bus, &op->slot, service, path,
-        interface, "ReadValue", remote_attr_read_reply, op, NULL);
+    r = sd_bus_message_new_method_call(bus, &m, service, path,
+        interface, "ReadValue");
+    SOL_INT_CHECK(r, < 0, r);
+
+    /* FIXME: add support for specifying the offset */
+    r = append_empty_dict(m);
+    SOL_INT_CHECK(r, < 0, r);
+
+    r = sd_bus_call_async(bus, &op->slot, m, remote_attr_read_reply, op, 0);
     SOL_INT_CHECK(r, < 0, r);
 
     return 0;
@@ -1000,6 +1022,10 @@ remote_attr_write(struct sol_gatt_pending *op,
     SOL_INT_CHECK_GOTO(r, < 0, done);
 
     r = sd_bus_message_append_array(m, 'y', buf->data, buf->used);
+    SOL_INT_CHECK_GOTO(r, < 0, done);
+
+    /* FIXME: add support for specifying the offset */
+    r = append_empty_dict(m);
     SOL_INT_CHECK_GOTO(r, < 0, done);
 
     r = sd_bus_call_async(bus, &op->slot, m, remote_attr_write_reply, op, 0);

@@ -23,6 +23,7 @@
 #include <sol-bluetooth.h>
 #include <sol-network.h>
 #include <sol-util.h>
+#include <sol-util-internal.h>
 #include <sol-mainloop.h>
 #include <sol-str-table.h>
 
@@ -193,14 +194,64 @@ done:
 }
 
 static int
+parse_operation_dict(sd_bus_message *m, uint16_t *offset, const char **path)
+{
+    int r;
+
+    *offset = 0;
+    *path = NULL;
+
+    r = sd_bus_message_enter_container(m, 'a', "{sv}");
+    SOL_INT_CHECK(r, < 0, r);
+
+    do {
+        const char *member;
+
+        r = sd_bus_message_enter_container(m, SD_BUS_TYPE_DICT_ENTRY, "sv");
+        if (r <= 0) {
+            r = 0;
+            break;
+        }
+
+        r = sd_bus_message_read_basic(m, SD_BUS_TYPE_STRING, &member);
+        SOL_INT_CHECK_GOTO(r, < 0, end);
+
+        if (streq(member, "offset")) {
+            r = sd_bus_message_enter_container(m, SD_BUS_TYPE_VARIANT, "q");
+            SOL_INT_CHECK_GOTO(r, < 0, end);
+
+            r = sd_bus_message_read_basic(m, 'q', offset);
+            SOL_INT_CHECK_GOTO(r, < 0, end);
+
+        } else if (streq(member, "device")) {
+            r = sd_bus_message_enter_container(m, SD_BUS_TYPE_VARIANT, "o");
+            SOL_INT_CHECK_GOTO(r, < 0, end);
+
+            r = sd_bus_message_read_basic(m, 'o', path);
+            SOL_INT_CHECK_GOTO(r, < 0, end);
+        } else {
+            r = sd_bus_message_skip(m, "v");
+            SOL_INT_CHECK_GOTO(r, < 0, end);
+        }
+    } while (1);
+
+end:
+    return r;
+
+}
+
+static int
 attr_method(enum pending_type type, sd_bus_message *m, void *userdata, sd_bus_error *ret_error)
 {
+    struct context *ctx = bluetooth_get_context();
     struct sol_gatt_attr *attr = userdata;
     sd_bus_message *reply = NULL;
     struct sol_gatt_pending *pending;
     const void *data;
     size_t len;
     struct sol_buffer buf;
+    uint16_t offset;
+    const char *path;
     int r = -EINVAL;
 
     if (sol_bus_log_callback(m, userdata, ret_error))
@@ -224,7 +275,18 @@ attr_method(enum pending_type type, sd_bus_message *m, void *userdata, sd_bus_er
 
     switch (type) {
     case PENDING_READ:
-        r = attr->read(pending, 0);
+        r = parse_operation_dict(m, &offset, &path);
+        SOL_INT_CHECK_GOTO(r, < 0, error_op);
+
+        /*
+         * FIXME: need to decide if this is an error if it fails. Right now,
+         * any BlueZ build earlier than commit:
+         * 93b64d9ca8a2bb6 doc/gatt-api: Add options dictionary to ReadValue/WriteValue
+         * would fail.
+         */
+        pending->conn = get_conn_by_path(ctx, path);
+
+        r = attr->read(pending, offset);
         SOL_INT_CHECK_GOTO(r, < 0, error_op);
         break;
     case PENDING_WRITE:
@@ -234,6 +296,14 @@ attr_method(enum pending_type type, sd_bus_message *m, void *userdata, sd_bus_er
         sol_buffer_init_flags(&buf, (void *)data, len,
             SOL_BUFFER_FLAGS_MEMORY_NOT_OWNED | SOL_BUFFER_FLAGS_NO_NUL_BYTE);
         buf.used = len;
+
+        r = parse_operation_dict(m, &offset, &path);
+        SOL_INT_CHECK_GOTO(r, < 0, error_op);
+
+        /*
+         * See note above.
+         */
+        pending->conn = get_conn_by_path(ctx, path);
 
         r = attr->write(pending, &buf, 0);
         SOL_INT_CHECK_GOTO(r, < 0, error_op);
@@ -502,9 +572,9 @@ static const sd_bus_vtable characteristic_vtable[] = {
     SD_BUS_PROPERTY("Service", "o", chr_prop_get_service, 0, SD_BUS_VTABLE_PROPERTY_CONST),
     SD_BUS_PROPERTY("Value", "ay", cached_prop_value, 0, SD_BUS_VTABLE_PROPERTY_EMITS_CHANGE),
     SD_BUS_PROPERTY("Flags", "as", chr_prop_get_flags, 0, SD_BUS_VTABLE_PROPERTY_CONST),
-    SD_BUS_METHOD("ReadValue", NULL, "ay",
+    SD_BUS_METHOD("ReadValue", "a{sv}", "ay",
         attr_read_value, SD_BUS_VTABLE_UNPRIVILEGED),
-    SD_BUS_METHOD("WriteValue", "ay", NULL,
+    SD_BUS_METHOD("WriteValue", "aya{sv}", NULL,
         attr_write_value, SD_BUS_VTABLE_UNPRIVILEGED),
     SD_BUS_VTABLE_END,
 };
@@ -516,9 +586,9 @@ static const sd_bus_vtable descriptor_vtable[] = {
         desc_prop_get_characteristic, 0, SD_BUS_VTABLE_PROPERTY_CONST),
     SD_BUS_PROPERTY("Value", "ay", cached_prop_value, 0, SD_BUS_VTABLE_PROPERTY_EMITS_CHANGE),
     SD_BUS_PROPERTY("Flags", "as", desc_prop_get_flags, 0, SD_BUS_VTABLE_PROPERTY_CONST),
-    SD_BUS_METHOD("ReadValue", NULL, "ay",
+    SD_BUS_METHOD("ReadValue", "a{sv}", "ay",
         attr_read_value, SD_BUS_VTABLE_UNPRIVILEGED),
-    SD_BUS_METHOD("WriteValue", "ay", NULL,
+    SD_BUS_METHOD("WriteValue", "aya{sv}", NULL,
         attr_write_value, SD_BUS_VTABLE_UNPRIVILEGED),
     SD_BUS_VTABLE_END,
 };
