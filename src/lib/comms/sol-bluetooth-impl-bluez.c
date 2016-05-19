@@ -1614,20 +1614,41 @@ sol_bt_stop_scan(struct sol_bt_scan_pending *scan)
     return 0;
 }
 
-static struct sol_bt_conn *
-find_conn_by_path(struct context *ctx, const char *path)
+struct sol_bt_conn *
+get_conn_by_path(struct context *ctx, const char *path)
 {
     struct sol_bt_conn *conn;
+    struct device_info *d;
     uint16_t idx;
+    int r;
 
     SOL_PTR_VECTOR_FOREACH_IDX (&ctx->conns, conn, idx) {
-        const struct device_info *d = conn->d;
+        d = conn->d;
 
         /* FIXME: need to think about multiple connections */
         if (streq(d->path, path))
             return conn;
     }
 
+    d = find_device_by_path(ctx, path);
+    SOL_NULL_CHECK(d, NULL);
+
+    if (!d->info.connected)
+        return NULL;
+
+    conn = calloc(1, sizeof(*conn));
+    SOL_NULL_CHECK(conn, NULL);
+
+    conn->d = d;
+    conn->ref = 1;
+
+    r = sol_ptr_vector_append(&ctx->conns, conn);
+    SOL_INT_CHECK_GOTO(r, < 0, error_append);
+
+    return conn;
+
+error_append:
+    free(conn);
     return NULL;
 }
 
@@ -1676,10 +1697,15 @@ agent_request_pin_code(sd_bus_message *m, void *userdata, sd_bus_error *ret_erro
     SOL_NULL_CHECK_GOTO(agent, rejected);
     SOL_NULL_CHECK_GOTO(agent->pincode_entry, rejected);
 
+    if (ctx->auth_conn) {
+        SOL_WRN("Pairing procedure already in progress");
+        goto rejected;
+    }
+
     r = sd_bus_message_read_basic(m, 'o', &path);
     SOL_INT_CHECK_GOTO(r, < 0, rejected);
 
-    ctx->auth_conn = find_conn_by_path(ctx, path);
+    ctx->auth_conn = get_conn_by_path(ctx, path);
     SOL_NULL_CHECK_GOTO(ctx->auth_conn, rejected);
 
     ctx->agent_msg = sd_bus_message_ref(m);
@@ -1713,10 +1739,15 @@ agent_request_passkey(sd_bus_message *m, void *userdata, sd_bus_error *ret_error
     SOL_NULL_CHECK_GOTO(agent, rejected);
     SOL_NULL_CHECK_GOTO(agent->passkey_entry, rejected);
 
+    if (ctx->auth_conn) {
+        SOL_WRN("Pairing procedure already in progress");
+        goto rejected;
+    }
+
     r = sd_bus_message_read_basic(m, 'o', &path);
     SOL_INT_CHECK_GOTO(r, < 0, rejected);
 
-    ctx->auth_conn = find_conn_by_path(ctx, path);
+    ctx->auth_conn = get_conn_by_path(ctx, path);
     SOL_NULL_CHECK_GOTO(ctx->auth_conn, rejected);
 
     ctx->agent_msg = sd_bus_message_ref(m);
@@ -1734,6 +1765,7 @@ agent_display_passkey(sd_bus_message *m, void *userdata, sd_bus_error *ret_error
 {
     struct context *ctx = userdata;
     const struct sol_bt_agent *agent = ctx->agent;
+    struct sol_bt_conn *conn;
     const char *path;
     uint32_t passkey;
     uint16_t entered;
@@ -1745,7 +1777,14 @@ agent_display_passkey(sd_bus_message *m, void *userdata, sd_bus_error *ret_error
     r = sd_bus_message_read(m, "ouq", &path, &passkey, &entered);
     SOL_INT_CHECK_GOTO(r, < 0, rejected);
 
-    ctx->auth_conn = find_conn_by_path(ctx, path);
+    /* The request for displaying the passkey may be called multiple times */
+    conn = get_conn_by_path(ctx, path);
+    if (ctx->auth_conn != conn) {
+        SOL_WRN("Pairing procedure already in progress");
+        goto rejected;
+    }
+
+    ctx->auth_conn = conn;
     SOL_NULL_CHECK_GOTO(ctx->auth_conn, rejected);
 
     ctx->agent_msg = sd_bus_message_ref(m);
@@ -1773,7 +1812,7 @@ agent_request_confirmation(sd_bus_message *m, void *userdata, sd_bus_error *ret_
     r = sd_bus_message_read(m, "ou", &path, &passkey);
     SOL_INT_CHECK_GOTO(r, < 0, rejected);
 
-    ctx->auth_conn = find_conn_by_path(ctx, path);
+    ctx->auth_conn = get_conn_by_path(ctx, path);
     SOL_NULL_CHECK_GOTO(ctx->auth_conn, rejected);
 
     ctx->agent_msg = sd_bus_message_ref(m);
@@ -1800,7 +1839,7 @@ agent_request_authorization(sd_bus_message *m, void *userdata, sd_bus_error *ret
     r = sd_bus_message_read(m, "o", &path);
     SOL_INT_CHECK_GOTO(r, < 0, rejected);
 
-    ctx->auth_conn = find_conn_by_path(ctx, path);
+    ctx->auth_conn = get_conn_by_path(ctx, path);
     SOL_NULL_CHECK_GOTO(ctx->auth_conn, rejected);
 
     ctx->agent_msg = sd_bus_message_ref(m);
