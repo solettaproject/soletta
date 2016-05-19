@@ -159,8 +159,8 @@ startup()
     struct sol_flow_static_conn_spec conn_spec = SOL_FLOW_STATIC_CONN_SPEC_GUARD;
     struct sol_flow_static_port_spec port_sec = SOL_FLOW_STATIC_PORT_SPEC_GUARD;
 
-    SOL_FLOW_SIMPLECTYPE_PORT_IN("in", NULL);
-    SOL_FLOW_SIMPLECTYPE_PORT_OUT("out", NULL);
+    SOL_FLOW_SIMPLE_C_TYPE_PORT_IN("in", NULL);
+    SOL_FLOW_SIMPLE_C_TYPE_PORT_OUT("out", NULL);
 #endif
 
 #ifdef OIC

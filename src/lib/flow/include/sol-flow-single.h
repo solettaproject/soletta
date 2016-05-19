@@ -238,7 +238,7 @@ struct sol_flow_node *sol_flow_single_new(const char *id, const struct sol_flow_
  * @return number of connections (>1) on success, -errno on error. 0
  *         is never returned.
  */
-int32_t sol_flow_single_port_in_connect(struct sol_flow_node *node, uint16_t port_idx);
+int32_t sol_flow_single_connect_port_in(struct sol_flow_node *node, uint16_t port_idx);
 
 /**
  * Disconnect the input port @a port_idx of the inner node.
@@ -253,7 +253,7 @@ int32_t sol_flow_single_port_in_connect(struct sol_flow_node *node, uint16_t por
  * @return number of connections (>1) on success, -errno on error. 0
  *         if the last connection is gone.
  */
-int32_t sol_flow_single_port_in_disconnect(struct sol_flow_node *node, uint16_t port_idx);
+int32_t sol_flow_single_disconnect_port_in(struct sol_flow_node *node, uint16_t port_idx);
 
 /**
  * Connect the output port @a port_idx of the inner node.
@@ -273,7 +273,7 @@ int32_t sol_flow_single_port_in_disconnect(struct sol_flow_node *node, uint16_t 
  * @return number of connections (>1) on success, -errno on error. 0
  *         is never returned.
  */
-int32_t sol_flow_single_port_out_connect(struct sol_flow_node *node, uint16_t port_idx);
+int32_t sol_flow_single_connect_port_out(struct sol_flow_node *node, uint16_t port_idx);
 
 /**
  * Disconnect the output port @a port_idx of the inner node.
@@ -288,7 +288,7 @@ int32_t sol_flow_single_port_out_connect(struct sol_flow_node *node, uint16_t po
  * @return number of connections (>1) on success, -errno on error. 0
  *         if the last connection is gone.
  */
-int32_t sol_flow_single_port_out_disconnect(struct sol_flow_node *node, uint16_t port_idx);
+int32_t sol_flow_single_disconnect_port_out(struct sol_flow_node *node, uint16_t port_idx);
 
 /**
  * Return the reference to the inner node.

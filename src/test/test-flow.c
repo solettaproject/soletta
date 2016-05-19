@@ -36,10 +36,10 @@ enum event_type {
     EVENT_NONE,
     EVENT_NODE_OPEN,
     EVENT_NODE_CLOSE,
-    EVENT_PORT_IN_CONNECT,
-    EVENT_PORT_IN_DISCONNECT,
-    EVENT_PORT_OUT_CONNECT,
-    EVENT_PORT_OUT_DISCONNECT,
+    EVENT_CONNECT_PORT_IN,
+    EVENT_DISCONNECT_PORT_IN,
+    EVENT_CONNECT_PORT_OUT,
+    EVENT_DISCONNECT_PORT_OUT,
     EVENT_PORT_PROCESS,
 };
 
@@ -119,30 +119,30 @@ test_node_close(struct sol_flow_node *node, void *data)
 }
 
 static int
-test_port_in_connect(struct sol_flow_node *node, void *data, uint16_t port, uint16_t conn_id)
+test_connect_port_in(struct sol_flow_node *node, void *data, uint16_t port, uint16_t conn_id)
 {
-    add_event(node, EVENT_PORT_IN_CONNECT, conn_id);
+    add_event(node, EVENT_CONNECT_PORT_IN, conn_id);
     return 0;
 }
 
 static int
-test_port_in_disconnect(struct sol_flow_node *node, void *data, uint16_t port, uint16_t conn_id)
+test_disconnect_port_in(struct sol_flow_node *node, void *data, uint16_t port, uint16_t conn_id)
 {
-    add_event(node, EVENT_PORT_IN_DISCONNECT, conn_id);
+    add_event(node, EVENT_DISCONNECT_PORT_IN, conn_id);
     return 0;
 }
 
 static int
-test_port_out_connect(struct sol_flow_node *node, void *data, uint16_t port, uint16_t conn_id)
+test_connect_port_out(struct sol_flow_node *node, void *data, uint16_t port, uint16_t conn_id)
 {
-    add_event(node, EVENT_PORT_OUT_CONNECT, conn_id);
+    add_event(node, EVENT_CONNECT_PORT_OUT, conn_id);
     return 0;
 }
 
 static int
-test_port_out_disconnect(struct sol_flow_node *node, void *data, uint16_t port, uint16_t conn_id)
+test_disconnect_port_out(struct sol_flow_node *node, void *data, uint16_t port, uint16_t conn_id)
 {
-    add_event(node, EVENT_PORT_OUT_DISCONNECT, conn_id);
+    add_event(node, EVENT_DISCONNECT_PORT_OUT, conn_id);
     return 0;
 }
 
@@ -156,46 +156,46 @@ test_port_process(struct sol_flow_node *node, void *data, uint16_t port, uint16_
 static struct sol_flow_port_type_out test_port_out = {
     SOL_SET_API_VERSION(.api_version = SOL_FLOW_PORT_TYPE_OUT_API_VERSION, )
     .packet_type = NULL, /* placeholder for SOL_FLOW_PACKET_TYPE_EMTPY */
-    .connect = test_port_out_connect,
-    .disconnect = test_port_out_disconnect,
+    .connect = test_connect_port_out,
+    .disconnect = test_disconnect_port_out,
 };
 
 static struct sol_flow_port_type_in test_port_in = {
     SOL_SET_API_VERSION(.api_version = SOL_FLOW_PORT_TYPE_IN_API_VERSION, )
     .packet_type = NULL, /* placeholder for SOL_FLOW_PACKET_TYPE_EMTPY */
-    .disconnect = test_port_in_disconnect,
-    .connect = test_port_in_connect,
+    .disconnect = test_disconnect_port_in,
+    .connect = test_connect_port_in,
     .process = test_port_process
 };
 
 static struct sol_flow_port_type_in test_port_match_in = {
     SOL_SET_API_VERSION(.api_version = SOL_FLOW_PORT_TYPE_IN_API_VERSION, )
     .packet_type = NULL, /* placeholder for SOL_FLOW_PACKET_TYPE_EMTPY */
-    .connect = test_port_in_connect,
-    .disconnect = test_port_in_disconnect,
+    .connect = test_connect_port_in,
+    .disconnect = test_disconnect_port_in,
     .process = test_port_process,
 };
 
 static struct sol_flow_port_type_out test_port_match_out = {
     SOL_SET_API_VERSION(.api_version = SOL_FLOW_PORT_TYPE_OUT_API_VERSION, )
     .packet_type = NULL, /* placeholder for SOL_FLOW_PACKET_TYPE_EMTPY */
-    .connect = test_port_out_connect,
-    .disconnect = test_port_out_disconnect,
+    .connect = test_connect_port_out,
+    .disconnect = test_disconnect_port_out,
 };
 
 static struct sol_flow_port_type_in test_port_any_in = {
     SOL_SET_API_VERSION(.api_version = SOL_FLOW_PORT_TYPE_IN_API_VERSION, )
     .packet_type = NULL, /* placeholder for SOL_FLOW_PACKET_TYPE_EMTPY */
-    .connect = test_port_in_connect,
-    .disconnect = test_port_in_disconnect,
+    .connect = test_connect_port_in,
+    .disconnect = test_disconnect_port_in,
     .process = test_port_process,
 };
 
 static struct sol_flow_port_type_out test_port_any_out = {
     SOL_SET_API_VERSION(.api_version = SOL_FLOW_PORT_TYPE_OUT_API_VERSION, )
     .packet_type = NULL, /* placeholder for SOL_FLOW_PACKET_TYPE_EMTPY */
-    .connect = test_port_out_connect,
-    .disconnect = test_port_out_disconnect,
+    .connect = test_connect_port_out,
+    .disconnect = test_disconnect_port_out,
 };
 
 static const struct sol_flow_port_type_in *test_ports_in[] = {
@@ -353,17 +353,17 @@ connect_two_nodes(void)
     node_out = sol_flow_static_get_node(flow, 0);
     node_in = sol_flow_static_get_node(flow, 1);
 
-    ASSERT_EVENT_COUNT(node_out, EVENT_PORT_OUT_CONNECT, 1);
-    ASSERT_EVENT_COUNT(node_out, EVENT_PORT_OUT_DISCONNECT, 0);
-    ASSERT_EVENT_COUNT(node_in, EVENT_PORT_IN_CONNECT, 1);
-    ASSERT_EVENT_COUNT(node_in, EVENT_PORT_IN_DISCONNECT, 0);
+    ASSERT_EVENT_COUNT(node_out, EVENT_CONNECT_PORT_OUT, 1);
+    ASSERT_EVENT_COUNT(node_out, EVENT_DISCONNECT_PORT_OUT, 0);
+    ASSERT_EVENT_COUNT(node_in, EVENT_CONNECT_PORT_IN, 1);
+    ASSERT_EVENT_COUNT(node_in, EVENT_DISCONNECT_PORT_IN, 0);
 
     sol_flow_node_del(flow);
 
-    ASSERT_EVENT_COUNT(node_out, EVENT_PORT_OUT_CONNECT, 1);
-    ASSERT_EVENT_COUNT(node_out, EVENT_PORT_OUT_DISCONNECT, 1);
-    ASSERT_EVENT_COUNT(node_in, EVENT_PORT_IN_CONNECT, 1);
-    ASSERT_EVENT_COUNT(node_in, EVENT_PORT_IN_DISCONNECT, 1);
+    ASSERT_EVENT_COUNT(node_out, EVENT_CONNECT_PORT_OUT, 1);
+    ASSERT_EVENT_COUNT(node_out, EVENT_DISCONNECT_PORT_OUT, 1);
+    ASSERT_EVENT_COUNT(node_in, EVENT_CONNECT_PORT_IN, 1);
+    ASSERT_EVENT_COUNT(node_in, EVENT_DISCONNECT_PORT_IN, 1);
 }
 
 DEFINE_TEST(send_packets);
@@ -567,16 +567,16 @@ multiple_conns_to_the_same_in_port_have_different_conn_ids(void)
     first_out = sol_flow_static_get_node(flow, 0);
     second_out = sol_flow_static_get_node(flow, 1);
 
-    ASSERT_EVENT_COUNT(node_in, EVENT_PORT_IN_CONNECT, 3);
+    ASSERT_EVENT_COUNT(node_in, EVENT_CONNECT_PORT_IN, 3);
 
     /* Connection IDs are sequential. */
-    ASSERT_EVENT_WITH_ID_COUNT(node_in, EVENT_PORT_IN_CONNECT, 0, 1);
-    ASSERT_EVENT_WITH_ID_COUNT(node_in, EVENT_PORT_IN_CONNECT, 1, 1);
-    ASSERT_EVENT_WITH_ID_COUNT(node_in, EVENT_PORT_IN_CONNECT, 2, 1);
+    ASSERT_EVENT_WITH_ID_COUNT(node_in, EVENT_CONNECT_PORT_IN, 0, 1);
+    ASSERT_EVENT_WITH_ID_COUNT(node_in, EVENT_CONNECT_PORT_IN, 1, 1);
+    ASSERT_EVENT_WITH_ID_COUNT(node_in, EVENT_CONNECT_PORT_IN, 2, 1);
 
     /* Connection IDs are local for each port. All out ports have conn with id 0. */
-    ASSERT_EVENT_WITH_ID_COUNT(first_out, EVENT_PORT_OUT_CONNECT, 0, 2);
-    ASSERT_EVENT_WITH_ID_COUNT(second_out, EVENT_PORT_OUT_CONNECT, 0, 1);
+    ASSERT_EVENT_WITH_ID_COUNT(first_out, EVENT_CONNECT_PORT_OUT, 0, 2);
+    ASSERT_EVENT_WITH_ID_COUNT(second_out, EVENT_CONNECT_PORT_OUT, 0, 1);
 
     ASSERT_EVENT_COUNT(node_in, EVENT_PORT_PROCESS, 0);
 
@@ -654,20 +654,20 @@ connect_callback_is_called_for_exported_in_port(void)
     test_flow = sol_flow_static_get_node(toplevel, 1);
     child_node_in = sol_flow_static_get_node(test_flow, 1);
 
-    ASSERT_EVENT_COUNT(child_node_in, EVENT_PORT_IN_CONNECT, 2);
-    ASSERT_EVENT_COUNT(child_node_in, EVENT_PORT_IN_DISCONNECT, 0);
+    ASSERT_EVENT_COUNT(child_node_in, EVENT_CONNECT_PORT_IN, 2);
+    ASSERT_EVENT_COUNT(child_node_in, EVENT_DISCONNECT_PORT_IN, 0);
 
     /* Test flow have internal connection in exported port, so conn_id
      * from the outside is 1. */
-    ASSERT_EVENT_WITH_ID_COUNT(child_node_in, EVENT_PORT_IN_CONNECT, 0, 1);
-    ASSERT_EVENT_WITH_ID_COUNT(child_node_in, EVENT_PORT_IN_CONNECT, 1, 1);
+    ASSERT_EVENT_WITH_ID_COUNT(child_node_in, EVENT_CONNECT_PORT_IN, 0, 1);
+    ASSERT_EVENT_WITH_ID_COUNT(child_node_in, EVENT_CONNECT_PORT_IN, 1, 1);
 
     sol_flow_node_del(toplevel);
 
-    ASSERT_EVENT_COUNT(child_node_in, EVENT_PORT_IN_CONNECT, 2);
-    ASSERT_EVENT_COUNT(child_node_in, EVENT_PORT_IN_DISCONNECT, 2);
-    ASSERT_EVENT_WITH_ID_COUNT(child_node_in, EVENT_PORT_IN_DISCONNECT, 0, 1);
-    ASSERT_EVENT_WITH_ID_COUNT(child_node_in, EVENT_PORT_IN_DISCONNECT, 1, 1);
+    ASSERT_EVENT_COUNT(child_node_in, EVENT_CONNECT_PORT_IN, 2);
+    ASSERT_EVENT_COUNT(child_node_in, EVENT_DISCONNECT_PORT_IN, 2);
+    ASSERT_EVENT_WITH_ID_COUNT(child_node_in, EVENT_DISCONNECT_PORT_IN, 0, 1);
+    ASSERT_EVENT_WITH_ID_COUNT(child_node_in, EVENT_DISCONNECT_PORT_IN, 1, 1);
 
     test_flow_del_type(type);
 }
@@ -699,13 +699,13 @@ connect_callback_is_called_for_exported_out_port(void)
     test_flow = sol_flow_static_get_node(toplevel, 1);
     child_node_out = sol_flow_static_get_node(test_flow, 1);
 
-    ASSERT_EVENT_COUNT(child_node_out, EVENT_PORT_OUT_CONNECT, 1);
-    ASSERT_EVENT_COUNT(child_node_out, EVENT_PORT_OUT_DISCONNECT, 0);
+    ASSERT_EVENT_COUNT(child_node_out, EVENT_CONNECT_PORT_OUT, 1);
+    ASSERT_EVENT_COUNT(child_node_out, EVENT_DISCONNECT_PORT_OUT, 0);
 
     sol_flow_node_del(toplevel);
 
-    ASSERT_EVENT_COUNT(child_node_out, EVENT_PORT_OUT_CONNECT, 1);
-    ASSERT_EVENT_COUNT(child_node_out, EVENT_PORT_OUT_DISCONNECT, 1);
+    ASSERT_EVENT_COUNT(child_node_out, EVENT_CONNECT_PORT_OUT, 1);
+    ASSERT_EVENT_COUNT(child_node_out, EVENT_DISCONNECT_PORT_OUT, 1);
 
     test_flow_del_type(type);
 }
@@ -817,15 +817,15 @@ conn_ids_are_mapped_when_reaching_exported_ports(void)
          * plus the ones from its parent flow. */
         total_conns = i + 2;
 
-        ASSERT_EVENT_COUNT(child_node, EVENT_PORT_OUT_CONNECT, total_conns);
-        ASSERT_EVENT_COUNT(child_node, EVENT_PORT_IN_CONNECT, total_conns);
+        ASSERT_EVENT_COUNT(child_node, EVENT_CONNECT_PORT_OUT, total_conns);
+        ASSERT_EVENT_COUNT(child_node, EVENT_CONNECT_PORT_IN, total_conns);
 
         /* Each connection have its own id. Ids from connections
          * inside the flow will not conflict with ids from connections
          * from the outside. */
         for (j = 0; j < total_conns; j++) {
-            ASSERT_EVENT_WITH_ID_COUNT(child_node, EVENT_PORT_OUT_CONNECT, j, 1);
-            ASSERT_EVENT_WITH_ID_COUNT(child_node, EVENT_PORT_IN_CONNECT, j, 1);
+            ASSERT_EVENT_WITH_ID_COUNT(child_node, EVENT_CONNECT_PORT_OUT, j, 1);
+            ASSERT_EVENT_WITH_ID_COUNT(child_node, EVENT_CONNECT_PORT_IN, j, 1);
         }
     }
 
@@ -1035,7 +1035,7 @@ initial_packet(void)
     flow = sol_flow_static_new(NULL, nodes, conns);
     node_in = sol_flow_static_get_node(flow, 1);
 
-    ASSERT_EVENT_COUNT(node_in, EVENT_PORT_IN_CONNECT, 1);
+    ASSERT_EVENT_COUNT(node_in, EVENT_CONNECT_PORT_IN, 1);
     ASSERT_EVENT_COUNT(node_in, EVENT_PORT_PROCESS, 1);
     test_initial_data = false;
 

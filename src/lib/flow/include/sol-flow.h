@@ -384,6 +384,21 @@ int sol_flow_send_direction_vector_components_packet(struct sol_flow_node *src, 
 int sol_flow_send_location_packet(struct sol_flow_node *src, uint16_t src_port, const struct sol_location *value);
 
 /**
+ * @bried Similar to sol_flow_send_location_packet(), but takes the location components as arguments.
+ *
+ * @param src The node that is to output the Location packet
+ * @param src_port The port where the packet will be output
+ * @param lat Latitude value
+ * @param lon Longitude value
+ * @param alt Altitude value
+ *
+ * @return @c 0 on success, a negative error code otherwise.
+ *
+ * @see sol_flow_send_location_packet
+ */
+int sol_flow_send_location_components_packet(struct sol_flow_node *src, uint16_t src_port, double lat, double lon, double alt);
+
+/**
  * @brief Convenience function to create and send a Timestamp packet.
  *
  * Similar to sol_flow_send_packet(), but specific for Timestamp packets.
@@ -907,7 +922,7 @@ void sol_flow_foreach_builtin_node_type(bool (*cb)(void *data, const struct sol_
  *
  * @return The port description for the given port
  */
-const struct sol_flow_port_description *sol_flow_node_get_port_in_description(const struct sol_flow_node_type *type, uint16_t port);
+const struct sol_flow_port_description *sol_flow_node_get_description_port_in(const struct sol_flow_node_type *type, uint16_t port);
 
 /**
  * @brief Get the port description associated with a given output port index.
@@ -917,7 +932,7 @@ const struct sol_flow_port_description *sol_flow_node_get_port_in_description(co
  *
  * @return The port description for the given port
  */
-const struct sol_flow_port_description *sol_flow_node_get_port_out_description(const struct sol_flow_node_type *type, uint16_t port);
+const struct sol_flow_port_description *sol_flow_node_get_description_port_out(const struct sol_flow_node_type *type, uint16_t port);
 
 /**
  * @brief Find the input port index given its name.
