@@ -245,7 +245,7 @@ struct my_stream_api_handle *
 my_stream_api_new(const struct my_stream_api_config *config, int dev)
 {
     struct my_stream_api_handle *handle;
-    size_t data_buffer_size;
+    size_t data_buffer_size = 0;
     void *buf = NULL;
     //By default the rx buffer will not be limited
     enum sol_buffer_flags flags = SOL_BUFFER_FLAGS_NO_NUL_BYTE | SOL_BUFFER_FLAGS_DEFAULT;
