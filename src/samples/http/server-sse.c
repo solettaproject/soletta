@@ -187,7 +187,7 @@ request_cb(void *data, struct sol_http_request *request)
 {
     int r;
 
-    SOL_BUFFER_DECLARE_STATIC(buf, SOL_INET_ADDR_STRLEN);
+    SOL_BUFFER_DECLARE_STATIC(buf, SOL_NETWORK_INET_ADDR_STR_LEN);
     struct sol_network_link_addr addr;
     struct sol_http_response response = {
         SOL_SET_API_VERSION(.api_version = SOL_HTTP_RESPONSE_API_VERSION, )
