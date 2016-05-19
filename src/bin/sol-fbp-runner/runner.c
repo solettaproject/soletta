@@ -94,7 +94,7 @@ search_fbp_file(struct runner *r, const char *basename)
 }
 
 static int
-read_file(void *data, const char *name, const char **buf, size_t *size)
+read_file(void *data, const char *name, struct sol_buffer *buf)
 {
     struct runner *r = data;
     struct sol_file_reader *fr = NULL;
@@ -121,8 +121,7 @@ read_file(void *data, const char *name, const char **buf, size_t *size)
 
     free(path);
     slice = sol_file_reader_get_all(fr);
-    *buf = slice.data;
-    *size = slice.len;
+    *buf = SOL_BUFFER_INIT_CONST((char *)slice.data, slice.len);
     return 0;
 
 error:
@@ -366,8 +365,7 @@ runner_new_from_file(
     struct sol_ptr_vector *fbps)
 {
     struct runner *r;
-    const char *buf;
-    size_t size;
+    struct sol_buffer buf;
     int err;
 
     SOL_NULL_CHECK(filename, NULL);
@@ -393,13 +391,13 @@ runner_new_from_file(
 
     r->basename = strdup(basename(strdupa(filename)));
 
-    err = read_file(r, r->basename, &buf, &size);
+    err = read_file(r, r->basename, &buf);
     if (err < 0) {
         errno = -err;
         goto error;
     }
 
-    r->root_type = sol_flow_parse_buffer(r->parser, buf, size, filename);
+    r->root_type = sol_flow_parse_buffer(r->parser, &buf, filename);
     if (!r->root_type)
         goto error;
 
