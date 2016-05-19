@@ -97,3 +97,9 @@ sol_gatt_notify(struct sol_bt_conn *conn, const struct sol_gatt_attr *attr)
 {
     return -ENOSYS;
 }
+
+SOL_API struct sol_bt_conn *
+sol_gatt_pending_get_conn(const struct sol_gatt_pending *op)
+{
+    return NULL;
+}

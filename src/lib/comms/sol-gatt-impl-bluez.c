@@ -80,6 +80,14 @@ sol_gatt_pending_get_attr(const struct sol_gatt_pending *op)
     return op->attr;
 }
 
+SOL_API struct sol_bt_conn *
+sol_gatt_pending_get_conn(const struct sol_gatt_pending *op)
+{
+    SOL_NULL_CHECK(op, NULL);
+
+    return op->conn;
+}
+
 static void
 destroy_pending(struct sol_gatt_pending *op)
 {

@@ -83,6 +83,7 @@ enum pending_type {
 
 struct sol_gatt_pending {
     const struct sol_gatt_attr *attr;
+    struct sol_bt_conn *conn;
     sd_bus_message *m;
     sd_bus_slot *slot;
     enum pending_type type;
@@ -106,3 +107,5 @@ uint16_t dbus_string_array_to_flags(enum sol_gatt_attr_type type, sd_bus_message
 void trigger_gatt_discover(struct pending_discovery *disc);
 
 void destroy_pending_discovery(struct pending_discovery *disc);
+
+struct sol_bt_conn *get_conn_by_path(struct context *ctx, const char *path);
