@@ -3215,7 +3215,7 @@ server_connection_ctx_clear(struct server_conn_ctx *conn_ctx)
     if (conn_ctx->pending_pkt)
         sol_coap_packet_unref(conn_ctx->pending_pkt);
     if (conn_ctx->hostname_handle)
-        sol_network_cancel_get_hostname_address_info(conn_ctx->hostname_handle);
+        sol_network_hostname_pending_cancel(conn_ctx->hostname_handle);
     sol_vector_clear(&conn_ctx->server_addr_list);
     free(conn_ctx->location);
 }
