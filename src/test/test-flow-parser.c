@@ -431,17 +431,19 @@ exported_ports(void)
 DEFINE_TEST(declare_fbp);
 
 static int
-declare_fbp_read_file(void *data, const char *name, const char **buf, size_t *size)
+declare_fbp_read_file(void *data, const char *name, struct sol_buffer *buf)
 {
+    const char *s;
+
     if (streq(name, "add.fbp")) {
-        *buf = "INPORT=add.OPERAND[1]:IN, OUTPORT=add.OUT:OUT, _(constant/int:value=1) OUT -> OPERAND[0] add(int/addition)";
-        *size = strlen(*buf);
+        s = "INPORT=add.OPERAND[1]:IN, OUTPORT=add.OUT:OUT, _(constant/int:value=1) OUT -> OPERAND[0] add(int/addition)";
+        *buf = SOL_BUFFER_INIT_CONST((char *)s, strlen(s));
         return 0;
     }
 
     if (streq(name, "sub.fbp")) {
-        *buf = "INPORT=sub.SUBTRAHEND:IN, OUTPORT=sub.OUT:OUT, _(constant/int:value=1) OUT -> MINUEND sub(int/subtraction)";
-        *size = strlen(*buf);
+        s = "INPORT=sub.SUBTRAHEND:IN, OUTPORT=sub.OUT:OUT, _(constant/int:value=1) OUT -> MINUEND sub(int/subtraction)";
+        *buf = SOL_BUFFER_INIT_CONST((char *)s, strlen(s));
         return 0;
     }
 
