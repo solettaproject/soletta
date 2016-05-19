@@ -8,6 +8,9 @@ obj-networking-$(NETWORK) := \
     sol-comms.o \
     sol-socket.o
 
+obj-$(NETCTL) += \
+    netctl.mod
+
 obj-networking-$(NETCTL) += \
     sol-netctl-impl-connman.o
 obj-networking-$(NETCTL)-extra-cflags += $(SYSTEMD_CFLAGS)

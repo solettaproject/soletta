@@ -1,0 +1,80 @@
+{
+  "$schema": "http://solettaproject.github.io/soletta/schemas/node-type-genspec.schema",
+  "name": "netctl",
+  "meta": {
+    "author": "Intel Corporation",
+    "license": "Apache-2.0",
+    "version": "1"
+  },
+  "types": [
+    {
+      "category": "netctl",
+      "description": "Send list of all network services attached to board.",
+      "methods": {
+        "open": "open_list_services",
+	"close": "close_list_services"
+      },
+      "name": "netctl/list-services",
+      "out_ports": [
+        {
+          "data_type": "string",
+          "description": "Name of network services supported by system.",
+          "name": "OUT"
+        }
+      ],
+      "private_data_type": "list_service_data"
+    },
+    {
+      "category": "netctl",
+      "description": "Connect or disconnect to one available network access point.",
+      "in_ports": [
+        {
+          "data_type": "string",
+          "description": "Name of network AP.",
+          "methods": {
+            "process": "set_connect_ap_name"
+          },
+          "name": "CONNECT"
+        },
+        {
+          "data_type": "string",
+          "description": "Name of network AP.",
+          "methods": {
+            "process": "set_disconnect_ap_name"
+          },
+          "name": "DISCONNECT"
+        }
+      ],
+      "methods": {
+        "open": "open_service_connection",
+	"close": "close_service_connection"
+      },
+      "name": "netctl/connection",
+      "options": {
+        "members": [
+          {
+            "data_type": "string",
+            "default": null,
+            "description": "Name of AP to be used to connect. If 'null', no filter is applied.",
+            "name": "connect_ap"
+          },
+          {
+            "data_type": "string",
+            "default": null,
+            "description": "Name of AP to be used to disconnect. If 'null', no filter is applied.",
+            "name": "disconnect_ap"
+          }
+        ],
+        "version": 1
+      },
+      "out_ports": [
+        {
+          "data_type": "string",
+          "description": "Output network services connection status.",
+          "name": "OUT"
+        }
+      ],
+      "private_data_type": "connection_service_data"
+    }
+  ]
+}
