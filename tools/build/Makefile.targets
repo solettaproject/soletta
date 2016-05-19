@@ -233,7 +233,8 @@ PHONY += bindings-nodejs
 
 check-bindings-nodejs: bindings-nodejs
 	$(Q) $(NODEJS_NPM) install --ignore-scripts
-	$(Q) $(NODEJS) $(NODEJS_ROOT)/tests/suite.js --ldPreload="$(LIB_ASAN_PATH)"
+	$(Q) $(NODEJS) $(NODEJS_ROOT)/tests/suite.js --ldPreload="$(LIB_ASAN_PATH)" \
+		--testList="Load Library.js,Main Loop Interruption.js,Main Loop Interruption No Cleanup.js,Simple Platform APIs.js"
 PHONY += check-bindings-nodejs
 
 endif #neq($(USE_NODEJS),)
