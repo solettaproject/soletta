@@ -113,7 +113,7 @@ check-stub: $(SOL_LIB_OUTPUT) $(NODE_TYPE_STUB_GEN_SCRIPT) $(NODE_TYPE_SCHEMA) $
 PHONY += check-stub
 
 samples-check:
-	$(TEST_SAMPLES_DEPS_SCRIPT) $(top_srcdir)src/samples $(SAMPLES_DEPS_SCRIPT_BLACK_LIST)
+	$(TEST_SAMPLES_DEPS_SCRIPT) --samples_root_dir $(top_srcdir)src/samples --samples_dependency_check_skip_list $(SAMPLES_DEPS_SCRIPT_BLACK_LIST)
 
 samples: samples-check $(SOL_LIB_OUTPUT) $(samples-out) $(PRE_GEN)
 
