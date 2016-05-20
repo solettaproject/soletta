@@ -20,6 +20,7 @@ import sys
 import os
 import re
 import json
+import argparse
 
 fbpTargetRegex = re.compile(r'(.+)\$\((.+)\)(-deps)? := \\?\s?(.+fbp)')
 nodeTypeRegex = re.compile(r'\w+\(([a-zA-Z0-9-_]+).*?\).*?')
@@ -127,14 +128,19 @@ def loadBlackList(path):
 if __name__ == "__main__":
     exitWithError = False
 
-    if len(sys.argv) < 3:
-        print('Usage: ./check-sample-dependencies samples_root_dir samples_dependency_check_skip_list')
-        sys.exit(-1)
+    argparser = argparse.ArgumentParser(description=""" This script will check if there are any missing
+                                        dependencies for the Soletta samples""")
 
-    blackList = loadBlackList(sys.argv[2])
+    argparser.add_argument("--samples_root_dir", type=str, help=""" Where the samples are located """, required=True)
+    argparser.add_argument("--samples_dependency_check_skip_list", type=str,
+                           help="""A JSON array file that contains the samples that should be skipped """, required=True)
+
+    args = argparser.parse_args()
+
+    blackList = loadBlackList(args.samples_dependency_check_skip_list)
     if len(blackList) > 0:
         print('Skipping dependency check for FBPs:' + str(blackList))
-    for root, dirs, files in os.walk(sys.argv[1]):
+    for root, dirs, files in os.walk(args.samples_root_dir):
         fbpFiles = list(filter(lambda x: x.endswith('.fbp') and x not in blackList, files))
         if len(fbpFiles) == 0:
             continue
