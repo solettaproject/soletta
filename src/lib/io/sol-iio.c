@@ -953,7 +953,7 @@ sol_iio_add_channel(struct sol_iio_device *device, const char *name, const struc
             goto error;
         }
 
-        channel->mask = (1 << channel->bits) - 1;
+        channel->mask = ((uint64_t)1 << channel->bits) - 1;
     }
 
     r = sol_ptr_vector_append(&channel->device->channels, channel);
