@@ -16,12 +16,12 @@
           "description": "Packets sent in here will trigger a gyroscope reading and produce packets on each of the the output ports. If buffer is enabled, current trigger must accept manual activation (default one, sysfs trigger, does).",
           "name": "TICK",
           "methods": {
-            "process": "gyroscope_tick"
+            "process": "iiodevice_tick"
           }
         }
       ],
       "methods": {
-        "close": "gyroscope_close",
+        "close": "iiodevice_close",
         "open": "gyroscope_open"
       },
       "name": "iio/gyroscope",
@@ -96,7 +96,7 @@
          "name": "OUT"
         }
       ],
-      "private_data_type": "gyroscope_data"
+      "private_data_type": "iiodevice_data"
     },
     {
       "category": "input/hw",
@@ -107,12 +107,12 @@
           "description": "Packets sent in here will trigger a magnet reading and produce packets on each of the the output ports. If buffer is enabled, current trigger must accept manual activation (default one, sysfs trigger, does).",
           "name": "TICK",
           "methods": {
-            "process": "magnet_tick"
+            "process": "iiodevice_tick"
           }
         }
       ],
       "methods": {
-        "close": "magnet_close",
+        "close": "iiodevice_close",
         "open": "magnet_open"
       },
       "name": "iio/magnetometer",
@@ -188,7 +188,7 @@
          "name": "OUT"
         }
       ],
-      "private_data_type": "magnet_data"
+      "private_data_type": "iiodevice_data"
     },
     {
       "category": "input/hw",
@@ -199,12 +199,12 @@
           "description": "Packets sent in here will trigger a temperature reading and produce packets on each of the the output ports. If buffer is enabled, current trigger must accept manual activation (default one, sysfs trigger, does).",
           "name": "TICK",
           "methods": {
-            "process": "temperature_tick"
+            "process": "iiodevice_tick"
           }
         }
       ],
       "methods": {
-        "close": "temperature_close",
+        "close": "iiodevice_close",
         "open": "temperature_open"
       },
       "name": "iio/thermometer",
@@ -280,7 +280,7 @@
          "name": "OUT"
         }
       ],
-      "private_data_type": "temperature_data"
+      "private_data_type": "iiodevice_data"
     },
     {
       "category": "input/hw",
@@ -291,12 +291,12 @@
           "description": "Packets sent in here will trigger a pressure reading and produce packets on each of the the output ports. If buffer is enabled, current trigger must accept manual activation (default one, sysfs trigger, does).",
           "name": "TICK",
           "methods": {
-            "process": "pressure_tick"
+            "process": "iiodevice_tick"
           }
         }
       ],
       "methods": {
-        "close": "pressure_close",
+        "close": "iiodevice_close",
         "open": "pressure_open"
       },
       "name": "iio/pressure-sensor",
@@ -372,7 +372,7 @@
          "name": "OUT"
         }
       ],
-      "private_data_type": "pressure_data"
+      "private_data_type": "iiodevice_data"
     },
     {
       "category": "input/hw",
@@ -383,12 +383,12 @@
           "description": "Packets sent in here will trigger a color reading and produce packets on each of the the output ports. If buffer is enabled, current trigger must accept manual activation (default one, sysfs trigger, does).",
           "name": "TICK",
           "methods": {
-            "process": "color_tick"
+            "process": "iiodevice_tick"
           }
         }
       ],
       "methods": {
-        "close": "color_close",
+        "close": "iiodevice_close",
         "open": "color_open"
       },
       "name": "iio/color-sensor",
@@ -421,8 +421,8 @@
            "name": "use_device_default_scale"
          },
          {
-             "data_type": "float",
-             "default": 0,
+             "data_type": "direction-vector",
+             "default": {},
              "description": "Scale to applied to device raw readings",
              "name": "scale"
          },
@@ -433,8 +433,8 @@
            "name": "use_device_default_offset"
          },
          {
-             "data_type": "float",
-             "default": 0,
+             "data_type": "direction-vector",
+             "default": {},
              "description": "Offset to be added to device raw readings",
              "name": "offset"
          },
@@ -462,7 +462,7 @@
          "name": "OUT"
         }
       ],
-      "private_data_type": "color_data"
+      "private_data_type": "iiodevice_data"
     },
     {
       "category": "input/hw",
@@ -473,12 +473,12 @@
           "description": "Packets sent in here will trigger a accelerate reading and produce packets on each of the the output ports. If buffer is enabled, current trigger must accept manual activation (default one, sysfs trigger, does).",
           "name": "TICK",
           "methods": {
-            "process": "accelerate_tick"
+            "process": "iiodevice_tick"
           }
         }
       ],
       "methods": {
-        "close": "accelerate_close",
+        "close": "iiodevice_close",
         "open": "accelerate_open"
       },
       "name": "iio/accelerometer",
@@ -553,7 +553,7 @@
          "name": "OUT"
         }
       ],
-      "private_data_type": "accelerate_data"
+      "private_data_type": "iiodevice_data"
     },
     {
       "category": "input/hw",
@@ -564,12 +564,12 @@
           "description": "Packets sent in here will trigger a humidity reading and produce packets on each of the the output ports. If buffer is enabled, current trigger must accept manual activation (default one, sysfs trigger, does).",
           "name": "TICK",
           "methods": {
-            "process": "humidity_tick"
+            "process": "iiodevice_tick"
           }
         }
       ],
       "methods": {
-        "close": "humidity_close",
+        "close": "iiodevice_close",
         "open": "humidity_open"
       },
       "name": "iio/humidity-sensor",
@@ -645,7 +645,7 @@
          "name": "OUT"
         }
       ],
-      "private_data_type": "humidity_data"
+      "private_data_type": "iiodevice_data"
     },
     {
       "category": "input/hw",
@@ -656,12 +656,12 @@
           "description": "Packets sent in here will trigger a adc reading and produce packets on each of the the output ports. If buffer is enabled, current trigger must accept manual activation (default one, sysfs trigger, does).",
           "name": "TICK",
           "methods": {
-            "process": "adc_tick"
+            "process": "iiodevice_tick"
           }
         }
       ],
       "methods": {
-        "close": "adc_close",
+        "close": "iiodevice_close",
         "open": "adc_open"
       },
       "name": "iio/adc",
@@ -737,7 +737,7 @@
          "name": "OUT"
         }
       ],
-      "private_data_type": "adc_data"
+      "private_data_type": "iiodevice_data"
     },
     {
       "category": "input/hw",
@@ -748,12 +748,12 @@
           "description": "Packets sent in here will trigger a light reading and produce packets on each of the the output ports. If buffer is enabled, current trigger must accept manual activation (default one, sysfs trigger, does).",
           "name": "TICK",
           "methods": {
-            "process": "light_tick"
+            "process": "iiodevice_tick"
           }
         }
       ],
       "methods": {
-        "close": "light_close",
+        "close": "iiodevice_close",
         "open": "light_open"
       },
       "name": "iio/light-sensor",
@@ -829,7 +829,7 @@
          "name": "OUT"
         }
       ],
-      "private_data_type": "light_data"
+      "private_data_type": "iiodevice_data"
      },
      {
       "category": "input/hw",
@@ -840,12 +840,12 @@
           "description": "Packets sent in here will trigger a proximity reading and produce packets on each of the the output ports. If buffer is enabled, current trigger must accept manual activation (default one, sysfs trigger, does).",
           "name": "TICK",
           "methods": {
-            "process": "proximity_tick"
+            "process": "iiodevice_tick"
           }
         }
       ],
       "methods": {
-        "close": "proximity_close",
+        "close": "iiodevice_close",
         "open": "proximity_open"
       },
       "name": "iio/proximity-sensor",
@@ -918,7 +918,7 @@
          "name": "OUT"
         }
       ],
-      "private_data_type": "proximity_data"
+      "private_data_type": "iiodevice_data"
      }
  ]
 }

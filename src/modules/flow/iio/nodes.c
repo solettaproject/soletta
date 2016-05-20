@@ -25,18 +25,20 @@
 
 #include <sol-iio.h>
 
-struct gyroscope_data {
+
+#define MAX_CHANNEL         (3)
+
+struct iiodevice_data {
     struct sol_iio_config config;
-    struct sol_direction_vector scale;
-    struct sol_direction_vector offset;
     struct sol_drange_spec out_range;
     struct sol_iio_device *device;
-    struct sol_iio_channel *channel_x;
-    struct sol_iio_channel *channel_y;
-    struct sol_iio_channel *channel_z;
+    uint8_t channel_count;
     bool buffer_enabled : 1;
     bool use_device_default_scale : 1;
     bool use_device_default_offset : 1;
+    struct sol_iio_channel *channels[MAX_CHANNEL];
+    double scales[MAX_CHANNEL];
+    double offsets[MAX_CHANNEL];
 };
 
 static void
@@ -44,20 +46,20 @@ reader_cb(void *data, struct sol_iio_device *device)
 {
     static const char *errmsg = "Could not read channel buffer values";
     struct sol_flow_node *node = data;
-    struct gyroscope_data *mdata = sol_flow_node_get_private_data(node);
+    struct iiodevice_data *mdata = sol_flow_node_get_private_data(node);
     struct sol_direction_vector out = {
         .min = mdata->out_range.min,
         .max = mdata->out_range.max
     };
     bool b;
 
-    b = sol_iio_read_channel_value(mdata->channel_x, &out.x);
+    b = sol_iio_read_channel_value(mdata->channels[0], &out.x);
     if (!b) goto error;
 
-    b = sol_iio_read_channel_value(mdata->channel_y, &out.y);
+    b = sol_iio_read_channel_value(mdata->channels[1], &out.y);
     if (!b) goto error;
 
-    b = sol_iio_read_channel_value(mdata->channel_z, &out.z);
+    b = sol_iio_read_channel_value(mdata->channels[2], &out.z);
     if (!b) goto error;
 
     sol_flow_send_direction_vector_packet(node,
@@ -71,24 +73,24 @@ error:
 }
 
 static bool
-create_device_channels(struct gyroscope_data *mdata, int device_id)
+create_device_channels(struct iiodevice_data *mdata, int device_id)
 {
     struct sol_iio_channel_config channel_config = SOL_IIO_CHANNEL_CONFIG_INIT;
 
     mdata->device = sol_iio_open(device_id, &mdata->config);
     SOL_NULL_CHECK(mdata->device, false);
 
-#define ADD_CHANNEL(_axis) \
+#define ADD_CHANNEL(_axis, _index) \
     if (!mdata->use_device_default_scale) \
-        channel_config.scale = mdata->scale._axis; \
+        channel_config.scale = mdata->scales[_index]; \
     if (!mdata->use_device_default_offset) \
-        channel_config.offset = mdata->offset._axis; \
-    mdata->channel_ ## _axis = sol_iio_add_channel(mdata->device, "in_anglvel_" # _axis, &channel_config); \
-    SOL_NULL_CHECK_GOTO(mdata->channel_ ## _axis, error);
+        channel_config.offset = mdata->offsets[_index]; \
+    mdata->channels[_index] = sol_iio_add_channel(mdata->device, "in_anglvel_" # _axis, &channel_config); \
+    SOL_NULL_CHECK_GOTO(mdata->channels[_index], error);
 
-    ADD_CHANNEL(x);
-    ADD_CHANNEL(y);
-    ADD_CHANNEL(z);
+    ADD_CHANNEL(x, 0);
+    ADD_CHANNEL(y, 1);
+    ADD_CHANNEL(z, 2);
 
 #undef ADD_CHANNEL
 
@@ -106,9 +108,11 @@ error:
 static int
 gyroscope_open(struct sol_flow_node *node, void *data, const struct sol_flow_node_options *options)
 {
-    struct gyroscope_data *mdata = data;
+    struct iiodevice_data *mdata = data;
     const struct sol_flow_node_type_iio_gyroscope_options *opts;
     int device_id;
+
+    SOL_WRN("%s-%s:%s\n", __func__, __DATE__, __TIME__);
 
     SOL_FLOW_NODE_OPTIONS_SUB_API_CHECK(options, SOL_FLOW_NODE_TYPE_IIO_GYROSCOPE_OPTIONS_API_VERSION,
         -EINVAL);
@@ -126,14 +130,17 @@ gyroscope_open(struct sol_flow_node *node, void *data, const struct sol_flow_nod
     mdata->config.buffer_size = opts->buffer_size;
     mdata->config.sampling_frequency = opts->sampling_frequency;
 
-    if (mdata->buffer_enabled) {
-        mdata->config.sol_iio_reader_cb = reader_cb;
-        mdata->config.data = node;
-    }
+    mdata->config.sol_iio_reader_cb = reader_cb;
+    mdata->config.data = node;
+
     mdata->use_device_default_scale = opts->use_device_default_scale;
     mdata->use_device_default_offset = opts->use_device_default_offset;
-    mdata->scale = opts->scale;
-    mdata->offset = opts->offset;
+    mdata->scales[0] = opts->scale.x;
+    mdata->scales[1] = opts->scale.y;
+    mdata->scales[2] = opts->scale.z;
+    mdata->offsets[0] = opts->offset.x;
+    mdata->offsets[1] = opts->offset.y;
+    mdata->offsets[2] = opts->offset.z;
     mdata->out_range = opts->out_range;
 
     device_id = sol_iio_address_device(opts->iio_device);
@@ -153,10 +160,11 @@ err:
     return -EINVAL;
 }
 
+
 static void
-gyroscope_close(struct sol_flow_node *node, void *data)
+iiodevice_close(struct sol_flow_node *node, void *data)
 {
-    struct gyroscope_data *mdata = data;
+    struct iiodevice_data *mdata = data;
 
     free((char *)mdata->config.trigger_name);
     if (mdata->device)
@@ -164,16 +172,18 @@ gyroscope_close(struct sol_flow_node *node, void *data)
 }
 
 static int
-gyroscope_tick(struct sol_flow_node *node, void *data, uint16_t port, uint16_t conn_id, const struct sol_flow_packet *packet)
+iiodevice_tick(struct sol_flow_node *node, void *data, uint16_t port, uint16_t conn_id, const struct sol_flow_packet *packet)
 {
     static const char *errmsg = "Could not read channel values";
-    struct gyroscope_data *mdata = data;
+    struct iiodevice_data *mdata = data;
+
+    SOL_WRN("%s mdata=%p \n", __func__, mdata);
 
     if (mdata->buffer_enabled) {
         if (!sol_iio_device_trigger_now(mdata->device))
             goto error;
     } else {
-        reader_cb(node, mdata->device);
+        mdata->config.sol_iio_reader_cb(node, mdata->device);
     }
 
     return 0;
@@ -185,39 +195,25 @@ error:
     return -EIO;
 }
 
-struct magnet_data {
-    struct sol_iio_config config;
-    struct sol_direction_vector scale;
-    struct sol_direction_vector offset;
-    struct sol_drange_spec out_range;
-    struct sol_iio_device *device;
-    struct sol_iio_channel *channel_x;
-    struct sol_iio_channel *channel_y;
-    struct sol_iio_channel *channel_z;
-    bool buffer_enabled : 1;
-    bool use_device_default_scale : 1;
-    bool use_device_default_offset : 1;
-};
-
 static void
 magnet_reader_cb(void *data, struct sol_iio_device *device)
 {
     static const char *errmsg = "Could not read channel buffer values";
     struct sol_flow_node *node = data;
-    struct magnet_data *mdata = sol_flow_node_get_private_data(node);
+    struct iiodevice_data *mdata = sol_flow_node_get_private_data(node);
     struct sol_direction_vector out = {
         .min = mdata->out_range.min,
         .max = mdata->out_range.max
     };
     bool b;
 
-    b = sol_iio_read_channel_value(mdata->channel_x, &out.x);
+    b = sol_iio_read_channel_value(mdata->channels[0], &out.x);
     if (!b) goto error;
 
-    b = sol_iio_read_channel_value(mdata->channel_y, &out.y);
+    b = sol_iio_read_channel_value(mdata->channels[1], &out.y);
     if (!b) goto error;
 
-    b = sol_iio_read_channel_value(mdata->channel_z, &out.z);
+    b = sol_iio_read_channel_value(mdata->channels[2], &out.z);
     if (!b) goto error;
 
     sol_flow_send_direction_vector_packet(node,
@@ -231,24 +227,24 @@ error:
 }
 
 static bool
-magnet_create_channels(struct magnet_data *mdata, int device_id)
+magnet_create_channels(struct iiodevice_data *mdata, int device_id)
 {
     struct sol_iio_channel_config channel_config = SOL_IIO_CHANNEL_CONFIG_INIT;
 
     mdata->device = sol_iio_open(device_id, &mdata->config);
     SOL_NULL_CHECK(mdata->device, false);
 
-#define ADD_CHANNEL(_axis) \
+#define ADD_CHANNEL(_axis, _index) \
     if (!mdata->use_device_default_scale) \
-        channel_config.scale = mdata->scale._axis; \
+        channel_config.scale = mdata->scales[_index]; \
     if (!mdata->use_device_default_offset) \
-        channel_config.offset = mdata->offset._axis; \
-    mdata->channel_ ## _axis = sol_iio_add_channel(mdata->device, "in_magn_" # _axis, &channel_config); \
-    SOL_NULL_CHECK_GOTO(mdata->channel_ ## _axis, error);
+        channel_config.offset = mdata->offsets[_index]; \
+    mdata->channels[_index] = sol_iio_add_channel(mdata->device, "in_magn_" # _axis, &channel_config); \
+    SOL_NULL_CHECK_GOTO(mdata->channels[_index], error);
 
-    ADD_CHANNEL(x);
-    ADD_CHANNEL(y);
-    ADD_CHANNEL(z);
+    ADD_CHANNEL(x, 0);
+    ADD_CHANNEL(y, 1);
+    ADD_CHANNEL(z, 2);
 
 #undef ADD_CHANNEL
 
@@ -266,7 +262,7 @@ error:
 static int
 magnet_open(struct sol_flow_node *node, void *data, const struct sol_flow_node_options *options)
 {
-    struct magnet_data *mdata = data;
+    struct iiodevice_data *mdata = data;
     const struct sol_flow_node_type_iio_magnetometer_options *opts;
     int device_id;
 
@@ -285,14 +281,16 @@ magnet_open(struct sol_flow_node *node, void *data, const struct sol_flow_node_o
 
     mdata->config.buffer_size = opts->buffer_size;
     mdata->config.sampling_frequency = opts->sampling_frequency;
-    if (mdata->buffer_enabled) {
-        mdata->config.sol_iio_reader_cb = magnet_reader_cb;
-        mdata->config.data = node;
-    }
+    mdata->config.sol_iio_reader_cb = magnet_reader_cb;
+    mdata->config.data = node;
     mdata->use_device_default_scale = opts->use_device_default_scale;
     mdata->use_device_default_offset = opts->use_device_default_offset;
-    mdata->scale = opts->scale;
-    mdata->offset = opts->offset;
+    mdata->scales[0] = opts->scale.x;
+    mdata->scales[1] = opts->scale.y;
+    mdata->scales[2] = opts->scale.z;
+    mdata->offsets[0] = opts->offset.x;
+    mdata->offsets[1] = opts->offset.y;
+    mdata->offsets[2] = opts->offset.z;
     mdata->out_range = opts->out_range;
 
     device_id = sol_iio_address_device(opts->iio_device);
@@ -313,55 +311,11 @@ err:
 }
 
 static void
-magnet_close(struct sol_flow_node *node, void *data)
-{
-    struct magnet_data *mdata = data;
-
-    free((char *)mdata->config.trigger_name);
-    if (mdata->device)
-        sol_iio_close(mdata->device);
-}
-
-static int
-magnet_tick(struct sol_flow_node *node, void *data, uint16_t port, uint16_t conn_id, const struct sol_flow_packet *packet)
-{
-    static const char *errmsg = "Could not read channel values";
-    struct magnet_data *mdata = data;
-
-    if (mdata->buffer_enabled) {
-        if (!sol_iio_device_trigger_now(mdata->device))
-            goto error;
-    } else {
-        magnet_reader_cb(node, mdata->device);
-    }
-
-    return 0;
-
-error:
-    sol_flow_send_error_packet(node, EIO, "%s", errmsg);
-    SOL_WRN("%s", errmsg);
-
-    return -EIO;
-}
-
-struct temperature_data {
-    struct sol_iio_config config;
-    struct sol_drange_spec out_range;
-    double scale;
-    double offset;
-    struct sol_iio_device *device;
-    struct sol_iio_channel *channel_val;
-    bool buffer_enabled : 1;
-    bool use_device_default_scale : 1;
-    bool use_device_default_offset : 1;
-};
-
-static void
 temp_reader_cb(void *data, struct sol_iio_device *device)
 {
     static const char *errmsg = "Could not read channel buffer values";
     struct sol_flow_node *node = data;
-    struct temperature_data *mdata = sol_flow_node_get_private_data(node);
+    struct iiodevice_data *mdata = sol_flow_node_get_private_data(node);
     struct sol_drange out = {
         .min = mdata->out_range.min,
         .max = mdata->out_range.max,
@@ -369,7 +323,7 @@ temp_reader_cb(void *data, struct sol_iio_device *device)
     };
     bool b;
 
-    b = sol_iio_read_channel_value(mdata->channel_val, &out.val);
+    b = sol_iio_read_channel_value(mdata->channels[0], &out.val);
     if (!b) goto error;
 
     sol_flow_send_drange_value_packet(node,
@@ -383,22 +337,22 @@ error:
 }
 
 static bool
-temp_create_channels(struct temperature_data *mdata, int device_id)
+temp_create_channels(struct iiodevice_data *mdata, int device_id)
 {
     struct sol_iio_channel_config channel_config = SOL_IIO_CHANNEL_CONFIG_INIT;
 
     mdata->device = sol_iio_open(device_id, &mdata->config);
     SOL_NULL_CHECK(mdata->device, false);
 
-#define ADD_CHANNEL(_val) \
+#define ADD_CHANNEL(_val, _index) \
     if (!mdata->use_device_default_scale) \
-        channel_config.scale = mdata->scale; \
+        channel_config.scale = mdata->scales[_index]; \
     if (!mdata->use_device_default_offset) \
-        channel_config.offset = mdata->offset; \
-    mdata->channel_ ## _val = sol_iio_add_channel(mdata->device, "in_temp", &channel_config); \
-    SOL_NULL_CHECK_GOTO(mdata->channel_ ## _val, error);
+        channel_config.offset = mdata->offsets[_index]; \
+    mdata->channels[_index] = sol_iio_add_channel(mdata->device, "in_temp", &channel_config); \
+    SOL_NULL_CHECK_GOTO(mdata->channels[_index], error);
 
-    ADD_CHANNEL(val);
+    ADD_CHANNEL(val, 0);
 
 #undef ADD_CHANNEL
 
@@ -417,7 +371,7 @@ error:
 static int
 temperature_open(struct sol_flow_node *node, void *data, const struct sol_flow_node_options *options)
 {
-    struct temperature_data *mdata = data;
+    struct iiodevice_data *mdata = data;
     const struct sol_flow_node_type_iio_thermometer_options *opts;
     int device_id;
 
@@ -436,14 +390,12 @@ temperature_open(struct sol_flow_node *node, void *data, const struct sol_flow_n
 
     mdata->config.buffer_size = opts->buffer_size;
     mdata->config.sampling_frequency = opts->sampling_frequency;
-    if (mdata->buffer_enabled) {
-        mdata->config.sol_iio_reader_cb = temp_reader_cb;
-        mdata->config.data = node;
-    }
+    mdata->config.sol_iio_reader_cb = temp_reader_cb;
+    mdata->config.data = node;
     mdata->use_device_default_scale = opts->use_device_default_scale;
     mdata->use_device_default_offset = opts->use_device_default_offset;
-    mdata->scale = opts->scale;
-    mdata->offset = opts->offset;
+    mdata->scales[0] = opts->scale;
+    mdata->offsets[0] = opts->offset;
     mdata->out_range = opts->out_range;
 
     device_id = sol_iio_address_device(opts->iio_device);
@@ -465,55 +417,11 @@ err:
 }
 
 static void
-temperature_close(struct sol_flow_node *node, void *data)
-{
-    struct temperature_data *mdata = data;
-
-    free((char *)mdata->config.trigger_name);
-    if (mdata->device)
-        sol_iio_close(mdata->device);
-}
-
-static int
-temperature_tick(struct sol_flow_node *node, void *data, uint16_t port, uint16_t conn_id, const struct sol_flow_packet *packet)
-{
-    static const char *errmsg = "Could not read channel values";
-    struct temperature_data *mdata = data;
-
-    if (mdata->buffer_enabled) {
-        if (!sol_iio_device_trigger_now(mdata->device))
-            goto error;
-    } else {
-        temp_reader_cb(node, mdata->device);
-    }
-
-    return 0;
-
-error:
-    sol_flow_send_error_packet(node, EIO, "%s", errmsg);
-    SOL_WRN("%s", errmsg);
-
-    return -EIO;
-}
-
-struct pressure_data {
-    struct sol_iio_config config;
-    struct sol_drange_spec out_range;
-    double scale;
-    double offset;
-    struct sol_iio_device *device;
-    struct sol_iio_channel *channel_val;
-    bool buffer_enabled : 1;
-    bool use_device_default_scale : 1;
-    bool use_device_default_offset : 1;
-};
-
-static void
 pressure_reader_cb(void *data, struct sol_iio_device *device)
 {
     static const char *errmsg = "Could not read channel buffer values";
     struct sol_flow_node *node = data;
-    struct pressure_data *mdata = sol_flow_node_get_private_data(node);
+    struct iiodevice_data *mdata = sol_flow_node_get_private_data(node);
     struct sol_drange out = {
         .min = mdata->out_range.min,
         .max = mdata->out_range.max,
@@ -521,7 +429,7 @@ pressure_reader_cb(void *data, struct sol_iio_device *device)
     };
     bool b;
 
-    b = sol_iio_read_channel_value(mdata->channel_val, &out.val);
+    b = sol_iio_read_channel_value(mdata->channels[0], &out.val);
     if (!b) goto error;
 
     sol_flow_send_drange_value_packet(node,
@@ -535,22 +443,22 @@ error:
 }
 
 static bool
-pressure_create_channels(struct pressure_data *mdata, int device_id)
+pressure_create_channels(struct iiodevice_data *mdata, int device_id)
 {
     struct sol_iio_channel_config channel_config = SOL_IIO_CHANNEL_CONFIG_INIT;
 
     mdata->device = sol_iio_open(device_id, &mdata->config);
     SOL_NULL_CHECK(mdata->device, false);
 
-#define ADD_CHANNEL(_val) \
+#define ADD_CHANNEL(_val, _index) \
     if (!mdata->use_device_default_scale) \
-        channel_config.scale = mdata->scale; \
+        channel_config.scale = mdata->scales[_index]; \
     if (!mdata->use_device_default_offset) \
-        channel_config.offset = mdata->offset; \
-    mdata->channel_ ## _val = sol_iio_add_channel(mdata->device, "in_pressure", &channel_config); \
-    SOL_NULL_CHECK_GOTO(mdata->channel_ ## _val, error);
+        channel_config.offset = mdata->offsets[_index]; \
+    mdata->channels[_index] = sol_iio_add_channel(mdata->device, "in_pressure", &channel_config); \
+    SOL_NULL_CHECK_GOTO(mdata->channels[_index], error);
 
-    ADD_CHANNEL(val);
+    ADD_CHANNEL(val, 0);
 
 #undef ADD_CHANNEL
 
@@ -569,7 +477,7 @@ error:
 static int
 pressure_open(struct sol_flow_node *node, void *data, const struct sol_flow_node_options *options)
 {
-    struct pressure_data *mdata = data;
+    struct iiodevice_data *mdata = data;
     const struct sol_flow_node_type_iio_pressure_sensor_options *opts;
     int device_id;
 
@@ -588,14 +496,12 @@ pressure_open(struct sol_flow_node *node, void *data, const struct sol_flow_node
 
     mdata->config.buffer_size = opts->buffer_size;
     mdata->config.sampling_frequency = opts->sampling_frequency;
-    if (mdata->buffer_enabled) {
-        mdata->config.sol_iio_reader_cb = pressure_reader_cb;
-        mdata->config.data = node;
-    }
+    mdata->config.sol_iio_reader_cb = pressure_reader_cb;
+    mdata->config.data = node;
     mdata->use_device_default_scale = opts->use_device_default_scale;
     mdata->use_device_default_offset = opts->use_device_default_offset;
-    mdata->scale = opts->scale;
-    mdata->offset = opts->offset;
+    mdata->scales[0] = opts->scale;
+    mdata->offsets[0] = opts->offset;
     mdata->out_range = opts->out_range;
 
     device_id = sol_iio_address_device(opts->iio_device);
@@ -617,57 +523,11 @@ err:
 }
 
 static void
-pressure_close(struct sol_flow_node *node, void *data)
-{
-    struct pressure_data *mdata = data;
-
-    free((char *)mdata->config.trigger_name);
-    if (mdata->device)
-        sol_iio_close(mdata->device);
-}
-
-static int
-pressure_tick(struct sol_flow_node *node, void *data, uint16_t port, uint16_t conn_id, const struct sol_flow_packet *packet)
-{
-    static const char *errmsg = "Could not read channel values";
-    struct pressure_data *mdata = data;
-
-    if (mdata->buffer_enabled) {
-        if (!sol_iio_device_trigger_now(mdata->device))
-            goto error;
-    } else {
-        pressure_reader_cb(node, mdata->device);
-    }
-
-    return 0;
-
-error:
-    sol_flow_send_error_packet(node, EIO, "%s", errmsg);
-    SOL_WRN("%s", errmsg);
-
-    return -EIO;
-}
-
-struct color_data {
-    struct sol_iio_config config;
-    double scale;
-    double offset;
-    struct sol_drange_spec out_range;
-    struct sol_iio_device *device;
-    struct sol_iio_channel *channel_red;
-    struct sol_iio_channel *channel_green;
-    struct sol_iio_channel *channel_blue;
-    bool buffer_enabled : 1;
-    bool use_device_default_scale : 1;
-    bool use_device_default_offset : 1;
-};
-
-static void
 color_reader_cb(void *data, struct sol_iio_device *device)
 {
     static const char *errmsg = "Could not read channel buffer values";
     struct sol_flow_node *node = data;
-    struct color_data *mdata = sol_flow_node_get_private_data(node);
+    struct iiodevice_data *mdata = sol_flow_node_get_private_data(node);
     struct sol_rgb out = {
         .red_max = mdata->out_range.max,
         .green_max = mdata->out_range.max,
@@ -676,15 +536,15 @@ color_reader_cb(void *data, struct sol_iio_device *device)
     double tmp;
     bool b;
 
-    b = sol_iio_read_channel_value(mdata->channel_red, &tmp);
+    b = sol_iio_read_channel_value(mdata->channels[0], &tmp);
     if (!b || tmp < 0 || tmp > UINT32_MAX) goto error;
     out.red = tmp;
 
-    b = sol_iio_read_channel_value(mdata->channel_green, &tmp);
+    b = sol_iio_read_channel_value(mdata->channels[1], &tmp);
     if (!b || tmp < 0 || tmp > UINT32_MAX) goto error;
     out.green = tmp;
 
-    b = sol_iio_read_channel_value(mdata->channel_blue, &tmp);
+    b = sol_iio_read_channel_value(mdata->channels[2], &tmp);
     if (!b || tmp < 0 || tmp > UINT32_MAX) goto error;
     out.blue = tmp;
 
@@ -699,24 +559,24 @@ error:
 }
 
 static bool
-color_create_channels(struct color_data *mdata, int device_id)
+color_create_channels(struct iiodevice_data *mdata, int device_id)
 {
     struct sol_iio_channel_config channel_config = SOL_IIO_CHANNEL_CONFIG_INIT;
 
     mdata->device = sol_iio_open(device_id, &mdata->config);
     SOL_NULL_CHECK(mdata->device, false);
 
-#define ADD_CHANNEL(_axis) \
+#define ADD_CHANNEL(_axis, _index) \
     if (!mdata->use_device_default_scale) \
-        channel_config.scale = mdata->scale; \
+        channel_config.scale = mdata->scales[_index]; \
     if (!mdata->use_device_default_offset) \
-        channel_config.offset = mdata->offset; \
-    mdata->channel_ ## _axis = sol_iio_add_channel(mdata->device, "in_intensity_" # _axis, &channel_config); \
-    SOL_NULL_CHECK_GOTO(mdata->channel_ ## _axis, error);
+        channel_config.offset = mdata->offsets[_index]; \
+    mdata->channels[_index] = sol_iio_add_channel(mdata->device, "in_intensity_" # _axis, &channel_config); \
+    SOL_NULL_CHECK_GOTO(mdata->channels[_index], error);
 
-    ADD_CHANNEL(red);
-    ADD_CHANNEL(green);
-    ADD_CHANNEL(blue);
+    ADD_CHANNEL(red, 0);
+    ADD_CHANNEL(green, 1);
+    ADD_CHANNEL(blue, 2);
 
 #undef ADD_CHANNEL
 
@@ -734,7 +594,7 @@ error:
 static int
 color_open(struct sol_flow_node *node, void *data, const struct sol_flow_node_options *options)
 {
-    struct color_data *mdata = data;
+    struct iiodevice_data *mdata = data;
     const struct sol_flow_node_type_iio_color_sensor_options *opts;
     int device_id;
 
@@ -753,14 +613,17 @@ color_open(struct sol_flow_node *node, void *data, const struct sol_flow_node_op
 
     mdata->config.buffer_size = opts->buffer_size;
     mdata->config.sampling_frequency = opts->sampling_frequency;
-    if (mdata->buffer_enabled) {
-        mdata->config.sol_iio_reader_cb = color_reader_cb;
-        mdata->config.data = node;
-    }
+    mdata->config.sol_iio_reader_cb = color_reader_cb;
+    mdata->config.data = node;
     mdata->use_device_default_scale = opts->use_device_default_scale;
     mdata->use_device_default_offset = opts->use_device_default_offset;
-    mdata->scale = opts->scale;
-    mdata->offset = opts->offset;
+    mdata->scales[0] = opts->scale.x;
+    mdata->scales[1] = opts->scale.y;
+    mdata->scales[2] = opts->scale.z;
+    mdata->offsets[0] = opts->offset.x;
+    mdata->offsets[1] = opts->offset.y;
+    mdata->offsets[2] = opts->offset.z;
+
     mdata->out_range = opts->out_range;
 
     device_id = sol_iio_address_device(opts->iio_device);
@@ -781,70 +644,24 @@ err:
 }
 
 static void
-color_close(struct sol_flow_node *node, void *data)
-{
-    struct color_data *mdata = data;
-
-    free((char *)mdata->config.trigger_name);
-    if (mdata->device)
-        sol_iio_close(mdata->device);
-}
-
-static int
-color_tick(struct sol_flow_node *node, void *data, uint16_t port, uint16_t conn_id, const struct sol_flow_packet *packet)
-{
-    static const char *errmsg = "Could not read channel values";
-    struct color_data *mdata = data;
-
-    if (mdata->buffer_enabled) {
-        if (!sol_iio_device_trigger_now(mdata->device))
-            goto error;
-    } else {
-        color_reader_cb(node, mdata->device);
-    }
-
-    return 0;
-
-error:
-    sol_flow_send_error_packet(node, EIO, "%s", errmsg);
-    SOL_WRN("%s", errmsg);
-
-    return -EIO;
-}
-
-struct accelerate_data {
-    struct sol_iio_config config;
-    struct sol_direction_vector scale;
-    struct sol_direction_vector offset;
-    struct sol_drange_spec out_range;
-    struct sol_iio_device *device;
-    struct sol_iio_channel *channel_x;
-    struct sol_iio_channel *channel_y;
-    struct sol_iio_channel *channel_z;
-    bool buffer_enabled : 1;
-    bool use_device_default_scale : 1;
-    bool use_device_default_offset : 1;
-};
-
-static void
 accelerate_reader_cb(void *data, struct sol_iio_device *device)
 {
     static const char *errmsg = "Could not read channel buffer values";
     struct sol_flow_node *node = data;
-    struct accelerate_data *mdata = sol_flow_node_get_private_data(node);
+    struct iiodevice_data *mdata = sol_flow_node_get_private_data(node);
     struct sol_direction_vector out = {
         .min = mdata->out_range.min,
         .max = mdata->out_range.max
     };
     bool b;
 
-    b = sol_iio_read_channel_value(mdata->channel_x, &out.x);
+    b = sol_iio_read_channel_value(mdata->channels[0], &out.x);
     if (!b) goto error;
 
-    b = sol_iio_read_channel_value(mdata->channel_y, &out.y);
+    b = sol_iio_read_channel_value(mdata->channels[1], &out.y);
     if (!b) goto error;
 
-    b = sol_iio_read_channel_value(mdata->channel_z, &out.z);
+    b = sol_iio_read_channel_value(mdata->channels[2], &out.z);
     if (!b) goto error;
 
     sol_flow_send_direction_vector_packet(node,
@@ -858,24 +675,24 @@ error:
 }
 
 static bool
-accelerate_create_channels(struct accelerate_data *mdata, int device_id)
+accelerate_create_channels(struct iiodevice_data *mdata, int device_id)
 {
     struct sol_iio_channel_config channel_config = SOL_IIO_CHANNEL_CONFIG_INIT;
 
     mdata->device = sol_iio_open(device_id, &mdata->config);
     SOL_NULL_CHECK(mdata->device, false);
 
-#define ADD_CHANNEL(_axis) \
+#define ADD_CHANNEL(_axis, _index) \
     if (!mdata->use_device_default_scale) \
-        channel_config.scale = mdata->scale._axis; \
+        channel_config.scale = mdata->scales[_index]; \
     if (!mdata->use_device_default_offset) \
-        channel_config.offset = mdata->offset._axis; \
-    mdata->channel_ ## _axis = sol_iio_add_channel(mdata->device, "in_accel_" # _axis, &channel_config); \
-    SOL_NULL_CHECK_GOTO(mdata->channel_ ## _axis, error);
+        channel_config.offset = mdata->offsets[_index]; \
+    mdata->channels[_index] = sol_iio_add_channel(mdata->device, "in_accel_" # _axis, &channel_config); \
+    SOL_NULL_CHECK_GOTO(mdata->channels[_index], error);
 
-    ADD_CHANNEL(x);
-    ADD_CHANNEL(y);
-    ADD_CHANNEL(z);
+    ADD_CHANNEL(x, 0);
+    ADD_CHANNEL(y, 1);
+    ADD_CHANNEL(z, 2);
 
 #undef ADD_CHANNEL
 
@@ -893,7 +710,7 @@ error:
 static int
 accelerate_open(struct sol_flow_node *node, void *data, const struct sol_flow_node_options *options)
 {
-    struct accelerate_data *mdata = data;
+    struct iiodevice_data *mdata = data;
     const struct sol_flow_node_type_iio_accelerometer_options *opts;
     int device_id;
 
@@ -912,14 +729,18 @@ accelerate_open(struct sol_flow_node *node, void *data, const struct sol_flow_no
 
     mdata->config.buffer_size = opts->buffer_size;
     mdata->config.sampling_frequency = opts->sampling_frequency;
-    if (mdata->buffer_enabled) {
-        mdata->config.sol_iio_reader_cb = accelerate_reader_cb;
-        mdata->config.data = node;
-    }
+    mdata->config.sol_iio_reader_cb = accelerate_reader_cb;
+    mdata->config.data = node;
     mdata->use_device_default_scale = opts->use_device_default_scale;
     mdata->use_device_default_offset = opts->use_device_default_offset;
-    mdata->scale = opts->scale;
-    mdata->offset = opts->offset;
+
+    mdata->scales[0] = opts->scale.x;
+    mdata->scales[1] = opts->scale.y;
+    mdata->scales[2] = opts->scale.z;
+    mdata->offsets[0] = opts->offset.x;
+    mdata->offsets[1] = opts->offset.y;
+    mdata->offsets[2] = opts->offset.z;
+
     mdata->out_range = opts->out_range;
 
     device_id = sol_iio_address_device(opts->iio_device);
@@ -940,55 +761,11 @@ err:
 }
 
 static void
-accelerate_close(struct sol_flow_node *node, void *data)
-{
-    struct accelerate_data *mdata = data;
-
-    free((char *)mdata->config.trigger_name);
-    if (mdata->device)
-        sol_iio_close(mdata->device);
-}
-
-static int
-accelerate_tick(struct sol_flow_node *node, void *data, uint16_t port, uint16_t conn_id, const struct sol_flow_packet *packet)
-{
-    static const char *errmsg = "Could not read channel values";
-    struct accelerate_data *mdata = data;
-
-    if (mdata->buffer_enabled) {
-        if (!sol_iio_device_trigger_now(mdata->device))
-            goto error;
-    } else {
-        accelerate_reader_cb(node, mdata->device);
-    }
-
-    return 0;
-
-error:
-    sol_flow_send_error_packet(node, EIO, "%s", errmsg);
-    SOL_WRN("%s", errmsg);
-
-    return -EIO;
-}
-
-struct humidity_data {
-    struct sol_iio_config config;
-    struct sol_drange_spec out_range;
-    double scale;
-    double offset;
-    struct sol_iio_device *device;
-    struct sol_iio_channel *channel_val;
-    bool buffer_enabled : 1;
-    bool use_device_default_scale : 1;
-    bool use_device_default_offset : 1;
-};
-
-static void
 humidity_reader_cb(void *data, struct sol_iio_device *device)
 {
     static const char *errmsg = "Could not read channel buffer values";
     struct sol_flow_node *node = data;
-    struct humidity_data *mdata = sol_flow_node_get_private_data(node);
+    struct iiodevice_data *mdata = sol_flow_node_get_private_data(node);
     struct sol_drange out = {
         .min = mdata->out_range.min,
         .max = mdata->out_range.max,
@@ -996,7 +773,7 @@ humidity_reader_cb(void *data, struct sol_iio_device *device)
     };
     bool b;
 
-    b = sol_iio_read_channel_value(mdata->channel_val, &out.val);
+    b = sol_iio_read_channel_value(mdata->channels[0], &out.val);
     if (!b) goto error;
 
     sol_flow_send_drange_value_packet(node,
@@ -1010,22 +787,22 @@ error:
 }
 
 static bool
-humidity_create_channels(struct humidity_data *mdata, int device_id)
+humidity_create_channels(struct iiodevice_data *mdata, int device_id)
 {
     struct sol_iio_channel_config channel_config = SOL_IIO_CHANNEL_CONFIG_INIT;
 
     mdata->device = sol_iio_open(device_id, &mdata->config);
     SOL_NULL_CHECK(mdata->device, false);
 
-#define ADD_CHANNEL(_val) \
+#define ADD_CHANNEL(_val, _index) \
     if (!mdata->use_device_default_scale) \
-        channel_config.scale = mdata->scale; \
+        channel_config.scale = mdata->scales[_index]; \
     if (!mdata->use_device_default_offset) \
-        channel_config.offset = mdata->offset; \
-    mdata->channel_ ## _val = sol_iio_add_channel(mdata->device, "in_humidityrelative", &channel_config); \
-    SOL_NULL_CHECK_GOTO(mdata->channel_ ## _val, error);
+        channel_config.offset = mdata->offsets[_index]; \
+    mdata->channels[_index] = sol_iio_add_channel(mdata->device, "in_humidityrelative", &channel_config); \
+    SOL_NULL_CHECK_GOTO(mdata->channels[_index], error);
 
-    ADD_CHANNEL(val);
+    ADD_CHANNEL(val, 0);
 
 #undef ADD_CHANNEL
 
@@ -1044,7 +821,7 @@ error:
 static int
 humidity_open(struct sol_flow_node *node, void *data, const struct sol_flow_node_options *options)
 {
-    struct humidity_data *mdata = data;
+    struct iiodevice_data *mdata = data;
     const struct sol_flow_node_type_iio_humidity_sensor_options *opts;
     int device_id;
 
@@ -1063,14 +840,12 @@ humidity_open(struct sol_flow_node *node, void *data, const struct sol_flow_node
 
     mdata->config.buffer_size = opts->buffer_size;
     mdata->config.sampling_frequency = opts->sampling_frequency;
-    if (mdata->buffer_enabled) {
-        mdata->config.sol_iio_reader_cb = humidity_reader_cb;
-        mdata->config.data = node;
-    }
+    mdata->config.sol_iio_reader_cb = humidity_reader_cb;
+    mdata->config.data = node;
     mdata->use_device_default_scale = opts->use_device_default_scale;
     mdata->use_device_default_offset = opts->use_device_default_offset;
-    mdata->scale = opts->scale;
-    mdata->offset = opts->offset;
+    mdata->scales[0] = opts->scale;
+    mdata->offsets[0] = opts->offset;
     mdata->out_range = opts->out_range;
 
     device_id = sol_iio_address_device(opts->iio_device);
@@ -1092,55 +867,11 @@ err:
 }
 
 static void
-humidity_close(struct sol_flow_node *node, void *data)
-{
-    struct humidity_data *mdata = data;
-
-    free((char *)mdata->config.trigger_name);
-    if (mdata->device)
-        sol_iio_close(mdata->device);
-}
-
-static int
-humidity_tick(struct sol_flow_node *node, void *data, uint16_t port, uint16_t conn_id, const struct sol_flow_packet *packet)
-{
-    static const char *errmsg = "Could not read channel values";
-    struct humidity_data *mdata = data;
-
-    if (mdata->buffer_enabled) {
-        if (!sol_iio_device_trigger_now(mdata->device))
-            goto error;
-    } else {
-        humidity_reader_cb(node, mdata->device);
-    }
-
-    return 0;
-
-error:
-    sol_flow_send_error_packet(node, EIO, "%s", errmsg);
-    SOL_WRN("%s", errmsg);
-
-    return -EIO;
-}
-
-struct adc_data {
-    struct sol_iio_config config;
-    struct sol_drange_spec out_range;
-    double scale;
-    double offset;
-    struct sol_iio_device *device;
-    struct sol_iio_channel *channel_val;
-    bool buffer_enabled : 1;
-    bool use_device_default_scale : 1;
-    bool use_device_default_offset : 1;
-};
-
-static void
 adc_reader_cb(void *data, struct sol_iio_device *device)
 {
     static const char *errmsg = "Could not read channel buffer values";
     struct sol_flow_node *node = data;
-    struct adc_data *mdata = sol_flow_node_get_private_data(node);
+    struct iiodevice_data *mdata = sol_flow_node_get_private_data(node);
     struct sol_drange out = {
         .min = mdata->out_range.min,
         .max = mdata->out_range.max,
@@ -1148,7 +879,7 @@ adc_reader_cb(void *data, struct sol_iio_device *device)
     };
     bool b;
 
-    b = sol_iio_read_channel_value(mdata->channel_val, &out.val);
+    b = sol_iio_read_channel_value(mdata->channels[0], &out.val);
     if (!b) goto error;
 
     sol_flow_send_drange_value_packet(node,
@@ -1162,22 +893,22 @@ error:
 }
 
 static bool
-adc_create_channels(struct adc_data *mdata, int device_id)
+adc_create_channels(struct iiodevice_data *mdata, int device_id)
 {
     struct sol_iio_channel_config channel_config = SOL_IIO_CHANNEL_CONFIG_INIT;
 
     mdata->device = sol_iio_open(device_id, &mdata->config);
     SOL_NULL_CHECK(mdata->device, false);
 
-#define ADD_CHANNEL(_val) \
+#define ADD_CHANNEL(_val, _index) \
     if (!mdata->use_device_default_scale) \
-        channel_config.scale = mdata->scale; \
+        channel_config.scale = mdata->scales[_index]; \
     if (!mdata->use_device_default_offset) \
-        channel_config.offset = mdata->offset; \
-    mdata->channel_ ## _val = sol_iio_add_channel(mdata->device, "in_voltage0", &channel_config); \
-    SOL_NULL_CHECK_GOTO(mdata->channel_ ## _val, error);
+        channel_config.offset = mdata->offsets[_index]; \
+    mdata->channels[_index] = sol_iio_add_channel(mdata->device, "in_voltage0", &channel_config); \
+    SOL_NULL_CHECK_GOTO(mdata->channels[_index], error);
 
-    ADD_CHANNEL(val);
+    ADD_CHANNEL(val, 0);
 
 #undef ADD_CHANNEL
 
@@ -1196,7 +927,7 @@ error:
 static int
 adc_open(struct sol_flow_node *node, void *data, const struct sol_flow_node_options *options)
 {
-    struct adc_data *mdata = data;
+    struct iiodevice_data *mdata = data;
     const struct sol_flow_node_type_iio_adc_options *opts;
     int device_id;
 
@@ -1215,14 +946,12 @@ adc_open(struct sol_flow_node *node, void *data, const struct sol_flow_node_opti
 
     mdata->config.buffer_size = opts->buffer_size;
     mdata->config.sampling_frequency = opts->sampling_frequency;
-    if (mdata->buffer_enabled) {
-        mdata->config.sol_iio_reader_cb = adc_reader_cb;
-        mdata->config.data = node;
-    }
+    mdata->config.sol_iio_reader_cb = adc_reader_cb;
+    mdata->config.data = node;
     mdata->use_device_default_scale = opts->use_device_default_scale;
     mdata->use_device_default_offset = opts->use_device_default_offset;
-    mdata->scale = opts->scale;
-    mdata->offset = opts->offset;
+    mdata->scales[0] = opts->scale;
+    mdata->offsets[0] = opts->offset;
     mdata->out_range = opts->out_range;
 
     device_id = sol_iio_address_device(opts->iio_device);
@@ -1244,55 +973,11 @@ err:
 }
 
 static void
-adc_close(struct sol_flow_node *node, void *data)
-{
-    struct adc_data *mdata = data;
-
-    free((char *)mdata->config.trigger_name);
-    if (mdata->device)
-        sol_iio_close(mdata->device);
-}
-
-static int
-adc_tick(struct sol_flow_node *node, void *data, uint16_t port, uint16_t conn_id, const struct sol_flow_packet *packet)
-{
-    static const char *errmsg = "Could not read channel values";
-    struct adc_data *mdata = data;
-
-    if (mdata->buffer_enabled) {
-        if (!sol_iio_device_trigger_now(mdata->device))
-            goto error;
-    } else {
-        adc_reader_cb(node, mdata->device);
-    }
-
-    return 0;
-
-error:
-    sol_flow_send_error_packet(node, EIO, "%s", errmsg);
-    SOL_WRN("%s", errmsg);
-
-    return -EIO;
-}
-
-struct light_data {
-    struct sol_iio_config config;
-    struct sol_drange_spec out_range;
-    double scale;
-    double offset;
-    struct sol_iio_device *device;
-    struct sol_iio_channel *channel_val;
-    bool buffer_enabled : 1;
-    bool use_device_default_scale : 1;
-    bool use_device_default_offset : 1;
-};
-
-static void
 light_reader_cb(void *data, struct sol_iio_device *device)
 {
     static const char *errmsg = "Could not read channel buffer values";
     struct sol_flow_node *node = data;
-    struct light_data *mdata = sol_flow_node_get_private_data(node);
+    struct iiodevice_data *mdata = sol_flow_node_get_private_data(node);
     struct sol_drange out = {
         .min = mdata->out_range.min,
         .max = mdata->out_range.max,
@@ -1300,7 +985,9 @@ light_reader_cb(void *data, struct sol_iio_device *device)
     };
     bool b;
 
-    b = sol_iio_read_channel_value(mdata->channel_val, &out.val);
+    SOL_WRN("%s mdata=%p \n", __func__, mdata);
+
+    b = sol_iio_read_channel_value(mdata->channels[0], &out.val);
     if (!b) goto error;
 
     sol_flow_send_drange_value_packet(node,
@@ -1314,24 +1001,24 @@ error:
 }
 
 static bool
-light_create_channels(struct light_data *mdata, int device_id)
+light_create_channels(struct iiodevice_data *mdata, int device_id)
 {
     struct sol_iio_channel_config channel_config = SOL_IIO_CHANNEL_CONFIG_INIT;
 
     mdata->device = sol_iio_open(device_id, &mdata->config);
     SOL_NULL_CHECK(mdata->device, false);
 
-#define ADD_CHANNEL(_val) \
+#define ADD_CHANNEL(_val, _index) \
     if (!mdata->use_device_default_scale) \
-        channel_config.scale = mdata->scale; \
+        channel_config.scale = mdata->scales[_index]; \
     if (!mdata->use_device_default_offset) \
-        channel_config.offset = mdata->offset; \
-    mdata->channel_ ## _val = sol_iio_add_channel(mdata->device, "in_illuminance0", &channel_config); \
-    if (!mdata->channel_ ## _val) \
-        mdata->channel_ ## _val = sol_iio_add_channel(mdata->device, "in_illuminance", &channel_config); \
-    SOL_NULL_CHECK_GOTO(mdata->channel_ ## _val, error);
+        channel_config.offset = mdata->offsets[_index]; \
+    mdata->channels[_index] = sol_iio_add_channel(mdata->device, "in_illuminance0", &channel_config); \
+    if (!mdata->channels[_index]) \
+        mdata->channels[_index] = sol_iio_add_channel(mdata->device, "in_illuminance", &channel_config); \
+    SOL_NULL_CHECK_GOTO(mdata->channels[_index], error);
 
-    ADD_CHANNEL(val);
+    ADD_CHANNEL(val, 0);
 
 #undef ADD_CHANNEL
 
@@ -1350,7 +1037,7 @@ error:
 static int
 light_open(struct sol_flow_node *node, void *data, const struct sol_flow_node_options *options)
 {
-    struct light_data *mdata = data;
+    struct iiodevice_data *mdata = data;
     const struct sol_flow_node_type_iio_light_sensor_options *opts;
     int device_id;
 
@@ -1369,14 +1056,12 @@ light_open(struct sol_flow_node *node, void *data, const struct sol_flow_node_op
 
     mdata->config.buffer_size = opts->buffer_size;
     mdata->config.sampling_frequency = opts->sampling_frequency;
-    if (mdata->buffer_enabled) {
-        mdata->config.sol_iio_reader_cb = light_reader_cb;
-        mdata->config.data = node;
-    }
+    mdata->config.sol_iio_reader_cb = light_reader_cb;
+    mdata->config.data = node;
     mdata->use_device_default_scale = opts->use_device_default_scale;
     mdata->use_device_default_offset = opts->use_device_default_offset;
-    mdata->scale = opts->scale;
-    mdata->offset = opts->offset;
+    mdata->scales[0] = opts->scale;
+    mdata->offsets[0] = opts->offset;
     mdata->out_range = opts->out_range;
 
     device_id = sol_iio_address_device(opts->iio_device);
@@ -1398,55 +1083,11 @@ err:
 }
 
 static void
-light_close(struct sol_flow_node *node, void *data)
-{
-    struct light_data *mdata = data;
-
-    free((char *)mdata->config.trigger_name);
-    if (mdata->device)
-        sol_iio_close(mdata->device);
-}
-
-static int
-light_tick(struct sol_flow_node *node, void *data, uint16_t port, uint16_t conn_id, const struct sol_flow_packet *packet)
-{
-    static const char *errmsg = "Could not read channel values";
-    struct light_data *mdata = data;
-
-    if (mdata->buffer_enabled) {
-        if (!sol_iio_device_trigger_now(mdata->device))
-            goto error;
-    } else {
-        light_reader_cb(node, mdata->device);
-    }
-
-    return 0;
-
-error:
-    sol_flow_send_error_packet(node, EIO, "%s", errmsg);
-    SOL_WRN("%s", errmsg);
-
-    return -EIO;
-}
-
-struct proximity_data {
-    struct sol_iio_config config;
-    struct sol_drange_spec out_range;
-    double scale;
-    double offset;
-    struct sol_iio_device *device;
-    struct sol_iio_channel *channel_val;
-    bool buffer_enabled : 1;
-    bool use_device_default_scale : 1;
-    bool use_device_default_offset : 1;
-};
-
-static void
 proximity_reader_cb(void *data, struct sol_iio_device *device)
 {
     static const char *errmsg = "Could not read channel buffer values";
     struct sol_flow_node *node = data;
-    struct proximity_data *mdata = sol_flow_node_get_private_data(node);
+    struct iiodevice_data *mdata = sol_flow_node_get_private_data(node);
     struct sol_drange out = {
         .min = mdata->out_range.min,
         .max = mdata->out_range.max,
@@ -1454,7 +1095,7 @@ proximity_reader_cb(void *data, struct sol_iio_device *device)
     };
     bool b;
 
-    b = sol_iio_read_channel_value(mdata->channel_val, &out.val);
+    b = sol_iio_read_channel_value(mdata->channels[0], &out.val);
     if (!b) goto error;
 
     sol_flow_send_drange_value_packet(node,
@@ -1468,24 +1109,24 @@ error:
 }
 
 static bool
-proximity_create_channels(struct proximity_data *mdata, int device_id)
+proximity_create_channels(struct iiodevice_data *mdata, int device_id)
 {
     struct sol_iio_channel_config channel_config = SOL_IIO_CHANNEL_CONFIG_INIT;
 
     mdata->device = sol_iio_open(device_id, &mdata->config);
     SOL_NULL_CHECK(mdata->device, false);
 
-#define ADD_CHANNEL(_val) \
+#define ADD_CHANNEL(_val, _index) \
     if (!mdata->use_device_default_scale) \
-        channel_config.scale = mdata->scale; \
+        channel_config.scale = mdata->scales[_index]; \
     if (!mdata->use_device_default_offset) \
-        channel_config.offset = mdata->offset; \
-    mdata->channel_ ## _val = sol_iio_add_channel(mdata->device, "in_proximity", &channel_config); \
-    if (!mdata->channel_ ## _val) \
-        mdata->channel_ ## _val = sol_iio_add_channel(mdata->device, "in_proximity2", &channel_config); \
-    SOL_NULL_CHECK_GOTO(mdata->channel_ ## _val, error);
+        channel_config.offset = mdata->offsets[_index]; \
+    mdata->channels[_index] = sol_iio_add_channel(mdata->device, "in_proximity", &channel_config); \
+    if (!mdata->channels[_index]) \
+        mdata->channels[_index] = sol_iio_add_channel(mdata->device, "in_proximity2", &channel_config); \
+    SOL_NULL_CHECK_GOTO(mdata->channels[_index], error);
 
-    ADD_CHANNEL(val);
+    ADD_CHANNEL(val, 0);
 
 #undef ADD_CHANNEL
 
@@ -1504,7 +1145,7 @@ error:
 static int
 proximity_open(struct sol_flow_node *node, void *data, const struct sol_flow_node_options *options)
 {
-    struct proximity_data *mdata = data;
+    struct iiodevice_data *mdata = data;
     const struct sol_flow_node_type_iio_proximity_sensor_options *opts;
     int device_id;
 
@@ -1523,14 +1164,12 @@ proximity_open(struct sol_flow_node *node, void *data, const struct sol_flow_nod
 
     mdata->config.buffer_size = opts->buffer_size;
     mdata->config.sampling_frequency = opts->sampling_frequency;
-    if (mdata->buffer_enabled) {
-        mdata->config.sol_iio_reader_cb = proximity_reader_cb;
-        mdata->config.data = node;
-    }
+    mdata->config.sol_iio_reader_cb = proximity_reader_cb;
+    mdata->config.data = node;
     mdata->use_device_default_scale = opts->use_device_default_scale;
     mdata->use_device_default_offset = opts->use_device_default_offset;
-    mdata->scale = opts->scale;
-    mdata->offset = opts->offset;
+    mdata->scales[0] = opts->scale;
+    mdata->offsets[1] = opts->offset;
     mdata->out_range = opts->out_range;
 
     device_id = sol_iio_address_device(opts->iio_device);
@@ -1549,38 +1188,6 @@ err:
     free((char *)mdata->config.trigger_name);
     return -EINVAL;
 
-}
-
-static void
-proximity_close(struct sol_flow_node *node, void *data)
-{
-    struct proximity_data *mdata = data;
-
-    free((char *)mdata->config.trigger_name);
-    if (mdata->device)
-        sol_iio_close(mdata->device);
-}
-
-static int
-proximity_tick(struct sol_flow_node *node, void *data, uint16_t port, uint16_t conn_id, const struct sol_flow_packet *packet)
-{
-    static const char *errmsg = "Could not read channel values";
-    struct proximity_data *mdata = data;
-
-    if (mdata->buffer_enabled) {
-        if (!sol_iio_device_trigger_now(mdata->device))
-            goto error;
-    } else {
-        proximity_reader_cb(node, mdata->device);
-    }
-
-    return 0;
-
-error:
-    sol_flow_send_error_packet(node, EIO, "%s", errmsg);
-    SOL_WRN("%s", errmsg);
-
-    return -EIO;
 }
 
 #include "iio-gen.c"
