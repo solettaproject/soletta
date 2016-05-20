@@ -74,6 +74,7 @@ SOL_LOG_INTERNAL_DECLARE(_sol_coap_log_domain, "coap");
     } while (0)
 #else
 #define COAP_RESOURCE_CHECK_API(...)
+#define COAP_RESOURCE_CHECK_API_GOTO(...)
 #endif
 
 struct sol_coap_server {
