@@ -21,6 +21,8 @@
 #include <stdbool.h>
 #include <stdint.h>
 
+#include <sol-types.h>
+#include <sol-buffer.h>
 #include <sol-common-buildopts.h>
 #include <sol-macros.h>
 
@@ -42,6 +44,13 @@ extern "C" {
  * @{
  */
 
+/**
+ * @struct sol_uart
+ * @brief A handle to a UART device.
+ * @see sol_uart_open()
+ * @see sol_uart_close()
+ * @see sol_uart_feed()
+ */
 struct sol_uart;
 
 /**
@@ -58,13 +67,13 @@ enum sol_uart_baud_rate {
 };
 
 /**
- * @brief Amount of stop bits.
+ * @brief Amount of data bits.
  */
 enum sol_uart_data_bits {
-    SOL_UART_DATA_BITS_8 = 0,
-    SOL_UART_DATA_BITS_7,
-    SOL_UART_DATA_BITS_6,
-    SOL_UART_DATA_BITS_5
+    SOL_UART_DATA_BITS_8 = 0, /**< Use 8 data bits */
+    SOL_UART_DATA_BITS_7, /**< Use 7 data bits */
+    SOL_UART_DATA_BITS_6, /**< Use 6 data bits */
+    SOL_UART_DATA_BITS_5 /**< Use 5 data bits */
 };
 
 /**
@@ -81,22 +90,64 @@ enum sol_uart_parity {
  * @brief Amount of stop bits.
  */
 enum sol_uart_stop_bits {
-    SOL_UART_STOP_BITS_ONE = 0,
-    SOL_UART_STOP_BITS_TWO
+    SOL_UART_STOP_BITS_ONE = 0, /**< Use one stop bit*/
+    SOL_UART_STOP_BITS_TWO /**< Use two stop bits */
 };
 
+/**
+ * @struct sol_uart_config
+ * @brief A configuration struct used to set the UART paramenters.
+ *
+ * @see sol_uart_open()
+ * @note UART follows the Soletta stream design pattern, which can be found here: @ref streams
+ */
 struct sol_uart_config {
 #ifndef SOL_NO_API_VERSION
-#define SOL_UART_CONFIG_API_VERSION (1)
-    uint16_t api_version;
+#define SOL_UART_CONFIG_API_VERSION (1) /**< compile time API version to be checked during runtime */
+    uint16_t api_version; /**< must match #SOL_UART_CONFIG_API_VERSION at runtime */
 #endif
-    enum sol_uart_baud_rate baud_rate;
-    enum sol_uart_data_bits data_bits;
-    enum sol_uart_parity parity;
-    enum sol_uart_stop_bits stop_bits;
-    void (*rx_cb)(void *user_data, struct sol_uart *uart, uint8_t byte_read); /** Set a callback to be called every time a character is received on UART */
-    const void *rx_cb_user_data;
-    bool flow_control; /** Enables software flow control(XOFF and XON) */
+    /**
+     * @brief Callback containing data was read from UART
+     *
+     * @param data User data as provided in sol_uart_config::user_data
+     * @param uart The UART handle
+     * @param buf The UART data
+     *
+     * @return The number of bytes read from @c buf or negative errno on error.
+     */
+    ssize_t (*on_data)(void *data, struct sol_uart *uart, const struct sol_buffer *buf);
+    /**
+     * @brief Informs that a feed operation has ended.
+     *
+     * @param data User data as provided in sol_uart_config::user_data
+     * @param uart The UART handle
+     * @param blob The blob that was written
+     * @param status 0 on success or negative errno on error
+     * @note There is no need to call sol_blob_unref().
+     * @see sol_uart_feed()
+     */
+    void (*on_feed_done)(void *data, struct sol_uart *uart, struct sol_blob *blob, int status);
+    const void *user_data; /**< User data to sol_uart_config::on_feed_done() and  sol_uart_config::on_data() */
+    /**
+     * @brief The feed buffer max size. The value @c 0 means unlimited data.
+     * Since sol_uart_feed() works with blobs, no extra buffers will be allocated in order
+     * to store @c feed_size bytes. All the blobs that are schedule to be written will be referenced
+     * and the sum of all queued blobs must not be equal or exceed @c feed_size.
+     * If it happens sol_uart_feed() will return @c -ENOSPC and one must start to control the
+     * writing flow until @c on_feed_done is called.
+     * @see sol_uart_feed()
+     */
+    size_t feed_size;
+    /**
+     * @brief The receiving buffer max size. The value @c 0 means unlimited data. In other words, the buffer
+     * will always grow in order to store all the data and shrink when data is consumed.
+     */
+    size_t data_buffer_size;
+    enum sol_uart_baud_rate baud_rate; /**< The baud rate value */
+    enum sol_uart_data_bits data_bits; /**< The data bits value */
+    enum sol_uart_parity parity; /**< The parity value*/
+    enum sol_uart_stop_bits stop_bits; /**< The stop bits value */
+    bool flow_control; /**< Enables software flow control(XOFF and XON) */
 };
 
 /**
@@ -219,26 +270,30 @@ struct sol_uart *sol_uart_open(const char *port_name, const struct sol_uart_conf
 /**
  * @brief Close an UART bus.
  *
+ * It's important to note that after this functions is called pending blobs blobs will not be written
+ * and the sol_uart_config::on_feed_done() will be called with @c status set to @c -ECANCELED.
+ * The callback sol_uart_config::on_data() will also be called if the @c rx buffer has data in it.
+ *
  * @param uart The UART bus handle
  */
 void sol_uart_close(struct sol_uart *uart);
 
 /**
- * @brief Perform a UART asynchronous transmission.
+ * @brief Perform an UART asynchronous transmission.
+ *
+ * This function will queue a feed operation on the UART bus. It calls
+ * sol_blob_ref(), thus it's safe to call sol_blob_unref() right after this function
+ * returns. After a blob is completely written the callback sol_uart_config::on_feed_done() is called, if provided.
+ * On errors callback sol_uart_config::on_feed_done() is called with negative status.
  *
  * @param uart The UART bus handle
- * @param tx The output buffer to be sent
- * @param length number of bytes to be transfer
- * @param tx_cb callback to be called when transmission finish, in case of
- * success the status parameter on tx_cb should be equal to length otherwise
- * an error happen during the transmission
- * @param data the first parameter of tx_cb
- * @return true if transfer was started
+ * @param blob The blob to be written
+ * @return 0 on success, @c -ENOSPC if sol_uart_config::feed_size is not zero and there's no more space left or negative errno on error
+ * @see sol_uart_config::on_feed_done()
+ * @note UART follows the Soletta stream design pattern, which can be found here: @ref streams
  *
- * @note Caller should guarantee that tx buffer will not be freed until
- * callback is called.
  */
-bool sol_uart_write(struct sol_uart *uart, const uint8_t *tx, unsigned int length, void (*tx_cb)(void *data, struct sol_uart *uart, uint8_t *tx, int status), const void *data);
+int sol_uart_feed(struct sol_uart *uart, struct sol_blob *blob);
 
 /**
  * @}

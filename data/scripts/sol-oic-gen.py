@@ -1409,7 +1409,7 @@ server_resource_perform_update(void *data)
         return false;
     }
 
-    if (sol_oic_server_send_notification_to_observers(notification) < 0) {
+    if (sol_oic_server_notify(notification) < 0) {
         SOL_WRN("Error while serializing update message");
     } else {
         resource->funcs->inform_flow(resource);

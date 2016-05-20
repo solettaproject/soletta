@@ -318,38 +318,38 @@ send_sse_data(const struct http_server_node_type *type, struct http_data *mdata,
 {
     struct sol_buffer buf = SOL_BUFFER_INIT_EMPTY;
     struct sol_http_progressive_response *client;
-    struct sol_str_slice buf_slice;
+    struct sol_blob *blob;
     uint16_t i;
     int r;
 
     if (!sol_ptr_vector_get_len(&mdata->sse_clients))
         return 0;
 
-    r = sol_buffer_append_slice(&buf, sol_str_slice_from_str("data: "));
-    SOL_INT_CHECK(r, < 0, r);
-
     r = type->response_cb(mdata, &buf, true);
     SOL_INT_CHECK(r, < 0, r);
 
-    r = sol_buffer_append_slice(&buf, sol_str_slice_from_str("\n\n"));
-    SOL_INT_CHECK(r, < 0, r);
 
-    buf_slice = sol_buffer_get_slice(&buf);
-    SOL_DBG("Sending SSE data: %.*s", SOL_STR_SLICE_PRINT(buf_slice));
+    SOL_DBG("Sending SSE data: %.*s", SOL_STR_SLICE_PRINT(sol_buffer_get_slice(&buf)));
+
+    blob = sol_buffer_to_blob(&buf);
+    r = -ENOMEM;
+    SOL_NULL_CHECK_GOTO(blob, exit);
 
     if (!to_client) {
         SOL_PTR_VECTOR_FOREACH_IDX (&mdata->sse_clients, client, i) {
-            r = sol_http_progressive_response_feed(client, buf_slice);
+            r = sol_http_progressive_response_sse_feed(client, blob);
             SOL_INT_CHECK_GOTO(r, < 0, exit);
         }
     } else {
-        r = sol_http_progressive_response_feed(to_client, buf_slice);
+        r = sol_http_progressive_response_sse_feed(to_client, blob);
         SOL_INT_CHECK_GOTO(r, < 0, exit);
     }
 
     r = 0;
 exit:
     sol_buffer_fini(&buf);
+    if (blob)
+        sol_blob_unref(blob);
     return r;
 }
 
@@ -417,12 +417,16 @@ common_response_cb(void *data, struct sol_http_request *request)
 
     if (is_sse_request(method, prefered_content_type) && type->response_cb) {
         struct sol_http_progressive_response *sse;
+        struct sol_http_server_progressive_config config = {
+            SOL_SET_API_VERSION(.api_version = SOL_HTTP_SERVER_PROGRESSIVE_CONFIG_API_VERSION, )
+            .on_close = sse_conn_closed,
+            .user_data = mdata
+        };
 
         r = sol_http_response_set_sse_headers(&response);
         SOL_INT_CHECK_GOTO(r, < 0, end);
         response.response_code = SOL_HTTP_STATUS_OK;
-        sse = sol_http_server_send_progressive_response(request, &response,
-            sse_conn_closed, mdata);
+        sse = sol_http_server_send_progressive_response(request, &response, &config);
         sol_http_params_clear(&response.param);
         if (!sse) {
             sol_flow_send_error_packet_str(node, ENOMEM,

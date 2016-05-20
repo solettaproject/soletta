@@ -64,6 +64,7 @@ struct sol_http_client_connection;
  * data comes or when data should be sent.
  *
  * @see sol_http_client_request_with_interface()
+ * @note HTTP client follows the Soletta stream design pattern, which can be found here: @ref streams
  */
 struct sol_http_request_interface {
 #ifndef SOL_NO_API_VERSION
@@ -87,11 +88,11 @@ struct sol_http_request_interface {
      * @li @c connection the connection returned in @c sol_http_client_request_with_interface
      * @li @c buffer the data received
      *
-     * @note it is @b NOT @b ALLOWED to cancel the connection handle from
+     * @note it is allowed to cancel the connection handle from
      *       inside this callback.
      */
-    ssize_t (*recv_cb)(void *userdata, const struct sol_http_client_connection *connection,
-        struct sol_buffer *buffer);
+    ssize_t (*on_data)(void *userdata, struct sol_http_client_connection *connection,
+        const struct sol_buffer *buffer);
     /**
      * This callback is called data should be written, it's commonly used for @c POST.
      * When it's used, it's @b MANDATORY either the header @c Content-Length with the correct
@@ -109,10 +110,10 @@ struct sol_http_request_interface {
      * @li @c buffer the buffer where the data should be written, the buffer's capacity indicates
      * the amount of data that should be set.
      *
-     * @note it is @b NOT @b ALLOWED to cancel the connection handle from
+     * @note it is allowed to cancel the connection handle from
      *       inside this callback.
      */
-    ssize_t (*send_cb)(void *userdata, const struct sol_http_client_connection *connection,
+    ssize_t (*on_send)(void *userdata, struct sol_http_client_connection *connection,
         struct sol_buffer *buffer);
     /**
      * This callback is called when the request finishes, the result of request is available on
@@ -122,11 +123,18 @@ struct sol_http_request_interface {
      * @li @c connection the connection returned in @c sol_http_client_request_with_interface
      * @li @c response the result of the request
      *
-     * @note it is @b NOT @b ALLOWED to cancel the connection handle from
+     * @note it is allowed to cancel the connection handle from
      *       inside this callback.
      */
-    void (*response_cb)(void *userdata, const struct sol_http_client_connection *connection,
+    void (*on_response)(void *userdata, struct sol_http_client_connection *connection,
         struct sol_http_response *response);
+
+    /**
+     * The size in bytes of the receiving data buffer. @c 0 means unlimited buffer size (It will always grow).
+     *
+     * @see sol_http_request_interface::on_data
+     */
+    size_t data_buffer_size;
 };
 
 /**
@@ -152,7 +160,7 @@ struct sol_http_request_interface {
  */
 struct sol_http_client_connection *sol_http_client_request(enum sol_http_method method,
     const char *url, const struct sol_http_params *params,
-    void (*cb)(void *data, const struct sol_http_client_connection *connection,
+    void (*cb)(void *data, struct sol_http_client_connection *connection,
     struct sol_http_response *response),
     const void *data) SOL_ATTR_WARN_UNUSED_RESULT SOL_ATTR_NONNULL(2, 4);
 

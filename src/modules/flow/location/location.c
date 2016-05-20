@@ -37,7 +37,7 @@ struct freegeoip_data {
 
 static void
 freegeoip_query_finished(void *data,
-    const struct sol_http_client_connection *connection,
+    struct sol_http_client_connection *connection,
     struct sol_http_response *response)
 {
     struct freegeoip_data *mdata = data;

@@ -76,7 +76,7 @@ output_write(struct output_data *output)
         } else if (r < 0) {
             if (errno == EINTR)
                 continue;
-            else if (errno == EAGAIN || errno == EWOULDBLOCK)
+            else if (errno == EAGAIN)
                 break;
             else {
                 ret = -errno;

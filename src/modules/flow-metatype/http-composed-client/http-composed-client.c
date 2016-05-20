@@ -266,7 +266,7 @@ http_composed_client_create_packet(const struct sol_flow_packet_type *type,
 
 static void
 http_composed_client_request_finished(void *data,
-    const struct sol_http_client_connection *connection,
+    struct sol_http_client_connection *connection,
     struct sol_http_response *response)
 {
     int r = 0;

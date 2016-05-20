@@ -37,6 +37,21 @@ static struct sol_http_progressive_response *events_response;
 static struct timespec start;
 
 static int
+web_inspector_send_sse_data(struct sol_http_progressive_response *client, struct sol_buffer *buf)
+{
+    int r;
+    struct sol_blob *blob;
+
+    blob = sol_buffer_to_blob(buf);
+    if (!blob)
+        return -ENOMEM;
+
+    r = sol_http_progressive_response_sse_feed(client, blob);
+    sol_blob_unref(blob);
+    return r;
+}
+
+static int
 web_inspector_add_json_key_value(struct sol_buffer *buf, const char *k, const char *v)
 {
     int r;
@@ -95,13 +110,13 @@ web_inspector_open_event(struct sol_buffer *buf, const char *event)
     sol_util_timespec_sub(&now, &start, &diff);
 
     return sol_buffer_append_printf(buf,
-        "data: {\"event\": \"%s\",\"timestamp\":%ld.%010ld,\"payload\":", event, diff.tv_sec, diff.tv_nsec);
+        "{\"event\": \"%s\",\"timestamp\":%ld.%010ld,\"payload\":", event, diff.tv_sec, diff.tv_nsec);
 }
 
 static int
 web_inspector_close_event(struct sol_buffer *buf)
 {
-    return sol_buffer_append_slice(buf, sol_str_slice_from_str("}\n\n"));
+    return sol_buffer_append_slice(buf, sol_str_slice_from_str("}"));
 }
 
 static const char *
@@ -569,7 +584,7 @@ web_inspector_did_open_node(const struct sol_flow_inspector *inspector, const st
     if (r < 0)
         goto end;
 
-    r = sol_http_progressive_response_feed(events_response, sol_buffer_get_slice(&buf));
+    r = web_inspector_send_sse_data(events_response, &buf);
     if (r < 0)
         goto end;
 
@@ -603,7 +618,7 @@ web_inspector_will_close_node(const struct sol_flow_inspector *inspector, const 
     if (r < 0)
         goto end;
 
-    r = sol_http_progressive_response_feed(events_response, sol_buffer_get_slice(&buf));
+    r = web_inspector_send_sse_data(events_response, &buf);
     if (r < 0)
         goto end;
 
@@ -698,7 +713,7 @@ web_inspector_did_connect_port(const struct sol_flow_inspector *inspector, const
     if (r < 0)
         goto end;
 
-    r = sol_http_progressive_response_feed(events_response, sol_buffer_get_slice(&buf));
+    r = web_inspector_send_sse_data(events_response, &buf);
     if (r < 0)
         goto end;
 
@@ -751,7 +766,7 @@ web_inspector_will_disconnect_port(const struct sol_flow_inspector *inspector, c
     if (r < 0)
         goto end;
 
-    r = sol_http_progressive_response_feed(events_response, sol_buffer_get_slice(&buf));
+    r = web_inspector_send_sse_data(events_response, &buf);
     if (r < 0)
         goto end;
 
@@ -1318,7 +1333,7 @@ web_inspector_will_send_packet(const struct sol_flow_inspector *inspector, const
     if (r < 0)
         goto end;
 
-    r = sol_http_progressive_response_feed(events_response, sol_buffer_get_slice(&buf));
+    r = web_inspector_send_sse_data(events_response, &buf);
     if (r < 0)
         goto end;
 
@@ -1388,7 +1403,7 @@ web_inspector_will_deliver_packet(const struct sol_flow_inspector *web_inspector
     if (r < 0)
         goto end;
 
-    r = sol_http_progressive_response_feed(events_response, sol_buffer_get_slice(&buf));
+    r = web_inspector_send_sse_data(events_response, &buf);
     if (r < 0)
         goto end;
 
@@ -1452,6 +1467,10 @@ on_events(void *data, struct sol_http_request *request)
         .response_code = SOL_HTTP_STATUS_OK,
         .content = SOL_BUFFER_INIT_EMPTY
     };
+    struct sol_http_server_progressive_config config = {
+        SOL_SET_API_VERSION(.api_version = SOL_HTTP_SERVER_PROGRESSIVE_CONFIG_API_VERSION, )
+        .on_close = on_events_closed
+    };
     int r;
 
     if (events_response) {
@@ -1468,7 +1487,7 @@ on_events(void *data, struct sol_http_request *request)
         return r;
     }
 
-    events_response = sol_http_server_send_progressive_response(request, &response, on_events_closed, NULL);
+    events_response = sol_http_server_send_progressive_response(request, &response, &config);
     sol_http_params_clear(&response.param);
     if (!events_response)
         return -1;
