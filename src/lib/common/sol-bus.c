@@ -947,3 +947,67 @@ sol_bus_log_callback(sd_bus_message *reply, void *userdata,
 
     return -1;
 }
+
+SOL_API int
+sol_bus_parse_dict(sd_bus_message *m, const struct sol_bus_dict_entry *dict)
+{
+    int r;
+
+    r = sd_bus_message_enter_container(m, SD_BUS_TYPE_ARRAY, "{sv}");
+    SOL_INT_CHECK(r, < 0, r);
+
+    do {
+        const struct sol_bus_dict_entry *entry;
+        const char *member, *contents;
+        char type;
+
+        r = sd_bus_message_enter_container(m, SD_BUS_TYPE_DICT_ENTRY, "sv");
+        if (r <= 0) {
+            r = 0;
+            break;
+        }
+
+        r = sd_bus_message_read_basic(m, SD_BUS_TYPE_STRING, &member);
+        SOL_INT_CHECK_GOTO(r, < 0, end);
+
+        r = sd_bus_message_peek_type(m, &type, &contents);
+        SOL_INT_CHECK_GOTO(r, < 0, end);
+
+        for (entry = dict; entry && entry->name; entry++) {
+            if (streq(entry->name, member))
+                break;
+        }
+
+        if (entry->name) {
+            size_t len;
+
+            r = sd_bus_message_enter_container(m, SD_BUS_TYPE_VARIANT, contents);
+            SOL_INT_CHECK_GOTO(r, < 0, end);
+
+            len = strlen(contents);
+
+            if (entry->type == 'v' && entry->parse_variant)
+                r = entry->parse_variant(m, entry->value);
+            else if (len == 1 && entry->type == contents[0])
+                r = sd_bus_message_read_basic(m, entry->type, entry->value);
+            else {
+                SOL_WRN("Invalid type in message '%s', expecting '%c'",
+                    contents, entry->type);
+                r = -EINVAL;
+            }
+            SOL_INT_CHECK_GOTO(r, < 0, end);
+
+            r = sd_bus_message_exit_container(m);
+            SOL_INT_CHECK_GOTO(r, < 0, end);
+        } else {
+            r = sd_bus_message_skip(m, "v");
+            SOL_INT_CHECK_GOTO(r, < 0, end);
+        }
+
+        r = sd_bus_message_exit_container(m);
+        SOL_INT_CHECK_GOTO(r, < 0, end);
+    } while (1);
+
+end:
+    return r;
+}
