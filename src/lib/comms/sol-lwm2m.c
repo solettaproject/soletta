@@ -239,7 +239,7 @@ struct sol_lwm2m_client {
 };
 
 struct server_conn_ctx {
-    struct sol_network_hostname_handle *hostname_handle;
+    struct sol_network_hostname_pending *hostname_handle;
     struct sol_lwm2m_client *client;
     struct sol_vector server_addr_list;
     struct sol_coap_packet *pending_pkt; //Pending registration reply
@@ -3215,7 +3215,7 @@ server_connection_ctx_clear(struct server_conn_ctx *conn_ctx)
     if (conn_ctx->pending_pkt)
         sol_coap_packet_unref(conn_ctx->pending_pkt);
     if (conn_ctx->hostname_handle)
-        sol_network_cancel_get_hostname_address_info(conn_ctx->hostname_handle);
+        sol_network_hostname_pending_cancel(conn_ctx->hostname_handle);
     sol_vector_clear(&conn_ctx->server_addr_list);
     free(conn_ctx->location);
 }
@@ -3486,7 +3486,7 @@ register_reply(void *data, struct sol_coap_server *server,
     uint8_t code;
     int r;
 
-    SOL_BUFFER_DECLARE_STATIC(addr, SOL_INET_ADDR_STRLEN);
+    SOL_BUFFER_DECLARE_STATIC(addr, SOL_NETWORK_INET_ADDR_STR_LEN);
 
     sol_coap_packet_unref(conn_ctx->pending_pkt);
     conn_ctx->pending_pkt = NULL;

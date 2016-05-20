@@ -1436,7 +1436,7 @@ url_from_addr(struct sol_buffer *url_buf, const struct sol_network_link_addr *ad
     };
     int r;
 
-    SOL_BUFFER_DECLARE_STATIC(addr_buf, SOL_INET_ADDR_STRLEN);
+    SOL_BUFFER_DECLARE_STATIC(addr_buf, SOL_NETWORK_INET_ADDR_STR_LEN);
 
     if (!sol_network_link_addr_to_str(addr, &addr_buf))
         return -EINVAL;
