@@ -8,6 +8,14 @@ obj-networking-$(NETWORK) := \
     sol-comms.o \
     sol-socket.o
 
+obj-$(NETCTL) += \
+    netctl.mod
+
+obj-networking-$(NETCTL) += \
+    sol-netctl-impl-connman.o
+obj-networking-$(NETCTL)-extra-cflags += $(SYSTEMD_CFLAGS)
+obj-networking-$(NETCTL)-extra-ldflags += $(SYSTEMD_LDFLAGS)
+
 obj-dtls-$(DTLS) += \
     sol-socket-dtls-impl-tinydtls.o \
     $(TINYDTLS_SRC_PATH)/aes/rijndael.o \
@@ -158,6 +166,9 @@ headers-$(COAP) += \
 headers-$(BLUETOOTH) += \
     include/sol-bluetooth.h \
     include/sol-gatt.h
+
+headers-$(NETCTL) += \
+    include/sol-netctl.h
 
 headers-$(OIC) += \
     include/sol-oic.h \
