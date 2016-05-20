@@ -196,48 +196,20 @@ done:
 static int
 parse_operation_dict(sd_bus_message *m, uint16_t *offset, const char **path)
 {
+    const struct sol_bus_dict_entry dict[] = {
+        { .name = "offset", .type = 'q', .value = offset },
+        { .name = "device", .type = 'o', .value = path },
+        SOL_BUS_DICT_ENTRY_FINAL
+    };
     int r;
 
     *offset = 0;
     *path = NULL;
 
-    r = sd_bus_message_enter_container(m, 'a', "{sv}");
+    r = sol_bus_parse_dict(m, dict);
     SOL_INT_CHECK(r, < 0, r);
 
-    do {
-        const char *member;
-
-        r = sd_bus_message_enter_container(m, SD_BUS_TYPE_DICT_ENTRY, "sv");
-        if (r <= 0) {
-            r = 0;
-            break;
-        }
-
-        r = sd_bus_message_read_basic(m, SD_BUS_TYPE_STRING, &member);
-        SOL_INT_CHECK_GOTO(r, < 0, end);
-
-        if (streq(member, "offset")) {
-            r = sd_bus_message_enter_container(m, SD_BUS_TYPE_VARIANT, "q");
-            SOL_INT_CHECK_GOTO(r, < 0, end);
-
-            r = sd_bus_message_read_basic(m, 'q', offset);
-            SOL_INT_CHECK_GOTO(r, < 0, end);
-
-        } else if (streq(member, "device")) {
-            r = sd_bus_message_enter_container(m, SD_BUS_TYPE_VARIANT, "o");
-            SOL_INT_CHECK_GOTO(r, < 0, end);
-
-            r = sd_bus_message_read_basic(m, 'o', path);
-            SOL_INT_CHECK_GOTO(r, < 0, end);
-        } else {
-            r = sd_bus_message_skip(m, "v");
-            SOL_INT_CHECK_GOTO(r, < 0, end);
-        }
-    } while (1);
-
-end:
     return r;
-
 }
 
 static int
