@@ -272,3 +272,44 @@ int sol_bus_remove_interfaces_watch(struct sol_bus_client *client,
  */
 int sol_bus_log_callback(sd_bus_message *reply, void *userdata,
     sd_bus_error *ret_error);
+
+/**
+ * @brief Represents an entry in a D-Bus dictionary
+ *
+ * A common idiom in D-Bus is having an array of type 'a{sv}', representing
+ * a dictionary, this struct and sol_bus_parse_dict() help parsing those
+ * data structures.
+ */
+struct sol_bus_dict_entry {
+    /**
+     * @brief The name of the dictionary entry
+     */
+    const char *name;
+    /**
+     * @brief The type of value of the property in the dictionary
+     *
+     * It can be any of the basic types, or 'v' (SD_BUS_TYPE_VARIANT), in
+     * case the type is not basic, the function parse_variant() will be called.
+     */
+    char type;
+    /**
+     * @brief In which place to store the parsed value
+     */
+    void *value;
+    /**
+     * @brief Function to be called in case the value being parsed is not basic.
+     */
+    int (*parse_variant)(sd_bus_message *m, void *value);
+};
+
+/**
+ * @brief Helper to parse D-Bus dictionaries
+ *
+ * @see #sol_bus_dict_entry, the @a dict array must be terminated by an empty entry.
+ *
+ * @param m D-Bus message containing the D-Bus dictionary array
+ * @param dict Dictionary representation, informing how to parse the dictionary.
+ *
+ * @return 0 on success, -errno otherwise.
+ */
+int sol_bus_parse_dict(sd_bus_message *m, const struct sol_bus_dict_entry *dict);
