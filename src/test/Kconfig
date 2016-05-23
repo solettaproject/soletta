@@ -105,6 +105,11 @@ config TEST_UTIL
 	bool "util"
 	default y
 
+config TEST_UTIL_FILE
+       bool "util-file"
+       depends on FEATURE_FILESYSTEM
+       default y
+
 config TEST_COMPOSED_TYPE
 	bool "composed-type"
 	depends on USE_FLOW

@@ -78,6 +78,9 @@ test-test-json-$(TEST_JSON) := test.c test-json.c
 test-$(TEST_UTIL) += test-util
 test-test-util-$(TEST_UTIL) := test.c test-util.c
 
+test-$(TEST_UTIL_FILE) += test-util-file
+test-test-util-file-$(TEST_UTIL_FILE) := test.c test-util-file.c
+
 test-$(TEST_COMPOSED_TYPE) += test-composed-type
 test-test-composed-type-$(TEST_COMPOSED_TYPE) := test.c test-composed-type.c
 

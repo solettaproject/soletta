@@ -326,6 +326,18 @@ int sol_util_move_file(const char *old_path, const char *new_path, mode_t mode);
 bool sol_util_busy_wait_file(const char *path, uint64_t nanoseconds);
 
 /**
+ * @brief Get the basename of a path.
+ *
+ * Get basename of file. It doesn't modify content of the string.
+ *
+ * @param path A path to get the basename.
+ *
+ * @return A pointer to a portion of the original string containing the basename
+ * of the @a path. Return will be an empty string if @a path is empty.
+ */
+struct sol_str_slice sol_util_file_get_basename(struct sol_str_slice path);
+
+/**
  * @}
  */
 
