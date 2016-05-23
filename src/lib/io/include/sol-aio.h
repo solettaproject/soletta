@@ -107,17 +107,6 @@ struct sol_aio *sol_aio_open_raw(const int device, const int pin, const unsigned
 void sol_aio_close(struct sol_aio *aio);
 
 /**
- * @brief Return true if AIO handle is busy, processing another
- * operation. This function should be called before issuing any read
- * operation.
- *
- * @param aio The AIO bus handle
- *
- * @return true if busy, false if idle
- */
-bool sol_aio_busy(struct sol_aio *aio);
-
-/**
  * @brief Request an (asynchronous) read operation to take place on
  * AIO handle @a aio.
  *
@@ -128,9 +117,11 @@ bool sol_aio_busy(struct sol_aio *aio);
  * on failure.
  * @param cb_data The data pointer to be passed to @a read_cb.
  *
- * @return pending An AIO pending operation handle on success,
+ * @return pending An AIO pending operation handle on success and errno is set to @c 0,
  * otherwise @c NULL. It's only valid before @a read_cb is called. It
  * may be used before that to cancel the read operation.
+ * If @c NULL is returned, the errno variable will be set with the correct error value. The error value is always negative.
+ * In case that the AIO device is in use, the errno variale is set to -EBUSY.
  */
 struct sol_aio_pending *sol_aio_get_value(struct sol_aio *aio, void (*read_cb)(void *cb_data, struct sol_aio *aio, int32_t ret), const void *cb_data);
 

@@ -44,11 +44,8 @@ read_cb(void *cb_data, struct sol_aio *_aio, int32_t ret)
 static bool
 on_timeout(void *data)
 {
-    if (sol_aio_busy(aio))
-        return true;
-
     pending = sol_aio_get_value(aio, read_cb, NULL);
-    if (!pending)
+    if (!pending && errno != -EBUSY)
         fprintf(stderr, "ERROR: Failed to request read operation to <%d, %d>.\n", device, pin);
 
     return true;
