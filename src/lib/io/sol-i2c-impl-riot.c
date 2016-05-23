@@ -109,6 +109,7 @@ SOL_API struct sol_i2c_pending *
 sol_i2c_write_quick(struct sol_i2c *i2c, bool rw, void (*write_quick_cb)(void *cb_data, struct sol_i2c *i2c, ssize_t status), const void *cb_data)
 {
     SOL_CRI("Unsupported");
+    errno = -ENOSYS;
     return NULL;
 }
 
@@ -138,9 +139,11 @@ i2c_read_timeout_cb(void *data)
 SOL_API struct sol_i2c_pending *
 sol_i2c_read(struct sol_i2c *i2c, uint8_t *data, size_t count, void (*read_cb)(void *cb_data, struct sol_i2c *i2c, uint8_t *data, ssize_t status), const void *cb_data)
 {
+    errno = -EINVAL;
     SOL_NULL_CHECK(i2c, NULL);
     SOL_NULL_CHECK(data, NULL);
     SOL_INT_CHECK(count, == 0, NULL);
+    errno = -EBUSY;
     SOL_EXP_CHECK(i2c->async.timeout, NULL);
 
     i2c->async.data = data;
@@ -151,8 +154,10 @@ sol_i2c_read(struct sol_i2c *i2c, uint8_t *data, size_t count, void (*read_cb)(v
     i2c->async.cb_data = cb_data;
 
     i2c->async.timeout = sol_timeout_add(0, i2c_read_timeout_cb, i2c);
+    errno = -ENOMEM;
     SOL_NULL_CHECK(i2c->async.timeout, NULL);
 
+    errno = 0;
     return (struct sol_i2c_pending *)i2c->async.timeout;
 }
 
@@ -174,9 +179,11 @@ i2c_write_timeout_cb(void *data)
 SOL_API struct sol_i2c_pending *
 sol_i2c_write(struct sol_i2c *i2c, uint8_t *data, size_t count, void (*write_cb)(void *cb_data, struct sol_i2c *i2c, uint8_t *data, ssize_t status), const void *cb_data)
 {
+    errno = -EINVAL;
     SOL_NULL_CHECK(i2c, NULL);
     SOL_NULL_CHECK(data, NULL);
     SOL_INT_CHECK(count, == 0, NULL);
+    errno = -EBUSY;
     SOL_EXP_CHECK(i2c->async.timeout, NULL);
 
     i2c->async.data = data;
@@ -187,8 +194,10 @@ sol_i2c_write(struct sol_i2c *i2c, uint8_t *data, size_t count, void (*write_cb)
     i2c->async.cb_data = cb_data;
 
     i2c->async.timeout = sol_timeout_add(0, i2c_write_timeout_cb, i2c);
+    errno = -ENOMEM;
     SOL_NULL_CHECK(i2c->async.timeout, NULL);
 
+    errno = 0;
     return (struct sol_i2c_pending *)i2c->async.timeout;
 }
 
@@ -218,9 +227,11 @@ i2c_read_reg_timeout_cb(void *data)
 SOL_API struct sol_i2c_pending *
 sol_i2c_read_register(struct sol_i2c *i2c, uint8_t command, uint8_t *values, size_t count, void (*read_reg_cb)(void *cb_data, struct sol_i2c *i2c, uint8_t reg, uint8_t *data, ssize_t status), const void *cb_data)
 {
+    errno = -EINVAL;
     SOL_NULL_CHECK(i2c, NULL);
     SOL_NULL_CHECK(values, NULL);
     SOL_INT_CHECK(count, == 0, NULL);
+    errno = -EBUSY;
     SOL_EXP_CHECK(i2c->async.timeout, NULL);
 
     i2c->async.data = values;
@@ -232,8 +243,10 @@ sol_i2c_read_register(struct sol_i2c *i2c, uint8_t command, uint8_t *values, siz
     i2c->async.cb_data = cb_data;
 
     i2c->async.timeout = sol_timeout_add(0, i2c_read_reg_timeout_cb, i2c);
+    errno = -ENOMEM;
     SOL_NULL_CHECK(i2c->async.timeout, NULL);
 
+    errno = 0;
     return (struct sol_i2c_pending *)i2c->async.timeout;
 }
 
@@ -265,9 +278,11 @@ i2c_read_reg_multiple_timeout_cb(void *data)
 SOL_API struct sol_i2c_pending *
 sol_i2c_read_register_multiple(struct sol_i2c *i2c, uint8_t reg, uint8_t *data, size_t count, uint8_t times, void (*read_reg_multiple_cb)(void *cb_data, struct sol_i2c *i2c, uint8_t reg, uint8_t *data, ssize_t status), const void *cb_data)
 {
+    errno = -EINVAL;
     SOL_NULL_CHECK(i2c, NULL);
     SOL_NULL_CHECK(data, NULL);
     SOL_INT_CHECK(count, == 0, NULL);
+    errno = -EBUSY;
     SOL_EXP_CHECK(i2c->async.timeout, NULL);
 
     i2c->async.data = data;
@@ -280,7 +295,10 @@ sol_i2c_read_register_multiple(struct sol_i2c *i2c, uint8_t reg, uint8_t *data, 
     i2c->async.times = times;
 
     i2c->async.timeout = sol_timeout_add(0, i2c_read_reg_multiple_timeout_cb, i2c);
+    errno = -ENOMEM;
     SOL_NULL_CHECK(i2c->async.timeout, NULL);
+
+    errno = 0;
     return (struct sol_i2c_pending *)i2c->async.timeout;
 }
 
@@ -302,9 +320,11 @@ i2c_write_reg_timeout_cb(void *data)
 SOL_API struct sol_i2c_pending *
 sol_i2c_write_register(struct sol_i2c *i2c, uint8_t reg, const uint8_t *data, size_t count, void (*write_reg_cb)(void *cb_data, struct sol_i2c *i2c, uint8_t reg, uint8_t *data, ssize_t status), const void *cb_data)
 {
+    errno = -EINVAL;
     SOL_NULL_CHECK(i2c, NULL);
     SOL_NULL_CHECK(data, NULL);
     SOL_INT_CHECK(count, == 0, NULL);
+    errno = -EBUSY;
     SOL_EXP_CHECK(i2c->async.timeout, NULL);
 
     i2c->async.data = (uint8_t *)data;
@@ -316,18 +336,21 @@ sol_i2c_write_register(struct sol_i2c *i2c, uint8_t reg, const uint8_t *data, si
     i2c->async.cb_data = cb_data;
 
     i2c->async.timeout = sol_timeout_add(0, i2c_write_reg_timeout_cb, i2c);
+    errno = -ENOMEM;
     SOL_NULL_CHECK(i2c->async.timeout, false);
+
+    errno = 0;
     return (struct sol_i2c_pending *)i2c->async.timeout;
 }
 
-SOL_API bool
+SOL_API int
 sol_i2c_set_slave_address(struct sol_i2c *i2c, uint8_t slave_address)
 {
-    SOL_NULL_CHECK(i2c, false);
-    SOL_EXP_CHECK(i2c->async.timeout, NULL);
+    SOL_NULL_CHECK(i2c, -EINVAL);
+    SOL_EXP_CHECK(i2c->async.timeout, -EBUSY);
 
     i2c->slave_address = slave_address;
-    return true;
+    return 0;
 }
 
 SOL_API uint8_t
@@ -342,13 +365,6 @@ sol_i2c_bus_get(const struct sol_i2c *i2c)
 {
     SOL_NULL_CHECK(i2c, 0);
     return i2c->dev;
-}
-
-SOL_API bool
-sol_i2c_busy(struct sol_i2c *i2c)
-{
-    SOL_NULL_CHECK(i2c, true);
-    return i2c->async.timeout;
 }
 
 SOL_API void
