@@ -96,12 +96,9 @@ _on_reader_timeout(void *data)
 
     SOL_NULL_CHECK(data, true);
 
-    if (sol_aio_busy(mdata->aio))
-        return true;
-
     mdata->pending = sol_aio_get_value(mdata->aio, read_cb, mdata);
-    if (!mdata->pending) {
-        sol_flow_send_error_packet(mdata->node, EINVAL,
+    if (!mdata->pending && errno != -EBUSY) {
+        sol_flow_send_error_packet(mdata->node, errno,
             "AIO (%s): Failed to issue read operation.", mdata->pin);
         return false;
     }
