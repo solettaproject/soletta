@@ -128,11 +128,11 @@ NAN_METHOD(bind_sol_spi_transfer) {
     memcpy(txBuffer, node::Buffer::Data(info[1]), length);
     Nan::Callback *callback =
         new Nan::Callback(Local<Function>::Cast(info[2]));
-    bool returnValue =
+    int returnValue =
         sol_spi_transfer(spi, txBuffer, rxBuffer, length,
             sol_spi_transfer_cb, callback);
 
-    if (!returnValue) {
+    if (returnValue < 0) {
         free(txBuffer);
         free(rxBuffer);
         delete callback;
