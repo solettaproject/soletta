@@ -496,11 +496,6 @@
       "fragment": "strftime_l(0, 0, 0, 0, 0);"
     },
     {
-      "dependency": "getconf",
-      "type": "exec",
-      "exec": "getconf"
-    },
-    {
       "dependency": "get_current_dir_name",
       "type": "ccode",
       "headers": [
