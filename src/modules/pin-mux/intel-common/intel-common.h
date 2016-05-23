@@ -95,17 +95,17 @@ void mux_shutdown(void);
 int mux_pin_map(const struct mux_pin_map *map, const char *label, const enum sol_io_protocol prot,
     va_list args);
 
-int mux_set_aio(const int device, const int pin, const struct mux_controller *const ctl_list,
-    const int s);
+int mux_set_aio(int device, int pin, const struct mux_controller *const ctl_list,
+    int s);
 
-int mux_set_gpio(const uint32_t pin, const struct sol_gpio_config *config,
-    const struct mux_description *const *desc_list, const uint32_t s);
+int mux_set_gpio(uint32_t pin, const struct sol_gpio_config *config,
+    const struct mux_description *const *desc_list, uint32_t s);
 
-int mux_set_i2c(const uint8_t bus, const struct mux_description *const (*desc_list)[2],
-    const unsigned int s);
+int mux_set_i2c(uint8_t bus, const struct mux_description *const (*desc_list)[2],
+    unsigned int s);
 
-int mux_set_pwm(const int device, const int channel, const struct mux_controller *const ctl_list,
-    const int s);
+int mux_set_pwm(int device, int channel, const struct mux_controller *const ctl_list,
+    int s);
 
 #ifdef __cplusplus
 }

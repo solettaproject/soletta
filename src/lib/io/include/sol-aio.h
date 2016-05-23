@@ -62,7 +62,7 @@ struct sol_aio_pending; /**< @brief AIO pending operation handle structure */
  *
  * @see sol_aio_open_raw
  */
-struct sol_aio *sol_aio_open_by_label(const char *label, const unsigned int precision);
+struct sol_aio *sol_aio_open_by_label(const char *label, unsigned int precision);
 
 /**
  * @brief Open the given Analog I/O @c pin on @c device to be used.
@@ -80,7 +80,7 @@ struct sol_aio *sol_aio_open_by_label(const char *label, const unsigned int prec
  *
  * @see sol_aio_open_raw
  */
-struct sol_aio *sol_aio_open(const int device, const int pin, const unsigned int precision);
+struct sol_aio *sol_aio_open(int device, int pin, unsigned int precision);
 
 /**
  * @brief Open the given Analog I/O @c pin on @c device to be used.
@@ -97,7 +97,7 @@ struct sol_aio *sol_aio_open(const int device, const int pin, const unsigned int
  * the analog to digital converter.
  * @return A new AIO handle
  */
-struct sol_aio *sol_aio_open_raw(const int device, const int pin, const unsigned int precision);
+struct sol_aio *sol_aio_open_raw(int device, int pin, unsigned int precision);
 
 /**
  * @brief Close the given AIO handle.
