@@ -35,6 +35,44 @@ public:
     static const char *jsClassName() { return "SolGpio"; }
 };
 
+#define OPEN_GPIO(functionname, pin, jsGPIOConfig) \
+    do { \
+        sol_gpio_config config; \
+        sol_gpio *gpio = NULL; \
+\
+        sol_gpio_data *gpio_data = new sol_gpio_data; \
+        gpio_data->callback = NULL; \
+\
+        if (!c_sol_gpio_config(jsGPIOConfig->ToObject(), gpio_data, &config)) { \
+            delete gpio_data; \
+            Nan::ThrowError("Unable to extract sol_gpio_config\n"); \
+            return; \
+        } \
+\
+        Nan::Callback *callback = gpio_data->callback; \
+        if (callback) { \
+            if (!hijack_ref()) { \
+                delete callback; \
+                delete gpio_data; \
+                return; \
+            } \
+            config.in.cb = sol_gpio_read_callback; \
+        } \
+\
+        gpio = functionname(pin, &config); \
+        if (gpio) { \
+            gpio_data->gpio = gpio; \
+            info.GetReturnValue().Set(SolGpio::New(gpio_data)); \
+            return; \
+        } else { \
+            if (callback) { \
+                delete callback; \
+                hijack_unref(); \
+            } \
+            delete gpio_data; \
+        } \
+    } while(0)
+
 static void sol_gpio_read_callback(void *data, struct sol_gpio *gpio, bool value) {
     Nan::HandleScope scope;
     sol_gpio_data *gpio_data = (sol_gpio_data *)data;
@@ -53,42 +91,26 @@ NAN_METHOD(bind_sol_gpio_open) {
     VALIDATE_ARGUMENT_TYPE_OR_NULL(info, 0, IsUint32);
     VALIDATE_ARGUMENT_TYPE(info, 1, IsObject);
 
-    uint32_t pin;
-    sol_gpio_config config;
-    sol_gpio *gpio = NULL;
+    uint32_t pin = info[0]->Uint32Value();
+    OPEN_GPIO(sol_gpio_open, pin, info[1]);
+}
 
-    pin = info[0]->Uint32Value();
-    sol_gpio_data *gpio_data = new sol_gpio_data;
-    gpio_data->callback = NULL;
+NAN_METHOD(bind_sol_gpio_open_by_label) {
+    VALIDATE_ARGUMENT_COUNT(info, 2);
+    VALIDATE_ARGUMENT_TYPE_OR_NULL(info, 0, IsString);
+    VALIDATE_ARGUMENT_TYPE(info, 1, IsObject);
 
-    if (!c_sol_gpio_config(info[1]->ToObject(), gpio_data, &config)) {
-        delete gpio_data;
-        Nan::ThrowError("Unable to extract sol_gpio_config\n");
-        return;
-    }
+    String::Utf8Value label(info[0]);
+    OPEN_GPIO(sol_gpio_open_by_label, (const char *)*label, info[1]);
+}
 
-    Nan::Callback *callback = gpio_data->callback;
-    if (callback) {
-        if (!hijack_ref()) {
-            delete callback;
-            delete gpio_data;
-            return;
-        }
-        config.in.cb = sol_gpio_read_callback;
-    }
+NAN_METHOD(bind_sol_gpio_open_raw) {
+    VALIDATE_ARGUMENT_COUNT(info, 2);
+    VALIDATE_ARGUMENT_TYPE_OR_NULL(info, 0, IsUint32);
+    VALIDATE_ARGUMENT_TYPE(info, 1, IsObject);
 
-    gpio = sol_gpio_open(pin, &config);
-    if (gpio) {
-        gpio_data->gpio = gpio;
-        info.GetReturnValue().Set(SolGpio::New(gpio_data));
-        return;
-    } else {
-        if (callback) {
-            delete callback;
-            hijack_unref();
-        }
-        delete gpio_data;
-    }
+    uint32_t pin = info[0]->Uint32Value();
+    OPEN_GPIO(sol_gpio_open_raw, pin, info[1]);
 }
 
 NAN_METHOD(bind_sol_gpio_close) {
