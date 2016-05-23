@@ -174,20 +174,35 @@ i2c_read_fifo_status_cb(void *cb_data, struct sol_i2c *i2c, uint8_t reg, uint8_t
 }
 
 static bool
+set_slave_adxl45(struct accelerometer_adxl345_data *mdata, bool (*cb)(void *data))
+{
+    int r;
+
+    r = sol_i2c_set_slave_address(mdata->i2c, ACCEL_ADDRESS);
+
+    if (r < 0) {
+        if (r == -EBUSY)
+            accel_timer_resched(mdata, ACCEL_STEP_TIME, cb);
+        else {
+            const char errmsg[] = "Failed to set slave at address 0x%02x";
+            SOL_WRN(errmsg, ACCEL_ADDRESS);
+            sol_flow_send_error_packet(mdata->node, r, errmsg, ACCEL_ADDRESS);
+        }
+        return false;
+    }
+
+    return true;
+}
+
+static bool
 accel_tick_do(void *data)
 {
     struct accelerometer_adxl345_data *mdata = data;
 
     mdata->timer = NULL;
-    if (sol_i2c_busy(mdata->i2c)) {
-        accel_timer_resched(mdata, ACCEL_STEP_TIME, accel_tick_do);
-        return false;
-    }
 
-    if (!sol_i2c_set_slave_address(mdata->i2c, ACCEL_ADDRESS)) {
-        SOL_WRN("Failed to set slave at address 0x%02x\n", ACCEL_ADDRESS);
+    if (!set_slave_adxl45(mdata, accel_tick_do))
         return false;
-    }
 
     mdata->common.buffer[0] = 0;
     mdata->i2c_pending = sol_i2c_read_register(mdata->i2c,
@@ -223,15 +238,9 @@ accel_init_stream(void *data)
     struct accelerometer_adxl345_data *mdata = data;
 
     mdata->timer = NULL;
-    if (sol_i2c_busy(mdata->i2c)) {
-        accel_timer_resched(mdata, ACCEL_STEP_TIME, accel_init_stream);
-        return false;
-    }
 
-    if (!sol_i2c_set_slave_address(mdata->i2c, ACCEL_ADDRESS)) {
-        SOL_WRN("Failed to set slave at address 0x%02x\n", ACCEL_ADDRESS);
+    if (!set_slave_adxl45(mdata, accel_init_stream))
         return false;
-    }
 
     /* enable FIFO in stream mode */
     mdata->common.buffer[0] = ACCEL_REG_FIFO_CTL_STREAM;
@@ -265,15 +274,9 @@ accel_init_rate(void *data)
     struct accelerometer_adxl345_data *mdata = data;
 
     mdata->timer = NULL;
-    if (sol_i2c_busy(mdata->i2c)) {
-        accel_timer_resched(mdata, ACCEL_STEP_TIME, accel_init_rate);
-        return false;
-    }
 
-    if (!sol_i2c_set_slave_address(mdata->i2c, ACCEL_ADDRESS)) {
-        SOL_WRN("Failed to set slave at address 0x%02x\n", ACCEL_ADDRESS);
+    if (!set_slave_adxl45(mdata, accel_init_rate))
         return false;
-    }
 
     mdata->common.buffer[0] = 0x0d;
     mdata->i2c_pending = sol_i2c_write_register(mdata->i2c, ACCEL_REG_BW_RATE,
@@ -306,15 +309,9 @@ accel_init_format(void *data)
     struct accelerometer_adxl345_data *mdata = data;
 
     mdata->timer = NULL;
-    if (sol_i2c_busy(mdata->i2c)) {
-        accel_timer_resched(mdata, ACCEL_STEP_TIME, accel_init_format);
-        return false;
-    }
 
-    if (!sol_i2c_set_slave_address(mdata->i2c, ACCEL_ADDRESS)) {
-        SOL_WRN("Failed to set slave at address 0x%02x\n", ACCEL_ADDRESS);
+    if (!set_slave_adxl45(mdata, accel_init_format))
         return false;
-    }
 
     /* Full resolution, 8g:
      * Caution, this must agree with ACCEL_SCALE_1G
@@ -365,15 +362,9 @@ accel_init_power(void *data)
     struct accelerometer_adxl345_data *mdata = data;
 
     mdata->timer = NULL;
-    if (sol_i2c_busy(mdata->i2c)) {
-        accel_timer_resched(mdata, ACCEL_STEP_TIME, accel_init_power);
-        return false;
-    }
 
-    if (!sol_i2c_set_slave_address(mdata->i2c, ACCEL_ADDRESS)) {
-        SOL_WRN("Failed to set slave at address 0x%02x\n", ACCEL_ADDRESS);
+    if (!set_slave_adxl45(mdata, accel_init_power))
         return false;
-    }
 
     mdata->i2c_pending = sol_i2c_write_register(mdata->i2c, ACCEL_REG_POWER_CTL,
         mdata->common.buffer, 1, i2c_write_power_ctl_cb, mdata);
@@ -404,16 +395,9 @@ accel_init(void *data)
     struct accelerometer_adxl345_data *mdata = data;
 
     mdata->timer = NULL;
-    if (sol_i2c_busy(mdata->i2c)) {
-        accel_timer_resched(mdata, ACCEL_STEP_TIME, accel_init);
-        return false;
-    }
 
-    if (!sol_i2c_set_slave_address(mdata->i2c, ACCEL_ADDRESS)) {
-        SOL_WRN("Failed to set slave at address 0x%02x\n",
-            ACCEL_ADDRESS);
+    if (!set_slave_adxl45(mdata, accel_init))
         return false;
-    }
 
     mdata->i2c_pending = sol_i2c_read_register(mdata->i2c, ACCEL_REG_DEV_ID,
         mdata->common.buffer, 1, i2c_read_dev_id_cb, mdata);
