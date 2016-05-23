@@ -51,7 +51,7 @@ struct sol_aio {
 };
 
 static bool
-_check_precision(const unsigned int precision, adc_precision_t *output)
+_check_precision(unsigned int precision, adc_precision_t *output)
 {
     switch (precision) {
     case 6:
@@ -80,7 +80,7 @@ _check_precision(const unsigned int precision, adc_precision_t *output)
 }
 
 static void
-_power_on(const int device)
+_power_on(int device)
 {
     uint16_t i;
     struct dev_ref *ref;
@@ -99,7 +99,7 @@ _power_on(const int device)
 }
 
 static void
-_power_off(const int device)
+_power_off(int device)
 {
     uint16_t i;
     struct dev_ref *ref;
@@ -118,7 +118,7 @@ _power_off(const int device)
 }
 
 struct sol_aio *
-sol_aio_open_raw(const int device, const int pin, const unsigned int precision)
+sol_aio_open_raw(int device, int pin, unsigned int precision)
 {
     struct sol_aio *aio;
     adc_precision_t prec;

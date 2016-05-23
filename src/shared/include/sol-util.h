@@ -192,7 +192,7 @@ sol_util_timespec_compare(const struct timespec *t1, const struct timespec *t2)
  * @return a @c struct timespec representing @c msec milliseconds.
  */
 static inline struct timespec
-sol_util_timespec_from_msec(const int msec)
+sol_util_timespec_from_msec(int msec)
 {
     struct timespec ts;
 
@@ -209,7 +209,7 @@ sol_util_timespec_from_msec(const int msec)
  * @return a @c struct timespec representing @c usec microseconds.
  */
 static inline struct timespec
-sol_util_timespec_from_usec(const int usec)
+sol_util_timespec_from_usec(int usec)
 {
     struct timespec ts;
 
@@ -324,7 +324,7 @@ int sol_util_size_mul(size_t op1, size_t op2, size_t *out);
  *
  * @see sol_util_size_sub
  */
-int sol_util_size_add(const size_t op1, const size_t op2, size_t *out);
+int sol_util_size_add(size_t op1, size_t op2, size_t *out);
 
 /**
  * @brief Subtract two values checking for overflow.
@@ -340,7 +340,7 @@ int sol_util_size_add(const size_t op1, const size_t op2, size_t *out);
  *
  * @see sol_util_size_add
  */
-int sol_util_size_sub(const size_t op1, const size_t op2, size_t *out);
+int sol_util_size_sub(size_t op1, size_t op2, size_t *out);
 
 /**
  * @brief Multiply two values checking for overflow.
@@ -356,7 +356,7 @@ int sol_util_size_sub(const size_t op1, const size_t op2, size_t *out);
  *
  * @see sol_util_int64_mul
  */
-int sol_util_uint64_mul(const uint64_t op1, const uint64_t op2, uint64_t *out);
+int sol_util_uint64_mul(uint64_t op1, uint64_t op2, uint64_t *out);
 
 /**
  * @brief Multiply two values checking for overflow.
@@ -372,7 +372,7 @@ int sol_util_uint64_mul(const uint64_t op1, const uint64_t op2, uint64_t *out);
  *
  * @see sol_util_uint64_mul
  */
-int sol_util_int64_mul(const int64_t op1, const int64_t op2, int64_t *out);
+int sol_util_int64_mul(int64_t op1, int64_t op2, int64_t *out);
 
 /**
  * @brief Add two values checking for overflow.
@@ -388,7 +388,7 @@ int sol_util_int64_mul(const int64_t op1, const int64_t op2, int64_t *out);
  *
  * @see sol_util_size_add
  */
-int sol_util_uint64_add(const uint64_t op1, const uint64_t op2, uint64_t *out);
+int sol_util_uint64_add(uint64_t op1, uint64_t op2, uint64_t *out);
 
 /**
  * @brief Multiply two values checking for overflow.
@@ -402,7 +402,7 @@ int sol_util_uint64_add(const uint64_t op1, const uint64_t op2, uint64_t *out);
  *
  * @return @c 0 on success, error code (always negative) otherwise.
  */
-int sol_util_int32_mul(const int32_t op1, const int32_t op2, int32_t *out);
+int sol_util_int32_mul(int32_t op1, int32_t op2, int32_t *out);
 
 /**
  * @brief Multiply two values checking for overflow.
@@ -416,7 +416,7 @@ int sol_util_int32_mul(const int32_t op1, const int32_t op2, int32_t *out);
  *
  * @return @c 0 on success, error code (always negative) otherwise.
  */
-int sol_util_uint32_mul(const uint32_t op1, const uint32_t op2, uint32_t *out);
+int sol_util_uint32_mul(uint32_t op1, uint32_t op2, uint32_t *out);
 
 /**
  * @brief Generates a new universally unique identifier (UUID) string.
