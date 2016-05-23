@@ -120,7 +120,7 @@ spi_timeout_cb(void *data)
 }
 #endif
 
-SOL_API bool
+SOL_API int
 sol_spi_transfer(struct sol_spi *spi, const uint8_t *tx, uint8_t *rx, size_t size, void (*transfer_cb)(void *cb_data, struct sol_spi *spi, const uint8_t *tx, uint8_t *rx, ssize_t status), const void *cb_data)
 {
 #ifdef WORKER_THREAD
@@ -135,12 +135,13 @@ sol_spi_transfer(struct sol_spi *spi, const uint8_t *tx, uint8_t *rx, size_t siz
     };
 #endif
 
-    SOL_NULL_CHECK(spi, false);
-    SOL_INT_CHECK(size, == 0, false);
+    SOL_NULL_CHECK(spi, -EINVAL);
+    SOL_INT_CHECK(size, == 0, -EINVAL);
+
 #ifdef WORKER_THREAD
-    SOL_EXP_CHECK(spi->transfer.worker, false);
+    SOL_EXP_CHECK(spi->transfer.worker, -EBUSY);
 #else
-    SOL_EXP_CHECK(spi->transfer.timeout, false);
+    SOL_EXP_CHECK(spi->transfer.timeout, -EBUSY);
 #endif
 
     spi->transfer.tx = tx;
@@ -152,13 +153,13 @@ sol_spi_transfer(struct sol_spi *spi, const uint8_t *tx, uint8_t *rx, size_t siz
 
 #ifdef WORKER_THREAD
     spi->transfer.worker = sol_worker_thread_new(&config);
-    SOL_NULL_CHECK(spi->transfer.worker, false);
+    SOL_NULL_CHECK(spi->transfer.worker, -ENOMEM);
 #else
     spi->transfer.timeout = sol_timeout_add(0, spi_timeout_cb, spi);
-    SOL_NULL_CHECK(spi->transfer.timeout, false);
+    SOL_NULL_CHECK(spi->transfer.timeout, -ENOMEM);
 #endif
 
-    return true;
+    return 0;
 }
 
 SOL_API void
