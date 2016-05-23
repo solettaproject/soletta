@@ -75,6 +75,27 @@ i2c_write_configuration_cb(void *cb_data, struct sol_i2c *i2c, uint8_t reg,
 }
 
 static bool
+set_slave(struct stts751_data *mdata, bool (*cb)(void *data))
+{
+    int r;
+
+    r = sol_i2c_set_slave_address(mdata->i2c, mdata->slave);
+
+    if (r < 0) {
+        if (r == -EBUSY)
+            timer_sched(mdata, STEP_TIME, cb);
+        else {
+            const char errmsg[] = "Failed to set slave at address 0x%02x";
+            SOL_WRN(errmsg, mdata->slave);
+            sol_flow_send_error_packet(mdata->node, r, errmsg, mdata->slave);
+        }
+        return false;
+    }
+
+    return true;
+}
+
+static bool
 stts751_init(void *data)
 {
     struct stts751_data *mdata = data;
@@ -82,17 +103,8 @@ stts751_init(void *data)
 
     mdata->timer = NULL;
 
-    if (sol_i2c_busy(mdata->i2c)) {
-        timer_sched(mdata, STEP_TIME, stts751_init);
+    if (!set_slave(mdata, stts751_init))
         return false;
-    }
-
-    if (!sol_i2c_set_slave_address(mdata->i2c, mdata->slave)) {
-        const char errmsg[] = "Failed to set slave at address 0x%02x";
-        SOL_WRN(errmsg, mdata->slave);
-        sol_flow_send_error_packet(mdata->node, EIO, errmsg, mdata->slave);
-        return false;
-    }
 
     /*TODO: It might be a good idea to use the stand-by mode and one-shot reading,
      * as it saves energy */
@@ -218,17 +230,9 @@ stts751_read(void *data)
     uint8_t reg, *dst;
 
     mdata->timer = NULL;
-    if (sol_i2c_busy(mdata->i2c)) {
-        timer_sched(mdata, STEP_TIME, stts751_read);
-        return false;
-    }
 
-    if (!sol_i2c_set_slave_address(mdata->i2c, mdata->slave)) {
-        const char errmsg[] = "Failed to set slave at address 0x%02x";
-        SOL_WRN(errmsg, mdata->slave);
-        sol_flow_send_error_packet(mdata->node, EIO, errmsg, mdata->slave);
+    if (!set_slave(mdata, stts751_read))
         return false;
-    }
 
     switch (mdata->reading_step) {
     case READING_STATUS:
