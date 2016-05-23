@@ -638,7 +638,7 @@ gdb_exec(const char *gdb_comm)
     _exit(EXIT_FAILURE);
 }
 
-SOL_ATTR_NORETURN static void
+SOL_ATTR_NO_RETURN static void
 gdb_debug(const char *gdb_comm)
 {
     while (true) {

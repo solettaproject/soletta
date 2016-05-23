@@ -88,7 +88,7 @@ struct sol_str_table {
  */
 int16_t sol_str_table_lookup_fallback(const struct sol_str_table *table,
     const struct sol_str_slice key,
-    int16_t fallback) SOL_ATTR_NONNULL(1);
+    int16_t fallback) SOL_ATTR_NON_NULL(1);
 
 /**
  * @brief flag to detect key 'misses' in @ref sol_str_table_lookup.
@@ -178,7 +178,7 @@ struct sol_str_table_ptr {
  */
 const void *sol_str_table_ptr_lookup_fallback(const struct sol_str_table_ptr *table_ptr,
     const struct sol_str_slice key,
-    const void *fallback) SOL_ATTR_NONNULL(1);
+    const void *fallback) SOL_ATTR_NON_NULL(1);
 
 /**
  * @def sol_str_table_ptr_lookup(_table_ptr, _key, _pval)
@@ -265,7 +265,7 @@ struct sol_str_table_int64 {
  */
 int64_t sol_str_table_int64_lookup_fallback(const struct sol_str_table_int64 *table_int64,
     const struct sol_str_slice key,
-    int64_t fallback) SOL_ATTR_NONNULL(1);
+    int64_t fallback) SOL_ATTR_NON_NULL(1);
 
 /**
  * @brief flag to detect key 'misses' in @ref sol_str_table_int64_lookup.

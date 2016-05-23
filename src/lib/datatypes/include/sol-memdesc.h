@@ -266,7 +266,7 @@ enum sol_memdesc_type {
  * @param str the string representing a valid type.
  * @return the type or SOL_MEMDESC_TYPE_UNKNOWN if invalid.
  */
-enum sol_memdesc_type sol_memdesc_type_from_str(const char *str) SOL_ATTR_WARN_UNUSED_RESULT SOL_ATTR_NONNULL(1);
+enum sol_memdesc_type sol_memdesc_type_from_str(const char *str) SOL_ATTR_WARN_UNUSED_RESULT SOL_ATTR_NON_NULL(1);
 
 /**
  * @brief Converts a sol_memdesc_type to a string.

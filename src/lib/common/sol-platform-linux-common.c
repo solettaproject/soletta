@@ -435,7 +435,7 @@ finish:
     return res;
 }
 
-SOL_ATTR_NORETURN static void
+SOL_ATTR_NO_RETURN static void
 on_umount_fork(void *data)
 {
     int err;
@@ -512,7 +512,7 @@ sol_mtab_add_entry(const char *dev, const char *mpoint, const char *fstype)
     return err;
 }
 
-SOL_ATTR_NORETURN static void
+SOL_ATTR_NO_RETURN static void
 on_mount_fork(void *data)
 {
     int err;

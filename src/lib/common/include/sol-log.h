@@ -730,9 +730,9 @@ sol_log_domain_init_level(struct sol_log_domain *domain)
  * @param args Variables list.
  */
 #ifdef SOL_LOG_ENABLED
-void sol_log_print(const struct sol_log_domain *domain, uint8_t message_level, const char *file, const char *function, int line, const char *format, ...) SOL_ATTR_PRINTF(6, 7) SOL_ATTR_NOINSTRUMENT;
+void sol_log_print(const struct sol_log_domain *domain, uint8_t message_level, const char *file, const char *function, int line, const char *format, ...) SOL_ATTR_PRINTF(6, 7) SOL_ATTR_NO_INSTRUMENT;
 
-void sol_log_vprint(const struct sol_log_domain *domain, uint8_t message_level, const char *file, const char *function, int line, const char *format, va_list args) SOL_ATTR_PRINTF(6, 0) SOL_ATTR_NOINSTRUMENT;
+void sol_log_vprint(const struct sol_log_domain *domain, uint8_t message_level, const char *file, const char *function, int line, const char *format, va_list args) SOL_ATTR_PRINTF(6, 0) SOL_ATTR_NO_INSTRUMENT;
 #else
 static inline void
 sol_log_print(const struct sol_log_domain *domain, uint8_t message_level, const char *file, const char *function, int line, const char *format, ...)
