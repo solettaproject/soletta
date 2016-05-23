@@ -275,18 +275,18 @@ sol_spi_close(struct sol_spi *spi)
     free(spi);
 }
 
-SOL_API bool
+SOL_API int
 sol_spi_transfer(struct sol_spi *spi, const uint8_t *tx, uint8_t *rx,
     size_t count, void (*transfer_cb)(void *cb_data, struct sol_spi *spi,
-        const uint8_t *tx, uint8_t *rx, ssize_t status), const void *cb_data)
+    const uint8_t *tx, uint8_t *rx, ssize_t status), const void *cb_data)
 {
     qm_rc_t ret;
 
-    SOL_NULL_CHECK(spi, false);
-    SOL_INT_CHECK(count, == 0, false);
+    SOL_NULL_CHECK(spi, -EINVAL);
+    SOL_INT_CHECK(count, == 0, -EINVAL);
 
     if (qm_spi_get_status(spi->bus) == QM_SPI_BUSY)
-        return false;
+        return -EBUSY;
 
     spi->xfer.xfer.tx = (uint8_t *)tx;
     spi->xfer.xfer.tx_len = count;
@@ -301,17 +301,17 @@ sol_spi_transfer(struct sol_spi *spi, const uint8_t *tx, uint8_t *rx,
     spi->xfer.data = cb_data;
 
     ret = qm_spi_set_config(spi->bus, &spi->config);
-    SOL_EXP_CHECK(ret != QM_RC_OK, false);
+    SOL_EXP_CHECK(ret != QM_RC_OK, -EINVAL);
 
     ret = qm_spi_slave_select(spi->bus, spi->slave);
-    SOL_EXP_CHECK(ret != QM_RC_OK, false);
+    SOL_EXP_CHECK(ret != QM_RC_OK, -EINVAL);
 
     qm_gpio_clear_pin(spi->slave_select.port, spi->slave_select.pin);
 
     ret = qm_spi_irq_transfer(spi->bus, &spi->xfer.xfer);
-    SOL_EXP_CHECK(ret != QM_RC_OK, false);
+    SOL_EXP_CHECK(ret != QM_RC_OK, -EINVAL);
 
     in_transfer[spi->xfer.xfer.id] = spi;
 
-    return true;
+    return 0;
 }
