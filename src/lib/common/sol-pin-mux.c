@@ -187,25 +187,25 @@ sol_pin_mux_map(const char *label, const enum sol_io_protocol prot, ...)
 }
 
 SOL_API int
-sol_pin_mux_setup_aio(const int device, const int pin)
+sol_pin_mux_setup_aio(int device, int pin)
 {
     return (mux && mux->aio) ? mux->aio(device, pin) : 0;
 }
 
 SOL_API int
-sol_pin_mux_setup_gpio(const uint32_t pin, const struct sol_gpio_config *config)
+sol_pin_mux_setup_gpio(uint32_t pin, const struct sol_gpio_config *config)
 {
     return (mux && mux->gpio) ? mux->gpio(pin, config) : 0;
 }
 
 SOL_API int
-sol_pin_mux_setup_i2c(const uint8_t bus)
+sol_pin_mux_setup_i2c(uint8_t bus)
 {
     return (mux && mux->i2c) ? mux->i2c(bus) : 0;
 }
 
 SOL_API int
-sol_pin_mux_setup_pwm(const int device, const int channel)
+sol_pin_mux_setup_pwm(int device, int channel)
 {
     return (mux && mux->pwm) ? mux->pwm(device, channel) : 0;
 }

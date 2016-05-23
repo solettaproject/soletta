@@ -432,7 +432,7 @@ _pin_map(const char *label, const enum sol_io_protocol prot, va_list args)
 }
 
 static int
-_set_aio(const int device, const int pin)
+_set_aio(int device, int pin)
 {
     if (ardu_breakout)
         return mux_set_aio(device, pin, aio_controller_list, (int)sol_util_array_size(aio_controller_list));
@@ -441,7 +441,7 @@ _set_aio(const int device, const int pin)
 }
 
 static int
-_set_gpio(const uint32_t pin, const struct sol_gpio_config *config)
+_set_gpio(uint32_t pin, const struct sol_gpio_config *config)
 {
     if (ardu_breakout)
         return mux_set_gpio(pin, config, gpio_dev_0, (uint32_t)sol_util_array_size(gpio_dev_0));
@@ -450,7 +450,7 @@ _set_gpio(const uint32_t pin, const struct sol_gpio_config *config)
 }
 
 static int
-_set_i2c(const uint8_t bus)
+_set_i2c(uint8_t bus)
 {
     if (ardu_breakout)
         return mux_set_i2c(bus, i2c_dev_0, sol_util_array_size(i2c_dev_0));
@@ -459,7 +459,7 @@ _set_i2c(const uint8_t bus)
 }
 
 static int
-_set_pwm(const int device, const int channel)
+_set_pwm(int device, int channel)
 {
     if (ardu_breakout)
         return mux_set_pwm(device, channel, pwm_controller_list, (int)sol_util_array_size(pwm_controller_list));
