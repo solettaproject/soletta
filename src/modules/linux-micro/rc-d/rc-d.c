@@ -48,7 +48,7 @@ static struct sol_ptr_vector monitors = SOL_PTR_VECTOR_INIT;
 static struct sol_timeout *monitor_timer;
 static struct sol_vector pendings = SOL_VECTOR_INIT(struct pending);
 
-static void SOL_ATTR_NORETURN
+static void SOL_ATTR_NO_RETURN
 find_exec(const char *service, const char *arg)
 {
     const char **itr, *dirs[] = {

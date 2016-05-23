@@ -31,14 +31,14 @@ void sol_platform_impl_shutdown(void);
 
 int sol_platform_impl_get_state(void);
 
-int sol_platform_impl_add_service_monitor(const char *service) SOL_ATTR_NONNULL(1);
-int sol_platform_impl_del_service_monitor(const char *service) SOL_ATTR_NONNULL(1);
+int sol_platform_impl_add_service_monitor(const char *service) SOL_ATTR_NON_NULL(1);
+int sol_platform_impl_del_service_monitor(const char *service) SOL_ATTR_NON_NULL(1);
 
-int sol_platform_impl_start_service(const char *service) SOL_ATTR_NONNULL(1);
-int sol_platform_impl_stop_service(const char *service) SOL_ATTR_NONNULL(1);
-int sol_platform_impl_restart_service(const char *service) SOL_ATTR_NONNULL(1);
+int sol_platform_impl_start_service(const char *service) SOL_ATTR_NON_NULL(1);
+int sol_platform_impl_stop_service(const char *service) SOL_ATTR_NON_NULL(1);
+int sol_platform_impl_restart_service(const char *service) SOL_ATTR_NON_NULL(1);
 
-int sol_platform_impl_set_target(const char *target) SOL_ATTR_NONNULL(1);
+int sol_platform_impl_set_target(const char *target) SOL_ATTR_NON_NULL(1);
 
 int sol_platform_impl_get_machine_id(char id[SOL_STATIC_ARRAY_SIZE(33)]);
 int sol_platform_impl_get_serial_number(char **number);

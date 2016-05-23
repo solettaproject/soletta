@@ -24,7 +24,7 @@
  */
 
 /**
- * @defgroup Macros Macros
+ * @defgroup Macros Compiler Macros
  *
  * @{
  */
@@ -78,7 +78,7 @@
  */
 
 /**
- * @def SOL_ATTR_NOINSTRUMENT
+ * @def SOL_ATTR_NO_INSTRUMENT
  *
  * @brief Used to tell that this functions shouldn't be instrumented.
  *
@@ -87,7 +87,7 @@
  */
 
 /**
- * @def SOL_ATTR_NONNULL(...)
+ * @def SOL_ATTR_NON_NULL(...)
  *
  * @brief Specifies that some function parameters should be non-null pointers.
  *
@@ -122,7 +122,7 @@
  */
 
 /**
- * @def SOL_ATTR_NORETURN
+ * @def SOL_ATTR_NO_RETURN
  *
  * @brief Used to tell that a function never return.
  */
@@ -161,7 +161,7 @@
  * @def SOL_UNREACHABLE
  *
  * @brief Macro to mark a location of code that is unreachable, usually after
- * calling a SOL_ATTR_NORETURN function.
+ * calling a SOL_ATTR_NO_RETURN function.
  */
 
 #if __GNUC__ >= 4
@@ -171,13 +171,13 @@
 #define SOL_ATTR_PRINTF(fmt, arg) __attribute__((format(printf, fmt, arg)))
 #define SOL_ATTR_SCANF(fmt, arg) __attribute__((format(scanf, fmt, arg)))
 #define SOL_ATTR_STRFTIME(fmt) __attribute__((format(strftime, fmt, 0)))
-#define SOL_ATTR_NOINSTRUMENT __attribute__((no_instrument_function))
-#define SOL_ATTR_NONNULL(...) __attribute__((nonnull(__VA_ARGS__)))
+#define SOL_ATTR_NO_INSTRUMENT __attribute__((no_instrument_function))
+#define SOL_ATTR_NON_NULL(...) __attribute__((nonnull(__VA_ARGS__)))
 #define SOL_ATTR_SECTION(secname) __attribute__((section(secname)))
 #define SOL_ATTR_USED __attribute__((__used__))
 #define SOL_ATTR_UNUSED __attribute__((__unused__))
 #define SOL_ATTR_SENTINEL __attribute__((sentinel))
-#define SOL_ATTR_NORETURN __attribute__((noreturn))
+#define SOL_ATTR_NO_RETURN __attribute__((noreturn))
 #define SOL_ATTR_PURE __attribute__((pure))
 #define SOL_LIKELY(x)   __builtin_expect(!!(x), 1)
 #define SOL_UNLIKELY(x) __builtin_expect(!!(x), 0)
@@ -189,13 +189,13 @@
 #define SOL_ATTR_PRINTF(fmt, arg)
 #define SOL_ATTR_SCANF(fmt, arg)
 #define SOL_ATTR_STRFTIME(fmt)
-#define SOL_ATTR_NOINSTRUMENT
-#define SOL_ATTR_NONNULL(...)
+#define SOL_ATTR_NO_INSTRUMENT
+#define SOL_ATTR_NON_NULL(...)
 #define SOL_ATTR_SECTION(secname)
 #define SOL_ATTR_USED
 #define SOL_ATTR_UNUSED
 #define SOL_ATTR_SENTINEL
-#define SOL_ATTR_NORETURN
+#define SOL_ATTR_NO_RETURN
 #define SOL_ATTR_PURE
 #define SOL_LIKELY(x)
 #define SOL_UNLIKELY(x)

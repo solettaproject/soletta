@@ -162,7 +162,7 @@ struct sol_http_client_connection *sol_http_client_request(enum sol_http_method 
     const char *url, const struct sol_http_params *params,
     void (*cb)(void *data, struct sol_http_client_connection *connection,
     struct sol_http_response *response),
-    const void *data) SOL_ATTR_WARN_UNUSED_RESULT SOL_ATTR_NONNULL(2, 4);
+    const void *data) SOL_ATTR_WARN_UNUSED_RESULT SOL_ATTR_NON_NULL(2, 4);
 
 /**
  * @brief Create a request for the specified url using the given method. The result of
@@ -189,7 +189,7 @@ struct sol_http_client_connection *sol_http_client_request(enum sol_http_method 
 struct sol_http_client_connection *sol_http_client_request_with_interface(enum sol_http_method method,
     const char *url, const struct sol_http_params *params,
     const struct sol_http_request_interface *interface,
-    const void *data) SOL_ATTR_WARN_UNUSED_RESULT SOL_ATTR_NONNULL(2, 4);
+    const void *data) SOL_ATTR_WARN_UNUSED_RESULT SOL_ATTR_NON_NULL(2, 4);
 
 /**
  * @brief Cancel a pending request and release its resources.

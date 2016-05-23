@@ -144,7 +144,7 @@ uint64_t sol_platform_linux_fork_run_get_pid(const struct sol_platform_linux_for
  *        status parameter, in that case use the @c sys/wait.h macros
  *        to get the actual value, such as WEXITSTATUS().
  */
-void sol_platform_linux_fork_run_exit(int status) SOL_ATTR_NORETURN;
+void sol_platform_linux_fork_run_exit(int status) SOL_ATTR_NO_RETURN;
 
 int sol_platform_linux_mount(const char *dev, const char *mpoint, const char *fstype, void (*cb)(void *data, const char *mpoint, int status), const void *data);
 
