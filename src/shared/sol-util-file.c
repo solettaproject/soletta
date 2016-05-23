@@ -593,3 +593,25 @@ sol_util_busy_wait_file(const char *path, uint64_t nanoseconds)
 
     return true;
 }
+
+SOL_API struct sol_str_slice
+sol_util_file_get_basename(struct sol_str_slice path)
+{
+    struct sol_str_slice basename;
+
+    while (path.len > 1 && path.data[path.len - 1] == '/')
+        path.len--;
+
+    if (path.len == 0 || path.len == 1)
+        return path;
+
+    basename.data = memrchr(path.data, '/', path.len);
+    if (basename.data == NULL)
+        return path;
+    basename.len = path.len - (basename.data - path.data);
+
+    basename.data += 1;
+    basename.len -= 1;
+
+    return basename;
+}
