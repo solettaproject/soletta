@@ -109,7 +109,7 @@ sol_util_read_file(const char *path, const char *fmt, ...)
 }
 
 SOL_API ssize_t
-sol_util_fill_buffer(const int fd, struct sol_buffer *buffer, const size_t size)
+sol_util_fill_buffer(int fd, struct sol_buffer *buffer, size_t size)
 {
     size_t bytes_read = 0, s;
     unsigned int retry = 0;
@@ -167,7 +167,7 @@ sol_util_fill_buffer(const int fd, struct sol_buffer *buffer, const size_t size)
 }
 
 SOL_API struct sol_buffer *
-sol_util_load_file_fd_raw(const int fd)
+sol_util_load_file_fd_raw(int fd)
 {
     struct sol_buffer *buf;
     int r;
