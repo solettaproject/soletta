@@ -75,7 +75,7 @@ aio_read_dispatch(struct sol_aio *aio)
  * the ADC controller -- CONFIG_ADC_DW_SAMPLE_WIDTH kernel option */
 
 SOL_API struct sol_aio *
-sol_aio_open_raw(const int device, const int pin, const unsigned int precision)
+sol_aio_open_raw(int device, int pin, unsigned int precision)
 {
     struct sol_aio *aio = NULL;
     struct device *dev = NULL;

@@ -86,7 +86,7 @@ int sol_pin_mux_map(const char *label, const enum sol_io_protocol prot, ...);
  *
  * @return '0' on success, error code (always negative) otherwise.
  */
-int sol_pin_mux_setup_aio(const int device, const int pin);
+int sol_pin_mux_setup_aio(int device, int pin);
 
 /**
  * @brief Setup the given pin to operate in the given GPIO configuration.
@@ -99,7 +99,7 @@ int sol_pin_mux_setup_aio(const int device, const int pin);
  *
  * @return '0' on success, error code (always negative) otherwise.
  */
-int sol_pin_mux_setup_gpio(const uint32_t pin, const struct sol_gpio_config *config);
+int sol_pin_mux_setup_gpio(uint32_t pin, const struct sol_gpio_config *config);
 
 /**
  * @brief Setup the pins used of the given i2c bus number to operate in I2C mode.
@@ -112,7 +112,7 @@ int sol_pin_mux_setup_gpio(const uint32_t pin, const struct sol_gpio_config *con
  *
  * @return '0' on success, error code (always negative) otherwise.
  */
-int sol_pin_mux_setup_i2c(const uint8_t bus);
+int sol_pin_mux_setup_i2c(uint8_t bus);
 
 /**
  * @brief Setup the given pin to operate as PWM.
@@ -125,7 +125,7 @@ int sol_pin_mux_setup_i2c(const uint8_t bus);
  *
  * @return '0' on success, error code (always negative) otherwise.
  */
-int sol_pin_mux_setup_pwm(const int device, const int channel);
+int sol_pin_mux_setup_pwm(int device, int channel);
 
 /**
  * @}

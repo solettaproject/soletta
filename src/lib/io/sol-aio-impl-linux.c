@@ -97,7 +97,7 @@ _aio_open_fp(struct sol_aio *aio)
 }
 
 SOL_API struct sol_aio *
-sol_aio_open_raw(const int device, const int pin, const unsigned int precision)
+sol_aio_open_raw(int device, int pin, unsigned int precision)
 {
     char path[PATH_MAX];
     struct stat st;

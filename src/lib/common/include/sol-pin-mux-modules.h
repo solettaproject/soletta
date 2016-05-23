@@ -93,7 +93,7 @@ struct sol_pin_mux {
      *
      * @return @c 0 on success, error code (always negative) otherwise.
      */
-    int (*aio)(const int device, const int pin);
+    int (*aio)(int device, int pin);
 
     /**
      * @brief Callback to setup the given pin to operate in the given GPIO configuration.
@@ -106,7 +106,7 @@ struct sol_pin_mux {
      *
      * @return @c 0 on success, error code (always negative) otherwise.
      */
-    int (*gpio)(const uint32_t pin, const struct sol_gpio_config *config);
+    int (*gpio)(uint32_t pin, const struct sol_gpio_config *config);
 
     /**
      * @brief Callback to setup the pins used of the given i2c bus number to operate in I2C mode.
@@ -118,7 +118,7 @@ struct sol_pin_mux {
      *
      * @return @c 0 on success, error code (always negative) otherwise.
      */
-    int (*i2c)(const uint8_t bus);
+    int (*i2c)(uint8_t bus);
 
     /**
      * @brief Callback to setup the given pin to operate as PWM.
@@ -131,7 +131,7 @@ struct sol_pin_mux {
      *
      * @return @c 0 on success, error code (always negative) otherwise.
      */
-    int (*pwm)(const int device, const int channel);
+    int (*pwm)(int device, int channel);
 
 };
 
