@@ -21,7 +21,6 @@
 
 exports.open = function( init ) {
     return new Promise( function( fulfill, reject ) {
-        var pin = init.pin;
         var dir = 0;
         var drive_mode = 0;
         var config = null;
@@ -57,7 +56,14 @@ exports.open = function( init ) {
             }
         }
 
-        gpio = soletta.sol_gpio_open( pin, config );
+        if ( init.raw ) {
+            gpio = soletta.sol_gpio_open_raw( init.pin, config );
+        } else if ( typeof init.name === 'string' && init.name !== "" ) {
+            gpio = soletta.sol_gpio_open_by_label( init.name, config );
+        } else {
+            gpio = soletta.sol_gpio_open( init.pin, config );
+        }
+
         if ( gpio ) {
             gpiopin = GPIOPin( gpio );
             callback_data.push( gpiopin );
