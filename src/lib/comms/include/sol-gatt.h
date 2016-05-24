@@ -176,7 +176,7 @@ struct sol_gatt_attr {
 };
 
 /**
- * @brief Returns a response to a async operation
+ * @brief Returns a response to an asynchronous operation
  *
  * When a operation is performed in a attribute, the response to the operation
  * is only returned when this function is called.
@@ -347,10 +347,12 @@ int sol_gatt_unsubscribe(bool (*cb)(void *user_data, const struct sol_gatt_attr 
     const void *user_data);
 
 /**
- * Sends an indication to the device represented by @a conn, if @a conn is NULL, send to all
- * devices that have registered themselves via the CCC attribute.
+ * Sends an indication to the device represented by @a conn. If @a
+ * conn is @c NULL, it sends to all devices that have registered
+ * themselves via the CCC attribute.
  *
- * The value to be indicated is the value retrieved by calling @a read callback of the attribute.
+ * The value to be indicated is the value retrieved by calling the @a
+ * read callback of the attribute.
  *
  * @param conn Connection in which to send notificatiions/indications.
  * @param attr Attribute to update.
@@ -360,10 +362,12 @@ int sol_gatt_unsubscribe(bool (*cb)(void *user_data, const struct sol_gatt_attr 
 int sol_gatt_indicate(struct sol_bt_conn *conn, const struct sol_gatt_attr *attr);
 
 /**
- * Sends an indication to the device represented by @a conn, if @a conn is NULL, send to all
- * devices that have registered themselves via the CCC attribute.
+ * Sends a notificatiion to the device represented by @a conn. If @a
+ * conn is @c NULL, it sends to all devices that have registered
+ * themselves via the CCC attribute.
  *
- * The value to be notified is the value retrieved by calling @a read callback of the attribute.
+ * The value to be notified is the value retrieved by calling the @a
+ * read callback of the attribute.
  *
  * @param conn Connection in which to send notificatiions/indications.
  * @param attr Attribute to update.
