@@ -97,6 +97,50 @@ call_error_monitor_callback(struct sol_netctl_service *service,
 }
 
 static void
+_set_error_to_callback(struct sol_netctl_service *service,
+    sd_bus_error *ret_error)
+{
+    unsigned int error;
+    static const struct sol_str_table err_table[] = {
+        SOL_STR_TABLE_ITEM("org.freedesktop.DBus.Error.NoMemory",
+            ENOMEM),
+        SOL_STR_TABLE_ITEM("org.freedesktop.DBus.Error.AccessDenied",
+            EPERM),
+        SOL_STR_TABLE_ITEM("org.freedesktop.DBus.Error.InvalidArgs",
+            EINVAL),
+        SOL_STR_TABLE_ITEM("org.freedesktop.DBus.Error.UnixProcessIdUnknown",
+            ESRCH),
+        SOL_STR_TABLE_ITEM("org.freedesktop.DBus.Error.FileNotFound",
+            ENOENT),
+        SOL_STR_TABLE_ITEM("org.freedesktop.DBus.Error.FileExists",
+            EEXIST),
+        SOL_STR_TABLE_ITEM("org.freedesktop.DBus.Error.Timeout",
+            ETIMEDOUT),
+        SOL_STR_TABLE_ITEM("org.freedesktop.DBus.Error.IOError",
+            EIO),
+        SOL_STR_TABLE_ITEM("org.freedesktop.DBus.Error.Disconnected",
+            ECONNRESET),
+        SOL_STR_TABLE_ITEM("org.freedesktop.DBus.Error.NotSupported",
+            ENOTSUP),
+        SOL_STR_TABLE_ITEM("org.freedesktop.DBus.Error.BadAddress",
+            EFAULT),
+        SOL_STR_TABLE_ITEM("org.freedesktop.DBus.Error.LimitsExceeded",
+            ENOBUFS),
+        SOL_STR_TABLE_ITEM("org.freedesktop.DBus.Error.AddressInUse",
+            EADDRINUSE),
+        SOL_STR_TABLE_ITEM("org.freedesktop.DBus.Error.InconsistentMessage",
+            EBADMSG),
+        { }
+    };
+
+    if (ret_error) {
+        error = sol_str_table_lookup_fallback(err_table,
+            sol_str_slice_from_str(ret_error->name), EINVAL);
+        call_error_monitor_callback(service, error);
+    }
+}
+
+static void
 _init_connman_service(struct sol_netctl_service *service)
 {
     SOL_SET_API_VERSION(service->link.api_version = SOL_NETWORK_LINK_API_VERSION; )
@@ -643,10 +687,16 @@ _set_state_property_changed(sd_bus_message *reply, void *userdata,
     sd_bus_error *ret_error)
 {
     struct ctx *pending = userdata;
+    const sd_bus_error *error;
 
     pending->state_slot = sd_bus_slot_unref(pending->state_slot);
 
-    return sol_bus_log_callback(reply, userdata, ret_error);
+    if (sol_bus_log_callback(reply, userdata, ret_error) < 0) {
+        error = sd_bus_message_get_error(reply);
+        _set_error_to_callback(NULL, error);
+    }
+
+    return 0;
 }
 
 SOL_API int
@@ -677,16 +727,74 @@ sol_netctl_get_radios_offline(void)
     return true;
 }
 
+static int
+_service_connect(sd_bus_message *reply, void *userdata,
+    sd_bus_error *ret_error)
+{
+    struct sol_netctl_service *service = userdata;
+    sd_bus_error *error;
+
+    SOL_NULL_CHECK(service, -EINVAL);
+
+    service->slot = sd_bus_slot_unref(service->slot);
+
+    if (sol_bus_log_callback(reply, userdata, ret_error) < 0) {
+        error = sd_bus_message_get_error(reply);
+        _set_error_to_callback(service, error);
+    }
+
+    return 0;
+}
+
 SOL_API int
 sol_netctl_service_connect(struct sol_netctl_service *service)
 {
+    sd_bus *bus = sol_bus_client_get_bus(_ctx.connman);
+
+    SOL_NULL_CHECK(bus, -EINVAL);
+    SOL_NULL_CHECK(service, -EINVAL);
+    SOL_NULL_CHECK(service->path, -EINVAL);
+
+    if (service->slot)
+        return -EBUSY;
+
+    return sd_bus_call_method_async(bus, &service->slot, "net.connman", service->path,
+        "net.connman.Service", "Connect", _service_connect, service, NULL);
+}
+
+static int
+_service_disconnect(sd_bus_message *reply, void *userdata,
+    sd_bus_error *ret_error)
+{
+    struct sol_netctl_service *service = userdata;
+    const sd_bus_error *error;
+
+    SOL_NULL_CHECK(service, -EINVAL);
+
+    service->slot = sd_bus_slot_unref(service->slot);
+
+    if (sol_bus_log_callback(reply, userdata, ret_error) < 0) {
+        error = sd_bus_message_get_error(reply);
+        _set_error_to_callback(service, error);
+    }
+
     return 0;
 }
 
 SOL_API int
 sol_netctl_service_disconnect(struct sol_netctl_service *service)
 {
-    return 0;
+    sd_bus *bus = sol_bus_client_get_bus(_ctx.connman);
+
+    SOL_NULL_CHECK(bus, -EINVAL);
+    SOL_NULL_CHECK(service, -EINVAL);
+    SOL_NULL_CHECK(service->path, -EINVAL);
+
+    if (service->slot)
+        service->slot = sd_bus_slot_unref(service->slot);
+
+    return sd_bus_call_method_async(bus, &service->slot, "net.connman", service->path,
+        "net.connman.Service", "Disconnect", _service_disconnect, service, NULL);
 }
 
 int
