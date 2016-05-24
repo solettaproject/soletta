@@ -78,7 +78,9 @@ device_id_decode(const char *device_id_encoded, char *device_id)
 }
 
 static bool
-found_resource_print(void *data, struct sol_oic_client *cli, struct sol_oic_resource *res)
+found_resource_print(void *data,
+    struct sol_oic_client *cli,
+    struct sol_oic_resource *res)
 {
     struct sol_str_slice *slice;
     uint16_t idx;
@@ -133,10 +135,10 @@ static void
 fill_info(const struct sol_oic_map_reader *map_reader, bool *state, int32_t *power)
 {
     struct sol_oic_repr_field field;
-    enum sol_oic_map_loop_status end_status;
+    enum sol_oic_map_loop_reason end_reason;
     struct sol_oic_map_reader iterator;
 
-    SOL_OIC_MAP_LOOP(map_reader, &field, &iterator, end_status) {
+    SOL_OIC_MAP_LOOP(map_reader, &field, &iterator, end_reason) {
         if (state && streq(field.key, "state") &&
             field.type == SOL_OIC_REPR_TYPE_BOOLEAN) {
             *state = field.v_boolean;
@@ -292,7 +294,7 @@ print_response(void *data, enum sol_coap_response_code response_code, struct sol
     const struct sol_oic_map_reader *map_reader)
 {
     struct sol_oic_repr_field field;
-    enum sol_oic_map_loop_status end_status;
+    enum sol_oic_map_loop_reason end_reason;
     struct sol_oic_map_reader iterator;
     struct Context *ctx = data;
     struct sol_buffer buf = SOL_BUFFER_INIT_EMPTY;
@@ -328,7 +330,7 @@ print_response(void *data, enum sol_coap_response_code response_code, struct sol
 
     if (map_reader) {
         printf("Dumping payload received from addr %.*s {\n", SOL_STR_SLICE_PRINT(sol_buffer_get_slice(&addr)));
-        SOL_OIC_MAP_LOOP(map_reader, &field, &iterator, end_status) {
+        SOL_OIC_MAP_LOOP(map_reader, &field, &iterator, end_reason) {
 
             switch (field.type) {
             case SOL_OIC_REPR_TYPE_UINT:
@@ -461,7 +463,9 @@ put_fill_repr_map(struct sol_oic_map_writer *repr_map)
 }
 
 static bool
-found_resource(void *data, struct sol_oic_client *cli, struct sol_oic_resource *res)
+found_resource(void *data,
+    struct sol_oic_client *cli,
+    struct sol_oic_resource *res)
 {
     struct Context *ctx = data;
     bool non_confirmable = false, observe = false;
@@ -471,6 +475,7 @@ found_resource(void *data, struct sol_oic_client *cli, struct sol_oic_resource *
     int (*fill_repr_map)(struct sol_oic_map_writer *repr_map) = NULL;
     struct sol_str_slice path;
     struct sol_oic_request *request;
+    struct sol_str_slice *path_ptr = (struct sol_str_slice *)&res->path;
 
     if (!res)
         return false;
@@ -514,7 +519,8 @@ found_resource(void *data, struct sol_oic_client *cli, struct sol_oic_resource *
         non_confirmable = true;
         method_str = "invalid GET";
         path = res->path;
-        res->path = sol_str_slice_from_str("/SomeUnknownResource");
+        //XXX: hack
+        *path_ptr = sol_str_slice_from_str("/SomeUnknownResource");
         break;
     case TEST_CONFIRMABLE_GET:
         break;
@@ -543,11 +549,13 @@ found_resource(void *data, struct sol_oic_client *cli, struct sol_oic_resource *
 
     if (observe) {
         if (non_confirmable)
-            sol_oic_client_resource_set_observable(cli, res, resource_notify,
+            sol_oic_client_resource_set_observable
+                (cli, res, resource_notify,
                 data, true);
         else
-            sol_oic_client_resource_set_observable_non_confirmable(cli, res,
-                resource_notify, data, true);
+            sol_oic_client_resource_set_observable_non_confirmable
+                (cli, res, resource_notify,
+                data, true);
     } else {
         if (non_confirmable) {
             request = sol_oic_client_request_new(method, res);
@@ -560,7 +568,7 @@ found_resource(void *data, struct sol_oic_client *cli, struct sol_oic_resource *
     }
 
     if (ctx->test_number == TEST_NON_CONFIRMABLE_INVALID_GET)
-        res->path = path;
+        *path_ptr = path;
 
     return false;
 
