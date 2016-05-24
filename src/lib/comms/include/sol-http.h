@@ -103,7 +103,7 @@ enum sol_http_status_code {
  *
  * It's required to make requests, with
  * sol_http_client_request() or sol_http_client_request_with_interface()
- * or to create uris, with sol_http_create_uri() and variants.
+ * or to create URIs, with sol_http_create_uri() and variants.
  */
 struct sol_http_params {
 #ifndef SOL_NO_API_VERSION
@@ -125,17 +125,20 @@ struct sol_http_content_type_priority {
     struct sol_str_slice content_type; /**< The content type itself. Example: @c "text/html" */
     struct sol_str_slice type; /**< The type. Example @c "text" */
     struct sol_str_slice sub_type; /**< The sub type. Example @c "html"*/
-    struct sol_vector tokens; /**< An array of @ref sol_str_slice. For the following contet type @c "text/html;level=1;level2",
-                                 this array would contains @c "level=1" and @c "level=2" */
+    struct sol_vector tokens; /**< An array of @ref sol_str_slice. For
+                                 example, for the content type @c
+                                 "text/html;level=1;level2", this
+                                 array would contain @c "level=1" and
+                                 @c "level=2" */
     double qvalue; /**< The qvalue for the content type */
     uint16_t index; /**< The original index as found in the content type/accept HTTP header */
 };
 
 /**
- * @brief Used to define a HTTP parameter
+ * @brief Used to define an HTTP parameter
  *
- * A parameter is defined by it's type
- * (one of enum @ref sol_http_param_type) and it's value.
+ * A parameter is defined by its type
+ * (one of enum @ref sol_http_param_type) and its value.
  * It may be a key-value parameter, authentication (user-password),
  * or data.
  */
@@ -165,10 +168,10 @@ struct sol_http_param_value {
 };
 
 /**
- * @brief Handle for a HTTP response
+ * @brief Handle for an HTTP response
  *
  * A response is composed by a response code, that may be one of
- * enum @ref sol_http_status_code, a vector of parameters, url,
+ * enum @ref sol_http_status_code, a vector of parameters, URL,
  * definition of content type, like "text" or "application/json",
  * and the response content itself.
  */
@@ -186,7 +189,7 @@ struct sol_http_response {
 };
 
 /**
- * @brief Handle for a HTTP URL
+ * @brief Handle for an HTTP URL
  *
  * Uniform Resource Locator conforms to the following syntax:
  *
@@ -527,11 +530,11 @@ void sol_http_params_clear(struct sol_http_params *params);
 /**
  * @brief Encodes an URL string.
  *
- * If the string was not encoded this function will simple copy
- * the slices content to the buffer and set
- * @c SOL_BUFFER_FLAGS_MEMORY_NOT_OWNED.
+ * If the string was not encoded this function will simply copy the
+ * slice's content to the buffer and set @c
+ * SOL_BUFFER_FLAGS_MEMORY_NOT_OWNED on the buffer's flags.
  *
- * @param buf The buffer that will hold the encoded string - The buffer will be initialized by this function.
+ * @param buf The buffer that will hold the encoded string (it will be initialized by this function)
  * @param value A slice to be encoded.
  *
  * @note if it's required to keep or change the buffer contents
@@ -544,11 +547,11 @@ int sol_http_encode_slice(struct sol_buffer *buf, const struct sol_str_slice val
 /**
  * @brief Decodes an URL string.
  *
- * If the string was not decoded this function will simple copy
- * the slices contents to the buffer and set
- * @c SOL_BUFFER_FLAGS_MEMORY_NOT_OWNED.
+ * If the string was not decoded this function will simply copy the
+ * slice's contents to the buffer and set @c
+ * SOL_BUFFER_FLAGS_MEMORY_NOT_OWNED on the buffer's flags.
  *
- * @param buf The buffer that will hold the decoded string - The buffer will be initialized by this function.
+ * @param buf The buffer that will hold the decoded string (it will be initialized by this function)
  * @param value A slice to be decoded.
  *
  * @note if it's required to keep or change the buffer contents
@@ -559,10 +562,10 @@ int sol_http_encode_slice(struct sol_buffer *buf, const struct sol_str_slice val
 int sol_http_decode_slice(struct sol_buffer *buf, const struct sol_str_slice value);
 
 /**
- * @brief Creates an URI based on struct sol_http_url and its params
+ * @brief Creates an URI based on struct @ref sol_http_url and its parameters
  *
- * @param buf Where the create URI should be appended - The buffer must be already initialized.
- * @param url The url parameters.
+ * @param buf Where the created URI should be appended (the buffer must be already initialized)
+ * @param url The URL parameters.
  * @param params The query and cookies params.
  *
  * @return 0 on success, negative number on error.
@@ -573,8 +576,8 @@ int sol_http_create_uri(struct sol_buffer *buf, const struct sol_http_url url, c
  * @brief A simpler version of sol_http_create_uri().
  *
  *
- * @param buf Where the create URI should be appended - The buffer must be already initialized.
- * @param base_uri The base uri to be used.
+ * @param buf Where the created URI should be appended (the buffer must be already initialized)
+ * @param base_uri The base URI to be used.
  * @param params The query and cookies params.
  *
  * @return 0 on success, negative number on error.
@@ -582,7 +585,7 @@ int sol_http_create_uri(struct sol_buffer *buf, const struct sol_http_url url, c
 int sol_http_create_simple_uri(struct sol_buffer *buf, const struct sol_str_slice base_uri, const struct sol_http_params *params);
 
 /**
- * @brief Encodes http parameters of a given type.
+ * @brief Encodes HTTP parameters of a given type.
  *
  * @param buf Where the encoded parameters will be stored as string.
  * @param type The parameter that should be encoded.
@@ -595,7 +598,7 @@ int sol_http_create_simple_uri(struct sol_buffer *buf, const struct sol_str_slic
 int sol_http_encode_params(struct sol_buffer *buf, enum sol_http_param_type type, const struct sol_http_params *params);
 
 /**
- * @brief Decodes http parameters of a given type.
+ * @brief Decodes HTTP parameters of a given type.
  *
  * @param params_slice Where the decoded parameters will be stored as string.
  * @param type The parameter that should be decoded.
@@ -623,10 +626,10 @@ int sol_http_decode_params(const struct sol_str_slice params_slice, enum sol_htt
 int sol_http_split_uri(const struct sol_str_slice full_uri, struct sol_http_url *url);
 
 /**
- * @brief An wrapper of over sol_http_create_simple_uri()
+ * @brief A wrapper on top of sol_http_create_simple_uri()
  *
- * @param buf Where the create URI should be appended - The buffer must be already initialized.
- * @param base_url The base uri to be used.
+ * @param buf Where the created URI should be appended (the buffer must be already initialized)
+ * @param base_url The base URI to be used.
  * @param params The query and cookies params.
  *
  * @return 0 on success, negative number on error.
@@ -669,7 +672,7 @@ int sol_http_split_post_field(const char *query, struct sol_http_params *params)
  * For more information about how the content type is sorted check: https://www.w3.org/Protocols/rfc2616/rfc2616-sec14.html#sec14.1
  *
  * @param content_type A content type slice. Example: @c "text/html, application/json;q=0.5"
- * @param priorities An array to store the content type prioriries - It will be initialized by this function.
+ * @param priorities An array to store the content type prioriries (it will be initialized by this function)
  * @see sol_http_content_type_priorities_array_clear()
  * @see @ref sol_http_content_type_priority
  */

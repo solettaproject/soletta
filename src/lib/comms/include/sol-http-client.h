@@ -28,18 +28,19 @@ extern "C" {
  * @file
  * @brief HTTP client
  *
- * Library to perform HTTP(s) requests. Buffers whole response in memory,
- * so it's more suitable to remote API calls rather than file transfer.
+ * API to perform HTTP(s) requests. It will buffer whole responses in
+ * memory, so it's more suitable to perform remote API calls than file
+ * transfers.
  */
 
 /**
  * @defgroup HTTP_CLIENT HTTP Client
  * @ingroup HTTP
  *
- * @brief Library to perform HTTP(s) requests.
+ * @brief API to perform HTTP(s) requests.
  *
- * Buffers whole response in memory,
- * so it's more suitable to remote API calls rather than file transfer.
+ * It will buffer whole responses in memory, so it's more suitable to
+ * perform remote API calls than file transfers.
  *
  * @{
  */
@@ -47,7 +48,7 @@ extern "C" {
 
 /**
  * @struct sol_http_client_connection
- * @brief Opaque handler for a HTTP client connection.
+ * @brief Opaque handler for an HTTP client connection.
  *
  * It's created when a request is made with
  * sol_http_client_request() or
@@ -58,9 +59,9 @@ extern "C" {
 struct sol_http_client_connection;
 
 /**
- * @brief The http request interface to use when creating a new request.
+ * @brief The HTTP request interface to use when creating a new request.
  *
- * It allows one have more control over the request, notifying when
+ * It allows one to have more control over the request, notifying when
  * data comes or when data should be sent.
  *
  * @see sol_http_client_request_with_interface()
@@ -84,14 +85,14 @@ struct sol_http_request_interface {
      *
      * The parameters are:
      *
-     * @li @c userdata the context data given in @c sol_http_client_request_with_interface
+     * @li @c user_data the context data given in @c sol_http_client_request_with_interface
      * @li @c connection the connection returned in @c sol_http_client_request_with_interface
      * @li @c buffer the data received
      *
      * @note it is allowed to cancel the connection handle from
      *       inside this callback.
      */
-    ssize_t (*on_data)(void *userdata, struct sol_http_client_connection *connection,
+    ssize_t (*on_data)(void *user_data, struct sol_http_client_connection *connection,
         const struct sol_buffer *buffer);
     /**
      * This callback is called data should be written, it's commonly used for @c POST.
@@ -105,7 +106,7 @@ struct sol_http_request_interface {
      *
      * The parameters are:
      *
-     * @li @c userdata the context data given in @c sol_http_client_request_with_interface
+     * @li @c user_data the context data given in @c sol_http_client_request_with_interface
      * @li @c connection the connection returned in @c sol_http_client_request_with_interface
      * @li @c buffer the buffer where the data should be written, the buffer's capacity indicates
      * the amount of data that should be set.
@@ -113,20 +114,20 @@ struct sol_http_request_interface {
      * @note it is allowed to cancel the connection handle from
      *       inside this callback.
      */
-    ssize_t (*on_send)(void *userdata, struct sol_http_client_connection *connection,
+    ssize_t (*on_send)(void *user_data, struct sol_http_client_connection *connection,
         struct sol_buffer *buffer);
     /**
      * This callback is called when the request finishes, the result of request is available on
      * @c response. @see sol_http_response
      *
-     * @li @c userdata the context data given in @c sol_http_client_request_with_interface
+     * @li @c user_data the context data given in @c sol_http_client_request_with_interface
      * @li @c connection the connection returned in @c sol_http_client_request_with_interface
      * @li @c response the result of the request
      *
      * @note it is allowed to cancel the connection handle from
      *       inside this callback.
      */
-    void (*on_response)(void *userdata, struct sol_http_client_connection *connection,
+    void (*on_response)(void *user_data, struct sol_http_client_connection *connection,
         struct sol_http_response *response);
 
     /**
@@ -138,11 +139,11 @@ struct sol_http_request_interface {
 };
 
 /**
- * @brief Create a request for the specified url using the given method. The result of
+ * @brief Create a request for the specified URL using the given method. The result of
  * the request is obtained in @c cb.
  *
  * One should check the response code on @c sol_http_response to check
- * if the request returned success or with some error. @see sol_http_status_code.
+ * if the request returned success or some error. @see sol_http_status_code.
  *
  * @note It should never be called from response callback given in
  *       sol_http_client_request().
@@ -165,11 +166,11 @@ struct sol_http_client_connection *sol_http_client_request(enum sol_http_method 
     const void *data) SOL_ATTR_WARN_UNUSED_RESULT SOL_ATTR_NONNULL(2, 4);
 
 /**
- * @brief Create a request for the specified url using the given method. The result of
+ * @brief Create a request for the specified URL using the given method. The result of
  * the request is obtained in @c cb.
  *
  * One should check the response code on @c sol_http_response to check
- * if the request returned success or with some error. @see sol_http_status_code.
+ * if the request returned success or some error. @see sol_http_status_code.
  *
  * @note It should never be called from response callback given in
  *       sol_http_client_request().
