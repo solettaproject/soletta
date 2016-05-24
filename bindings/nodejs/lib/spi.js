@@ -63,8 +63,7 @@ _.extend( SPIBus.prototype, {
            var returnStatus = soletta.sol_spi_transfer( this._bus, txBuffer,
                function( txData, rxData, count ) {
                    if ( rxData !== null ) {
-                       var rxBffer = new Buffer( rxData );
-                       fulfill( rxBffer );
+                       fulfill( rxData );
                    }
            });
 
