@@ -44,6 +44,13 @@ struct sol_netctl_service {
     int32_t strength;
 };
 
+struct ctx {
+    struct sol_bus_client *connman;
+    int32_t refcount;
+};
+
+static struct ctx _ctx;
+
 static void
 _init_connman_service(struct sol_netctl_service *service)
 {
@@ -145,7 +152,54 @@ sol_netctl_init(void)
 void
 sol_netctl_shutdown(void)
 {
+    _ctx.refcount = 0;
+
+    if (_ctx.connman) {
+        sol_bus_client_free(_ctx.connman);
+        _ctx.connman = NULL;
+    }
+
     return;
+}
+
+static int
+sol_netctl_init_lazy(void)
+{
+    sd_bus *bus;
+
+    _ctx.refcount++;
+
+    if (_ctx.connman)
+        return 0;
+
+    bus = sol_bus_get(NULL);
+    if (!bus) {
+        SOL_WRN("Unable to get sd bus");
+        return -EINVAL;
+    }
+
+    _ctx.connman = sol_bus_client_new(bus, "org.connman");
+    if (!_ctx.connman) {
+        sd_bus_unref(bus);
+        SOL_WRN("Unable to new a bus client");
+        return -EINVAL;
+    }
+
+    return 0;
+}
+
+static void
+sol_netctl_shutdown_lazy(void)
+{
+    _ctx.refcount--;
+
+    if (_ctx.refcount)
+        return;
+
+    if (_ctx.connman) {
+        sol_bus_client_free(_ctx.connman);
+        _ctx.connman = NULL;
+    }
 }
 
 SOL_API int
