@@ -1071,7 +1071,7 @@ err_exit:
 }
 
 SOL_API bool
-sol_util_double_equal(double var0, double var1)
+sol_util_double_eq(double var0, double var1)
 {
     double abs_var0, abs_var1, diff;
 

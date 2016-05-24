@@ -224,15 +224,15 @@ read_one(void)
 
     r = sol_memmap_read_irange("irange", &irange);
     ASSERT_INT_EQ(r, 0);
-    ASSERT(sol_irange_equal(&irange, &irange_not_delayed));
+    ASSERT(sol_irange_eq(&irange, &irange_not_delayed));
 
     r = sol_memmap_read_drange("drange", &drange);
     ASSERT_INT_EQ(r, 0);
-    ASSERT(sol_drange_equal(&drange, &drange_not_delayed));
+    ASSERT(sol_drange_eq(&drange, &drange_not_delayed));
 
     r = sol_memmap_read_double("double_only_val", &d);
     ASSERT_INT_EQ(r, 0);
-    ASSERT(sol_util_double_equal(d, 97.36));
+    ASSERT(sol_util_double_eq(d, 97.36));
 
     r = sol_memmap_read_string("string", &string);
     ASSERT_INT_EQ(r, 0);
@@ -253,15 +253,15 @@ read_one(void)
 
     r = sol_memmap_read_irange("irange2", &irange);
     ASSERT_INT_EQ(r, 0);
-    ASSERT(sol_irange_equal(&irange, &irange_not_delayed));
+    ASSERT(sol_irange_eq(&irange, &irange_not_delayed));
 
     r = sol_memmap_read_drange("drange2", &drange);
     ASSERT_INT_EQ(r, 0);
-    ASSERT(sol_drange_equal(&drange, &drange_not_delayed));
+    ASSERT(sol_drange_eq(&drange, &drange_not_delayed));
 
     r = sol_memmap_read_double("double_only_val2", &d);
     ASSERT_INT_EQ(r, 0);
-    ASSERT(sol_util_double_equal(d, 97.36));
+    ASSERT(sol_util_double_eq(d, 97.36));
 
     r = sol_memmap_read_string("string2", &string);
     ASSERT_INT_EQ(r, 0);
@@ -342,15 +342,15 @@ read_two(void)
 
     r = sol_memmap_read_irange("irange", &irange);
     ASSERT_INT_EQ(r, 0);
-    ASSERT(sol_irange_equal(&irange, &irange_delayed));
+    ASSERT(sol_irange_eq(&irange, &irange_delayed));
 
     r = sol_memmap_read_drange("drange", &drange);
     ASSERT_INT_EQ(r, 0);
-    ASSERT(sol_drange_equal(&drange, &drange_delayed));
+    ASSERT(sol_drange_eq(&drange, &drange_delayed));
 
     r = sol_memmap_read_double("double_only_val", &d);
     ASSERT_INT_EQ(r, 0);
-    ASSERT(sol_util_double_equal(d, 107.36));
+    ASSERT(sol_util_double_eq(d, 107.36));
 
     r = sol_memmap_read_string("string", &string);
     ASSERT_INT_EQ(r, 0);
@@ -371,15 +371,15 @@ read_two(void)
 
     r = sol_memmap_read_irange("irange2", &irange);
     ASSERT_INT_EQ(r, 0);
-    ASSERT(sol_irange_equal(&irange, &irange_delayed));
+    ASSERT(sol_irange_eq(&irange, &irange_delayed));
 
     r = sol_memmap_read_drange("drange2", &drange);
     ASSERT_INT_EQ(r, 0);
-    ASSERT(sol_drange_equal(&drange, &drange_delayed));
+    ASSERT(sol_drange_eq(&drange, &drange_delayed));
 
     r = sol_memmap_read_double("double_only_val2", &d);
     ASSERT_INT_EQ(r, 0);
-    ASSERT(sol_util_double_equal(d, 107.36));
+    ASSERT(sol_util_double_eq(d, 107.36));
 
     r = sol_memmap_read_string("string2", &string);
     ASSERT_INT_EQ(r, 0);

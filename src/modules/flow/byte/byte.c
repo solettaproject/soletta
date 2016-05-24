@@ -244,7 +244,7 @@ struct byte_comparison_data {
 };
 
 static bool
-byte_val_equal(unsigned char var0, unsigned char var1)
+byte_val_eq(unsigned char var0, unsigned char var1)
 {
     return var0 == var1;
 }
@@ -256,7 +256,7 @@ byte_val_less(unsigned char var0, unsigned char var1)
 }
 
 static bool
-byte_val_less_or_equal(unsigned char var0, unsigned char var1)
+byte_val_less_or_eq(unsigned char var0, unsigned char var1)
 {
     return var0 <= var1;
 }
@@ -268,13 +268,13 @@ byte_val_greater(unsigned char var0, unsigned char var1)
 }
 
 static bool
-byte_val_greater_or_equal(unsigned char var0, unsigned char var1)
+byte_val_greater_or_eq(unsigned char var0, unsigned char var1)
 {
     return var0 >= var1;
 }
 
 static bool
-byte_val_not_equal(unsigned char var0, unsigned char var1)
+byte_val_not_eq(unsigned char var0, unsigned char var1)
 {
     return var0 != var1;
 }

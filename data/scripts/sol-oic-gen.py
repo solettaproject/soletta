@@ -1744,7 +1744,7 @@ check_updated_boolean(const bool a, const bool b)
 static inline bool
 check_updated_number(const double a, const double b)
 {
-    return !sol_util_double_equal(a, b);
+    return !sol_util_double_eq(a, b);
 }
 
 static inline int

@@ -114,7 +114,7 @@ int sol_bt_uuid_to_str(const struct sol_bt_uuid *uuid, struct sol_buffer *buffer
  *
  * @return True if UUIDs are equal, False otherwise.
  */
-bool sol_bt_uuid_equal(const struct sol_bt_uuid *u1, const struct sol_bt_uuid *u2);
+bool sol_bt_uuid_eq(const struct sol_bt_uuid *u1, const struct sol_bt_uuid *u2);
 
 /**
  * @brief Represents an active connection to a Bluetooth device.

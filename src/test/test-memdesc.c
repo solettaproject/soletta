@@ -121,11 +121,11 @@ test_simple_SOL_MEMDESC_TYPE_DOUBLE(void)
 
     r = sol_memdesc_init_defaults(&desc, &a);
     ASSERT_INT_EQ(r, 0);
-    ASSERT(sol_util_double_equal(a, desc.defcontent.d));
+    ASSERT(sol_util_double_eq(a, desc.defcontent.d));
 
     r = sol_memdesc_init_defaults(&desc, &b);
     ASSERT_INT_EQ(r, 0);
-    ASSERT(sol_util_double_equal(b, desc.defcontent.d));
+    ASSERT(sol_util_double_eq(b, desc.defcontent.d));
 
     r = sol_memdesc_compare(&desc, &a, &b);
     ASSERT_INT_EQ(r, 0);
@@ -134,7 +134,7 @@ test_simple_SOL_MEMDESC_TYPE_DOUBLE(void)
     c = a + 1;
     r = sol_memdesc_set_content(&desc, &a, &c);
     ASSERT_INT_EQ(r, 0);
-    ASSERT(sol_util_double_equal(a, c));
+    ASSERT(sol_util_double_eq(a, c));
 
     r = sol_memdesc_compare(&desc, &a, &c);
     ASSERT_INT_EQ(r, 0);

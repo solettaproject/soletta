@@ -449,7 +449,7 @@ int sol_util_uuid_gen(bool uppercase, bool with_hyphens, struct sol_buffer *uuid
 bool sol_util_uuid_str_is_valid(const struct sol_str_slice uuid);
 
 /**
- * @brief Convert an UUID in byte format to UUID string format.
+ * @brief Convert a UUID in byte format to UUID string format.
  *
  * @param uppercase Whether to create the UUID string in uppercase or not
  * @param with_hyphens Format the resulting UUID string with hyphens
@@ -465,7 +465,7 @@ bool sol_util_uuid_str_is_valid(const struct sol_str_slice uuid);
 int sol_util_uuid_string_from_bytes(bool uppercase, bool with_hyphens, const uint8_t uuid_bytes[SOL_STATIC_ARRAY_SIZE(16)], struct sol_buffer *uuid_str);
 
 /**
- * @brief Convert an UUID in string format to a byte array with UUID bytes.
+ * @brief Convert a UUID in string format to a byte array with UUID bytes.
  *
  * @param uuid_str The UUID in string format, with or without hyphens, using
  *        lowercase or uppercase characters.
@@ -1143,7 +1143,7 @@ ssize_t sol_util_strftime(struct sol_buffer *buf, const char *format, const stru
  *
  * @return @c true if both values are equal, @c false otherwise.
  */
-bool sol_util_double_equal(double var0, double var1);
+bool sol_util_double_eq(double var0, double var1);
 
 /**
  * @}
