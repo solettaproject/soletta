@@ -161,9 +161,9 @@ v1_authorize_response_cb(void *data, struct sol_http_request *request)
         switch (value->type) {
         case SOL_HTTP_PARAM_QUERY_PARAM:
             if (sol_str_slice_str_eq(value->value.key_value.key, "oauth_verifier") && !verifier) {
-                verifier = sol_str_slice_to_string(value->value.key_value.value);
+                verifier = sol_str_slice_to_str(value->value.key_value.value);
             } else if (sol_str_slice_str_eq(value->value.key_value.key, "oauth_token") && !token) {
-                token = sol_str_slice_to_string(value->value.key_value.value);
+                token = sol_str_slice_to_str(value->value.key_value.value);
             }
             break;
         default:

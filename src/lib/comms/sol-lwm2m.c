@@ -588,7 +588,7 @@ fill_client_info(struct sol_lwm2m_client_info *cinfo,
             }
             //Required info
             has_name = true;
-            cinfo->name = sol_str_slice_to_string(value);
+            cinfo->name = sol_str_slice_to_str(value);
             SOL_NULL_CHECK_GOTO(cinfo->name, err_cinfo_prop);
         } else if (sol_str_slice_str_eq(key, "lt")) {
             char *endptr;
@@ -3096,7 +3096,7 @@ split_path(const char *path, uint16_t *splitted_path_len)
     SOL_NULL_CHECK_GOTO(splitted_path, err_exit);
 
     SOL_VECTOR_FOREACH_IDX (&tokens, token, i) {
-        splitted_path[i] = sol_str_slice_to_string(*token);
+        splitted_path[i] = sol_str_slice_to_str(*token);
         SOL_NULL_CHECK_GOTO(splitted_path[i], err_cpy);
     }
 
@@ -3513,7 +3513,7 @@ register_reply(void *data, struct sol_coap_server *server,
         sol_util_array_size(path));
     SOL_INT_CHECK_GOTO(r, != 2, err_exit);
 
-    conn_ctx->location = sol_str_slice_to_string(path[1]);
+    conn_ctx->location = sol_str_slice_to_str(path[1]);
     SOL_NULL_CHECK_GOTO(conn_ctx->location, err_exit);
 
     SOL_DBG("Registered with server %.*s at location %s",

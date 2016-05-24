@@ -412,7 +412,7 @@ sol_util_replace_str_from_slice_if_changed(char **str,
         tmp[slice.len] = '\0';
         *str = tmp;
     } else {
-        *str = sol_str_slice_to_string(slice);
+        *str = sol_str_slice_to_str(slice);
         SOL_NULL_CHECK(*str, -ENOMEM);
     }
 

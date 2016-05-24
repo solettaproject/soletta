@@ -692,7 +692,7 @@ sol_network_get_hostname_address_info(const struct sol_str_slice hostname,
     r = sol_ptr_vector_append(&network->hostname_handles, ctx);
     SOL_INT_CHECK_GOTO(r, < 0, err_append);
 
-    ctx->hostname = sol_str_slice_to_string(hostname);
+    ctx->hostname = sol_str_slice_to_str(hostname);
     SOL_NULL_CHECK_GOTO(ctx->hostname, err_hostname);
 
     ctx->cb = host_info_cb;
