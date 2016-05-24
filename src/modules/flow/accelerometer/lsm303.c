@@ -80,6 +80,27 @@ lsm303_i2c_write_scale_cb(void *cb_data, struct sol_i2c *i2c, uint8_t reg, uint8
         lsm303_read_data(mdata);
 }
 
+static bool
+set_slave(struct accelerometer_lsm303_data *mdata, bool (*cb)(void *data))
+{
+    int r;
+
+    r = sol_i2c_set_slave_address(mdata->i2c, mdata->slave);
+
+    if (r < 0) {
+        if (r == -EBUSY)
+            lsm303_timer_resched(mdata, ACCEL_STEP_TIME, cb);
+        else {
+            const char errmsg[] = "Failed to set slave at address 0x%02x";
+            SOL_WRN(errmsg, mdata->slave);
+            sol_flow_send_error_packet(mdata->node, r, errmsg, mdata->slave);
+        }
+        return false;
+    }
+
+    return true;
+}
+
 static void
 lsm303_scale_bit_set(struct accelerometer_lsm303_data *mdata)
 {
@@ -137,16 +158,9 @@ lsm303_accel_init(void *data)
     struct accelerometer_lsm303_data *mdata = data;
 
     mdata->timer = NULL;
-    if (sol_i2c_busy(mdata->i2c)) {
-        lsm303_timer_resched(mdata, ACCEL_STEP_TIME, lsm303_accel_init);
-        return false;
-    }
 
-    if (!sol_i2c_set_slave_address(mdata->i2c, mdata->slave)) {
-        SOL_WRN("Failed to set slave at address 0x%02x\n",
-            mdata->slave);
+    if (!set_slave(mdata, lsm303_accel_init))
         return false;
-    }
 
     mdata->i2c_buffer[0] = LSM303_ACCEL_DEFAULT_MODE;
     mdata->i2c_pending = sol_i2c_write_register(mdata->i2c,
@@ -248,16 +262,8 @@ lsm303_read_data(void *data)
     struct accelerometer_lsm303_data *mdata = data;
 
     mdata->timer = NULL;
-    if (sol_i2c_busy(mdata->i2c)) {
-        lsm303_timer_resched(mdata, ACCEL_STEP_TIME, lsm303_read_data);
+    if (!set_slave(mdata, lsm303_read_data))
         return false;
-    }
-
-    if (!sol_i2c_set_slave_address(mdata->i2c, mdata->slave)) {
-        SOL_WRN("Failed to set slave at address 0x%02x\n",
-            mdata->slave);
-        return false;
-    }
 
     /* ORing with 0x80 to read all bytes in a row */
     mdata->i2c_pending = sol_i2c_read_register(mdata->i2c,

@@ -97,7 +97,7 @@ _aio_open_fp(struct sol_aio *aio)
 }
 
 SOL_API struct sol_aio *
-sol_aio_open_raw(const int device, const int pin, const unsigned int precision)
+sol_aio_open_raw(int device, int pin, unsigned int precision)
 {
     char path[PATH_MAX];
     struct stat st;
@@ -200,18 +200,6 @@ _aio_read_dispatch(struct sol_aio *aio)
     aio->async.read_cb.cb((void *)aio->async.cb_data, aio, ret);
 }
 
-SOL_API bool
-sol_aio_busy(struct sol_aio *aio)
-{
-    SOL_NULL_CHECK(aio, true);
-
-#ifdef WORKER_THREAD
-    return aio->async.worker;
-#else
-    return aio->async.timeout;
-#endif
-}
-
 SOL_API struct sol_aio_pending *
 sol_aio_get_value(struct sol_aio *aio,
     void (*read_cb)(void *cb_data,
@@ -219,6 +207,8 @@ sol_aio_get_value(struct sol_aio *aio,
     int32_t ret),
     const void *cb_data)
 {
+    struct sol_aio_pending *pending;
+
 #ifdef WORKER_THREAD
     struct sol_worker_thread_config config = {
         SOL_SET_API_VERSION(.api_version = SOL_WORKER_THREAD_CONFIG_API_VERSION, )
@@ -231,8 +221,11 @@ sol_aio_get_value(struct sol_aio *aio,
     };
 #endif
 
+    errno = -EINVAL;
     SOL_NULL_CHECK(aio, NULL);
     SOL_NULL_CHECK(aio->fp, NULL);
+
+    errno = -EBUSY;
     BUSY_CHECK(aio, NULL);
 
     aio->async.value = 0;
@@ -242,15 +235,22 @@ sol_aio_get_value(struct sol_aio *aio,
 
 #ifdef WORKER_THREAD
     aio->async.worker = sol_worker_thread_new(&config);
-    SOL_NULL_CHECK(aio->async.worker, NULL);
+    SOL_NULL_CHECK_GOTO(aio->async.worker, err_no_mem);
 
-    return (struct sol_aio_pending *)aio->async.worker;
+    pending = (struct sol_aio_pending *)aio->async.worker;
 #else
     aio->async.timeout = sol_timeout_add(0, aio_get_value_timeout_cb, aio);
-    SOL_NULL_CHECK(aio->async.timeout, NULL);
+    SOL_NULL_CHECK_GOTO(aio->async.timeout, err_no_mem);
 
-    return (struct sol_aio_pending *)aio->async.timeout;
+    pending = (struct sol_aio_pending *)aio->async.timeout;
 #endif
+
+    errno = 0;
+    return pending;
+
+err_no_mem:
+    errno = -ENOMEM;
+    return NULL;
 }
 
 SOL_API void

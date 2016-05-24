@@ -75,7 +75,7 @@ aio_read_dispatch(struct sol_aio *aio)
  * the ADC controller -- CONFIG_ADC_DW_SAMPLE_WIDTH kernel option */
 
 SOL_API struct sol_aio *
-sol_aio_open_raw(const int device, const int pin, const unsigned int precision)
+sol_aio_open_raw(int device, int pin, unsigned int precision)
 {
     struct sol_aio *aio = NULL;
     struct device *dev = NULL;
@@ -157,24 +157,22 @@ sol_aio_get_value(struct sol_aio *aio,
     int32_t ret),
     const void *cb_data)
 {
+    errno = -EINVAL;
     SOL_NULL_CHECK(aio, NULL);
+
+    errno = -EBUSY;
+    SOL_EXP_CHECK(aio->async.timeout, NULL);
 
     aio->async.cb_data = cb_data;
     aio->async.read_cb = read_cb;
     aio->async.value = 0;
 
     aio->async.timeout = sol_timeout_add(0, aio_read_timeout_cb, aio);
+    errno = -ENOMEM;
     SOL_NULL_CHECK(aio->async.timeout, NULL);
 
+    errno = 0;
     return (struct sol_aio_pending *)aio->async.timeout;
-}
-
-SOL_API bool
-sol_aio_busy(struct sol_aio *aio)
-{
-    SOL_NULL_CHECK(aio, true);
-
-    return aio->async.timeout != NULL;
 }
 
 SOL_API void

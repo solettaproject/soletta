@@ -218,7 +218,7 @@ spi_read_timeout_cb(void *data)
     return false;
 }
 
-SOL_API bool
+SOL_API int
 sol_spi_transfer(struct sol_spi *spi,
     const uint8_t *tx,
     uint8_t *rx,
@@ -230,14 +230,17 @@ sol_spi_transfer(struct sol_spi *spi,
     ssize_t status),
     const void *cb_data)
 {
-    SOL_NULL_CHECK(spi, false);
-    SOL_EXP_CHECK(spi->transfer.timeout, false);
-    SOL_INT_CHECK(count, == 0, false);
+    int r;
 
-    if (spi_slave_select(spi->dev, spi->cs_pin) < 0) {
+    SOL_NULL_CHECK(spi, -EINVAL);
+    SOL_EXP_CHECK(spi->transfer.timeout, -EBUSY);
+    SOL_INT_CHECK(count, == 0, -EINVAL);
+
+    r = spi_slave_select(spi->dev, spi->cs_pin);
+    if (r < 0) {
         SOL_WRN("Failed to select slave 0x%02x for SPI device %s",
             spi->cs_pin, spi->dev_ref->name);
-        return false;
+        return r;
     }
 
     spi->transfer.tx = tx;
@@ -248,7 +251,7 @@ sol_spi_transfer(struct sol_spi *spi,
     spi->transfer.cb_data = cb_data;
 
     spi->transfer.timeout = sol_timeout_add(0, spi_read_timeout_cb, spi);
-    SOL_NULL_CHECK(spi->transfer.timeout, false);
+    SOL_NULL_CHECK(spi->transfer.timeout, -ENOMEM);
 
-    return true;
+    return 0;
 }

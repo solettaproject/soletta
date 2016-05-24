@@ -236,21 +236,19 @@ setup_device(void *cb_data, struct sol_i2c *i2c, uint8_t reg, uint8_t *data, ssi
         return;
     }
 
-    if (!sol_i2c_busy(i2c)) {
-        mdata->i2c_pending = sol_i2c_write_register(i2c,
-            initialization_data[mdata->init_step].reg,
-            &initialization_data[mdata->init_step].value, 1,
-            setup_device, cb_data);
+    mdata->i2c_pending = sol_i2c_write_register(i2c,
+        initialization_data[mdata->init_step].reg,
+        &initialization_data[mdata->init_step].value, 1,
+        setup_device, cb_data);
 
-        if (!mdata->i2c_pending) {
-            sol_flow_send_error_packet(mdata->node, EIO,
+    if (!mdata->i2c_pending) {
+        if (errno == -EBUSY)
+            mdata->timer = sol_timeout_add(0, busy_bus_callback, mdata);
+        else
+            sol_flow_send_error_packet(mdata->node, errno,
                 "Couldn't write to device, check your UV reader (si114x)");
-        }
-
+    } else
         mdata->init_step++;
-    } else {
-        mdata->timer = sol_timeout_add(0, busy_bus_callback, mdata);
-    }
 }
 
 static int
@@ -315,18 +313,16 @@ do_processing(void *data)
 {
     struct si114x_data *mdata = data;
 
-    if (sol_i2c_busy(mdata->context)) {
-        mdata->timer = sol_timeout_add(0, &do_processing, mdata);
-        return false;
-    }
-
     mdata->i2c_pending = sol_i2c_read_register(mdata->context,
         REG_AUX_UVINDEX0, (uint8_t *)&mdata->read_data, 2,
         &read_callback, mdata);
 
     if (!mdata->i2c_pending) {
-        sol_flow_send_error_packet(mdata->node, EIO,
-            "Couldn't read from device, check your UV reader (si114x)");
+        if (errno == -EBUSY)
+            mdata->timer = sol_timeout_add(0, &do_processing, mdata);
+        else
+            sol_flow_send_error_packet(mdata->node, errno,
+                "Couldn't read from device, check your UV reader (si114x)");
     }
 
     return false;

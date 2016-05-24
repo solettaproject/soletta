@@ -141,18 +141,20 @@ spi_timeout_cb(void *data)
     return false;
 }
 
-SOL_API bool
+SOL_API int
 sol_spi_transfer(struct sol_spi *spi, const uint8_t *tx_user, uint8_t *rx, size_t count, void (*transfer_cb)(void *cb_data, struct sol_spi *spi, const uint8_t *tx, uint8_t *rx, ssize_t status), const void *cb_data)
 {
     uint8_t *tx = (uint8_t *)tx_user;
 
-    SOL_NULL_CHECK(spi, false);
-    SOL_EXP_CHECK(spi->transfer.timeout, false);
+    SOL_NULL_CHECK(spi, -EINVAL);
+    SOL_INT_CHECK(count, == 0, -EINVAL);
+
+    SOL_EXP_CHECK(spi->transfer.timeout, -EBUSY);
 
     spi->transfer.intern_allocated_buffer_flags = 0;
     if (tx == NULL) {
         tx = calloc(count, sizeof(uint8_t));
-        SOL_NULL_CHECK(tx, false);
+        SOL_NULL_CHECK(tx, -ENOMEM);
         spi->transfer.intern_allocated_buffer_flags = INTERN_ALLOCATED_TX_BUFFER;
     }
     if (rx == NULL) {
@@ -171,7 +173,7 @@ sol_spi_transfer(struct sol_spi *spi, const uint8_t *tx_user, uint8_t *rx, size_
     spi->transfer.timeout = sol_timeout_add(0, spi_timeout_cb, spi);
     SOL_NULL_CHECK_GOTO(spi->transfer.timeout, timeout_fail);
 
-    return true;
+    return 0;
 
 timeout_fail:
     if (spi->transfer.intern_allocated_buffer_flags & INTERN_ALLOCATED_RX_BUFFER)
@@ -179,7 +181,7 @@ timeout_fail:
 rx_alloc_fail:
     if (spi->transfer.intern_allocated_buffer_flags & INTERN_ALLOCATED_TX_BUFFER)
         free(tx);
-    return false;
+    return -ENOMEM;
 }
 
 SOL_API void
