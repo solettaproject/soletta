@@ -268,7 +268,7 @@ send_ack_if_needed(struct sol_coap_server *coap, struct sol_coap_packet *msg,
 
     sol_coap_header_get_type(msg, &type);
 
-    if (type == SOL_COAP_TYPE_CON) {
+    if (type == SOL_COAP_MESSAGE_TYPE_CON) {
         ack = sol_coap_packet_new(msg);
         SOL_NULL_CHECK(ack);
         if (sol_coap_send_packet(coap, ack, cliaddr) < 0)
@@ -1464,7 +1464,7 @@ exit:
 
 static int
 add_coap_int_option(struct sol_coap_packet *pkt,
-    enum sol_coap_option_num opt, const void *data, uint16_t len)
+    enum sol_coap_option opt, const void *data, uint16_t len)
 {
     uint8_t buf[sizeof(int64_t)] = { };
 
@@ -1475,7 +1475,7 @@ add_coap_int_option(struct sol_coap_packet *pkt,
 
 static int
 get_coap_int_option(struct sol_coap_packet *pkt,
-    enum sol_coap_option_num opt, uint16_t *value)
+    enum sol_coap_option opt, uint16_t *value)
 {
     const void *v;
     uint16_t len;
@@ -1492,7 +1492,7 @@ get_coap_int_option(struct sol_coap_packet *pkt,
 
 static int
 setup_coap_packet(enum sol_coap_method method,
-    enum sol_coap_msgtype type, const char *objects_path, const char *path,
+    enum sol_coap_message_type type, const char *objects_path, const char *path,
     uint8_t *obs, int64_t *token, struct sol_lwm2m_resource *resources,
     size_t len,
     const char *execute_args,
@@ -1686,7 +1686,7 @@ sol_lwm2m_server_add_observer(struct sol_lwm2m_server *server,
     if (!send_msg)
         return 0;
 
-    r = setup_coap_packet(SOL_COAP_METHOD_GET, SOL_COAP_TYPE_CON,
+    r = setup_coap_packet(SOL_COAP_METHOD_GET, SOL_COAP_MESSAGE_TYPE_CON,
         client->objects_path, path, &obs, &entry->token, NULL, 0, NULL, &pkt);
     SOL_INT_CHECK(r, < 0, r);
 
@@ -1847,7 +1847,7 @@ send_management_packet(struct sol_lwm2m_server *server,
     struct sol_coap_packet *pkt;
     struct management_ctx *ctx;
 
-    r = setup_coap_packet(method, SOL_COAP_TYPE_CON,
+    r = setup_coap_packet(method, SOL_COAP_MESSAGE_TYPE_CON,
         client->objects_path, path, NULL, NULL, resources, len,
         execute_args, &pkt);
     SOL_INT_CHECK(r, < 0, r);
@@ -2858,7 +2858,7 @@ send_notification_pkt(struct sol_lwm2m_client *client,
     pkt = sol_coap_packet_new_notification(client->coap_server, resource);
     SOL_NULL_CHECK(pkt, false);
 
-    r = sol_coap_header_set_type(pkt, SOL_COAP_TYPE_CON);
+    r = sol_coap_header_set_type(pkt, SOL_COAP_MESSAGE_TYPE_CON);
     SOL_INT_CHECK_GOTO(r, < 0, err_exit);
     r = sol_coap_header_set_code(pkt, SOL_COAP_RESPONSE_CODE_CHANGED);
     SOL_INT_CHECK_GOTO(r, < 0, err_exit);
@@ -3577,7 +3577,7 @@ register_with_server(struct sol_lwm2m_client *client,
         &conn_ctx->lifetime, &binding);
     SOL_INT_CHECK_GOTO(r, < 0, err_exit);
 
-    pkt = sol_coap_packet_new_request(SOL_COAP_METHOD_POST, SOL_COAP_TYPE_CON);
+    pkt = sol_coap_packet_new_request(SOL_COAP_METHOD_POST, SOL_COAP_MESSAGE_TYPE_CON);
     r = -ENOMEM;
     SOL_NULL_CHECK_GOTO(pkt, err_exit);
 
@@ -3817,7 +3817,7 @@ send_client_delete_request(struct sol_lwm2m_client *client,
     }
 
     pkt = sol_coap_packet_new_request(SOL_COAP_METHOD_DELETE,
-        SOL_COAP_TYPE_NON_CON);
+        SOL_COAP_MESSAGE_TYPE_NON_CON);
     SOL_NULL_CHECK(pkt, -ENOMEM);
 
     r = sol_coap_add_option(pkt, SOL_COAP_OPTION_URI_PATH, "rd", strlen("rd"));
