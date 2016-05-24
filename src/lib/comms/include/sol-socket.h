@@ -28,13 +28,23 @@ extern "C" {
  * @defgroup Socket Socket
  * @ingroup Comms
  *
- * @brief API to create an endpoint communication using sockets.
+ * @brief API to create a communication endpoint using sockets.
  *
  * @{
  */
 
+/**
+ * @struct sol_socket
+ *
+ * @brief Opaque handler for a socket
+ */
 struct sol_socket;
 
+/**
+ * @struct sol_socket_options
+ *
+ * @brief Defines the behaviour of a socket instance
+ */
 struct sol_socket_options {
 #ifndef SOL_NO_API_VERSION
 #define SOL_SOCKET_OPTIONS_API_VERSION (1)  /**< compile time API version to be checked during runtime */
@@ -75,6 +85,12 @@ struct sol_socket_options {
     const void *data;
 };
 
+/**
+ * @struct sol_socket_options
+ *
+ * @brief Defines specific IP layer related behaviour of a socket
+ * instance
+ */
 struct sol_socket_ip_options {
     struct sol_socket_options base;
 #ifndef SOL_NO_API_VERSION
@@ -108,9 +124,9 @@ struct sol_socket_ip_options {
 /**
  * @brief Structure to represent a socket class.
  *
- * This struct contains the necessary information do deal with
- * a socket. This contains the methods necessaries to create
- * a new socket type.
+ * This struct contains the necessary information do deal with a
+ * socket. This contains the methods necessary to create a new socket
+ * type.
  */
 struct sol_socket_type {
 #ifndef SOL_NO_API_VERSION
@@ -181,7 +197,7 @@ struct sol_socket_type {
 
     /**
      * @brief Function to be called to join a multicast group.
-     * IPv4 and IPv6 address are possible.
+     * Both IPv4 and IPv6 addresses are possible.
      *
      * @li @c s the socket pointer (this)
      * @li @c ifindex the index of the interface to be used.
@@ -216,7 +232,8 @@ struct sol_socket {
 /**
  * @brief Creates an endpoint for communication.
  *
- * This function creates a socket using the system default implementation.
+ * This function creates a socket using the system's default
+ * implementation.
  *
  * @param options The socket's options.
  *
@@ -271,12 +288,12 @@ int sol_socket_set_write_monitor(struct sol_socket *s, bool on);
 /**
  * @brief Receive a message from a socket.
  *
- * If the socket's type is SOL_SOCKET_UDP, @a buf may be @c NULL, and
- * in this case the function will only peek the incoming packet queue
- * (not removing data from it), returning the number of bytes needed
- * to store the next datagram and ignoring the cliaddr argument. This
- * way, the user may allocate the exact number of bytes to hold the
- * message contents.
+ * If it's a datagram socket, @a buf may be @c NULL, and in this case
+ * the function will only peek the incoming packet queue (not removing
+ * data from it), returning the number of bytes needed to store the
+ * next datagram and ignoring the cliaddr argument. This way, the user
+ * may allocate the exact number of bytes to hold the message
+ * contents.
  *
  * @param s The value got with @c sol_socket_ip_new()
  * @param buffer the data buffer that will be used to receive the data.
@@ -310,7 +327,7 @@ ssize_t sol_socket_sendmsg(struct sol_socket *s, const struct sol_buffer *buffer
 
 /**
  * @brief Joins a multicast group.
- * IPv4 and IPv6 address are possible.
+ * Both IPv4 and IPv6 addresses are possible.
  *
  * @param s The value got with @c sol_socket_ip_new()
  * @param ifindex The index of the interface to be used.
