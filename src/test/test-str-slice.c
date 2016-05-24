@@ -273,7 +273,7 @@ test_str_slice_to_string(void)
     };
 
     for (i = 0; i < sol_util_array_size(input); i++) {
-        char *s = sol_str_slice_to_string(input[i]);
+        char *s = sol_str_slice_to_str(input[i]);
         ASSERT(sol_str_slice_str_eq(input[i], s));
         free(s);
     }

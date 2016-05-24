@@ -600,7 +600,7 @@ sol_flow_node_named_options_parse_member(
         r = options_parse_functions[m->type](value, m);
         if (r < 0) {
             SOL_DBG("Invalid value '%s' for option name='%s' of type='%s'",
-                value, m->name, sol_flow_node_options_member_type_to_string(m->type));
+                value, m->name, sol_flow_node_options_member_type_to_str(m->type));
         }
     } else {
         r = -ENOTSUP;
@@ -682,7 +682,7 @@ sol_flow_node_options_member_type_from_string(const char *data_type)
 
 /* TODO: Make a reverse table? */
 SOL_API const char *
-sol_flow_node_options_member_type_to_string(enum sol_flow_node_options_member_type type)
+sol_flow_node_options_member_type_to_str(enum sol_flow_node_options_member_type type)
 {
     const struct sol_str_table *entry;
     const char *data_type = NULL;

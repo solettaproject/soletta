@@ -305,7 +305,7 @@ int sol_str_slice_to_int(const struct sol_str_slice s, int *value);
  * @return New string created from the slice
  */
 static inline char *
-sol_str_slice_to_string(const struct sol_str_slice slice)
+sol_str_slice_to_str(const struct sol_str_slice slice)
 {
     return strndup(slice.data, slice.len);
 }

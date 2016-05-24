@@ -1312,11 +1312,11 @@ create_device_address(struct sol_str_slice *command)
             goto end;
         }
 
-        rel_path = sol_str_slice_to_string(
+        rel_path = sol_str_slice_to_str(
             *(const struct sol_str_slice *)sol_vector_get(&instructions, REL_PATH_IDX));
         SOL_NULL_CHECK_GOTO(rel_path, end);
 
-        dev_number_s = sol_str_slice_to_string(
+        dev_number_s = sol_str_slice_to_str(
             *(const struct sol_str_slice *)sol_vector_get(&instructions, DEV_NUMBER_IDX));
         SOL_NULL_CHECK_GOTO(dev_number_s, end);
 
@@ -1325,7 +1325,7 @@ create_device_address(struct sol_str_slice *command)
         if (errno || *end_ptr != '\0')
             goto end;
 
-        dev_name = sol_str_slice_to_string(
+        dev_name = sol_str_slice_to_str(
             *(const struct sol_str_slice *)sol_vector_get(&instructions, DEV_NAME_IDX));
         SOL_NULL_CHECK_GOTO(dev_name, end);
 
@@ -1373,7 +1373,7 @@ sol_iio_address_device(const char *commands)
         if (strstartswith(command->data, "create,"))
             command_s = create_device_address(command);
         else
-            command_s = sol_str_slice_to_string(*command);
+            command_s = sol_str_slice_to_str(*command);
 
         if (command_s) {
             r = resolve_device_address(command_s);

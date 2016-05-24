@@ -758,7 +758,7 @@ json_object_get_or_create_child_element(struct json_element *element, const stru
 
     key_element = sol_vector_append(&element->children);
     SOL_NULL_CHECK(key_element, NULL);
-    key_element->key = sol_str_slice_to_string(key_slice);
+    key_element->key = sol_str_slice_to_str(key_slice);
     SOL_NULL_CHECK_GOTO(key_element->key, str_error);
 
     key_element->element.type = JSON_TYPE_UNKNOWN;

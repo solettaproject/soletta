@@ -506,7 +506,7 @@ sol_mavlink_init_tcp(struct sol_mavlink *mavlink)
         return -errno;
     }
 
-    hostname = sol_str_slice_to_string(*mavlink->address);
+    hostname = sol_str_slice_to_str(*mavlink->address);
     if (!hostname) {
         SOL_ERR("Could not format hostname string - %s",
             sol_util_strerrora(errno));
@@ -563,7 +563,7 @@ sol_mavlink_init_serial(struct sol_mavlink *mavlink)
         SOL_INF("No baud_rate config provided, setting default: 115200");
     }
 
-    portname = sol_str_slice_to_string(*mavlink->address);
+    portname = sol_str_slice_to_str(*mavlink->address);
     if (!portname) {
         SOL_ERR("Could not format portname string - %s",
             sol_util_strerrora(errno));
