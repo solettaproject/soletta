@@ -27,6 +27,7 @@
 #include "sol-macros.h"
 #include "sol-mainloop.h"
 #include "sol-network.h"
+#include "sol-reentrant.h"
 #include "sol-socket.h"
 #include "sol-str-slice.h"
 #include "sol-util-internal.h"
@@ -104,6 +105,7 @@ struct resource_observer {
 };
 
 struct pending_reply {
+    struct sol_reentrant reentrant;
     struct sol_coap_server *server;
     struct sol_timeout *timeout;
     bool (*cb)(void *data, struct sol_coap_server *server, struct sol_coap_packet *req,
@@ -650,6 +652,8 @@ pending_reply_free(struct pending_reply *reply)
     if (reply->timeout)
         sol_timeout_del(reply->timeout);
 
+    sol_ptr_vector_remove(&reply->server->pending, reply);
+
     free(reply);
 }
 
@@ -660,13 +664,19 @@ pending_timeout_cb(void *data)
 {
     struct pending_reply *reply = data;
     struct sol_coap_server *server = reply->server;
+    bool callback_result;
 
-    if (reply->cb((void *)reply->data, server, NULL, NULL))
+    SOL_REENTRANT_CALL(reply->reentrant) {
+        callback_result = reply->cb((void *)reply->data, server, NULL, NULL);
+    }
+
+    if (callback_result && !SOL_REENTRANT_IS_STALE(reply->reentrant)) {
         return true;
+    }
 
-    sol_ptr_vector_remove(&server->pending, reply);
-
-    pending_reply_free(reply);
+    SOL_REENTRANT_FREE(reply->reentrant) {
+        pending_reply_free(reply);
+    }
 
     return false;
 }
@@ -900,6 +910,8 @@ sol_coap_send_packet_with_reply(struct sol_coap_server *server, struct sol_coap_
     }
 
     sol_coap_header_get_id(pkt, &reply->id);
+    reply->reentrant.in_use = false;
+    reply->reentrant.delete_me = false;
     reply->cb = reply_cb;
     reply->data = data;
     reply->observing = observing;
@@ -941,7 +953,9 @@ done:
     return 0;
 
 error:
-    pending_reply_free(reply);
+    SOL_REENTRANT_FREE(reply->reentrant) {
+        pending_reply_free(reply);
+    }
 error_pkt:
     sol_coap_packet_unref(pkt);
     return err;
@@ -1521,18 +1535,26 @@ respond_packet(struct sol_coap_server *server, struct sol_coap_packet *req,
     if (code & ~SOL_COAP_REQUEST_MASK) {
         bool found_reply = false;
         SOL_PTR_VECTOR_FOREACH_REVERSE_IDX (&server->pending, reply, i) {
+            bool reply_callback_result = false;
+
             if (!match_reply(reply, req))
                 continue;
 
-            if (!reply->cb((void *)reply->data, server, req, cliaddr)) {
-                sol_ptr_vector_del(&server->pending, i);
+            SOL_REENTRANT_CALL(reply->reentrant) {
+                reply_callback_result =
+                    reply->cb((void *)reply->data, server, req, cliaddr);
+            }
+
+            if (!reply_callback_result) {
                 if (reply->observing) {
                     r = send_unobserve_packet(server, cliaddr, reply->path,
                         reply->token, reply->tkl);
                     if (r < 0)
                         SOL_WRN("Could not unobserve packet.");
                 }
-                pending_reply_free(reply);
+                SOL_REENTRANT_FREE(reply->reentrant) {
+                    pending_reply_free(reply);
+                }
             } else if (!reply->observing) {
                 remove_outgoing = false;
             } else {
@@ -1686,9 +1708,12 @@ sol_coap_server_destroy(struct sol_coap_server *server)
     }
 
     SOL_PTR_VECTOR_FOREACH_REVERSE_IDX (&server->pending, reply, i) {
-        sol_ptr_vector_del(&server->pending, i);
-        reply->cb((void *)reply->data, server, NULL, NULL);
-        pending_reply_free(reply);
+        SOL_REENTRANT_CALL(reply->reentrant) {
+            reply->cb((void *)reply->data, server, NULL, NULL);
+        }
+        SOL_REENTRANT_FREE(reply->reentrant) {
+            pending_reply_free(reply);
+        }
     }
 
     SOL_VECTOR_FOREACH_REVERSE_IDX (&server->contexts, c, i) {
@@ -2000,14 +2025,15 @@ sol_coap_cancel_send_packet(struct sol_coap_server *server, struct sol_coap_pack
         if (reply->pkt != pkt)
             continue;
 
-        sol_ptr_vector_del(&server->pending, i);
         if (reply->observing) {
             r = send_unobserve_packet(server, cliaddr, reply->path,
                 reply->token, reply->tkl);
             if (r < 0)
                 SOL_WRN("Could not unobserve packet.");
         }
-        pending_reply_free(reply);
+        SOL_REENTRANT_FREE(reply->reentrant) {
+            pending_reply_free(reply);
+        }
         cancel++;
     }
 
@@ -2027,13 +2053,17 @@ sol_coap_unobserve_by_token(struct sol_coap_server *server, const struct sol_net
         if (!match_observe_reply(reply, token, tkl))
             continue;
 
-        reply->cb((void *)reply->data, server, NULL, NULL);
-        sol_ptr_vector_del(&server->pending, i);
+        SOL_REENTRANT_CALL(reply->reentrant) {
+            reply->cb((void *)reply->data, server, NULL, NULL);
+        }
 
         r = send_unobserve_packet(server, cliaddr, reply->path, token, tkl);
         if (r < 0)
             SOL_WRN("Could not unobserve packet.");
-        pending_reply_free(reply);
+
+        SOL_REENTRANT_FREE(reply->reentrant) {
+            pending_reply_free(reply);
+        }
         return r;
     }
 
