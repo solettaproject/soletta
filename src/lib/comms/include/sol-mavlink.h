@@ -34,7 +34,7 @@ extern "C" {
  * @ingroup Comms
  *
  * MAVLink or Micro Air Vehicle Link is a protocol for communicating with
- * small unmanned vehicle. It is designed as a header-only message marshaling
+ * small unmanned vehicles. It is designed as a header-only message marshaling
  * library.
  *
  * @{
@@ -49,7 +49,7 @@ extern "C" {
  *
  * This object is the abstraction of a Mavlink connection. This is the base
  * structure for all Mavlink operations and is obtained through the
- * sol_mavlink_connect API.
+ * sol_mavlink_connect() API.
  */
 struct sol_mavlink;
 
