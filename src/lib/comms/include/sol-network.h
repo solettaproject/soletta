@@ -49,7 +49,7 @@ extern "C" {
  *
  * @brief Network module provides a way to handle network link interfaces.
  *
- * It makes possible to observe events, to inquire available links
+ * It makes it possible to observe events, to inquire available links
  * and to set their states.
  *
  * @{
@@ -68,10 +68,11 @@ extern "C" {
 /**
  * @struct sol_network_hostname_pending
  *
- * @brief A handle to sol_network_get_hostname_address_info()
+ * @brief A handle returned by sol_network_get_hostname_address_info()
  *
- * This handle can be used to cancel get sol_network_get_hostname_address_info()
- * by calling sol_network_hostname_pending_cancel()
+ * This handle can be used to cancel the work of unfinished
+ * sol_network_get_hostname_address_info() calls, by calling
+ * sol_network_hostname_pending_cancel().
  *
  * @see sol_network_get_hostname_address_info()
  * @see sol_network_hostname_pending_cancel()
@@ -90,7 +91,8 @@ enum sol_network_event {
 };
 
 /**
- * @brief Bitwise OR-ed flags to represents the status of #sol_network_link.
+ * @brief Bitwise OR-ed flags to represent the status of a
+ * #sol_network_link.
  *
  * @see sol_network_link
  */
@@ -259,7 +261,7 @@ sol_network_link_addr_eq(const struct sol_network_link_addr *a,
 }
 
 /**
- * @brief Subscribes on to receive network link events.
+ * @brief Subscribes to receive network link events.
  *
  * This function register a callback given by the user that will be
  * called when a network event (@ref sol_network_event) occurrs in one
@@ -277,7 +279,7 @@ int sol_network_subscribe_events(void (*cb)(void *data, const struct sol_network
     const void *data);
 
 /**
- * @brief Stops receive the network events.
+ * @brief Stops receiving network link events.
  *
  * This function removes previous callbacks set (@ref
  * sol_network_subscribe_events()) to receive network events.
@@ -293,16 +295,17 @@ int sol_network_subscribe_events(void (*cb)(void *data, const struct sol_network
 int sol_network_unsubscribe_events(void (*cb)(void *data, const struct sol_network_link *link,
     enum sol_network_event event),
     const void *data);
+
 /**
- * @brief Retrieve the available network links on system.
+ * @brief Retrieve the available network links on a system.
  *
  * @return A vector containing the available links @see sol_network_link
  *
  * @note This vector is updated as soon as the SO notifies about a
- * network link. This is information is cached, so it's possible that
- * at the moment it is called the data is still not available. It's
- * recommended first subscribe to receive network events @see
- * sol_network_subscribe_events() and then call it.
+ * network link. This information is cached, so it's possible that at
+ * the moment it is called the data is still not available. It's
+ * recommended to first subscribe to receive network events (@see
+ * sol_network_subscribe_events()) and then call it.
  */
 const struct sol_vector *sol_network_get_available_links(void);
 
@@ -311,6 +314,8 @@ const struct sol_vector *sol_network_get_available_links(void);
  *
  * @param link The @ref sol_network_link structure which the name is desired.
  * @return The name of the interface on success, @c NULL on error.
+ *
+ * @note It @b must be freed by the user after usage.
  */
 char *sol_network_link_get_name(const struct sol_network_link *link);
 
@@ -343,16 +348,21 @@ int sol_network_link_down(uint16_t link_index);
 /**
  * @brief Gets a hostname address info.
  *
- * This function will fetch the address of a given hostname, since this may
- * take some time, this will be an async operation. When the address info
- * is ready the @c host_info_cb will called with the host's address info.
- * If an error happens or it was not possible to fetch the host address
- * information, @c addrs_list will be set to @c NULL.
- * The list @c addrs_list will contains a set of #sol_network_link_addr.
+ * This function will fetch the address of a given hostname. Since
+ * this may take some time to complete, this will be an asynchronous
+ * operation. When the address information is ready, @c host_info_cb
+ * will be called with it. If an error happens or it was not possible
+ * to fetch the host address information, @c addrs_list will be set to
+ * @c NULL. The list @c addrs_list will contain a set of
+ * #sol_network_link_addr.
+ *
+ * @note This operation may be cancelled by user with
+ * sol_network_hostname_pending_cancel() while @a host_info_cb has not
+ * been called yet.
  *
  * @param hostname The hostname to get the address info.
- * @param family The family the returned addresses should be, pass SOL_NETWORK_FAMILY_UNSPEC
- * to match them all.
+ * @param family The family the returned addresses should be, pass
+ * #SOL_NETWORK_FAMILY_UNSPEC to match them all.
  * @param host_info_cb A callback to be called with the address list.
  * @param data Data to @c host_info_cb.
  * @return A handle to a hostname or @c NULL on error.
