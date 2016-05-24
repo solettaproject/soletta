@@ -118,6 +118,7 @@ headers-y := \
     include/sol-mainloop.h \
     include/sol-platform.h \
     include/sol-power-supply.h \
+    include/sol-reentrant.h \
     include/sol-types.h \
     sol-common-buildopts.h.in
 
