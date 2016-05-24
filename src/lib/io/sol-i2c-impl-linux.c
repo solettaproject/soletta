@@ -105,6 +105,8 @@ struct sol_i2c {
 #define BUSY_CHECK(i2c, ret) SOL_EXP_CHECK(i2c->async.timeout, ret);
 #endif
 
+void sol_i2c_close_raw(struct sol_i2c *i2c);
+
 SOL_API struct sol_i2c *
 sol_i2c_open_raw(uint8_t bus, enum sol_i2c_speed speed)
 {
@@ -151,12 +153,10 @@ open_error:
     return NULL;
 }
 
-SOL_API void
+void
 sol_i2c_close_raw(struct sol_i2c *i2c)
 {
     struct sol_i2c_pending *pending;
-
-    SOL_NULL_CHECK(i2c);
 
 #ifdef WORKER_THREAD
     pending = (struct sol_i2c_pending *)i2c->async.worker;
