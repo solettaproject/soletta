@@ -90,18 +90,6 @@ NAN_METHOD(bind_sol_i2c_close)
     Nan::SetInternalFieldPointer(jsI2c, 0, 0);
 }
 
-NAN_METHOD(bind_sol_i2c_close_raw)
-{
-    VALIDATE_ARGUMENT_COUNT(info, 1);
-    VALIDATE_ARGUMENT_TYPE(info, 0, IsObject);
-
-    Local<Object> jsI2c = Nan::To<Object>(info[0]).ToLocalChecked();
-    sol_i2c *i2c = (sol_i2c *)SolI2c::Resolve(jsI2c);
-
-    sol_i2c_close_raw(i2c);
-    Nan::SetInternalFieldPointer(jsI2c, 0, 0);
-}
-
 NAN_METHOD(bind_sol_i2c_pending_cancel)
 {
     VALIDATE_ARGUMENT_COUNT(info, 2);
