@@ -527,7 +527,7 @@ client_get_info(struct sol_oic_client *client,
     memcpy(&ctx->base.addr, addr, sizeof(*addr));
 
     ctx->base.req = sol_coap_packet_new_request(SOL_COAP_METHOD_GET,
-        SOL_COAP_TYPE_CON);
+        SOL_COAP_MESSAGE_TYPE_CON);
     if (!ctx->base.req) {
         SOL_WRN("Could not create CoAP packet");
         r = -errno;
@@ -923,7 +923,7 @@ sol_oic_client_find_resources(struct sol_oic_client *client,
 
     /* Multicast discovery should be non-confirmable */
     ctx->base.req = sol_coap_packet_new_request(SOL_COAP_METHOD_GET,
-        SOL_COAP_TYPE_NON_CON);
+        SOL_COAP_MESSAGE_TYPE_NON_CON);
     if (!ctx->base.req) {
         SOL_WRN("Could not create CoAP packet");
         r = -errno;
@@ -1138,8 +1138,8 @@ request_new(enum sol_coap_method method,
     char *path;
     int ret = 0;
 
-    if (type != SOL_COAP_TYPE_CON && type != SOL_COAP_TYPE_NON_CON) {
-        SOL_WRN("Only SOL_COAP_TYPE_CON and SOL_COAP_TYPE_NON_CON requests are"
+    if (type != SOL_COAP_MESSAGE_TYPE_CON && type != SOL_COAP_MESSAGE_TYPE_NON_CON) {
+        SOL_WRN("Only SOL_COAP_MESSAGE_TYPE_CON and SOL_COAP_MESSAGE_TYPE_NON_CON requests are"
             " supported");
         errno = EINVAL;
         return NULL;
@@ -1197,7 +1197,7 @@ sol_oic_client_request_new(enum sol_coap_method method, struct sol_oic_resource 
 {
     OIC_RESOURCE_CHECK_API(res, EINVAL, NULL);
 
-    return request_new(method, SOL_COAP_TYPE_CON, res, false);
+    return request_new(method, SOL_COAP_MESSAGE_TYPE_CON, res, false);
 }
 
 SOL_API struct sol_oic_request *
@@ -1205,7 +1205,7 @@ sol_oic_client_non_confirmable_request_new(enum sol_coap_method method, struct s
 {
     OIC_RESOURCE_CHECK_API(res, EINVAL, NULL);
 
-    return request_new(method, SOL_COAP_TYPE_NON_CON, res, false);
+    return request_new(method, SOL_COAP_MESSAGE_TYPE_NON_CON, res, false);
 }
 
 SOL_API void
@@ -1363,8 +1363,8 @@ client_resource_set_observable(struct sol_oic_client *client,
             struct sol_oic_pending *tmp;
 
             request = request_new(SOL_COAP_METHOD_GET,
-                non_confirmable ? SOL_COAP_TYPE_NON_CON : SOL_COAP_TYPE_CON,
-                res, true);
+                non_confirmable ? SOL_COAP_MESSAGE_TYPE_NON_CON :
+                SOL_COAP_MESSAGE_TYPE_CON, r, true);
             SOL_NULL_CHECK(request, -ENOMEM);
 
             tmp = _resource_request((struct sol_oic_client_request *)request,

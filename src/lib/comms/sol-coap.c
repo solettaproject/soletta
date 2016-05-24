@@ -558,10 +558,10 @@ sol_coap_packet_new(struct sol_coap_packet *old)
         r = sol_coap_header_set_id(pkt, id);
         SOL_INT_CHECK_GOTO(r, < 0, err);
         sol_coap_header_get_type(old, &type);
-        if (type == SOL_COAP_TYPE_CON)
-            r = sol_coap_header_set_type(pkt, SOL_COAP_TYPE_ACK);
-        else if (type == SOL_COAP_TYPE_NON_CON)
-            r = sol_coap_header_set_type(pkt, SOL_COAP_TYPE_NON_CON);
+        if (type == SOL_COAP_MESSAGE_TYPE_CON)
+            r = sol_coap_header_set_type(pkt, SOL_COAP_MESSAGE_TYPE_ACK);
+        else if (type == SOL_COAP_MESSAGE_TYPE_NON_CON)
+            r = sol_coap_header_set_type(pkt, SOL_COAP_MESSAGE_TYPE_NON_CON);
         SOL_INT_CHECK_GOTO(r, < 0, err);
         token = sol_coap_header_get_token(old, &tkl);
         if (token) {
@@ -687,7 +687,7 @@ timeout_expired(struct sol_coap_server *server, struct outgoing *outgoing)
     sol_coap_header_get_type(outgoing->pkt, &type);
     /* no re-transmissions for !CON packets, we just keep a
      * pending_reply for a while */
-    if (type != SOL_COAP_TYPE_CON)
+    if (type != SOL_COAP_MESSAGE_TYPE_CON)
         return false;
 
     timeout = ACK_TIMEOUT_MS << outgoing->counter++;
@@ -1055,7 +1055,7 @@ sol_coap_packet_new_notification(struct sol_coap_server *server, struct sol_coap
     pkt = sol_coap_packet_new(NULL);
     SOL_NULL_CHECK(pkt, NULL);
 
-    r = sol_coap_header_set_type(pkt, SOL_COAP_TYPE_NON_CON);
+    r = sol_coap_header_set_type(pkt, SOL_COAP_MESSAGE_TYPE_NON_CON);
     SOL_INT_CHECK_GOTO(r, < 0, err_exit);
 
     r = sol_coap_add_option(pkt, SOL_COAP_OPTION_OBSERVE, &id, sizeof(id));
@@ -1077,7 +1077,7 @@ sol_coap_send_packet(struct sol_coap_server *server,
 }
 
 SOL_API struct sol_coap_packet *
-sol_coap_packet_new_request(enum sol_coap_method method, enum sol_coap_msgtype type)
+sol_coap_packet_new_request(enum sol_coap_method method, enum sol_coap_message_type type)
 {
     static uint16_t request_id;
     struct sol_coap_packet *pkt;
@@ -1188,8 +1188,10 @@ sol_coap_find_first_option(const struct sol_coap_packet *pkt, uint16_t code, uin
 }
 
 SOL_API int
-sol_coap_find_options(const struct sol_coap_packet *pkt, uint16_t code,
-    struct sol_str_slice *vec, uint16_t veclen)
+sol_coap_find_options(const struct sol_coap_packet *pkt,
+    uint16_t code,
+    struct sol_str_slice *vec,
+    uint16_t veclen)
 {
     struct option_context context = { .delta = 0,
                                       .used = 0 };
@@ -1431,7 +1433,7 @@ remove_outgoing_confirmable_packet(struct sol_coap_server *server, struct sol_co
         sol_coap_header_get_type(o->pkt, &type);
         sol_coap_header_get_id(o->pkt, &o_id);
 
-        if (id != o_id || type != SOL_COAP_TYPE_CON) {
+        if (id != o_id || type != SOL_COAP_MESSAGE_TYPE_CON) {
             continue;
         }
 
@@ -1450,7 +1452,7 @@ send_unobserve_packet(struct sol_coap_server *server, const struct sol_network_l
     uint8_t reg = 1;
     int r;
 
-    req = sol_coap_packet_new_request(SOL_COAP_METHOD_GET, SOL_COAP_TYPE_CON);
+    req = sol_coap_packet_new_request(SOL_COAP_METHOD_GET, SOL_COAP_MESSAGE_TYPE_CON);
     SOL_NULL_CHECK(req, -ENOMEM);
 
     r = sol_coap_header_set_token(req, token, tkl);
@@ -1478,7 +1480,7 @@ is_coap_ping(struct sol_coap_packet *req)
     (void)sol_coap_header_get_type(req, &type);
     (void)sol_coap_header_get_code(req, &code);
 
-    return type == SOL_COAP_TYPE_CON &&
+    return type == SOL_COAP_MESSAGE_TYPE_CON &&
            code == SOL_COAP_CODE_EMPTY &&
            tokenlen == 0 && !sol_coap_packet_has_payload(req);
 }
@@ -1492,7 +1494,7 @@ send_reset_msg(struct sol_coap_server *server, struct sol_coap_packet *req,
 
     reset = sol_coap_packet_new(req);
     SOL_NULL_CHECK(reset, -ENOMEM);
-    r = sol_coap_header_set_type(reset, SOL_COAP_TYPE_RESET);
+    r = sol_coap_header_set_type(reset, SOL_COAP_MESSAGE_TYPE_RESET);
     SOL_INT_CHECK_GOTO(r, < 0, err);
     return sol_coap_send_packet(server, reset, cliaddr);
 

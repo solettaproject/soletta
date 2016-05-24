@@ -154,7 +154,7 @@ done:
         SOL_WRN("Could not build response packet");
         return -1;
     }
-    r = sol_coap_header_set_type(resp, SOL_COAP_TYPE_ACK);
+    r = sol_coap_header_set_type(resp, SOL_COAP_MESSAGE_TYPE_ACK);
     SOL_INT_CHECK_GOTO(r, < 0, err);
     r = sol_coap_header_set_code(resp, code);
     SOL_INT_CHECK_GOTO(r, < 0, err);
@@ -209,7 +209,7 @@ light_method_get(void *data, struct sol_coap_server *server,
         SOL_WRN("Could not build response packet");
         return -1;
     }
-    r = sol_coap_header_set_type(resp, SOL_COAP_TYPE_ACK);
+    r = sol_coap_header_set_type(resp, SOL_COAP_MESSAGE_TYPE_ACK);
     SOL_INT_CHECK_GOTO(r, < 0, err);
     r = sol_coap_header_set_code(resp, SOL_COAP_RESPONSE_CODE_CONTENT);
     SOL_INT_CHECK_GOTO(r, < 0, err);

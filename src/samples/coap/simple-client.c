@@ -50,7 +50,7 @@ disable_observing(struct sol_coap_packet *req, struct sol_coap_server *server,
 
     r = sol_coap_header_set_code(pkt, SOL_COAP_METHOD_GET);
     SOL_INT_CHECK_GOTO(r, < 0, err);
-    r = sol_coap_header_set_type(pkt, SOL_COAP_TYPE_CON);
+    r = sol_coap_header_set_type(pkt, SOL_COAP_MESSAGE_TYPE_CON);
     SOL_INT_CHECK_GOTO(r, < 0, err);
     r = sol_coap_add_option(pkt, SOL_COAP_OPTION_OBSERVE, &observe, sizeof(observe));
     SOL_INT_CHECK_GOTO(r, < 0, err);
@@ -123,7 +123,7 @@ main(int argc, char *argv[])
         return -1;
     }
 
-    req = sol_coap_packet_new_request(SOL_COAP_METHOD_GET, SOL_COAP_TYPE_CON);
+    req = sol_coap_packet_new_request(SOL_COAP_METHOD_GET, SOL_COAP_MESSAGE_TYPE_CON);
     if (!req) {
         SOL_WRN("Could not make a GET request to resource %s", argv[2]);
         return -1;

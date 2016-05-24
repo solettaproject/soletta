@@ -56,7 +56,7 @@ test_coap_parse_empty_pdu(void)
     sol_coap_header_get_id(pkt, &id);
 
     ASSERT_INT_EQ(ver, 1);
-    ASSERT_INT_EQ(type, SOL_COAP_TYPE_CON);
+    ASSERT_INT_EQ(type, SOL_COAP_MESSAGE_TYPE_CON);
     ASSERT_INT_EQ(code, SOL_COAP_METHOD_GET);
     ASSERT_INT_EQ(id, 0);
 
@@ -94,7 +94,7 @@ test_coap_parse_simple_pdu(void)
     sol_coap_header_get_type(pkt, &type);
 
     ASSERT_INT_EQ(ver, 1);
-    ASSERT_INT_EQ(type, SOL_COAP_TYPE_NON_CON);
+    ASSERT_INT_EQ(type, SOL_COAP_MESSAGE_TYPE_NON_CON);
 
     token = sol_coap_header_get_token(pkt, &tkl);
     ASSERT(token);
