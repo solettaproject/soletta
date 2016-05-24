@@ -54,6 +54,8 @@ struct sol_i2c {
     } async;
 };
 
+void sol_i2c_close_raw(struct sol_i2c *i2c);
+
 static i2c_speed_t
 sol_speed_to_riot_speed(enum sol_i2c_speed speed)
 {
@@ -91,11 +93,9 @@ sol_i2c_open_raw(uint8_t bus, enum sol_i2c_speed speed)
     return i2c;
 }
 
-SOL_API void
+void
 sol_i2c_close_raw(struct sol_i2c *i2c)
 {
-    SOL_NULL_CHECK(i2c);
-
     if (i2c->async.timeout)
         sol_i2c_pending_cancel(i2c, (struct sol_i2c_pending *)i2c->async.timeout);
 
