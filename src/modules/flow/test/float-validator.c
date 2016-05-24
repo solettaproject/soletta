@@ -104,7 +104,7 @@ float_validator_process(
     SOL_INT_CHECK(r, < 0, r);
     op = sol_vector_get(&mdata->values, mdata->next_index);
     SOL_NULL_CHECK(op, -EINVAL);
-    match = sol_util_double_equal(input.val, *op);
+    match = sol_util_double_eq(input.val, *op);
     mdata->next_index++;
 
     if (mdata->next_index == mdata->values.len || !match) {

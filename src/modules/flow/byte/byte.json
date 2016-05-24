@@ -231,7 +231,7 @@
         ],
         "data_type": "struct byte_comparison_node_type",
         "extra_methods": {
-          "func": "byte_val_equal"
+          "func": "byte_val_eq"
         }
       },
       "out_ports": [
@@ -297,7 +297,7 @@
         ],
         "data_type": "struct byte_comparison_node_type",
         "extra_methods": {
-          "func": "byte_val_greater_or_equal"
+          "func": "byte_val_greater_or_eq"
         }
       },
       "out_ports": [
@@ -363,7 +363,7 @@
         ],
         "data_type": "struct byte_comparison_node_type",
         "extra_methods": {
-          "func": "byte_val_less_or_equal"
+          "func": "byte_val_less_or_eq"
         }
       },
       "out_ports": [
@@ -396,7 +396,7 @@
         ],
         "data_type": "struct byte_comparison_node_type",
         "extra_methods": {
-          "func": "byte_val_not_equal"
+          "func": "byte_val_not_eq"
         }
       },
       "out_ports": [

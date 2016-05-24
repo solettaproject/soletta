@@ -377,7 +377,7 @@ struct timestamp_comparison_data {
 };
 
 static bool
-timestamp_val_equal(struct timespec *var0, struct timespec *var1)
+timestamp_val_eq(struct timespec *var0, struct timespec *var1)
 {
     if (var0->tv_sec != var1->tv_sec)
         return false;
@@ -393,7 +393,7 @@ timestamp_val_less(struct timespec *var0, struct timespec *var1)
 }
 
 static bool
-timestamp_val_less_or_equal(struct timespec *var0, struct timespec *var1)
+timestamp_val_less_or_eq(struct timespec *var0, struct timespec *var1)
 {
     if (var0->tv_sec == var1->tv_sec)
         return var0->tv_nsec <= var1->tv_nsec;
@@ -409,7 +409,7 @@ timestamp_val_greater(struct timespec *var0, struct timespec *var1)
 }
 
 static bool
-timestamp_val_greater_or_equal(struct timespec *var0, struct timespec *var1)
+timestamp_val_greater_or_eq(struct timespec *var0, struct timespec *var1)
 {
     if (var0->tv_sec == var1->tv_sec)
         return var0->tv_nsec >= var1->tv_nsec;
@@ -417,7 +417,7 @@ timestamp_val_greater_or_equal(struct timespec *var0, struct timespec *var1)
 }
 
 static bool
-timestamp_val_not_equal(struct timespec *var0, struct timespec *var1)
+timestamp_val_not_eq(struct timespec *var0, struct timespec *var1)
 {
     if (var0->tv_sec != var1->tv_sec)
         return true;

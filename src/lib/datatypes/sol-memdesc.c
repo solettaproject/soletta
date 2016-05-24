@@ -484,7 +484,7 @@ compare_content(const struct sol_memdesc *desc, const void *a_mem, const void *b
         const double *a = a_mem;
         const double *b = b_mem;
 
-        if (sol_util_double_equal(*a, *b))
+        if (sol_util_double_eq(*a, *b))
             return 0;
         else if (*a < *b)
             return -1;

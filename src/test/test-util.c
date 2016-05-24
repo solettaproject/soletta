@@ -238,7 +238,7 @@ test_strtodn(void)
             wanted_endptr_offset = slen;
 
         if (itr->expected_errno == 0 && reterr == 0) {
-            if (sol_util_double_equal(itr->reference, value)) {
+            if (sol_util_double_eq(itr->reference, value)) {
                 SOL_DBG("OK: parsed '%s' as %g (locale:%u)", itr->str, value,
                     itr->use_locale);
             } else {
@@ -267,7 +267,7 @@ test_strtodn(void)
                     itr->expected_errno, sol_util_strerrora(itr->expected_errno),
                     reterr, sol_util_strerrora(reterr), value, itr->use_locale);
                 FAIL();
-            } else if (!sol_util_double_equal(itr->reference, value)) {
+            } else if (!sol_util_double_eq(itr->reference, value)) {
                 SOL_WRN("FAILED: parsing '%s' should result in %.64g"
                     ", but got %.64g (difference = %g) (locale:%u)",
                     itr->str, itr->reference, value, itr->reference - value,

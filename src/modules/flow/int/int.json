@@ -628,7 +628,7 @@
         ],
         "data_type": "struct irange_comparison_node_type",
         "extra_methods": {
-          "func": "irange_val_equal"
+          "func": "irange_val_eq"
         }
       },
       "out_ports": [
@@ -694,7 +694,7 @@
         ],
         "data_type": "struct irange_comparison_node_type",
         "extra_methods": {
-          "func": "irange_val_greater_or_equal"
+          "func": "irange_val_greater_or_eq"
         }
       },
       "out_ports": [
@@ -760,7 +760,7 @@
         ],
         "data_type": "struct irange_comparison_node_type",
         "extra_methods": {
-          "func": "irange_val_less_or_equal"
+          "func": "irange_val_less_or_eq"
         }
       },
       "out_ports": [
@@ -793,7 +793,7 @@
         ],
         "data_type": "struct irange_comparison_node_type",
         "extra_methods": {
-          "func": "irange_val_not_equal"
+          "func": "irange_val_not_eq"
         }
       },
       "out_ports": [

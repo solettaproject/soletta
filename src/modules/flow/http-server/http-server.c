@@ -112,7 +112,7 @@ static struct sol_ptr_vector servers = SOL_PTR_VECTOR_INIT;
         if ((fpclassify(mdata->value.field_) == FP_ZERO) && (errno != 0)) { \
             return -errno; \
         } \
-        if (!sol_util_double_equal(mdata->value.field_, d)) { \
+        if (!sol_util_double_eq(mdata->value.field_, d)) { \
             mdata->value.field_ = d; \
             ret_ = 1; \
         } \
@@ -892,7 +892,7 @@ int_process_cb(struct http_data *mdata, const struct sol_flow_packet *packet)
     r = sol_flow_packet_get_irange(packet, &i);
     SOL_INT_CHECK(r, < 0, r);
 
-    if (sol_irange_equal(&mdata->value.i, &i))
+    if (sol_irange_eq(&mdata->value.i, &i))
         return 0;
 
     memcpy(&mdata->value.i, &i, sizeof(i));
@@ -978,7 +978,7 @@ float_process_cb(struct http_data *mdata, const struct sol_flow_packet *packet)
     r = sol_flow_packet_get_drange(packet, &d);
     SOL_INT_CHECK(r, < 0, r);
 
-    if (sol_drange_equal(&mdata->value.d, &d))
+    if (sol_drange_eq(&mdata->value.d, &d))
         return 0;
 
     memcpy(&mdata->value.d, &d, sizeof(d));
@@ -1043,7 +1043,7 @@ rgb_process_cb(struct http_data *mdata, const struct sol_flow_packet *packet)
     r = sol_flow_packet_get_rgb(packet, &rgb);
     SOL_INT_CHECK(r, < 0, r);
 
-    if (sol_rgb_equal(&mdata->value.rgb, &rgb))
+    if (sol_rgb_eq(&mdata->value.rgb, &rgb))
         return 0;
 
     memcpy(&mdata->value.rgb, &rgb, sizeof(struct sol_rgb));
@@ -1181,7 +1181,7 @@ direction_vector_process_cb(struct http_data *mdata,
     r = sol_flow_packet_get_direction_vector(packet, &dir);
     SOL_INT_CHECK(r, < 0, r);
 
-    if (sol_direction_vector_equal(&mdata->value.dir_vector, &dir))
+    if (sol_direction_vector_eq(&mdata->value.dir_vector, &dir))
         return 0;
 
     memcpy(&mdata->value.dir_vector, &dir, sizeof(struct sol_direction_vector));
@@ -1241,7 +1241,7 @@ blob_open(struct sol_flow_node *node, void *data,
 }
 
 static bool
-blob_is_equal(struct sol_blob *b1, struct sol_blob *b2)
+blob_is_eq(struct sol_blob *b1, struct sol_blob *b2)
 {
     return b1->size == b2->size && !memcmp(b1->mem, b2->mem, b2->size);
 }
@@ -1254,7 +1254,7 @@ replace_blob(struct http_data *mdata, struct sol_blob *blob)
     if (!mdata->value.blob)
         updated = 1;
     else {
-        if (!blob_is_equal(blob, mdata->value.blob)) {
+        if (!blob_is_eq(blob, mdata->value.blob)) {
             updated = 1;
             sol_blob_unref(mdata->value.blob);
         }
@@ -1529,7 +1529,7 @@ json_process_cb(struct http_data *mdata,
         aux.max = i.max;
         aux.step = i.step;
 
-        if (!sol_drange_equal(&mdata->value.d, &aux)) {
+        if (!sol_drange_eq(&mdata->value.d, &aux)) {
             r = 1;
             memcpy(&mdata->value.d, &aux, sizeof(struct sol_drange));
         } else

@@ -746,7 +746,7 @@ trigger_gatt_discover(struct pending_discovery *disc)
         if (type != SOL_GATT_ATTR_TYPE_INVALID && attr->type != type)
             continue;
 
-        if (uuid && !sol_bt_uuid_equal(&attr->uuid, uuid))
+        if (uuid && !sol_bt_uuid_eq(&attr->uuid, uuid))
             continue;
 
         if (!disc->func((void *)disc->user_data, disc->conn, attr)) {

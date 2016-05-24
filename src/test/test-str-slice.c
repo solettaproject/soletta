@@ -106,19 +106,19 @@ test_str_slice_str_eq(void)
 {
     unsigned int i;
 
-#define TEST_EQUAL(X, CMP) { SOL_STR_SLICE_LITERAL(X), CMP, true }
-#define TEST_NOT_EQUAL(X, CMP) { SOL_STR_SLICE_LITERAL(X), CMP, false }
+#define TEST_EQ(X, CMP) { SOL_STR_SLICE_LITERAL(X), CMP, true }
+#define TEST_NOT_EQ(X, CMP) { SOL_STR_SLICE_LITERAL(X), CMP, false }
 
     static const struct {
         struct sol_str_slice input;
         const char *cmp;
         bool output_value;
     } table[] = {
-        TEST_EQUAL("0", "0"),
-        TEST_EQUAL("wat", "wat"),
-        TEST_NOT_EQUAL("this", "that"),
-        TEST_NOT_EQUAL("thi", "this"),
-        TEST_NOT_EQUAL("whatever", NULL),
+        TEST_EQ("0", "0"),
+        TEST_EQ("wat", "wat"),
+        TEST_NOT_EQ("this", "that"),
+        TEST_NOT_EQ("thi", "this"),
+        TEST_NOT_EQ("whatever", NULL),
     };
 
     for (i = 0; i < sol_util_array_size(table); i++) {
@@ -126,8 +126,8 @@ test_str_slice_str_eq(void)
         ret = sol_str_slice_str_eq(table[i].input, table[i].cmp);
         ASSERT_INT_EQ(ret, table[i].output_value);
     }
-#undef TEST_EQUAL
-#undef TEST_NOT_EQUAL
+#undef TEST_EQ
+#undef TEST_NOT_EQ
 }
 
 DEFINE_TEST(test_str_slice_remove_leading_whitespace);
@@ -137,26 +137,26 @@ test_str_slice_remove_leading_whitespace(void)
 {
     unsigned int i;
 
-#define TEST_EQUAL(X) { SOL_STR_SLICE_LITERAL(X), true }
-#define TEST_NOT_EQUAL(X) { SOL_STR_SLICE_LITERAL(X), false }
-#define TEST_NOT_EQUAL_SHIFT(X, S) { SOL_STR_SLICE_LITERAL(X + S), false }
+#define TEST_EQ(X) { SOL_STR_SLICE_LITERAL(X), true }
+#define TEST_NOT_EQ(X) { SOL_STR_SLICE_LITERAL(X), false }
+#define TEST_NOT_EQ_SHIFT(X, S) { SOL_STR_SLICE_LITERAL(X + S), false }
 
     static const struct {
         struct sol_str_slice input;
         bool equal;
     } table[] = {
-        TEST_NOT_EQUAL(" with one leading whitespace"),
-        TEST_NOT_EQUAL("  with two leading whitespace"),
-        TEST_NOT_EQUAL(" "),
-        TEST_NOT_EQUAL("\twith one leading whitespace"),
-        TEST_NOT_EQUAL("\t\twith two leading whitespace"),
-        TEST_NOT_EQUAL("\t"),
-        TEST_NOT_EQUAL("\nwith one leading whitespace"),
-        TEST_NOT_EQUAL("\n\nwith two leading whitespace"),
-        TEST_NOT_EQUAL("\n"),
-        TEST_NOT_EQUAL_SHIFT("        with leading whitespace and shifted", 4),
-        TEST_EQUAL(""),
-        TEST_EQUAL("without leading whitespace"),
+        TEST_NOT_EQ(" with one leading whitespace"),
+        TEST_NOT_EQ("  with two leading whitespace"),
+        TEST_NOT_EQ(" "),
+        TEST_NOT_EQ("\twith one leading whitespace"),
+        TEST_NOT_EQ("\t\twith two leading whitespace"),
+        TEST_NOT_EQ("\t"),
+        TEST_NOT_EQ("\nwith one leading whitespace"),
+        TEST_NOT_EQ("\n\nwith two leading whitespace"),
+        TEST_NOT_EQ("\n"),
+        TEST_NOT_EQ_SHIFT("        with leading whitespace and shifted", 4),
+        TEST_EQ(""),
+        TEST_EQ("without leading whitespace"),
     };
 
     for (i = 0; i < sol_util_array_size(table); i++) {
@@ -165,8 +165,8 @@ test_str_slice_remove_leading_whitespace(void)
         ASSERT(sol_str_slice_eq(table[i].input, slice) == table[i].equal);
     }
 
-#undef TEST_EQUAL
-#undef TEST_NOT_EQUAL
+#undef TEST_EQ
+#undef TEST_NOT_EQ
 }
 
 DEFINE_TEST(test_str_slice_remove_trailing_whitespace);
@@ -176,24 +176,24 @@ test_str_slice_remove_trailing_whitespace(void)
 {
     unsigned int i;
 
-#define TEST_EQUAL(X) { SOL_STR_SLICE_LITERAL(X), true }
-#define TEST_NOT_EQUAL(X) { SOL_STR_SLICE_LITERAL(X), false }
+#define TEST_EQ(X) { SOL_STR_SLICE_LITERAL(X), true }
+#define TEST_NOT_EQ(X) { SOL_STR_SLICE_LITERAL(X), false }
 
     static const struct {
         struct sol_str_slice input;
         bool equal;
     } table[] = {
-        TEST_NOT_EQUAL("with one trailing whitespace "),
-        TEST_NOT_EQUAL("with two trailing whitespace  "),
-        TEST_NOT_EQUAL(" "),
-        TEST_NOT_EQUAL("with one trailing whitespace\t"),
-        TEST_NOT_EQUAL("with two trailing whitespace\t\t"),
-        TEST_NOT_EQUAL("\t"),
-        TEST_NOT_EQUAL("with one trailing whitespace\n"),
-        TEST_NOT_EQUAL("with two trailing whitespace\n\n"),
-        TEST_NOT_EQUAL("\n"),
-        TEST_EQUAL(""),
-        TEST_EQUAL("without trailing whitespace"),
+        TEST_NOT_EQ("with one trailing whitespace "),
+        TEST_NOT_EQ("with two trailing whitespace  "),
+        TEST_NOT_EQ(" "),
+        TEST_NOT_EQ("with one trailing whitespace\t"),
+        TEST_NOT_EQ("with two trailing whitespace\t\t"),
+        TEST_NOT_EQ("\t"),
+        TEST_NOT_EQ("with one trailing whitespace\n"),
+        TEST_NOT_EQ("with two trailing whitespace\n\n"),
+        TEST_NOT_EQ("\n"),
+        TEST_EQ(""),
+        TEST_EQ("without trailing whitespace"),
     };
 
     for (i = 0; i < sol_util_array_size(table); i++) {
@@ -202,8 +202,8 @@ test_str_slice_remove_trailing_whitespace(void)
         ASSERT(sol_str_slice_eq(table[i].input, slice) == table[i].equal);
     }
 
-#undef TEST_EQUAL
-#undef TEST_NOT_EQUAL
+#undef TEST_EQ
+#undef TEST_NOT_EQ
 }
 
 DEFINE_TEST(test_str_slice_trim);
@@ -213,30 +213,30 @@ test_str_slice_trim(void)
 {
     unsigned int i;
 
-#define TEST_EQUAL(X) { SOL_STR_SLICE_LITERAL(X), true }
-#define TEST_NOT_EQUAL(X) { SOL_STR_SLICE_LITERAL(X), false }
+#define TEST_EQ(X) { SOL_STR_SLICE_LITERAL(X), true }
+#define TEST_NOT_EQ(X) { SOL_STR_SLICE_LITERAL(X), false }
 
     static const struct {
         struct sol_str_slice input;
         bool equal;
     } table[] = {
-        TEST_NOT_EQUAL("with one trailing whitespace "),
-        TEST_NOT_EQUAL("with two trailing whitespace  "),
-        TEST_NOT_EQUAL(" "),
-        TEST_NOT_EQUAL("with one trailing whitespace\t"),
-        TEST_NOT_EQUAL("with two trailing whitespace\t\t"),
-        TEST_NOT_EQUAL("\t"),
-        TEST_NOT_EQUAL("with one trailing whitespace\n"),
-        TEST_NOT_EQUAL("with two trailing whitespace\n\n"),
-        TEST_NOT_EQUAL("\n"),
-        TEST_NOT_EQUAL(" with one whitespace "),
-        TEST_NOT_EQUAL("  with two whitespace  "),
-        TEST_NOT_EQUAL("\twith one whitespace\t"),
-        TEST_NOT_EQUAL("\t\twith two whitespace\t\t"),
-        TEST_NOT_EQUAL("\nwith one whitespace\n"),
-        TEST_NOT_EQUAL("\n\nwith two whitespace\n\n"),
-        TEST_EQUAL(""),
-        TEST_EQUAL("without trailing whitespace"),
+        TEST_NOT_EQ("with one trailing whitespace "),
+        TEST_NOT_EQ("with two trailing whitespace  "),
+        TEST_NOT_EQ(" "),
+        TEST_NOT_EQ("with one trailing whitespace\t"),
+        TEST_NOT_EQ("with two trailing whitespace\t\t"),
+        TEST_NOT_EQ("\t"),
+        TEST_NOT_EQ("with one trailing whitespace\n"),
+        TEST_NOT_EQ("with two trailing whitespace\n\n"),
+        TEST_NOT_EQ("\n"),
+        TEST_NOT_EQ(" with one whitespace "),
+        TEST_NOT_EQ("  with two whitespace  "),
+        TEST_NOT_EQ("\twith one whitespace\t"),
+        TEST_NOT_EQ("\t\twith two whitespace\t\t"),
+        TEST_NOT_EQ("\nwith one whitespace\n"),
+        TEST_NOT_EQ("\n\nwith two whitespace\n\n"),
+        TEST_EQ(""),
+        TEST_EQ("without trailing whitespace"),
     };
 
     for (i = 0; i < sol_util_array_size(table); i++) {
@@ -245,8 +245,8 @@ test_str_slice_trim(void)
         ASSERT(sol_str_slice_eq(table[i].input, slice) == table[i].equal);
     }
 
-#undef TEST_EQUAL
-#undef TEST_NOT_EQUAL
+#undef TEST_EQ
+#undef TEST_NOT_EQ
 }
 
 DEFINE_TEST(test_str_slice_to_string);

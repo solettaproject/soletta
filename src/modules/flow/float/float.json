@@ -485,7 +485,7 @@
         ],
         "data_type": "struct drange_comparison_node_type",
         "extra_methods": {
-          "func": "sol_util_double_equal"
+          "func": "sol_util_double_eq"
         }
       },
       "out_ports": [
@@ -518,7 +518,7 @@
         ],
         "data_type": "struct drange_comparison_node_type",
         "extra_methods": {
-          "func": "drange_val_greater_or_equal"
+          "func": "drange_val_greater_or_eq"
         }
       },
       "out_ports": [
@@ -584,7 +584,7 @@
         ],
         "data_type": "struct drange_comparison_node_type",
         "extra_methods": {
-          "func": "drange_val_less_or_equal"
+          "func": "drange_val_less_or_eq"
         }
       },
       "out_ports": [
@@ -650,7 +650,7 @@
         ],
         "data_type": "struct drange_comparison_node_type",
         "extra_methods": {
-          "func": "drange_val_not_equal"
+          "func": "drange_val_not_eq"
         }
       },
       "out_ports": [

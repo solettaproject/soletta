@@ -141,7 +141,7 @@ multiple_operator_process(struct sol_flow_node *node, void *data, uint16_t port,
     SOL_INT_CHECK(r, < 0, r);
 
     if ((mdata->var_initialized & (1u << port)) &&
-        sol_drange_equal(&mdata->var[port], &value))
+        sol_drange_eq(&mdata->var[port], &value))
         return 0;
 
     mdata->var_initialized |= 1u << port;
@@ -458,7 +458,7 @@ drange_val_less(double var0, double var1)
 }
 
 static bool
-drange_val_less_or_equal(double var0, double var1)
+drange_val_less_or_eq(double var0, double var1)
 {
     return islessequal(var0, var1);
 }
@@ -470,15 +470,15 @@ drange_val_greater(double var0, double var1)
 }
 
 static bool
-drange_val_greater_or_equal(double var0, double var1)
+drange_val_greater_or_eq(double var0, double var1)
 {
     return isgreaterequal(var0, var1);
 }
 
 static bool
-drange_val_not_equal(double var0, double var1)
+drange_val_not_eq(double var0, double var1)
 {
-    return !sol_util_double_equal(var0, var1);
+    return !sol_util_double_eq(var0, var1);
 }
 
 static int
@@ -609,11 +609,11 @@ direction_check(struct drange_wave_generator_trapezoidal_data *mdata,
     struct sol_drange *v = &mdata->t_state.val;
     struct t_state *t_state = &mdata->t_state;
 
-    if (sol_util_double_equal(v->val, v->max)) {
+    if (sol_util_double_eq(v->val, v->max)) {
         if (reset_max_cnt)
             t_state->max_tick_cnt = mdata->ticks_at_max;
         direction_switch(mdata, true);
-    } else if (sol_util_double_equal(v->val, v->min)) {
+    } else if (sol_util_double_eq(v->val, v->min)) {
         if (reset_min_cnt)
             t_state->min_tick_cnt = mdata->ticks_at_min;
         direction_switch(mdata, false);

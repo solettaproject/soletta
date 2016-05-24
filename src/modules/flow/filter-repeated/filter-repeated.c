@@ -148,7 +148,7 @@ float_filter(struct sol_flow_node *node, void *data, uint16_t port, uint16_t con
     r = sol_flow_packet_get_drange(packet, &in_value);
     SOL_INT_CHECK(r, < 0, r);
 
-    if (mdata->initialized && sol_drange_equal(&in_value, &mdata->value))
+    if (mdata->initialized && sol_drange_eq(&in_value, &mdata->value))
         return 0;
 
     mdata->initialized = true;
@@ -168,7 +168,7 @@ int_filter(struct sol_flow_node *node, void *data, uint16_t port, uint16_t conn_
     r = sol_flow_packet_get_irange(packet, &in_value);
     SOL_INT_CHECK(r, < 0, r);
 
-    if (mdata->initialized && sol_irange_equal(&in_value, &mdata->value))
+    if (mdata->initialized && sol_irange_eq(&in_value, &mdata->value))
         return 0;
 
     mdata->initialized = true;

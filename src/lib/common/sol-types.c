@@ -110,15 +110,15 @@ sol_drange_sub(const struct sol_drange *var0, const struct sol_drange *var1, str
 }
 
 SOL_API bool
-sol_drange_equal(const struct sol_drange *var0, const struct sol_drange *var1)
+sol_drange_eq(const struct sol_drange *var0, const struct sol_drange *var1)
 {
     SOL_NULL_CHECK(var0, false);
     SOL_NULL_CHECK(var1, false);
 
-    if (sol_util_double_equal(var0->val, var1->val) &&
-        sol_util_double_equal(var0->min, var1->min) &&
-        sol_util_double_equal(var0->max, var1->max) &&
-        sol_util_double_equal(var0->step, var1->step))
+    if (sol_util_double_eq(var0->val, var1->val) &&
+        sol_util_double_eq(var0->min, var1->min) &&
+        sol_util_double_eq(var0->max, var1->max) &&
+        sol_util_double_eq(var0->step, var1->step))
         return true;
 
     return false;
@@ -198,7 +198,7 @@ sol_irange_add(const struct sol_irange *var0, const struct sol_irange *var1, str
 }
 
 SOL_API bool
-sol_irange_equal(const struct sol_irange *var0, const struct sol_irange *var1)
+sol_irange_eq(const struct sol_irange *var0, const struct sol_irange *var1)
 {
     SOL_NULL_CHECK(var0, false);
     SOL_NULL_CHECK(var1, false);
@@ -406,7 +406,7 @@ sol_rgb_set_max(struct sol_rgb *color, uint32_t max_value)
 }
 
 SOL_API bool
-sol_rgb_equal(const struct sol_rgb *var0, const struct sol_rgb *var1)
+sol_rgb_eq(const struct sol_rgb *var0, const struct sol_rgb *var1)
 {
     SOL_NULL_CHECK(var0, false);
     SOL_NULL_CHECK(var1, false);
@@ -423,17 +423,17 @@ sol_rgb_equal(const struct sol_rgb *var0, const struct sol_rgb *var1)
 }
 
 SOL_API bool
-sol_direction_vector_equal(const struct sol_direction_vector *var0,
+sol_direction_vector_eq(const struct sol_direction_vector *var0,
     const struct sol_direction_vector *var1)
 {
     SOL_NULL_CHECK(var0, false);
     SOL_NULL_CHECK(var1, false);
 
-    if (sol_util_double_equal(var0->x, var1->x) &&
-        sol_util_double_equal(var0->y, var1->y) &&
-        sol_util_double_equal(var0->z, var1->z) &&
-        sol_util_double_equal(var0->min, var1->min) &&
-        sol_util_double_equal(var0->max, var1->max))
+    if (sol_util_double_eq(var0->x, var1->x) &&
+        sol_util_double_eq(var0->y, var1->y) &&
+        sol_util_double_eq(var0->z, var1->z) &&
+        sol_util_double_eq(var0->min, var1->min) &&
+        sol_util_double_eq(var0->max, var1->max))
         return true;
     return false;
 }
