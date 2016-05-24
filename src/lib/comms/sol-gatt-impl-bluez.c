@@ -145,6 +145,9 @@ sol_gatt_pending_reply(struct sol_gatt_pending *pending, int error,
     case PENDING_NOTIFY:
         r = -EINVAL;
         pending->buf = buf;
+        /* 'buf' if going to be destroyed when the notification is sent */
+        buf = NULL;
+
         SOL_NULL_CHECK_GOTO(pending->buf, done);
 
         if (attr->type == SOL_GATT_ATTR_TYPE_DESCRIPTOR)
@@ -156,37 +159,40 @@ sol_gatt_pending_reply(struct sol_gatt_pending *pending, int error,
             attr->_priv, interface, "Value", NULL);
         SOL_INT_CHECK_GOTO(r, < 0, done);
         break;
+
     case PENDING_REMOTE_READ:
         pending->read((void *)pending->user_data, true, pending->attr, buf);
         pending->read = NULL;
+        sol_ptr_vector_remove(&pending_ops, pending);
         destroy_pending(pending);
-        break;
+        /* Called the pending callback, nothing more to do. */
+        return 0;
 
     case PENDING_REMOTE_WRITE:
         pending->write((void *)pending->user_data, true, pending->attr);
         pending->write = NULL;
+        sol_ptr_vector_remove(&pending_ops, pending);
         destroy_pending(pending);
-        break;
+        /* Called the pending callback, nothing more to do. */
+        return 0;
     }
 
-    if (!reply)
-        return 0;
-
-    r = sd_bus_send(NULL, reply, NULL);
-    sd_bus_message_unref(reply);
-    SOL_INT_CHECK_GOTO(r, < 0, done);
-
-    return 0;
-
 done:
-    if (r && pending->m) {
-        r = sd_bus_message_new_method_errno(pending->m, &reply, r, NULL);
+    if (buf)
+        sol_buffer_fini(buf);
+
+    if (pending->m && !reply) {
+        if (r)
+            r = sd_bus_message_new_method_errno(pending->m, &reply, r, NULL);
+        else
+            r = sd_bus_message_new_method_return(pending->m, &reply);
+
         SOL_INT_CHECK(r, < 0, r);
+    }
 
+    if (reply) {
         r = sd_bus_send(NULL, reply, NULL);
-
         sd_bus_message_unref(reply);
-
         SOL_INT_CHECK(r, < 0, r);
     }
 
@@ -290,7 +296,7 @@ error_op:
     sol_ptr_vector_del_last(&pending_ops);
 
 error_append:
-    free(pending);
+    destroy_pending(pending);
 
 error:
     if (r < 0) {
@@ -827,7 +833,7 @@ error_read:
     sol_ptr_vector_del_last(&pending_ops);
 
 error_append:
-    free(pending);
+    destroy_pending(pending);
     return r;
 }
 
@@ -920,7 +926,7 @@ error_read:
     sol_ptr_vector_del_last(&pending_ops);
 
 error_append:
-    free(pending);
+    destroy_pending(pending);
     return r;
 }
 
@@ -957,6 +963,6 @@ error_read:
     sol_ptr_vector_del_last(&pending_ops);
 
 error_append:
-    free(pending);
+    destroy_pending(pending);
     return r;
 }
