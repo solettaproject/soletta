@@ -85,6 +85,8 @@ struct sol_i2c {
     } async;
 };
 
+void sol_i2c_close_raw(struct sol_i2c *i2c);
+
 static int
 sol_speed_to_zephyr_speed(enum sol_i2c_speed speed)
 {
@@ -149,11 +151,9 @@ err:
     return i2c;
 }
 
-SOL_API void
+void
 sol_i2c_close_raw(struct sol_i2c *i2c)
 {
-    SOL_NULL_CHECK(i2c);
-
     if (i2c->async.timeout)
         sol_i2c_pending_cancel
             (i2c, (struct sol_i2c_pending *)i2c->async.timeout);

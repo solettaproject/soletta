@@ -35,6 +35,8 @@ struct sol_i2c_shared {
     uint16_t refcount;
 };
 
+extern void sol_i2c_close_raw(struct sol_i2c *i2c);
+
 static struct sol_vector i2c_shared_vector = SOL_VECTOR_INIT(struct sol_i2c_shared);
 
 SOL_API struct sol_i2c *
