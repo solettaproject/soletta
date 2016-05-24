@@ -70,6 +70,8 @@ static qm_rc_t begin_transfer(qm_i2c_t i2c, uint16_t slave, uint32_t id,
     const uint8_t *tx, uint32_t tx_len, const uint8_t *rx, uint32_t rx_len,
     bool stop);
 
+void sol_i2c_close_raw(struct sol_i2c *i2c);
+
 static void
 i2c_cb_dispatch(void *user_data, process_event_t ev, process_data_t ev_data)
 {
@@ -260,11 +262,9 @@ error:
     return NULL;
 }
 
-SOL_API void
+void
 sol_i2c_close_raw(struct sol_i2c *i2c)
 {
-    SOL_NULL_CHECK(i2c);
-
     buses[i2c->bus] = NULL;
     free(i2c);
 }

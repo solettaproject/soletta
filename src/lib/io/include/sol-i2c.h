@@ -113,11 +113,7 @@ struct sol_i2c *sol_i2c_open_raw(uint8_t bus, enum sol_i2c_speed speed) SOL_ATTR
  * sol_i2c_open_raw() if you want to skip any pin mux operation.
  *
  * @note The same I2C bus is shared between every user, so only the
- * first one opening a bus will be able to set its speed. If some I2C
- * slave device needs to work in bus speed different than the current
- * one, then you need close the current I2C handle and get another one
- * at in the desired speed, affecting all other users/devices.
- *
+ * first one opening a bus will be able to set its speed.
  */
 struct sol_i2c *sol_i2c_open(uint8_t bus, enum sol_i2c_speed speed) SOL_ATTR_WARN_UNUSED_RESULT;
 
@@ -128,16 +124,6 @@ struct sol_i2c *sol_i2c_open(uint8_t bus, enum sol_i2c_speed speed) SOL_ATTR_WAR
  *
  */
 void sol_i2c_close(struct sol_i2c *i2c);
-
-/**
- * @brief Close an I2C bus.
- *
- * @param i2c The I2C bus handle to close
- *
- * @note This call will not remove this I2C handle from cache.
- * Use sol_i2c_close() for that.
- */
-void sol_i2c_close_raw(struct sol_i2c *i2c);
 
 /**
  * @brief Set a (slave) device address on a I2C bus to deliver commands
