@@ -1214,7 +1214,7 @@ resolve_absolute_path(const char *address)
         struct timespec elapsed, now;
 
         if (realpath(address, real_path)) {
-            result.path = address;
+            result.path = real_path;
             sol_util_iterate_dir(SYSFS_DEVICES_PATH, resolve_absolute_path_cb, &result);
         }
 
