@@ -79,7 +79,7 @@ const char *sol_platform_get_board_name(void);
  * the 16 bytes-long (128 bits) UUID encoded as hexadecimal ASCII characters.
  *
  * @note: If the environment variable SOL_MACHINE_ID is set and is
- * properly formatted as an UUID string, its value is returned by this call.
+ * properly formatted as a UUID string, its value is returned by this call.
  *
  * @return On success, it returns the machine id string, that must not be
  * modified. On error, it returns @c NULL.
