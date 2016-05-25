@@ -951,8 +951,10 @@ done:
     return 0;
 
 error:
-    SOL_REENTRANT_FREE(reply->reentrant) {
-        pending_reply_free(reply);
+    if (reply) {
+        SOL_REENTRANT_FREE(reply->reentrant) {
+            pending_reply_free(reply);
+        }
     }
 error_pkt:
     sol_coap_packet_unref(pkt);
