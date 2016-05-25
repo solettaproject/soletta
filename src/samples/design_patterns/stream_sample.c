@@ -21,6 +21,7 @@
 #include <sol-types.h>
 #include <sol-buffer.h>
 #include <sol-util.h>
+#include <sol-reentrant.h>
 #include <soletta.h>
 #include <unistd.h>
 #include <stdio.h>
@@ -59,8 +60,7 @@ struct my_stream_api_handle {
     size_t pending_bytes;
     size_t written;
     int dev;
-    bool in_use;
-    bool delete_me;
+    struct sol_reentrant reentrant;
 };
 //! [stream handle]
 
@@ -137,7 +137,7 @@ my_stream_api_feed(struct my_stream_api_handle *handle, struct sol_blob *blob)
     SOL_NULL_CHECK(handle, -EINVAL);
     SOL_NULL_CHECK(blob, -EINVAL);
     //Do not try to write with the uart is going to be closed
-    SOL_EXP_CHECK(handle->delete_me, -EINVAL);
+    SOL_EXP_CHECK(handle->reentrant.delete_me, -EINVAL);
 
     total = handle->pending_bytes + blob->size;
 
@@ -176,17 +176,10 @@ _inform_user(void *data)
     struct my_stream_api_handle *handle = data;
     ssize_t r;
 
-    //Flag that we're using the handle, then if the user tries to delete us from the on_data we do not crash.
-    handle->in_use = true;
-
-    //Inform the user
-    r = handle->on_data((void *)handle->user_data, handle, &handle->rx);
-
-    handle->in_use = false;
-    //The user asked for deletion. Do it now.
-    if (handle->delete_me) {
-        api_close(handle);
-        return false;
+    //Flag that the handle is in use
+    SOL_REENTRANT_CALL(handle->reentrant) {
+        //Inform the user
+        r = handle->on_data((void *)handle->user_data, handle, &handle->rx);
     }
 
     //Remove the data.
@@ -194,6 +187,15 @@ _inform_user(void *data)
         SOL_ERR("Something wrong happened %zd", r);
     else
         sol_buffer_remove_data(&handle->rx, 0, r);
+
+    //Close the handle
+    if (handle->reentrant.delete_me) {
+        SOL_REENTRANT_FREE(handle->reentrant) {
+            api_close(handle);
+        }
+        handle->read_timeout = NULL;
+        return false;
+    }
 
     //Still need to callback the user with remaining data, keep the timer running
     if (handle->rx.used)
@@ -293,7 +295,6 @@ api_close(struct my_stream_api_handle *handle)
     uint16_t i;
     struct sol_blob *blob;
 
-    handle->in_use = handle->delete_me = true;
     //Inform that some blobs where not sent
     SOL_PTR_VECTOR_FOREACH_IDX (&handle->pending_blobs, blob, i) {
         if (handle->on_feed_done)
@@ -314,7 +315,7 @@ void
 my_stream_api_close(struct my_stream_api_handle *handle)
 {
     SOL_NULL_CHECK(handle);
-    SOL_EXP_CHECK(handle->delete_me);
+    SOL_EXP_CHECK(handle->reentrant.delete_me);
 
     if (handle->read_timeout) {
         sol_timeout_del(handle->read_timeout);
@@ -332,11 +333,9 @@ my_stream_api_close(struct my_stream_api_handle *handle)
     }
 
     //The user is trying to delete the handle from the on_data, do not delete it now.
-    if (handle->in_use) {
-        handle->delete_me = true;
-        return;
+    SOL_REENTRANT_FREE(handle->reentrant) {
+        api_close(handle);
     }
-    api_close(handle);
 }
 
 //! [stream read]
