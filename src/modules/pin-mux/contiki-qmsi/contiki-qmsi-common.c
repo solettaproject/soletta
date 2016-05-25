@@ -32,7 +32,7 @@ contiki_qmsi_pin_mux_set(uint32_t *pins, uint32_t pin_count)
 {
     uint32_t i;
 
-    for (i = 0; i < lim; i++) {
+    for (i = 0; i < pin_count; i++) {
         set_mux(pins, i++);
     }
 }
