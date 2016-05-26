@@ -31,6 +31,7 @@
 #include "sol-interrupt_scheduler_riot.h"
 #include "sol-util.h"
 #include "sol-vector.h"
+#include "sol-reentrant.h"
 
 SOL_LOG_INTERNAL_DECLARE_STATIC(_log_domain, "uart");
 
@@ -46,8 +47,7 @@ struct sol_uart {
     size_t pending_feed;
     size_t feed_size;
     int id;
-    bool delete_me;
-    bool in_use;
+    struct sol_reentrant reentrant;
 };
 
 static void
@@ -79,7 +79,6 @@ close_uart(struct sol_uart *uart)
         uart->handler = NULL;
     }
 
-    uart->in_use = uart->delete_me = true;
     SOL_PTR_VECTOR_FOREACH_IDX (&uart->pending_blobs, blob, i) {
         uart_tx_dispatch(uart, blob, -ECANCELED);
         sol_blob_unref(blob);
@@ -102,19 +101,23 @@ rx_timeout(void *data)
     ssize_t r;
     int err;
 
-    uart->in_use = true;
-    r = uart->on_data((void *)uart->user_data, uart, &uart->rx);
-    uart->in_use = false;
-    SOL_INT_CHECK(r, < 0, true);
+    SOL_REENTRANT_CALL(uart->reentrant) {
+        r = uart->on_data((void *)uart->user_data, uart, &uart->rx);
+        SOL_INT_CHECK(r, < 0, true);
+    }
 
     err = sol_buffer_remove_data(&uart->rx, 0, r);
     SOL_INT_CHECK(err, < 0, true);
 
-    if (uart->delete_me)
-        close_uart(uart);
-    else if (!uart->rx.used) {
+    if (!uart->rx.used) {
         uart->rx_reader = NULL;
         keep_running = false;
+    }
+
+    if (uart->reentrant.delete_me) {
+        SOL_REENTRANT_FREE(uart->reentrant) {
+            close_uart(uart);
+        }
     }
 
     return keep_running;
@@ -233,14 +236,11 @@ SOL_API void
 sol_uart_close(struct sol_uart *uart)
 {
     SOL_NULL_CHECK(uart);
-    SOL_EXP_CHECK(uart->delete_me);
+    SOL_EXP_CHECK(uart->reentrant.delete_me);
 
-    if (uart->in_use) {
-        uart->delete_me = true;
-        return;
+    SOL_REENTRANT_FREE(uart->reentrant) {
+        close_uart(uart);
     }
-
-    close_uart(uart);
 }
 
 SOL_API int
@@ -252,7 +252,7 @@ sol_uart_feed(struct sol_uart *uart, struct sol_blob *blob)
 
     SOL_NULL_CHECK(uart, -EINVAL);
     SOL_NULL_CHECK(blob, -EINVAL);
-    SOL_EXP_CHECK(uart->delete_me, -EINVAL);
+    SOL_EXP_CHECK(uart->reentrant.delete_me, -EINVAL);
 
     r = sol_util_size_add(uart->pending_feed, blob->size, &total);
     SOL_INT_CHECK(r, < 0, r);

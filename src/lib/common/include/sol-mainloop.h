@@ -57,14 +57,15 @@ extern "C" {
  * @li @ref Mainloop
  * @li @ref Meta
  * @li @ref Parsers
+ * @li @ref patterns
  * @li @ref PinMux
  * @li @ref Platform
  * @li @ref PowerSupply
+ * @li @ref Reentrant
  * @li @ref Types
  * @li @ref Update
  * @li @ref Utils
  * @li @ref WorkerThread
- * @li @ref patterns
  *
  * Also a lot of examples may be found at @ref examples page.
  *
