@@ -28,7 +28,8 @@ var sources = [
 	"../src/functions/simple.cc",
 	"../src/hijack.cc",
 	"../src/sol-uv-integration.c",
-	"../src/structures/js-handle.cc"
+	"../src/structures/js-handle.cc",
+	"../src/sys-constants.cc"
 ];
 
 // List containing the names of the header files in which to search for constants and enums

@@ -16,4 +16,38 @@
  * limitations under the License.
  */
 
-module.exports = require( "bindings" )( "soletta" );
+var _ = require( "lodash" );
+var soletta = require( "bindings" )( "soletta" );
+
+var cookedConstants = { forward: {}, reverse: {} };
+
+var isInteresting = /^[A-Z0-9_]+$/;
+
+_.each( soletta._sysConstants(), function( value, key ) {
+	if ( !key.match( isInteresting ) ) {
+		return;
+	}
+
+	var forward = cookedConstants.forward;
+	var reverse = cookedConstants.reverse;
+	var ns = key.split( "_" )[ 0 ];
+
+	ns = ( ns === key ) ?
+		( ns.substr( 0, 1 ) === "E" ? "E" :
+		ns.substr( 0, 3 ) === "SIG" ? "SIG" : ns )
+		: ns;
+
+	if ( !forward[ ns ] ) {
+		forward[ ns ] = {};
+	}
+	forward[ ns ][ key ] = value;
+
+	if ( !reverse[ ns ] ) {
+		reverse[ ns ] = {};
+	}
+	reverse[ ns ][ value ] = key;
+} );
+
+soletta._sysConstants( cookedConstants );
+
+module.exports = soletta;
