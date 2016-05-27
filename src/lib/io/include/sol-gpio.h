@@ -49,6 +49,17 @@ extern "C" {
  * @{
  */
 
+/**
+ * @struct sol_gpio
+ * @brief A handle to a GPIO
+ *
+ * @see sol_gpio_open_by_label()
+ * @see sol_gpio_open()
+ * @see sol_gpio_open_raw()
+ * @see sol_gpio_close()
+ * @see sol_gpio_read()
+ * @see sol_gpio_write()
+ */
 struct sol_gpio;
 
 /**
@@ -138,7 +149,7 @@ enum sol_gpio_drive {
 struct sol_gpio_config {
 #ifndef SOL_NO_API_VERSION
 #define SOL_GPIO_CONFIG_API_VERSION (1)
-    uint16_t api_version;
+    uint16_t api_version; /**< The API version */
 #endif
     /**
      * The direction in which to open the GPIO.
