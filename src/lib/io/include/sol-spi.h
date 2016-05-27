@@ -42,6 +42,13 @@ extern "C" {
  * @{
  */
 
+/**
+ * @struct sol_spi
+ * @brief A handle to a SPI bus
+ * @see sol_spi_open()
+ * @see sol_spi_close()
+ * @see sol_spi_transfer()
+ */
 struct sol_spi;
 
 /**
@@ -71,15 +78,22 @@ enum sol_spi_mode {
  */
 #define SOL_SPI_DATA_BITS_DEFAULT 8
 
+/**
+ * @brief SPI configuration struct
+ *
+ * This struct is used to configure an SPI bus during its creation.
+ *
+ * @see sol_spi_open()
+ */
 struct sol_spi_config {
 #ifndef SOL_NO_API_VERSION
 #define SOL_SPI_CONFIG_API_VERSION (1)
-    uint16_t api_version;
+    uint16_t api_version; /**< The API version. */
 #endif
-    unsigned int chip_select; /** Also know as slave select */
-    enum sol_spi_mode mode;
-    uint32_t frequency; /** Clock frequency in Hz */
-    uint8_t bits_per_word;
+    unsigned int chip_select; /**< Also know as slave select */
+    enum sol_spi_mode mode; /**< The SPI operation mode */
+    uint32_t frequency; /**< Clock frequency in Hz */
+    uint8_t bits_per_word; /**< Number of bits per word */
 };
 
 /**
