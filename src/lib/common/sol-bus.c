@@ -498,7 +498,10 @@ _match_properties_changed(sd_bus_message *m, void *userdata,
     SOL_INT_CHECK(r, < 0, r);
 
     t = find_property_table(client, iface, path);
-    SOL_NULL_CHECK(t, -ENOENT);
+    if (!t) {
+        SOL_DBG("Property table not found for iface %s path %s", iface, path);
+        return 0;
+    }
 
     /* Ignore PropertiesChanged signals until the GetAll() method returns */
     if (t->getall_slot)
