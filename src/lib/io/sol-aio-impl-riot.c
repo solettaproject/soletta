@@ -51,7 +51,7 @@ struct sol_aio {
 };
 
 static bool
-_check_precision(const unsigned int precision, adc_precision_t *output)
+_check_precision(unsigned int precision, adc_precision_t *output)
 {
     switch (precision) {
     case 6:
@@ -80,7 +80,7 @@ _check_precision(const unsigned int precision, adc_precision_t *output)
 }
 
 static void
-_power_on(const int device)
+_power_on(int device)
 {
     uint16_t i;
     struct dev_ref *ref;
@@ -99,7 +99,7 @@ _power_on(const int device)
 }
 
 static void
-_power_off(const int device)
+_power_off(int device)
 {
     uint16_t i;
     struct dev_ref *ref;
@@ -118,7 +118,7 @@ _power_off(const int device)
 }
 
 struct sol_aio *
-sol_aio_open_raw(const int device, const int pin, const unsigned int precision)
+sol_aio_open_raw(int device, int pin, unsigned int precision)
 {
     struct sol_aio *aio;
     adc_precision_t prec;
@@ -192,24 +192,22 @@ sol_aio_get_value(struct sol_aio *aio,
     int32_t ret),
     const void *cb_data)
 {
-    SOL_NULL_CHECK(aio, -EINVAL);
+    errno = -EINVAL;
+    SOL_NULL_CHECK(aio, NULL);
+
+    errno = -EBUSY;
+    SOL_EXP_CHECK(aio->async.timeout, NULL);
 
     aio->async.value = 0;
     aio->async.read_cb = read_cb;
     aio->async.cb_data = cb_data;
 
     aio->async.timeout = sol_timeout_add(0, aio_read_timeout_cb, aio);
+    errno = -ENOMEM;
     SOL_NULL_CHECK(aio->async.timeout, NULL);
 
+    errno = 0;
     return (struct sol_aio_pending *)aio->async.timeout;
-}
-
-SOL_API bool
-sol_aio_busy(struct sol_aio *aio)
-{
-    SOL_NULL_CHECK(aio, true);
-
-    return aio->async.timeout;
 }
 
 SOL_API void

@@ -805,7 +805,7 @@ sol_util_size_mul(size_t elem_size, size_t num_elems, size_t *out)
 }
 
 SOL_API int
-sol_util_size_add(const size_t a, const size_t b, size_t *out)
+sol_util_size_add(size_t a, size_t b, size_t *out)
 {
 #ifdef HAVE_BUILTIN_ADD_OVERFLOW
     if (__builtin_add_overflow(a, b, out))
@@ -819,7 +819,7 @@ sol_util_size_add(const size_t a, const size_t b, size_t *out)
 }
 
 SOL_API int
-sol_util_size_sub(const size_t a, const size_t b, size_t *out)
+sol_util_size_sub(size_t a, size_t b, size_t *out)
 {
 #ifdef HAVE_BUILTIN_SUB_OVERFLOW
     if (__builtin_sub_overflow(a, b, out))
@@ -833,7 +833,7 @@ sol_util_size_sub(const size_t a, const size_t b, size_t *out)
 }
 
 SOL_API int
-sol_util_uint64_mul(const uint64_t a, const uint64_t b, uint64_t *out)
+sol_util_uint64_mul(uint64_t a, uint64_t b, uint64_t *out)
 {
 #ifdef HAVE_BUILTIN_MUL_OVERFLOW
     if (__builtin_mul_overflow(a, b, out))
@@ -848,7 +848,7 @@ sol_util_uint64_mul(const uint64_t a, const uint64_t b, uint64_t *out)
 }
 
 SOL_API int
-sol_util_int64_mul(const int64_t a, const int64_t b, int64_t *out)
+sol_util_int64_mul(int64_t a, int64_t b, int64_t *out)
 {
 #ifdef HAVE_BUILTIN_MUL_OVERFLOW
     if (__builtin_mul_overflow(a, b, out))
@@ -866,7 +866,7 @@ sol_util_int64_mul(const int64_t a, const int64_t b, int64_t *out)
 }
 
 SOL_API int
-sol_util_uint64_add(const uint64_t a, const uint64_t b, uint64_t *out)
+sol_util_uint64_add(uint64_t a, uint64_t b, uint64_t *out)
 {
 #ifdef HAVE_BUILTIN_ADD_OVERFLOW
     if (__builtin_add_overflow(a, b, out))
@@ -880,7 +880,7 @@ sol_util_uint64_add(const uint64_t a, const uint64_t b, uint64_t *out)
 }
 
 SOL_API int
-sol_util_int32_mul(const int32_t a, const int32_t b, int32_t *out)
+sol_util_int32_mul(int32_t a, int32_t b, int32_t *out)
 {
 #ifdef HAVE_BUILTIN_MUL_OVERFLOW
     if (__builtin_mul_overflow(a, b, out))
@@ -898,7 +898,7 @@ sol_util_int32_mul(const int32_t a, const int32_t b, int32_t *out)
 }
 
 SOL_API int
-sol_util_uint32_mul(const uint32_t a, const uint32_t b, uint32_t *out)
+sol_util_uint32_mul(uint32_t a, uint32_t b, uint32_t *out)
 {
 #ifdef HAVE_BUILTIN_MUL_OVERFLOW
     if (__builtin_mul_overflow(a, b, out))

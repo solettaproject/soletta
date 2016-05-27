@@ -67,7 +67,7 @@
 #define INT_TO_PTR(i) ((void *)((intptr_t)(i)))
 
 static inline int
-sol_util_int_compare(const int a, const int b)
+sol_util_int_compare(int a, int b)
 {
     return (a > b) - (a < b);
 }

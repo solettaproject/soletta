@@ -20,6 +20,7 @@
 #include <sol-log.h>
 #include <sol-mainloop.h>
 #include <sol-vector.h>
+#include <sol-flow.h>
 
 #include <errno.h>
 #include <stdlib.h>
@@ -227,20 +228,32 @@ end:
 }
 
 static bool
+set_slave(struct am2315 *device, bool (*cb)(void *data))
+{
+    int r;
+
+    r = sol_i2c_set_slave_address(device->i2c, device->slave);
+
+    if (r < 0) {
+        if (r == -EBUSY)
+            timer_sched(device, STEP_TIME, cb);
+        else {
+            SOL_WRN("Failed to set slave at address 0x%02x. Reason: %d", device->slave, r);
+        }
+        return false;
+    }
+
+    return true;
+}
+
+static bool
 _read_data(void *data)
 {
     struct am2315 *device = data;
 
     device->timer = NULL;
-    if (sol_i2c_busy(device->i2c)) {
-        timer_sched(device, STEP_TIME, _read_data);
+    if (!set_slave(device, _read_data))
         return false;
-    }
-
-    if (!sol_i2c_set_slave_address(device->i2c, device->slave)) {
-        SOL_WRN("Failed to set slave at address 0x%02x", device->slave);
-        goto error;
-    }
 
     /* Read 8 bytes: 1st is the function code, 2nd is data length,
      * 3rd and 4th are humidity hi/lo, 5th and 6th are temperature
@@ -282,8 +295,9 @@ _update_readings(void *data)
     time_t current_time;
 
     device->timer = NULL;
-    if (sol_i2c_busy(device->i2c)) {
-        timer_sched(device, STEP_TIME, _update_readings);
+    if (!set_slave(device, _update_readings)) {
+        device->success = false;
+        _send_readings(device);
         return false;
     }
 
@@ -303,13 +317,6 @@ _update_readings(void *data)
     }
 
     device->last_reading = current_time;
-
-    if (!sol_i2c_set_slave_address(device->i2c, device->slave)) {
-        SOL_WRN("Failed to set slave at address 0x%02x", device->slave);
-        device->success = false;
-        _send_readings(device);
-        return false;
-    }
 
     /* Write a message to read data */
     device->i2c_pending = sol_i2c_write(device->i2c, device->buffer,

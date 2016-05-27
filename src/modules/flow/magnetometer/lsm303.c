@@ -141,20 +141,35 @@ i2c_write_mode_cb(void *cb_data, struct sol_i2c *i2c, uint8_t reg, uint8_t *data
 }
 
 static bool
+set_slave(struct magnetometer_lsm303_data *mdata, bool (*cb)(void *data))
+{
+    int r;
+
+    r = sol_i2c_set_slave_address(mdata->i2c, mdata->slave);
+
+    if (r < 0) {
+        if (r == -EBUSY)
+            timer_sched(mdata, MAG_STEP_TIME, cb);
+        else {
+            const char errmsg[] = "Failed to set slave at address 0x%02x";
+            SOL_WRN(errmsg, mdata->slave);
+            sol_flow_send_error_packet(mdata->node, r, errmsg, mdata->slave);
+        }
+        return false;
+    }
+
+    return true;
+}
+
+static bool
 lsm303_init(void *data)
 {
     struct magnetometer_lsm303_data *mdata = data;
 
     mdata->timer = NULL;
-    if (sol_i2c_busy(mdata->i2c)) {
-        timer_sched(mdata, MAG_STEP_TIME, lsm303_init);
-        return false;
-    }
 
-    if (!sol_i2c_set_slave_address(mdata->i2c, mdata->slave)) {
-        SOL_WRN("Failed to set slave at address 0x%02x\n", mdata->slave);
+    if (!set_slave(mdata, lsm303_init))
         return false;
-    }
 
     mdata->i2c_buffer[0] = LSM303_MAG_DEFAULT_MODE;
     mdata->i2c_pending = sol_i2c_write_register(mdata->i2c,
@@ -249,17 +264,9 @@ magnetometer_lsm303_tick_do(void *data)
     struct magnetometer_lsm303_data *mdata = data;
 
     mdata->timer = NULL;
-    if (sol_i2c_busy(mdata->i2c)) {
-        timer_sched(mdata, MAG_STEP_TIME, magnetometer_lsm303_tick_do);
-        return false;
-    }
 
-    if (!sol_i2c_set_slave_address(mdata->i2c, mdata->slave)) {
-        const char errmsg[] = "Failed to set slave at address 0x%02x";
-        SOL_WRN(errmsg, mdata->slave);
-        sol_flow_send_error_packet(mdata->node, EIO, errmsg, mdata->slave);
+    if (!set_slave(mdata, magnetometer_lsm303_tick_do))
         return false;
-    }
 
     mdata->i2c_pending = sol_i2c_read_register(mdata->i2c,
         LSM303_ACCEL_REG_OUT_X_H_M, mdata->i2c_buffer,

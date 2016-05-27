@@ -119,16 +119,16 @@ const char *sol_spi_mode_to_str(enum sol_spi_mode spi_mode) SOL_ATTR_WARN_UNUSED
  * in case of success the status parameters on callback should be the same
  * value as count, otherwise a error happen.
  * @param cb_data user data, first parameter of transfer_cb
- * @return true if transfer was started.
+ * @return 0 if the transfer started, -EBUSY if the bus is busy or -errno on error.
  *
  * As SPI works in full-duplex, data are going in and out
- * at same time, so both buffers must have the count size.
+ * at same time, so both buffers must have the same count size.
  * Caller should guarantee that both buffers will not be
  * freed until callback is called.
  * Also there is no transfer queue, calling this function when there is
  * transfer happening would return false.
  */
-bool sol_spi_transfer(struct sol_spi *spi, const uint8_t *tx, uint8_t *rx, size_t count, void (*transfer_cb)(void *cb_data, struct sol_spi *spi, const uint8_t *tx, uint8_t *rx, ssize_t status), const void *cb_data);
+int sol_spi_transfer(struct sol_spi *spi, const uint8_t *tx, uint8_t *rx, size_t count, void (*transfer_cb)(void *cb_data, struct sol_spi *spi, const uint8_t *tx, uint8_t *rx, ssize_t status), const void *cb_data);
 
 /**
  * @brief Close an SPI bus.

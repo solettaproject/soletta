@@ -66,8 +66,6 @@ read_cb(void *cb_data, struct sol_aio *aio, int32_t ret)
     struct sol_irange i;
     struct aio_data *mdata = cb_data;
 
-    SOL_NULL_CHECK(mdata);
-
     i.val = ret;
     if (i.val < 0) {
         sol_flow_send_error_packet(mdata->node, EINVAL,
@@ -94,14 +92,9 @@ _on_reader_timeout(void *data)
 {
     struct aio_data *mdata = data;
 
-    SOL_NULL_CHECK(data, true);
-
-    if (sol_aio_busy(mdata->aio))
-        return true;
-
     mdata->pending = sol_aio_get_value(mdata->aio, read_cb, mdata);
-    if (!mdata->pending) {
-        sol_flow_send_error_packet(mdata->node, EINVAL,
+    if (!mdata->pending && errno != -EBUSY) {
+        sol_flow_send_error_packet(mdata->node, errno,
             "AIO (%s): Failed to issue read operation.", mdata->pin);
         return false;
     }

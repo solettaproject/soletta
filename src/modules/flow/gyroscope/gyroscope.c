@@ -182,20 +182,35 @@ i2c_read_fifo_status_cb(void *cb_data, struct sol_i2c *i2c, uint8_t reg, uint8_t
 }
 
 static bool
+set_slave(struct gyroscope_l3g4200d_data *mdata, bool (*cb)(void *data))
+{
+    int r;
+
+    r = sol_i2c_set_slave_address(mdata->i2c, GYRO_ADDRESS);
+
+    if (r < 0) {
+        if (r == -EBUSY)
+            gyro_timer_resched(mdata, GYRO_INIT_STEP_TIME, cb);
+        else {
+            const char errmsg[] = "Failed to set slave at address 0x%02x";
+            SOL_WRN(errmsg, GYRO_ADDRESS);
+            sol_flow_send_error_packet(mdata->node, r, errmsg, GYRO_ADDRESS);
+        }
+        return false;
+    }
+
+    return true;
+}
+
+static bool
 gyro_tick_do(void *data)
 {
     struct gyroscope_l3g4200d_data *mdata = data;
 
     mdata->timer = NULL;
-    if (sol_i2c_busy(mdata->i2c)) {
-        gyro_timer_resched(mdata, GYRO_INIT_STEP_TIME, gyro_tick_do);
-        return false;
-    }
 
-    if (!sol_i2c_set_slave_address(mdata->i2c, GYRO_ADDRESS)) {
-        SOL_WRN("Failed to set slave at address 0x%02x\n", GYRO_ADDRESS);
+    if (!set_slave(mdata, gyro_tick_do))
         return false;
-    }
 
     mdata->common.buffer[0] = 0;
     mdata->i2c_pending = sol_i2c_read_register(mdata->i2c, GYRO_REG_FIFO_SRC,
@@ -241,15 +256,9 @@ gyro_init_stream(void *data)
     struct gyroscope_l3g4200d_data *mdata = data;
 
     mdata->timer = NULL;
-    if (sol_i2c_busy(mdata->i2c)) {
-        gyro_timer_resched(mdata, GYRO_INIT_STEP_TIME, gyro_init_stream);
-        return false;
-    }
 
-    if (!sol_i2c_set_slave_address(mdata->i2c, GYRO_ADDRESS)) {
-        SOL_WRN("Failed to set slave at address 0x%02x\n", GYRO_ADDRESS);
+    if (!set_slave(mdata, gyro_init_stream))
         return false;
-    }
 
     /* enable FIFO in stream mode */
     mdata->common.buffer[0] = GYRO_REG_FIFO_CTL_STREAM;
@@ -283,15 +292,9 @@ gyro_init_fifo(void *data)
     struct gyroscope_l3g4200d_data *mdata = data;
 
     mdata->timer = NULL;
-    if (sol_i2c_busy(mdata->i2c)) {
-        gyro_timer_resched(mdata, GYRO_INIT_STEP_TIME, gyro_init_fifo);
-        return false;
-    }
 
-    if (!sol_i2c_set_slave_address(mdata->i2c, GYRO_ADDRESS)) {
-        SOL_WRN("Failed to set slave at address 0x%02x\n", GYRO_ADDRESS);
+    if (!set_slave(mdata, gyro_init_fifo))
         return false;
-    }
 
     mdata->common.buffer[0] = GYRO_REG_CTRL_REG5_FIFO_EN;
     mdata->i2c_pending = sol_i2c_write_register(mdata->i2c, GYRO_REG_CTRL_REG5,
@@ -324,15 +327,9 @@ gyro_init_range(void *data)
     struct gyroscope_l3g4200d_data *mdata = data;
 
     mdata->timer = NULL;
-    if (sol_i2c_busy(mdata->i2c)) {
-        gyro_timer_resched(mdata, GYRO_INIT_STEP_TIME, gyro_init_range);
-        return false;
-    }
 
-    if (!sol_i2c_set_slave_address(mdata->i2c, GYRO_ADDRESS)) {
-        SOL_WRN("Failed to set slave at address 0x%02x\n", GYRO_ADDRESS);
+    if (!set_slave(mdata, gyro_init_range))
         return false;
-    }
 
     /* setup for 2000 degrees/sec */
     mdata->common.buffer[0] = GYRO_REG_CTRL_REG4_FS_2000;
@@ -373,15 +370,9 @@ gyro_init_sampling(void *data)
     struct gyroscope_l3g4200d_data *mdata = data;
 
     mdata->timer = NULL;
-    if (sol_i2c_busy(mdata->i2c)) {
-        gyro_timer_resched(mdata, GYRO_INIT_STEP_TIME, gyro_init_sampling);
-        return false;
-    }
 
-    if (!sol_i2c_set_slave_address(mdata->i2c, GYRO_ADDRESS)) {
-        SOL_WRN("Failed to set slave at address 0x%02x\n", GYRO_ADDRESS);
+    if (!set_slave(mdata, gyro_init_sampling))
         return false;
-    }
 
     /* setup for 800Hz sampling with 110Hz filter */
     mdata->common.buffer[0] = GYRO_REG_CTRL_REG1_DRBW_800_110 |
@@ -419,16 +410,9 @@ gyro_init(void *data)
     struct gyroscope_l3g4200d_data *mdata = data;
 
     mdata->timer = NULL;
-    if (sol_i2c_busy(mdata->i2c)) {
-        gyro_timer_resched(mdata, GYRO_INIT_STEP_TIME, gyro_init);
-        return false;
-    }
 
-    if (!sol_i2c_set_slave_address(mdata->i2c, GYRO_ADDRESS)) {
-        SOL_WRN("Failed to set slave at address 0x%02x\n",
-            GYRO_ADDRESS);
+    if (!set_slave(mdata, gyro_init))
         return false;
-    }
 
     mdata->i2c_pending = sol_i2c_read_register(mdata->i2c, GYRO_REG_WHO_AM_I,
         mdata->common.buffer, 1, i2c_read_who_am_i_cb, mdata);
