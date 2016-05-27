@@ -39,25 +39,53 @@ extern "C" {
  * @{
  */
 
+/**
+ * @struct sol_iio_device
+ * @brief An IIO device handle
+ * @see sol_iio_open()
+ * @see sol_iio_close()
+ * @see sol_iio_device_trigger_now()
+ * @see sol_iio_device_start_buffer()
+ */
 struct sol_iio_device;
+
+/**
+ * @struct sol_iio_channel
+ * @brief An IIO channel handle
+ * @see sol_iio_add_channel()
+ * @see sol_iio_read_channel_value()
+ * @see sol_iio_read_channel_raw_buffer()
+ * @see sol_iio_read_channel_value()
+ * @see SOL_IIO_CHANNEL_CONFIG_INIT()
+ */
 struct sol_iio_channel;
 
+/**
+ * @brief A configuration struct for an IIO device
+ *
+ * @see sol_iio_open()
+ */
 struct sol_iio_config {
 #ifndef SOL_NO_API_VERSION
 #define SOL_IIO_CONFIG_API_VERSION (1)
-    uint16_t api_version;
+    uint16_t api_version; /**< The API version */
 #endif
     const char *trigger_name; /**< Name of IIO trigger to be used on this device. If NULL or empty, will try to use device current trigger. If device has no current trigger, will create a 'sysfs_trigger' and use it. */
     void (*sol_iio_reader_cb)(void *data, struct sol_iio_device *device); /**< Callback to be called when get new device readings on buffer */
     const void *data; /**< User defined data to be sent to sol_iio_reader_cb */
-    int buffer_size; /**< size of reading buffer. 0: use device default; -1: disable buffer and readings will be performed on channel files on sysfs. */
+    int buffer_size; /**< The size of reading buffer. 0: use device default; -1: disable buffer and readings will be performed on channel files on sysfs. */
     int sampling_frequency; /**< Device sampling frequency. -1 uses device default */
 };
 
+/**
+ * @brief A configuration struct for an IIO channel
+ *
+ * @see sol_iio_add_channel()
+ */
 struct sol_iio_channel_config {
 #ifndef SOL_NO_API_VERSION
 #define SOL_IIO_CHANNEL_CONFIG_API_VERSION (1)
-    uint16_t api_version;
+    uint16_t api_version; /**< The API version */
 #endif
     double scale; /**< Channel scale, to be applied to raw readings. -1 uses device default. Some devices share scale among all channels, so changing one will change all. If, in this case, different channels set different scales the result is unknown. */
     int offset; /**< Channel offset, to be added to raw readings. Some devices share offset among all channels, so changing one will change all. If, in this case, different channels set different offsets the result is unknown. */
@@ -65,8 +93,9 @@ struct sol_iio_channel_config {
 };
 
 /**
- * Macro that may be used for initialized a @ref sol_iio_channel_config
- * with default values for this struct. It'll start with scale @c -1.0 and
+ * @brief Macro that may be used for initialized a @ref sol_iio_channel_config
+ *
+ * This macro will init a with default values a @ref sol_iio_channel_config. It'll start with scale @c -1.0 and
  * without custom offset.
  */
 #define SOL_IIO_CHANNEL_CONFIG_INIT { \

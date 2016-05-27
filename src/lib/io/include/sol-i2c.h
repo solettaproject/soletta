@@ -43,9 +43,37 @@ extern "C" {
  * @{
  */
 
-struct sol_i2c; /**< @brief I2C handle structure */
+/**
+ * @struct sol_i2c
+ * @brief I2C handle structure
+ * @see sol_i2c_open()
+ * @see sol_i2c_open_raw()
+ * @see sol_i2c_close()
+ * @see sol_i2c_set_slave_address()
+ * @see sol_i2c_get_slave_address()
+ * @see sol_i2c_bus_get()
+ * @see sol_i2c_write_quick()
+ * @see sol_i2c_read()
+ * @see sol_i2c_write()
+ * @see sol_i2c_read_register()
+ * @see sol_i2c_write_register()
+ * @see sol_i2c_read_register_multiple()
+ * @see sol_i2c_pending_cancel()
+ */
+struct sol_i2c;
 
-struct sol_i2c_pending; /**< @brief I2C pending operation handle structure */
+/**
+ * @struct sol_i2c_pending
+ * @brief I2C pending operation handle structure
+ * @see sol_i2c_write_quick()
+ * @see sol_i2c_read()
+ * @see sol_i2c_write()
+ * @see sol_i2c_read_register()
+ * @see sol_i2c_write_register()
+ * @see sol_i2c_read_register_multiple()
+ * @see sol_i2c_pending_cancel()
+ */
+struct sol_i2c_pending;
 
 /**
  * @brief Enum for I2C bus speed.
