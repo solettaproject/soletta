@@ -55,57 +55,64 @@
 struct location_obj_instance_ctx {
     struct sol_timeout *timeout;
     struct sol_lwm2m_client *client;
-    char *latitude;
-    char *longitude;
+    double latitude;
+    double longitude;
     int64_t timestamp;
 };
 
-static char *
-generate_new_coord(void)
-{
-    char *p;
-    int r;
-    double v = ((double)rand() / (double)RAND_MAX);
+static struct sol_blob addr = {
+    .type = &SOL_BLOB_TYPE_NO_FREE,
+    .parent = NULL,
+    .mem = (void *)"coap://localhost:5683",
+    .size = sizeof("coap://localhost:5683") - 1,
+    .refcnt = 1
+};
 
-    r = asprintf(&p, "%g", v);
-    if (r < 0)
+static struct sol_blob binding = {
+    .type = &SOL_BLOB_TYPE_NO_FREE,
+    .parent = NULL,
+    .mem = (void *)"U",
+    .size = sizeof("U") - 1,
+    .refcnt = 1
+};
+
+static struct sol_blob *
+coord_to_str(double d)
+{
+    int r;
+    char *str;
+    struct sol_blob *blob;
+
+    r = asprintf(&str, "%g", d);
+    if (r < 0) {
+        fprintf(stderr, "Could not convert the latitude/longitude to string\n");
         return NULL;
-    return p;
+    }
+
+    blob = sol_blob_new(&SOL_BLOB_TYPE_DEFAULT, NULL, str, strlen(str));
+
+    if (!blob) {
+        fprintf(stderr, "Could not create a blob to store the latitude/longitude\n");
+        free(str);
+        return NULL;
+    }
+    return blob;
 }
 
 static bool
 change_location(void *data)
 {
     struct location_obj_instance_ctx *instance_ctx = data;
-    char *latitude, *longitude;
     int r = 0;
     static const char *paths[] = { "/6/0/0",
                                    "/6/0/1", "/6/0/5", NULL };
 
-    latitude = longitude = NULL;
-
-    latitude = generate_new_coord();
-
-    if (!latitude) {
-        fprintf(stderr, "Could not generate a new latitude\n");
-        return true;
-    }
-
-    longitude = generate_new_coord();
-    if (!longitude) {
-        fprintf(stderr, "Could not generate a new longitude\n");
-        free(latitude);
-        return true;
-    }
-
-    free(instance_ctx->latitude);
-    free(instance_ctx->longitude);
-    instance_ctx->latitude = latitude;
-    instance_ctx->longitude = longitude;
+    instance_ctx->latitude = ((double)rand() / (double)RAND_MAX);
+    instance_ctx->longitude = ((double)rand() / (double)RAND_MAX);
 
     instance_ctx->timestamp = (int64_t)time(NULL);
 
-    printf("New latitude: %s - New longitude: %s\n", instance_ctx->latitude,
+    printf("New latitude: %g - New longitude: %g\n", instance_ctx->latitude,
         instance_ctx->longitude);
 
     r = sol_lwm2m_client_notify(instance_ctx->client, paths);
@@ -170,7 +177,7 @@ create_location_obj(void *user_data, struct sol_lwm2m_client *client,
 
     SOL_VECTOR_FOREACH_IDX (&tlvs, tlv, i) {
         SOL_BUFFER_DECLARE_STATIC(buf, 32);
-        char **prop = NULL;
+        double *prop = NULL;
 
         if (tlv->id == LOCATION_OBJ_LATITUDE_RES_ID) {
             r = sol_lwm2m_tlv_get_bytes(tlv, &buf);
@@ -188,9 +195,12 @@ create_location_obj(void *user_data, struct sol_lwm2m_client *client,
         }
 
         if (buf.used) {
-            *prop = strndup((const char *)buf.data, buf.used);
-            if (!*prop) {
-                r = -ENOMEM;
+            char *endptr = NULL;
+
+            *prop = sol_util_strtod_n(buf.data, &endptr, buf.used, false);
+
+            if (errno != 0 || endptr == buf.data) {
+                r = -EINVAL;
                 fprintf(stderr, "Could not copy the longitude/latitude"
                     " property\n");
                 goto err_free_tlvs;
@@ -211,8 +221,6 @@ err_free_tlvs:
     sol_lwm2m_tlv_list_clear(&tlvs);
 err_free_timeout:
     sol_timeout_del(instance_ctx->timeout);
-    free(instance_ctx->longitude);
-    free(instance_ctx->latitude);
 err_free_instance:
     free(instance_ctx);
     return r;
@@ -223,19 +231,22 @@ read_location_obj(void *instance_data, void *user_data,
     struct sol_lwm2m_client *client, uint16_t instance_id,
     uint16_t res_id, struct sol_lwm2m_resource *res)
 {
+    struct sol_blob *blob;
     struct location_obj_instance_ctx *ctx = instance_data;
     int r;
 
     switch (res_id) {
     case LOCATION_OBJ_LATITUDE_RES_ID:
+        blob = coord_to_str(ctx->latitude);
         SOL_LWM2M_RESOURCE_INIT(r, res, res_id, 1,
-            SOL_LWM2M_RESOURCE_DATA_TYPE_STRING,
-            sol_str_slice_from_str(ctx->latitude));
+            SOL_LWM2M_RESOURCE_DATA_TYPE_STRING, blob);
+        sol_blob_unref(blob);
         break;
     case LOCATION_OBJ_LONGITUDE_RES_ID:
+        blob = coord_to_str(ctx->longitude);
         SOL_LWM2M_RESOURCE_INIT(r, res, res_id, 1,
-            SOL_LWM2M_RESOURCE_DATA_TYPE_STRING,
-            sol_str_slice_from_str(ctx->longitude));
+            SOL_LWM2M_RESOURCE_DATA_TYPE_STRING, blob);
+        sol_blob_unref(blob);
         break;
     case LOCATION_OBJ_TIMESTAMP_RES_ID:
         SOL_LWM2M_RESOURCE_INIT(r, res, res_id, 1,
@@ -262,8 +273,7 @@ read_security_server_obj(void *instance_data, void *user_data,
     switch (res_id) {
     case SECURITY_SERVER_SERVER_URI_RES_ID:
         SOL_LWM2M_RESOURCE_INIT(r, res, 0, 1,
-            SOL_LWM2M_RESOURCE_DATA_TYPE_STRING,
-            sol_str_slice_from_str("coap://localhost:5683"));
+            SOL_LWM2M_RESOURCE_DATA_TYPE_STRING, &addr);
         break;
     case SECURITY_SERVER_IS_BOOTSTRAP_RES_ID:
         SOL_LWM2M_RESOURCE_INIT(r, res, 1, 1,
@@ -299,8 +309,7 @@ read_server_obj(void *instance_data, void *user_data,
         break;
     case SERVER_OBJ_BINDING_RES_ID:
         SOL_LWM2M_RESOURCE_INIT(r, res, res_id, 1,
-            SOL_LWM2M_RESOURCE_DATA_TYPE_STRING,
-            sol_str_slice_from_str("U"));
+            SOL_LWM2M_RESOURCE_DATA_TYPE_STRING, &binding);
         break;
     default:
         if (res_id >= 2 && res_id <= 6)
@@ -332,8 +341,6 @@ del_location_obj(void *instance_data, void *user_data,
 
     if (instance_ctx->timeout)
         sol_timeout_del(instance_ctx->timeout);
-    free(instance_ctx->latitude);
-    free(instance_ctx->longitude);
     free(instance_ctx);
     *has_location_instance = false;
     return 0;

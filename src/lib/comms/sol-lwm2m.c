@@ -1243,7 +1243,7 @@ get_resource_len(const struct sol_lwm2m_resource *resource, uint16_t index,
     switch (resource->data_type) {
     case SOL_LWM2M_RESOURCE_DATA_TYPE_STRING:
     case SOL_LWM2M_RESOURCE_DATA_TYPE_OPAQUE:
-        *len = resource->data[index].bytes.len;
+        *len = resource->data[index].blob->size;
         return 0;
     case SOL_LWM2M_RESOURCE_DATA_TYPE_INT:
     case SOL_LWM2M_RESOURCE_DATA_TYPE_TIME:
@@ -1325,7 +1325,7 @@ add_resource_bytes_to_buffer(const struct sol_lwm2m_resource *resource,
     switch (resource->data_type) {
     case SOL_LWM2M_RESOURCE_DATA_TYPE_STRING:
     case SOL_LWM2M_RESOURCE_DATA_TYPE_OPAQUE:
-        return sol_buffer_append_slice(buf, resource->data[idx].bytes);
+        return sol_buffer_append_slice(buf, sol_str_slice_from_blob(resource->data[idx].blob));
     case SOL_LWM2M_RESOURCE_DATA_TYPE_INT:
     case SOL_LWM2M_RESOURCE_DATA_TYPE_TIME:
     case SOL_LWM2M_RESOURCE_DATA_TYPE_OBJ_LINK:
@@ -1738,7 +1738,8 @@ sol_lwm2m_resource_init(struct sol_lwm2m_resource *resource,
 {
     uint16_t i;
     va_list ap;
-    int r = 0;
+    struct sol_blob *blob;
+    int r = -EINVAL;
 
     if (!resource || data_type == SOL_LWM2M_RESOURCE_DATA_TYPE_NONE ||
         !resource_len)
@@ -1762,7 +1763,10 @@ sol_lwm2m_resource_init(struct sol_lwm2m_resource *resource,
         switch (resource->data_type) {
         case SOL_LWM2M_RESOURCE_DATA_TYPE_OPAQUE:
         case SOL_LWM2M_RESOURCE_DATA_TYPE_STRING:
-            resource->data[i].bytes = va_arg(ap, struct sol_str_slice);
+            blob = va_arg(ap, struct sol_blob *);
+            SOL_NULL_CHECK_GOTO(blob, err_exit);
+            resource->data[i].blob = sol_blob_ref(blob);
+            SOL_NULL_CHECK_GOTO(resource->data[i].blob, err_ref);
             break;
         case SOL_LWM2M_RESOURCE_DATA_TYPE_FLOAT:
             resource->data[i].fp = va_arg(ap, double);
@@ -1780,13 +1784,25 @@ sol_lwm2m_resource_init(struct sol_lwm2m_resource *resource,
                 (uint16_t)va_arg(ap, int);
             break;
         default:
-            r = -EINVAL;
+            SOL_WRN("Unknown resource data type");
+            goto err_exit;
         }
     }
 
-    if (r < 0)
-        free(resource->data);
+    va_end(ap);
+    return 0;
 
+err_ref:
+    r = -EOVERFLOW;
+err_exit:
+    if (data_type == SOL_LWM2M_RESOURCE_DATA_TYPE_OPAQUE ||
+        data_type == SOL_LWM2M_RESOURCE_DATA_TYPE_OPAQUE) {
+        uint16_t until = i;
+
+        for (i = 0; i < until; i++)
+            sol_blob_unref(resource->data[i].blob);
+    }
+    free(resource->data);
     va_end(ap);
     return r;
 }
@@ -2237,9 +2253,16 @@ sol_lwm2m_tlv_get_bytes(struct sol_lwm2m_tlv *tlv, struct sol_buffer *buf)
 SOL_API void
 sol_lwm2m_resource_clear(struct sol_lwm2m_resource *resource)
 {
+    uint16_t i;
+
     SOL_NULL_CHECK(resource);
     LWM2M_RESOURCE_CHECK_API(resource);
 
+    if (resource->data_type == SOL_LWM2M_RESOURCE_DATA_TYPE_OPAQUE ||
+        resource->data_type == SOL_LWM2M_RESOURCE_DATA_TYPE_STRING) {
+        for (i = 0; i < resource->data_len; i++)
+            sol_blob_unref(resource->data[i].blob);
+    }
     free(resource->data);
     resource->data = NULL;
 }
@@ -2669,6 +2692,7 @@ handle_write(struct sol_lwm2m_client *client,
     } else if (content_format == SOL_LWM2M_CONTENT_TYPE_TEXT ||
         content_format == SOL_LWM2M_CONTENT_TYPE_OPAQUE) {
         struct sol_lwm2m_resource res;
+        struct sol_blob *blob;
 
         if (resource < 0) {
             SOL_WRN("Unexpected content format (%" PRIu16
@@ -2676,12 +2700,15 @@ handle_write(struct sol_lwm2m_client *client,
             return SOL_COAP_RESPONSE_CODE_BAD_REQUEST;
         }
 
+        blob = sol_blob_new(&SOL_BLOB_TYPE_NO_FREE_DATA, NULL, payload.data, payload.len);
+        SOL_NULL_CHECK(blob, SOL_COAP_RESPONSE_CODE_BAD_REQUEST);
+
         SOL_SET_API_VERSION(res.api_version = SOL_LWM2M_RESOURCE_API_VERSION; )
         r = sol_lwm2m_resource_init(&res, resource, 1,
             content_format == SOL_LWM2M_CONTENT_TYPE_TEXT ?
             SOL_LWM2M_RESOURCE_DATA_TYPE_STRING :
-            SOL_LWM2M_RESOURCE_DATA_TYPE_OPAQUE,
-            payload);
+            SOL_LWM2M_RESOURCE_DATA_TYPE_OPAQUE, blob);
+        sol_blob_unref(blob);
         SOL_INT_CHECK(r, < 0, SOL_COAP_RESPONSE_CODE_BAD_REQUEST);
         r = obj_ctx->obj->write_resource((void *)obj_instance->data,
             (void *)client->user_data, client, obj_instance->id, res.id, &res);
@@ -3342,7 +3369,7 @@ err_exit:
 
 static int
 get_binding_and_lifetime(struct sol_lwm2m_client *client, int64_t server_id,
-    int64_t *lifetime, struct sol_str_slice *binding)
+    int64_t *lifetime, struct sol_blob **binding)
 {
     struct obj_ctx *ctx;
     struct obj_instance *instance;
@@ -3365,10 +3392,10 @@ get_binding_and_lifetime(struct sol_lwm2m_client *client, int64_t server_id,
 
         if (res[0].data[0].integer == server_id) {
             r = -EINVAL;
-            SOL_INT_CHECK_GOTO(get_binding_mode_from_str(res[2].data[0].bytes),
+            SOL_INT_CHECK_GOTO(get_binding_mode_from_str(sol_str_slice_from_blob(res[2].data[0].blob)),
                 == SOL_LWM2M_BINDING_MODE_UNKNOWN, exit);
             *lifetime = res[1].data[0].integer;
-            *binding = res[2].data[0].bytes;
+            *binding = sol_blob_ref(res[2].data[0].blob);
             r = 0;
             goto exit;
         }
@@ -3555,7 +3582,7 @@ register_with_server(struct sol_lwm2m_client *client,
 {
     struct sol_buffer query = SOL_BUFFER_INIT_EMPTY, objs_payload;
     uint8_t format = SOL_COAP_CONTENT_TYPE_APPLICATION_LINK_FORMAT;
-    struct sol_str_slice binding = SOL_STR_SLICE_EMPTY;
+    struct sol_blob *binding = NULL;
     struct sol_coap_packet *pkt;
     struct sol_buffer *buf;
     int r;
@@ -3598,7 +3625,7 @@ register_with_server(struct sol_lwm2m_client *client,
     if (!is_update)
         ADD_QUERY("ep", "%s", client->name);
     ADD_QUERY("lt", "%" PRId64, conn_ctx->lifetime);
-    ADD_QUERY("binding", "%.*s", SOL_STR_SLICE_PRINT(binding));
+    ADD_QUERY("binding", "%.*s", SOL_STR_SLICE_PRINT(sol_str_slice_from_blob(binding)));
     if (client->sms)
         ADD_QUERY("sms", "%s", client->sms);
 
@@ -3611,7 +3638,7 @@ register_with_server(struct sol_lwm2m_client *client,
     conn_ctx->registration_time = time(NULL);
 
     SOL_DBG("Connecting with LWM2M server - binding '%.*s' -"
-        "lifetime '%" PRId64 "'", SOL_STR_SLICE_PRINT(binding),
+        "lifetime '%" PRId64 "'", SOL_STR_SLICE_PRINT(sol_str_slice_from_blob(binding)),
         conn_ctx->lifetime);
     r = sol_coap_send_packet_with_reply(client->coap_server,
         pkt,
@@ -3620,6 +3647,7 @@ register_with_server(struct sol_lwm2m_client *client,
         is_update ? update_reply : register_reply, conn_ctx);
     sol_buffer_fini(&query);
     sol_buffer_fini(&objs_payload);
+    sol_blob_unref(binding);
     return r;
 
 err_coap:
@@ -3627,6 +3655,8 @@ err_coap:
     sol_buffer_fini(&query);
 err_exit:
     sol_buffer_fini(&objs_payload);
+    if (binding)
+        sol_blob_unref(binding);
     return r;
 
 #undef ADD_QUERY
@@ -3756,7 +3786,7 @@ sol_lwm2m_client_start(struct sol_lwm2m_client *client)
 
         //Is it a bootstap?
         if (!res[1].data[0].b) {
-            conn_ctx = server_connection_ctx_new(client, res[0].data[0].bytes,
+            conn_ctx = server_connection_ctx_new(client, sol_str_slice_from_blob(res[0].data[0].blob),
                 res[2].data[0].integer);
             r = -ENOMEM;
             SOL_NULL_CHECK_GOTO(conn_ctx, err_clear);
