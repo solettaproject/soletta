@@ -115,7 +115,7 @@ sol_gatt_pending_reply(struct sol_gatt_pending *pending, int error,
     struct context *ctx = bluetooth_get_context();
     const struct sol_gatt_attr *attr;
     const char *interface;
-    int r;
+    int r = 0;
 
     SOL_NULL_CHECK(pending, -EINVAL);
 
