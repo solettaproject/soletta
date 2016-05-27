@@ -199,10 +199,10 @@ PHONY += cheat-sheet
 
 ifneq ($(USE_NODEJS),)
 
-bins-out += bindings-nodejs
+bins-out += $(build_stagedir)/bindings-nodejs.stamp
 NODE_GYP ?= $(NODE_GYP_PATH)/node-gyp
 
-bindings-nodejs: $(SOL_LIB_OUTPUT)
+$(build_stagedir)/bindings-nodejs.stamp: $(SOL_LIB_OUTPUT) $(shell find bindings/nodejs/src -type f)
 	$(Q) $(NODEJS_NPM) install --ignore-scripts --production
 
 	$(Q) \
@@ -229,9 +229,9 @@ bindings-nodejs: $(SOL_LIB_OUTPUT)
 	$(Q) mkdir -p $(build_nodejs_bindingsdir)/node_modules
 	$(Q) cp -a ./node_modules/* $(build_nodejs_bindingsdir)/node_modules
 
-PHONY += bindings-nodejs
+	$(Q) touch $(build_stagedir)/bindings-nodejs.stamp
 
-check-bindings-nodejs: bindings-nodejs
+check-bindings-nodejs: $(build_stagedir)/bindings-nodejs.stamp
 	$(Q) $(NODEJS_NPM) install --ignore-scripts
 	$(Q) $(NODEJS) $(NODEJS_ROOT)/tests/suite.js --ldPreload="$(LIB_ASAN_PATH)" \
 		--testList="Load Library.js,Main Loop Interruption.js,Main Loop Interruption No Cleanup.js,Simple Platform APIs.js"
