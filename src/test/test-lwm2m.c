@@ -77,6 +77,22 @@ struct dummy_ctx {
     int64_t array[2];
 };
 
+static struct sol_blob addr = {
+    .type = &SOL_BLOB_TYPE_NO_FREE,
+    .parent = NULL,
+    .mem = (void *)"coap://localhost:5683",
+    .size = sizeof("coap://localhost:5683") - 1,
+    .refcnt = 1
+};
+
+static struct sol_blob binding = {
+    .type = &SOL_BLOB_TYPE_NO_FREE,
+    .parent = NULL,
+    .mem = (void *)"U",
+    .size = sizeof("U") - 1,
+    .refcnt = 1
+};
+
 static int
 security_object_read(void *instance_data, void *user_data,
     struct sol_lwm2m_client *client,
@@ -87,8 +103,7 @@ security_object_read(void *instance_data, void *user_data,
     switch (res_id) {
     case SECURITY_SERVER_URI:
         SOL_LWM2M_RESOURCE_INIT(r, res, 0, 1,
-            SOL_LWM2M_RESOURCE_DATA_TYPE_STRING,
-            sol_str_slice_from_str("coap://localhost:5683"));
+            SOL_LWM2M_RESOURCE_DATA_TYPE_STRING, &addr);
         break;
     case SECURITY_SERVER_IS_BOOTSTRAP:
         SOL_LWM2M_RESOURCE_INIT(r, res, 1, 1,
@@ -120,8 +135,7 @@ server_object_read(void *instance_data, void *user_data,
         break;
     case SERVER_OBJECT_BINDING:
         SOL_LWM2M_RESOURCE_INIT(r, res, 7, 1,
-            SOL_LWM2M_RESOURCE_DATA_TYPE_STRING,
-            sol_str_slice_from_str("U"));
+            SOL_LWM2M_RESOURCE_DATA_TYPE_STRING, &binding);
         break;
     default:
         r = -EINVAL;
@@ -281,18 +295,23 @@ read_dummy_resource(void *instance_data, void *user_data,
     uint16_t res_id, struct sol_lwm2m_resource *res)
 {
     struct dummy_ctx *ctx = instance_data;
+    struct sol_blob *blob;
     int r;
 
     switch (res_id) {
     case DUMMY_OBJECT_STRING_ID:
+        blob = sol_blob_new(&SOL_BLOB_TYPE_NO_FREE_DATA, NULL,
+            ctx->str1, strlen(ctx->str1));
         SOL_LWM2M_RESOURCE_INIT(r, res, res_id, 1,
-            SOL_LWM2M_RESOURCE_DATA_TYPE_STRING,
-            sol_str_slice_from_str(ctx->str1));
+            SOL_LWM2M_RESOURCE_DATA_TYPE_STRING, blob);
+        sol_blob_unref(blob);
         break;
     case DUMMY_OBJECT_OPAQUE_ID:
+        blob = sol_blob_new(&SOL_BLOB_TYPE_NO_FREE_DATA, NULL,
+            ctx->opaque, strlen(ctx->opaque));
         SOL_LWM2M_RESOURCE_INIT(r, res, res_id, 1,
-            SOL_LWM2M_RESOURCE_DATA_TYPE_OPAQUE,
-            sol_str_slice_from_str(ctx->opaque));
+            SOL_LWM2M_RESOURCE_DATA_TYPE_OPAQUE, blob);
+        sol_blob_unref(blob);
         break;
     case DUMMY_OBJECT_INT_ID:
         SOL_LWM2M_RESOURCE_INT_INIT(r, res, res_id, ctx->i);
@@ -494,14 +513,21 @@ create_obj(struct sol_lwm2m_server *server, struct sol_lwm2m_client_info *cinfo)
     int r;
     size_t i;
     struct sol_lwm2m_resource res[8];
+    struct sol_blob *blob;
+
+    blob = sol_blob_new(&SOL_BLOB_TYPE_NO_FREE_DATA, NULL,
+        STR, strlen(STR));
 
     SOL_LWM2M_RESOURCE_INIT(r, &res[0], DUMMY_OBJECT_STRING_ID, 1,
-        SOL_LWM2M_RESOURCE_DATA_TYPE_STRING,
-        sol_str_slice_from_str(STR));
+        SOL_LWM2M_RESOURCE_DATA_TYPE_STRING, blob);
+    sol_blob_unref(blob);
     ASSERT(r == 0);
+
+    blob = sol_blob_new(&SOL_BLOB_TYPE_NO_FREE_DATA, NULL,
+        OPAQUE_STR, strlen(OPAQUE_STR));
     SOL_LWM2M_RESOURCE_INIT(r, &res[1], DUMMY_OBJECT_OPAQUE_ID, 1,
-        SOL_LWM2M_RESOURCE_DATA_TYPE_OPAQUE,
-        sol_str_slice_from_str(OPAQUE_STR));
+        SOL_LWM2M_RESOURCE_DATA_TYPE_OPAQUE, blob);
+    sol_blob_unref(blob);
     ASSERT(r == 0);
     SOL_LWM2M_RESOURCE_INT_INIT(r, &res[2], DUMMY_OBJECT_INT_ID, INT_VALUE);
     ASSERT(r == 0);

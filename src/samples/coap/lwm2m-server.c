@@ -43,6 +43,22 @@ enum location_object_status {
     LOCATION_OBJECT_WITH_INSTANCES
 };
 
+static struct sol_blob lat = {
+    .type = &SOL_BLOB_TYPE_NO_FREE,
+    .parent = NULL,
+    .mem = (void *)"48.858093",
+    .size = sizeof("48.858093") - 1,
+    .refcnt = 1
+};
+
+static struct sol_blob longi = {
+    .type = &SOL_BLOB_TYPE_NO_FREE,
+    .parent = NULL,
+    .mem = (void *)"2.294694",
+    .size = sizeof("2.294694") - 1,
+    .refcnt = 1
+};
+
 static enum location_object_status
 get_location_object_status(const struct sol_lwm2m_client_info *cinfo)
 {
@@ -184,8 +200,7 @@ create_location_obj(struct sol_lwm2m_server *server,
        The coordinates are the position of the Eiffel tower.
      */
     SOL_LWM2M_RESOURCE_INIT(r, &res[0], LATITUDE_ID, 1,
-        SOL_LWM2M_RESOURCE_DATA_TYPE_STRING,
-        sol_str_slice_from_str("48.858093"));
+        SOL_LWM2M_RESOURCE_DATA_TYPE_STRING, &lat);
 
     if (r < 0) {
         fprintf(stderr, "Could init the latitude resource\n");
@@ -193,8 +208,7 @@ create_location_obj(struct sol_lwm2m_server *server,
     }
 
     SOL_LWM2M_RESOURCE_INIT(r, &res[1], LONGITUDE_ID, 1,
-        SOL_LWM2M_RESOURCE_DATA_TYPE_STRING,
-        sol_str_slice_from_str("2.294694"));
+        SOL_LWM2M_RESOURCE_DATA_TYPE_STRING, &longi);
 
     if (r < 0) {
         fprintf(stderr, "Could not init the longitude resource\n");

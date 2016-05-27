@@ -334,7 +334,7 @@ struct sol_lwm2m_resource {
     /** @brief The resource data array */
     union sol_lwm2m_resource_data {
         /** @brief The resource is opaque or an string */
-        struct sol_str_slice bytes;
+        struct sol_blob *blob;
         /** @brief The resource is a integer value */
         int64_t integer;
         /** @brief The resource is a float value */
