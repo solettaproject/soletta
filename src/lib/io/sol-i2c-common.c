@@ -125,11 +125,12 @@ i2c_dispatcher_exec_op(void *data)
     struct sol_i2c_shared *shared = data;
     struct sol_i2c_dispatcher *dispatcher = &shared->dispatcher;
     struct sol_i2c_op_set *op_set = sol_ptr_vector_get(&dispatcher->queue, 0);
+    int r;
 
     if (!op_set)
         goto exit;
 
-    if (sol_i2c_busy(shared->i2c) || dispatcher->pending) {
+    if (dispatcher->pending) {
         if (++dispatcher->retry >= SOL_I2C_MAX_RETRIES) {
             SOL_ERR("Failed to schedule I2C operation.");
             goto exit;
@@ -138,10 +139,21 @@ i2c_dispatcher_exec_op(void *data)
         return true;
     }
 
-    if (!sol_i2c_set_slave_address(shared->i2c, op_set->addr)) {
-        SOL_ERR("Failed to set slave address 0x%02x on I2C bus: %d.", op_set->addr,
-            sol_i2c_bus_get(shared->i2c));
+    r = sol_i2c_set_slave_address(shared->i2c, op_set->addr);
+    if (r < 0) {
+        if (r == -EBUSY) {
+            if (++dispatcher->retry >= SOL_I2C_MAX_RETRIES) {
+                SOL_ERR("Failed to schedule I2C operation.");
+                goto exit;
+            }
+
+            return true;
+        }
+
+        SOL_ERR("Failed to set slave address 0x%02x on I2C bus: %d.",
+            op_set->addr, sol_i2c_bus_get(shared->i2c));
         i2c_dispatcher_end_set(dispatcher, -1);
+
         return true;
     }
 
