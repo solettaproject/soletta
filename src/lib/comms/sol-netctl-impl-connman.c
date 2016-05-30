@@ -29,6 +29,7 @@
 #include "sol-str-table.h"
 #include "sol-str-slice.h"
 #include "sol-util-internal.h"
+#include "sol-monitors.h"
 #include "sol-bus.h"
 #include "sol-netctl.h"
 
@@ -49,7 +50,11 @@ struct sol_netctl_service {
 
 struct ctx {
     struct sol_ptr_vector service_vector;
+    struct sol_monitors service_ms;
+    struct sol_monitors manager_ms;
+    struct sol_monitors error_ms;
     struct sol_bus_client *connman;
+    sd_bus_slot *properties_changed;
     sd_bus_slot *manager_slot;
     sd_bus_slot *service_slot;
     sd_bus_slot *state_slot;
@@ -740,45 +745,267 @@ sol_netctl_shutdown_lazy(void)
     _ctx.connman_state = SOL_NETCTL_STATE_UNKNOWN;
 }
 
+static int
+_match_properties_changed(sd_bus_message *m, void *userdata,
+    sd_bus_error *ret_error)
+{
+    const char *interface;
+    int r;
+
+    SOL_NULL_CHECK(_ctx.properties_changed, -EINVAL);
+
+    interface = sd_bus_message_get_interface(m);
+    SOL_NULL_CHECK(interface, -EINVAL);
+
+    if (!strstartswith(interface, "net.connman."))
+        return -EINVAL;
+
+    if (sd_bus_message_is_signal(m, "net.connman.Manager",
+        "ServicesChanged")) {
+        if (_ctx.service_slot)
+            return -EINVAL;
+
+        services_list_changed(m);
+    } else if (sd_bus_message_is_signal(m, "net.connman.Manager",
+        "PropertyChanged")) {
+        char *str = NULL;
+
+        if (_ctx.manager_slot)
+            return -EINVAL;
+
+        r = sd_bus_message_read_basic(m, SD_BUS_TYPE_STRING, &str);
+        SOL_INT_CHECK(r, < 0, r);
+        if (streq(str, "State")) {
+            r = get_manager_properties(m);
+            SOL_INT_CHECK(r, < 0, r);
+        } else {
+            SOL_DBG("Ignored changed property: %s", str);
+            r = sd_bus_message_skip(m, "v");
+            SOL_INT_CHECK(r, < 0, r);
+        }
+    }
+
+    return 0;
+}
+
+static int
+dbus_service_add_monitor(
+    sol_netctl_service_monitor_cb cb, const void *data)
+{
+    int r;
+    struct sol_monitors_entry *e;
+    char matchstr[] = "type='signal',interface='net.connman.Manager'";
+    sd_bus *bus = sol_bus_client_get_bus(_ctx.connman);
+
+    SOL_NULL_CHECK(bus, -EINVAL);
+
+    e = sol_monitors_append(&_ctx.service_ms, (sol_monitors_cb_t)cb, data);
+    SOL_NULL_CHECK(e, -ENOMEM);
+
+    if (_ctx.properties_changed)
+        goto end;
+
+    r = sd_bus_add_match(bus, &_ctx.properties_changed, matchstr,
+        _match_properties_changed, NULL);
+    SOL_INT_CHECK(r, < 0, r);
+
+    return 0;
+end:
+    if (sol_monitors_count(&_ctx.service_ms) == 1)
+        return 0;
+    else
+        return 1;
+}
+
+static int
+dbus_service_del_monitor(
+    sol_netctl_service_monitor_cb cb, const void *data)
+{
+    int r;
+
+    r = sol_monitors_find(&_ctx.service_ms, (sol_monitors_cb_t)cb, data);
+    SOL_INT_CHECK(r, < 0, r);
+
+    return sol_monitors_del(&_ctx.service_ms, r);
+}
+
 SOL_API int
 sol_netctl_add_service_monitor(
     sol_netctl_service_monitor_cb cb, const void *data)
 {
+    int r;
+
+    r = sol_netctl_init_lazy();
+    SOL_INT_CHECK_GOTO(r, < 0, fail_init);
+
+    r = dbus_service_add_monitor(cb, data);
+    SOL_INT_CHECK_GOTO(r, < 0, fail);
+
+    if (!r) {
+        r = dbus_connection_get_service_properties();
+        SOL_INT_CHECK_GOTO(r, < 0, fail);
+    }
+
     return 0;
+
+fail:
+    dbus_service_del_monitor(cb, data);
+
+fail_init:
+    sol_netctl_shutdown_lazy();
+
+    return r;
 }
 
 SOL_API int
 sol_netctl_del_service_monitor(
     sol_netctl_service_monitor_cb cb, const void *data)
 {
+    SOL_NULL_CHECK(_ctx.connman, -EINVAL);
+
+    dbus_service_del_monitor(cb, data);
+    sol_netctl_shutdown_lazy();
+
     return 0;
+}
+
+static int
+dbus_manager_add_monitor(
+    sol_netctl_manager_monitor_cb cb, const void *data)
+{
+    int r;
+    struct sol_monitors_entry *e;
+    char matchstr[] = "type='signal',interface='net.connman.Manager'";
+    sd_bus *bus = sol_bus_client_get_bus(_ctx.connman);
+
+    SOL_NULL_CHECK(bus, -EINVAL);
+
+    e = sol_monitors_append(&_ctx.manager_ms, (sol_monitors_cb_t)cb, data);
+    SOL_NULL_CHECK(e, -ENOMEM);
+
+    if (_ctx.properties_changed)
+        goto end;
+
+    r = sd_bus_add_match(bus, &_ctx.properties_changed, matchstr,
+        _match_properties_changed, NULL);
+    SOL_INT_CHECK(r, < 0, r);
+
+    return 0;
+end:
+    if (sol_monitors_count(&_ctx.manager_ms) == 1)
+        return 0;
+    else
+        return 1;
+}
+
+static int
+dbus_manager_del_monitor(
+    sol_netctl_manager_monitor_cb cb, const void *data)
+{
+    int r;
+
+    r = sol_monitors_find(&_ctx.manager_ms, (sol_monitors_cb_t)cb, data);
+    SOL_INT_CHECK(r, < 0, r);
+
+    return sol_monitors_del(&_ctx.manager_ms, r);
 }
 
 SOL_API int
 sol_netctl_add_manager_monitor(
     sol_netctl_manager_monitor_cb cb, const void *data)
 {
+    int r;
+
+    r = sol_netctl_init_lazy();
+    SOL_INT_CHECK_GOTO(r, < 0, fail_init);
+
+    r = dbus_manager_add_monitor(cb, data);
+    SOL_INT_CHECK_GOTO(r, < 0, fail);
+
+    if (!r) {
+        r = dbus_connection_get_manager_properties();
+        SOL_INT_CHECK_GOTO(r, < 0, fail);
+    }
+
     return 0;
+
+fail:
+    dbus_manager_del_monitor(cb, data);
+
+fail_init:
+    sol_netctl_shutdown_lazy();
+
+    return r;
 }
 
 SOL_API int
 sol_netctl_del_manager_monitor(
     sol_netctl_manager_monitor_cb cb, const void *data)
 {
+    SOL_NULL_CHECK(_ctx.connman, -EINVAL);
+
+    dbus_manager_del_monitor(cb, data);
+    sol_netctl_shutdown_lazy();
+
     return 0;
+}
+
+static int
+dbus_error_add_monitor(
+    sol_netctl_error_monitor_cb cb, const void *data)
+{
+    struct sol_monitors_entry *e;
+
+    e = sol_monitors_append(&_ctx.error_ms, (sol_monitors_cb_t)cb, data);
+    SOL_NULL_CHECK(e, -ENOMEM);
+
+    return 0;
+}
+
+static int
+dbus_error_del_monitor(
+    sol_netctl_error_monitor_cb cb, const void *data)
+{
+    int r;
+
+    r = sol_monitors_find(&_ctx.error_ms, (sol_monitors_cb_t)cb, data);
+    SOL_INT_CHECK(r, < 0, r);
+
+    return sol_monitors_del(&_ctx.error_ms, r);
 }
 
 SOL_API int
 sol_netctl_add_error_monitor(
     sol_netctl_error_monitor_cb cb, const void *data)
 {
+    int r;
+
+    r = sol_netctl_init_lazy();
+    SOL_INT_CHECK_GOTO(r, < 0, fail_init);
+
+    r = dbus_error_add_monitor(cb, data);
+    SOL_INT_CHECK_GOTO(r, < 0, fail);
+
     return 0;
+
+fail:
+    dbus_error_del_monitor(cb, data);
+
+fail_init:
+    sol_netctl_shutdown_lazy();
+
+    return r;
 }
 
 SOL_API int
 sol_netctl_del_error_monitor(
     sol_netctl_error_monitor_cb cb, const void *data)
 {
+    SOL_NULL_CHECK(_ctx.connman, -EINVAL);
+
+    dbus_error_del_monitor(cb, data);
+    sol_netctl_shutdown_lazy();
+
     return 0;
 }
 
