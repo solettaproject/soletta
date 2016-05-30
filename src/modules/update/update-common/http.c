@@ -31,7 +31,7 @@ struct update_http_handle {
     union {
         void (*cb_get_metadata)(void *data, int status, const struct sol_buffer *metadata);
         struct {
-            void (*cb_fetch_recv)(void *data, struct sol_buffer *buffer);
+            void (*cb_fetch_recv)(void *data, const struct sol_buffer *buffer);
             void (*cb_fetch_end)(void *data, int status);
         };
     };
@@ -222,7 +222,7 @@ task_fetch_data(void *data, struct sol_http_client_connection *conn,
 
 struct update_http_handle *
 http_fetch(const char *url,
-    void (*recv_cb)(void *data, struct sol_buffer *buffer),
+    void (*recv_cb)(void *data, const struct sol_buffer *buffer),
     void (*end_cb)(void *data, int status),
     const void *data, bool resume)
 {

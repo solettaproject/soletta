@@ -272,7 +272,7 @@ err:
 }
 
 static void
-fetch_recv_cb(void *data, struct sol_buffer *buffer)
+fetch_recv_cb(void *data, const struct sol_buffer *buffer)
 {
     struct sol_update_handle *handle = data;
     int fd, r;
