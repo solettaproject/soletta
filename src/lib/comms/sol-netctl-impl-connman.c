@@ -1167,5 +1167,5 @@ sol_netctl_del_error_monitor(
 SOL_API const struct sol_ptr_vector *
 sol_netctl_get_services(void)
 {
-    return NULL;
+    return &_ctx.service_vector;
 }
