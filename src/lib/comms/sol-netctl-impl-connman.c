@@ -65,6 +65,38 @@ struct ctx {
 static struct ctx _ctx;
 
 static void
+call_service_monitor_callback(struct sol_netctl_service *service)
+{
+    struct sol_monitors_entry *m;
+    uint16_t i;
+
+    SOL_MONITORS_WALK (&_ctx.service_ms, m, i)
+        ((sol_netctl_service_monitor_cb)m->cb)((void *)m->data, service);
+}
+
+static void
+call_manager_monitor_callback(void)
+{
+    struct sol_monitors_entry *m;
+    uint16_t i;
+
+    SOL_MONITORS_WALK (&_ctx.manager_ms, m, i)
+        ((sol_netctl_manager_monitor_cb)m->cb)((void *)m->data);
+}
+
+static void
+call_error_monitor_callback(struct sol_netctl_service *service,
+    unsigned int error)
+{
+    struct sol_monitors_entry *m;
+    uint16_t i;
+
+    SOL_MONITORS_WALK (&_ctx.error_ms, m, i)
+        ((sol_netctl_error_monitor_cb)m->cb)((void *)m->data,
+            service, error);
+}
+
+static void
 _init_connman_service(struct sol_netctl_service *service)
 {
     SOL_SET_API_VERSION(service->link.api_version = SOL_NETWORK_LINK_API_VERSION; )
@@ -270,6 +302,7 @@ remove_services(const char *path)
     SOL_PTR_VECTOR_FOREACH_IDX (&_ctx.service_vector, service, i) {
         if (streq(service->path, path)) {
             service->state = SOL_NETCTL_SERVICE_STATE_REMOVE;
+            call_service_monitor_callback(service);
             sol_ptr_vector_del(&_ctx.service_vector, i);
             _free_connman_service(service);
             break;
@@ -439,6 +472,8 @@ end:
     } else
         return r;
 
+    call_service_monitor_callback(service);
+
     return 0;
 }
 
@@ -568,6 +603,8 @@ end:
     else
         return r;
 
+    call_manager_monitor_callback();
+
     return r;
 }
 
@@ -682,6 +719,9 @@ sol_netctl_shutdown(void)
         _free_connman_service(service);
 
     sol_ptr_vector_clear(&_ctx.service_vector);
+    sol_monitors_clear(&_ctx.service_ms);
+    sol_monitors_clear(&_ctx.manager_ms);
+    sol_monitors_clear(&_ctx.error_ms);
 
     _ctx.connman_state = SOL_NETCTL_STATE_UNKNOWN;
 }
@@ -710,6 +750,9 @@ sol_netctl_init_lazy(void)
     }
 
     sol_ptr_vector_init(&_ctx.service_vector);
+    sol_monitors_init(&_ctx.service_ms, NULL);
+    sol_monitors_init(&_ctx.manager_ms, NULL);
+    sol_monitors_init(&_ctx.error_ms, NULL);
 
     return 0;
 }
@@ -741,6 +784,9 @@ sol_netctl_shutdown_lazy(void)
         _free_connman_service(service);
 
     sol_ptr_vector_clear(&_ctx.service_vector);
+    sol_monitors_clear(&_ctx.service_ms);
+    sol_monitors_clear(&_ctx.manager_ms);
+    sol_monitors_clear(&_ctx.error_ms);
 
     _ctx.connman_state = SOL_NETCTL_STATE_UNKNOWN;
 }
@@ -778,6 +824,7 @@ _match_properties_changed(sd_bus_message *m, void *userdata,
         if (streq(str, "State")) {
             r = get_manager_properties(m);
             SOL_INT_CHECK(r, < 0, r);
+            call_manager_monitor_callback();
         } else {
             SOL_DBG("Ignored changed property: %s", str);
             r = sd_bus_message_skip(m, "v");
