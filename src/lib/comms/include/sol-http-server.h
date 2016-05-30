@@ -270,8 +270,8 @@ sol_http_response_set_sse_headers(struct sol_http_response *response)
         return -EINVAL;
 
     for (itr = headers; itr->k != NULL; itr++) {
-        if (!sol_http_param_add(&response->param,
-            SOL_HTTP_REQUEST_PARAM_HEADER(itr->k, itr->v))) {
+        if (sol_http_params_add(&response->param,
+            SOL_HTTP_REQUEST_PARAM_HEADER(itr->k, itr->v)) < 0) {
             return -ENOMEM;
         }
     }

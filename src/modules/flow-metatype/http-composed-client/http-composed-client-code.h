@@ -187,8 +187,8 @@
     "    if (!cdata->url)\n" \
     "        return -EINVAL;\n" \
     "    sol_http_params_init(&params);\n" \
-    "    if (!sol_http_param_add(&params,\n" \
-    "        SOL_HTTP_REQUEST_PARAM_HEADER(\"Accept\", \"application/json\"))) {\n" \
+    "    if (sol_http_params_add(&params,\n" \
+    "        SOL_HTTP_REQUEST_PARAM_HEADER(\"Accept\", \"application/json\")) < 0) {\n" \
     "        SOL_WRN(\"Failed to set query params\");\n" \
     "        sol_http_params_clear(&params);\n" \
     "        return -ENOMEM;\n" \
@@ -273,8 +273,8 @@
     "            r = sol_buffer_append_slice(&buffer, sol_str_slice_from_str(\",\"));\n" \
     "        SOL_INT_CHECK_GOTO(r, > 0, end);\n" \
     "    }\n" \
-    "    if (!sol_http_param_add(&params,\n" \
-    "        SOL_HTTP_REQUEST_PARAM_POST_DATA_CONTENTS(\"json\", sol_buffer_get_slice(&buffer)))) {\n" \
+    "    if (sol_http_params_add(&params,\n" \
+    "        SOL_HTTP_REQUEST_PARAM_POST_DATA_CONTENTS(\"json\", sol_buffer_get_slice(&buffer))) < 0) {\n" \
     "        SOL_WRN(\"Failed to set params\");\n" \
     "        r = -ENOMEM;\n" \
     "        goto end;\n" \

@@ -496,12 +496,12 @@ sol_http_params_init(struct sol_http_params *params)
  * @param params Parameters handle.
  * @param value Parameter to be added to the vector.
  *
- * @note Difference between sol_http_param_add_copy() and sol_http_param_add()
+ * @note Difference between sol_http_params_add_copy() and sol_http_params_add()
  * is that the first will keep a copy of any string slices.
  *
  * @return @c true on success and @c false on error.
  */
-bool sol_http_param_add(struct sol_http_params *params,
+int sol_http_params_add(struct sol_http_params *params,
     struct sol_http_param_value value) SOL_ATTR_WARN_UNUSED_RESULT;
 
 /**
@@ -510,18 +510,20 @@ bool sol_http_param_add(struct sol_http_params *params,
  * @param params Parameters handle.
  * @param value Parameter to be added to the vector.
  *
- * @note Difference between sol_http_param_add_copy() and sol_http_param_add()
+ * @note Difference between sol_http_params_add_copy() and sol_http_params_add()
  * is that the first will keep a copy of any string slices.
  *
- * @return @c true on success and @c false on error.
+ * @return @c 0 on success and @c -errno on error.
  */
-bool sol_http_param_add_copy(struct sol_http_params *params, struct sol_http_param_value value);
+int sol_http_params_add_copy(struct sol_http_params *params, struct sol_http_param_value value);
 
 /**
  * @brief Clear vector of HTTP parameters
  *
  * It clear parameters vector and also any eventual copy of slices
- * done with sol_http_param_add_copy()
+ * done with sol_http_params_add_copy()
+ *
+ * @return @c 0 on success and @c -errno on error.
  *
  * @param params Parameters handle.
  */
@@ -570,10 +572,10 @@ int sol_http_decode_slice(struct sol_buffer *buf, const struct sol_str_slice val
  *
  * @return 0 on success, negative number on error.
  */
-int sol_http_create_uri(struct sol_buffer *buf, const struct sol_http_url url, const struct sol_http_params *params);
+int sol_http_create_full_uri(struct sol_buffer *buf, const struct sol_http_url url, const struct sol_http_params *params);
 
 /**
- * @brief A simpler version of sol_http_create_uri().
+ * @brief A simpler version of sol_http_create_full_uri().
  *
  *
  * @param buf Where the created URI should be appended (the buffer must be already initialized)
@@ -582,7 +584,7 @@ int sol_http_create_uri(struct sol_buffer *buf, const struct sol_http_url url, c
  *
  * @return 0 on success, negative number on error.
  */
-int sol_http_create_simple_uri(struct sol_buffer *buf, const struct sol_str_slice base_uri, const struct sol_http_params *params);
+int sol_http_create_uri(struct sol_buffer *buf, const struct sol_str_slice base_uri, const struct sol_http_params *params);
 
 /**
  * @brief Encodes HTTP parameters of a given type.
@@ -635,9 +637,9 @@ int sol_http_split_uri(const struct sol_str_slice full_uri, struct sol_http_url 
  * @return 0 on success, negative number on error.
  */
 static inline int
-sol_http_create_simple_uri_from_str(struct sol_buffer *buf, const char *base_url, const struct sol_http_params *params)
+sol_http_create_uri_from_str(struct sol_buffer *buf, const char *base_url, const struct sol_http_params *params)
 {
-    return sol_http_create_simple_uri(buf, sol_str_slice_from_str(base_url ? base_url : ""), params);
+    return sol_http_create_uri(buf, sol_str_slice_from_str(base_url ? base_url : ""), params);
 }
 
 /**

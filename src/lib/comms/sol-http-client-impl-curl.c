@@ -560,7 +560,7 @@ header_cb(char *data, size_t size, size_t nmemb, void *connp)
     param.value.key_value.key = sol_str_slice_from_str(decoded_key);
     param.value.key_value.value = sol_str_slice_from_str(decoded_value);
 
-    if (!sol_http_param_add_copy(&connection->response_params, param)) {
+    if (sol_http_params_add_copy(&connection->response_params, param) < 0) {
         SOL_ERR("Could not add the http param - key: %.*s value: %.*s",
             SOL_STR_SLICE_PRINT(param.value.key_value.key),
             SOL_STR_SLICE_PRINT(param.value.key_value.value));
@@ -820,7 +820,7 @@ set_uri_from_params(CURL *curl, const char *base,
     int err;
     bool r;
 
-    err = sol_http_create_simple_uri_from_str(&full_uri, base, params);
+    err = sol_http_create_uri_from_str(&full_uri, base, params);
     SOL_INT_CHECK(err, < 0, false);
     r = curl_easy_setopt(curl, CURLOPT_URL, full_uri.data) == CURLE_OK;
     sol_buffer_fini(&full_uri);

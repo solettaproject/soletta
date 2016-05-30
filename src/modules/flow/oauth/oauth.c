@@ -176,10 +176,10 @@ v1_authorize_response_cb(void *data, struct sol_http_request *request)
 
     req_data->request = request;
     req_data->node = node;
-    if (!sol_http_param_add(&params,
-        SOL_HTTP_REQUEST_PARAM_POST_FIELD("oauth_token", token)) ||
-        !sol_http_param_add(&params,
-        SOL_HTTP_REQUEST_PARAM_POST_FIELD("oauth_verifier", verifier))) {
+    if ((sol_http_params_add(&params,
+        SOL_HTTP_REQUEST_PARAM_POST_FIELD("oauth_token", token)) < 0) ||
+        (sol_http_params_add(&params,
+        SOL_HTTP_REQUEST_PARAM_POST_FIELD("oauth_verifier", verifier)) < 0)) {
         goto err_params;
     }
 
@@ -273,8 +273,8 @@ v1_parse_response(struct v1_request_data *req_data, const struct sol_http_respon
     r = asprintf(&url, "%s?%s", mdata->authorize_token_url, token);
     SOL_INT_CHECK_GOTO(r, < 0, err);
 
-    if (!sol_http_param_add(&start_response.param,
-        SOL_HTTP_REQUEST_PARAM_HEADER("Location", url)))
+    if (sol_http_params_add(&start_response.param,
+        SOL_HTTP_REQUEST_PARAM_HEADER("Location", url)) < 0)
         goto err_param;
 
     start_response.url = url;
@@ -373,20 +373,20 @@ digest_ready_cb(void *data, struct sol_message_digest *handle, struct sol_blob *
     SOL_INT_CHECK_GOTO(r, < 0, err);
 
     sol_http_params_init(&params);
-    if (!sol_http_param_add(&params,
-        SOL_HTTP_REQUEST_PARAM_QUERY("oauth_callback", req_data->callback_url)) ||
-        !sol_http_param_add(&params,
-        SOL_HTTP_REQUEST_PARAM_POST_FIELD("oauth_consumer_key", mdata->consumer_key)) ||
-        !sol_http_param_add(&params,
-        SOL_HTTP_REQUEST_PARAM_POST_FIELD("oauth_nonce", req_data->nonce)) ||
-        !sol_http_param_add(&params,
-        SOL_HTTP_REQUEST_PARAM_POST_FIELD("oauth_signature_method", "HMAC-SHA1")) ||
-        !sol_http_param_add(&params,
-        SOL_HTTP_REQUEST_PARAM_POST_FIELD("oauth_timestamp", req_data->timestamp)) ||
-        !sol_http_param_add(&params,
-        SOL_HTTP_REQUEST_PARAM_POST_FIELD("oauth_version", "1.0")) ||
-        !sol_http_param_add(&params,
-        SOL_HTTP_REQUEST_PARAM_POST_FIELD("oauth_signature", buffer.data))) {
+    if ((sol_http_params_add(&params,
+        SOL_HTTP_REQUEST_PARAM_QUERY("oauth_callback", req_data->callback_url)) < 0) ||
+        (sol_http_params_add(&params,
+        SOL_HTTP_REQUEST_PARAM_POST_FIELD("oauth_consumer_key", mdata->consumer_key)) < 0) ||
+        (sol_http_params_add(&params,
+        SOL_HTTP_REQUEST_PARAM_POST_FIELD("oauth_nonce", req_data->nonce)) < 0) ||
+        (sol_http_params_add(&params,
+        SOL_HTTP_REQUEST_PARAM_POST_FIELD("oauth_signature_method", "HMAC-SHA1")) < 0) ||
+        (sol_http_params_add(&params,
+        SOL_HTTP_REQUEST_PARAM_POST_FIELD("oauth_timestamp", req_data->timestamp)) < 0) ||
+        (sol_http_params_add(&params,
+        SOL_HTTP_REQUEST_PARAM_POST_FIELD("oauth_version", "1.0")) < 0) ||
+        (sol_http_params_add(&params,
+        SOL_HTTP_REQUEST_PARAM_POST_FIELD("oauth_signature", buffer.data)) < 0)) {
         SOL_WRN("Failed to set query params");
         sol_http_params_clear(&params);
         sol_buffer_fini(&buffer);

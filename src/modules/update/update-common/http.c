@@ -145,8 +145,8 @@ http_get_metadata(const char *url,
 
     sol_http_params_init(&params);
 
-    if (!sol_http_param_add(&params,
-        SOL_HTTP_REQUEST_PARAM_HEADER("Accept", "application/json"))) {
+    if (sol_http_params_add(&params,
+        SOL_HTTP_REQUEST_PARAM_HEADER("Accept", "application/json")) < 0) {
 
         SOL_WRN("Could not add query parameter");
         goto err_param;

@@ -164,13 +164,13 @@ post_request(struct callback_data *cb_data, const char *authorization_header)
     struct sol_http_params params;
 
     sol_http_params_init(&params);
-    if (!sol_http_param_add(&params,
-        SOL_HTTP_REQUEST_PARAM_POST_FIELD("status", cb_data->status)) ||
-        !sol_http_param_add(&params,
+    if ((sol_http_params_add(&params,
+        SOL_HTTP_REQUEST_PARAM_POST_FIELD("status", cb_data->status)) < 0) ||
+        (sol_http_params_add(&params,
         SOL_HTTP_REQUEST_PARAM_HEADER("Content-Type",
-        "application/x-www-form-urlencoded")) ||
-        !sol_http_param_add(&params,
-        SOL_HTTP_REQUEST_PARAM_HEADER("Authorization", authorization_header))) {
+        "application/x-www-form-urlencoded")) < 0) ||
+        (sol_http_params_add(&params,
+        SOL_HTTP_REQUEST_PARAM_HEADER("Authorization", authorization_header)) < 0)) {
         SOL_WRN("Failed to set params");
         goto err;
     }
@@ -190,11 +190,11 @@ timeline_request(struct callback_data *cb_data, const char *authorization_header
     struct sol_http_params params;
 
     sol_http_params_init(&params);
-    if (!sol_http_param_add(&params,
+    if ((sol_http_params_add(&params,
         SOL_HTTP_REQUEST_PARAM_HEADER("Content-Type",
-        "application/x-www-form-urlencoded")) ||
-        !sol_http_param_add(&params,
-        SOL_HTTP_REQUEST_PARAM_HEADER("Authorization", authorization_header))) {
+        "application/x-www-form-urlencoded")) < 0) ||
+        (sol_http_params_add(&params,
+        SOL_HTTP_REQUEST_PARAM_HEADER("Authorization", authorization_header)) < 0)) {
         SOL_WRN("Failed to set params");
         goto err;
     }

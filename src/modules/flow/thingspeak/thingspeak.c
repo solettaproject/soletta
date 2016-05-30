@@ -138,8 +138,8 @@ thingspeak_execute_poll(void *data)
     int r;
 
     sol_http_params_init(&params);
-    if (!sol_http_param_add(&params,
-        SOL_HTTP_REQUEST_PARAM_POST_FIELD("api_key", mdata->talkback.api_key))) {
+    if (sol_http_params_add(&params,
+        SOL_HTTP_REQUEST_PARAM_POST_FIELD("api_key", mdata->talkback.api_key)) < 0) {
         SOL_WRN("Could not set API key");
         mdata->timeout = NULL;
         sol_http_params_clear(&params);
@@ -245,15 +245,15 @@ thingspeak_add_in_process(struct sol_flow_node *node, void *data,
 
     sol_http_params_init(&params);
 
-    if (!sol_http_param_add(&params,
-        SOL_HTTP_REQUEST_PARAM_POST_FIELD("api_key", mdata->talkback.api_key))) {
+    if (sol_http_params_add(&params,
+        SOL_HTTP_REQUEST_PARAM_POST_FIELD("api_key", mdata->talkback.api_key)) < 0) {
         SOL_WRN("Could not add API key");
         error_code = -ENOMEM;
         goto out;
     }
 
-    if (!sol_http_param_add(&params,
-        SOL_HTTP_REQUEST_PARAM_POST_FIELD("command_string", cmd_str))) {
+    if (sol_http_params_add(&params,
+        SOL_HTTP_REQUEST_PARAM_POST_FIELD("command_string", cmd_str)) < 0) {
         SOL_WRN("Could not add command string");
         error_code = -ENOMEM;
         goto out;
@@ -274,8 +274,8 @@ thingspeak_add_in_process(struct sol_flow_node *node, void *data,
            the compiler will complain about an "always true" comparison.
          */
         pos_str = position_str;
-        if (!sol_http_param_add(&params,
-            SOL_HTTP_REQUEST_PARAM_POST_FIELD("position", pos_str))) {
+        if (sol_http_params_add(&params,
+            SOL_HTTP_REQUEST_PARAM_POST_FIELD("position", pos_str)) < 0) {
             SOL_WRN("Could not add position");
             error_code = -ENOMEM;
             goto out;
@@ -365,15 +365,15 @@ thingspeak_channel_update_send(void *data)
 
     sol_http_params_init(&params);
 
-    if (!sol_http_param_add(&params,
-        SOL_HTTP_REQUEST_PARAM_POST_FIELD("api_key", mdata->api_key))) {
+    if (sol_http_params_add(&params,
+        SOL_HTTP_REQUEST_PARAM_POST_FIELD("api_key", mdata->api_key)) < 0) {
         SOL_WRN("Could not add API key");
         goto out;
     }
 
     if (mdata->status) {
-        if (!sol_http_param_add(&params,
-            SOL_HTTP_REQUEST_PARAM_POST_FIELD("status", mdata->status))) {
+        if (sol_http_params_add(&params,
+            SOL_HTTP_REQUEST_PARAM_POST_FIELD("status", mdata->status)) < 0) {
             SOL_WRN("Could not add status field to POST parameters");
             goto out;
         }
@@ -384,8 +384,8 @@ thingspeak_channel_update_send(void *data)
             continue;
 
         field_name[sizeof("field") - 1] = i + '1';
-        if (!sol_http_param_add(&params,
-            SOL_HTTP_REQUEST_PARAM_POST_FIELD(strdupa(field_name), mdata->fields[i]))) {
+        if (sol_http_params_add(&params,
+            SOL_HTTP_REQUEST_PARAM_POST_FIELD(strdupa(field_name), mdata->fields[i])) < 0) {
             SOL_WRN("Could not add status field to POST %s parameters",
                 field_name);
             goto out;
