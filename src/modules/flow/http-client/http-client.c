@@ -101,7 +101,7 @@ set_basic_url_info(struct http_data *mdata, const char *full_uri)
     base_url.path = url.path;
     base_url.port = url.port;
 
-    r = sol_http_create_uri(&new_url, base_url, NULL);
+    r = sol_http_create_full_uri(&new_url, base_url, NULL);
     SOL_INT_CHECK(r, < 0, r);
 
     free(mdata->url);
@@ -113,12 +113,12 @@ set_basic_url_info(struct http_data *mdata, const char *full_uri)
     SOL_INT_CHECK_GOTO(r, < 0, err_exit);
 
     if ((url.user.len || url.password.len) &&
-        !sol_http_param_add_copy(&mdata->url_params,
+        (sol_http_params_add_copy(&mdata->url_params,
         ((struct sol_http_param_value) {
             .type = SOL_HTTP_PARAM_AUTH_BASIC,
             .value.auth.user = url.user,
             .value.auth.password = url.password
-        }))) {
+        })) < 0 )) {
         SOL_WRN("Could not add the user: %.*s and password: %.*s as"
             " parameters", SOL_STR_SLICE_PRINT(url.user),
             SOL_STR_SLICE_PRINT(url.password));
@@ -126,12 +126,12 @@ set_basic_url_info(struct http_data *mdata, const char *full_uri)
         goto err_exit;
     }
 
-    if (url.fragment.len && !sol_http_param_add_copy(&mdata->url_params,
+    if (url.fragment.len && (sol_http_params_add_copy(&mdata->url_params,
         ((struct sol_http_param_value) {
             .type = SOL_HTTP_PARAM_FRAGMENT,
             .value.key_value.key = url.fragment,
             .value.key_value.value = SOL_STR_SLICE_EMPTY
-        }))) {
+        })) < 0 )) {
         SOL_WRN("Could not add the fragment: %.*s paramenter",
             SOL_STR_SLICE_PRINT(url.fragment));
         r = -ENOMEM;
@@ -179,9 +179,9 @@ machine_id_header_add(struct sol_http_params *params)
     id = sol_platform_get_machine_id();
     SOL_NULL_CHECK(id, -errno);
 
-    r = sol_http_param_add(params,
+    r = sol_http_params_add(params,
         SOL_HTTP_REQUEST_PARAM_HEADER("X-Soletta-Machine-ID", id));
-    SOL_INT_CHECK(r, != true, -ENOMEM);
+    SOL_INT_CHECK(r, < 0, -ENOMEM);
 
     return 0;
 }
@@ -525,8 +525,8 @@ common_get_process(struct sol_flow_node *node, void *data, uint16_t port,
     sol_http_params_init(&params);
 
     if (mdata->accept) {
-        if (!sol_http_param_add(&params,
-            SOL_HTTP_REQUEST_PARAM_HEADER("Accept", mdata->accept))) {
+        if (sol_http_params_add(&params,
+            SOL_HTTP_REQUEST_PARAM_HEADER("Accept", mdata->accept)) < 0) {
             SOL_WRN("Failed to set the 'Accept' header with value: %s",
                 mdata->accept);
             r = -ENOMEM;
@@ -535,16 +535,16 @@ common_get_process(struct sol_flow_node *node, void *data, uint16_t port,
     }
 
 
-    if (mdata->last_modified && !sol_http_param_add(&params,
+    if (mdata->last_modified && (sol_http_params_add(&params,
         SOL_HTTP_REQUEST_PARAM_HEADER("If-Since-Modified",
-        mdata->last_modified))) {
+        mdata->last_modified)) < 0 )) {
         SOL_WRN("Failed to set query params");
         r = -ENOMEM;
         goto err;
     }
 
     SOL_HTTP_PARAMS_FOREACH_IDX (&mdata->url_params, param, i) {
-        if (!sol_http_param_add(&params, *param)) {
+        if (sol_http_params_add(&params, *param) < 0) {
             SOL_WRN("Could not append the param - %.*s:%.*s",
                 SOL_STR_SLICE_PRINT(param->value.key_value.key),
                 SOL_STR_SLICE_PRINT(param->value.key_value.value));
@@ -597,8 +597,8 @@ common_post_process(struct sol_flow_node *node, struct http_data *mdata,
 
     sol_http_params_init(&params);
 
-    if (mdata->accept && !(sol_http_param_add(&params,
-        SOL_HTTP_REQUEST_PARAM_HEADER("Accept", mdata->accept)))) {
+    if (mdata->accept && (sol_http_params_add(&params,
+        SOL_HTTP_REQUEST_PARAM_HEADER("Accept", mdata->accept)) < 0)) {
         SOL_WRN("Could not add the header '%s:%s' into request to %s",
             "Accept", mdata->accept, mdata->url);
         goto err;
@@ -613,8 +613,8 @@ common_post_process(struct sol_flow_node *node, struct http_data *mdata,
         va_start(ap, blob);
         while ((key = va_arg(ap, char *))) {
             value = va_arg(ap, char *);
-            if (!(sol_http_param_add(&params,
-                SOL_HTTP_REQUEST_PARAM_POST_FIELD(key, value)))) {
+            if ((sol_http_params_add(&params,
+                SOL_HTTP_REQUEST_PARAM_POST_FIELD(key, value))) < 0) {
                 SOL_WRN("Could not add header '%s:%s' into request to %s",
                     key, value, mdata->url);
                 va_end(ap);
@@ -627,8 +627,8 @@ common_post_process(struct sol_flow_node *node, struct http_data *mdata,
 
         slice.data = blob->mem;
         slice.len = blob->size;
-        if (!sol_http_param_add(&params,
-            SOL_HTTP_REQUEST_PARAM_POST_DATA_CONTENTS("data", slice))) {
+        if (sol_http_params_add(&params,
+            SOL_HTTP_REQUEST_PARAM_POST_DATA_CONTENTS("data", slice)) < 0) {
             SOL_WRN("Could not add the post data contents!");
             goto err;
         }
@@ -1440,7 +1440,7 @@ request_node_setup_params(struct http_data *data,
     static const char *key = "blob";
 
     SOL_HTTP_PARAMS_FOREACH_IDX (&mdata->params, param, i) {
-        if (!sol_http_param_add(params, *param)) {
+        if (sol_http_params_add(params, *param) < 0) {
             SOL_ERR("Could not append the param - %.*s:%.*s",
                 SOL_STR_SLICE_PRINT(param->value.key_value.key),
                 SOL_STR_SLICE_PRINT(param->value.key_value.value));
@@ -1448,27 +1448,27 @@ request_node_setup_params(struct http_data *data,
         }
     }
 
-    if ((mdata->user || mdata->password) && !sol_http_param_add(params,
-        SOL_HTTP_REQUEST_PARAM_AUTH_BASIC(mdata->user, mdata->password))) {
+    if ((mdata->user || mdata->password) && (sol_http_params_add(params,
+        SOL_HTTP_REQUEST_PARAM_AUTH_BASIC(mdata->user, mdata->password)) < 0)) {
         SOL_ERR("Could not set user and password params");
         return -ENOMEM;
     }
 
-    if (!sol_http_param_add(params,
-        SOL_HTTP_REQUEST_PARAM_ALLOW_REDIR(mdata->allow_redir))) {
+    if (sol_http_params_add(params,
+        SOL_HTTP_REQUEST_PARAM_ALLOW_REDIR(mdata->allow_redir)) < 0) {
         SOL_ERR("Could not set allow redirection param");
         return -ENOMEM;
     }
 
-    if (!sol_http_param_add(params,
-        SOL_HTTP_REQUEST_PARAM_TIMEOUT(mdata->timeout))) {
+    if (sol_http_params_add(params,
+        SOL_HTTP_REQUEST_PARAM_TIMEOUT(mdata->timeout)) < 0) {
         SOL_ERR("Could not set the timeout param");
         return -ENOMEM;
     }
 
-    if (mdata->content && !sol_http_param_add(params,
+    if (mdata->content && (sol_http_params_add(params,
         SOL_HTTP_REQUEST_PARAM_POST_DATA_CONTENTS(key,
-        sol_str_slice_from_blob(mdata->content)))) {
+        sol_str_slice_from_blob(mdata->content))) < 0)) {
         SOL_ERR("Could not set the post parameter");
         return -ENOMEM;
     }
@@ -1703,7 +1703,7 @@ param_process(const struct sol_flow_packet *packet, struct sol_http_params *para
     param.type = type;
     param.value.key_value.key = sol_str_slice_from_str(key);
     param.value.key_value.value = sol_str_slice_from_str(value);
-    if (!sol_http_param_add_copy(params, param)) {
+    if (sol_http_params_add_copy(params, param) < 0) {
         SOL_ERR("Could not add the param %s : %s", key, value);
         return -ENOMEM;
     }
@@ -2018,7 +2018,7 @@ add_query(struct sol_http_params *params,
     param.value.key_value.key = key;
     param.value.key_value.value = value;
 
-    if (!sol_http_param_add_copy(params, param)) {
+    if (sol_http_params_add_copy(params, param) < 0) {
         SOL_ERR("Could not add the HTTP param %.*s:%.*s",
             SOL_STR_SLICE_PRINT(key), SOL_STR_SLICE_PRINT(value));
         return -ENOMEM;
@@ -2264,7 +2264,7 @@ create_url_create_process(struct sol_flow_node *node, void *data,
     url.fragment = sol_str_slice_from_str(mdata->fragment ? :  "");
     url.port = mdata->port;
 
-    r = sol_http_create_uri(&uri, url, &mdata->params);
+    r = sol_http_create_full_uri(&uri, url, &mdata->params);
     SOL_INT_CHECK(r, < 0, r);
     r = sol_flow_send_string_take_packet(node,
         SOL_FLOW_NODE_TYPE_HTTP_CLIENT_CREATE_URL__OUT__OUT,

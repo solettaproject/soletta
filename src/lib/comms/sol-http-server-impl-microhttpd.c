@@ -566,7 +566,7 @@ post_iterator(void *data, enum MHD_ValueKind kind, const char *key,
 
         copy = sol_buffer_steal(&request->buffer, &len);
         request->param.value.data.value = SOL_STR_SLICE_STR(copy, len);
-        if (!sol_http_param_add(&request->params, request->param)) {
+        if (sol_http_params_add(&request->params, request->param) < 0) {
             free(copy);
             SOL_WRN("Could not add %s key", key);
             return MHD_NO;
@@ -623,18 +623,18 @@ headers_iterator(void *data, enum MHD_ValueKind kind, const char *key, const cha
             sizeof(SOL_HTTP_MULTIPART_HEADER) - 1))
             request->is_multipart = true;
 
-        if (!sol_http_param_add_copy(&request->params,
-            SOL_HTTP_REQUEST_PARAM_HEADER(key, value)))
+        if (sol_http_params_add_copy(&request->params,
+            SOL_HTTP_REQUEST_PARAM_HEADER(key, value)) < 0)
             goto param_err;
         break;
     case MHD_COOKIE_KIND:
-        if (!sol_http_param_add_copy(&request->params,
-            SOL_HTTP_REQUEST_PARAM_COOKIE(key, value)))
+        if (sol_http_params_add_copy(&request->params,
+            SOL_HTTP_REQUEST_PARAM_COOKIE(key, value)) < 0)
             goto param_err;
         break;
     case MHD_GET_ARGUMENT_KIND:
-        if (!sol_http_param_add_copy(&request->params,
-            SOL_HTTP_REQUEST_PARAM_QUERY(key, value)))
+        if (sol_http_params_add_copy(&request->params,
+            SOL_HTTP_REQUEST_PARAM_QUERY(key, value)) < 0)
             goto param_err;
         break;
     default:
@@ -895,7 +895,7 @@ http_server_handler(void *data, struct MHD_Connection *connection, const char *u
 
             copy = sol_buffer_steal(&req->buffer, &len);
             req->param.value.data.value = SOL_STR_SLICE_STR(copy, len);
-            if (!sol_http_param_add(&req->params, req->param)) {
+            if (sol_http_params_add(&req->params, req->param) < 0) {
                 SOL_WRN("Could not add %.*s value",
                     SOL_STR_SLICE_PRINT(req->param.value.data.value));
                 return MHD_NO;

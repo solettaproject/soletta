@@ -158,9 +158,9 @@
     "    uint16_t i;\n" \
     "    r = sol_buffer_append_char(&response->content, \'[\');\n" \
     "    SOL_INT_CHECK(r, < 0, r);\n" \
-    "    if (!sol_http_param_add(&response->param,\n" \
+    "    if (sol_http_params_add(&response->param,\n" \
     "        SOL_HTTP_REQUEST_PARAM_HEADER(HTTP_HEADER_CONTENT_TYPE,\n" \
-    "        HTTP_HEADER_CONTENT_TYPE_JSON))) {\n" \
+    "        HTTP_HEADER_CONTENT_TYPE_JSON)) < 0) {\n" \
     "        return -ENOMEM;\n" \
     "    }\n" \
     "    for (i = 0; i < hdata->inputs_len; i++) {\n" \
@@ -233,8 +233,8 @@
     "        sol_http_params_clear(&response.param);\n" \
     "        sol_buffer_append_printf(&response.content,\n" \
     "            \"Could not serve request: %s\", sol_util_strerrora(-r));\n" \
-    "        if (!sol_http_param_add(&response.param, SOL_HTTP_REQUEST_PARAM_HEADER(\n" \
-    "            HTTP_HEADER_CONTENT_TYPE, HTTP_HEADER_CONTENT_TYPE_TEXT))) {\n" \
+    "        if (sol_http_params_add(&response.param, SOL_HTTP_REQUEST_PARAM_HEADER(\n" \
+    "            HTTP_HEADER_CONTENT_TYPE, HTTP_HEADER_CONTENT_TYPE_TEXT)) < 0) {\n" \
     "            SOL_WRN(\"could not set response content-type: text/plain: %s\",\n" \
     "                sol_util_strerrora(-r));\n" \
     "        }\n" \

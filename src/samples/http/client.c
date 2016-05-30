@@ -123,10 +123,10 @@ create_post_data_params(struct sol_http_params *params, const char *query)
         if (value.data && (value.data[0] == '@')) {
             value.data++;
             value.len--;
-            ok = sol_http_param_add_copy(params,
+            ok = sol_http_params_add_copy(params,
                 CREATE_PARAM(key, value, SOL_STR_SLICE_EMPTY));
         } else {
-            ok = sol_http_param_add_copy(params,
+            ok = sol_http_params_add_copy(params,
                 CREATE_PARAM(key, SOL_STR_SLICE_EMPTY, value));
         }
 
@@ -169,7 +169,7 @@ create_header_params(struct sol_http_params *params, const char *value)
     param.value.key_value.key = key;
     param.value.key_value.value = val;
 
-    if (!sol_http_param_add_copy(params, param)) {
+    if (sol_http_params_add_copy(params, param) < 0) {
         fprintf(stderr, "Could not add the HTTP param %.*s:%.*s",
             SOL_STR_SLICE_PRINT(key), SOL_STR_SLICE_PRINT(val));
         return -1;
