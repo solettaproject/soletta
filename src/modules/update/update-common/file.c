@@ -70,7 +70,7 @@ end:
 }
 
 static void
-on_feed_done_cb(void *data, struct sol_message_digest *md, struct sol_blob *input)
+on_feed_done_cb(void *data, struct sol_message_digest *md, struct sol_blob *input, int status)
 {
     struct update_get_hash_handle *handle = data;
     char buf[CHUNK_SIZE], *blob_backend = NULL;
@@ -156,7 +156,7 @@ get_file_hash(FILE *file, const char *hash, const char *hash_algorithm,
     handle->cb = cb;
 
     /* Start feeding */
-    on_feed_done_cb(handle, md, NULL);
+    on_feed_done_cb(handle, md, NULL, 0);
 
     return handle;
 
