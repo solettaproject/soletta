@@ -201,7 +201,7 @@ task_fetch_response(void *data, struct sol_http_client_connection *conn,
 
 static ssize_t
 task_fetch_data(void *data, struct sol_http_client_connection *conn,
-    const struct sol_buffer *buffer)
+    struct sol_buffer *buffer)
 {
     struct update_http_handle *handle = data;
 

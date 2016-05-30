@@ -422,7 +422,7 @@ common_request_finished(void *data,
 
 static ssize_t
 sse_received_data_cb(void *data, struct sol_http_client_connection *conn,
-    const struct sol_buffer *buf)
+    struct sol_buffer *buf)
 {
     struct sol_flow_node *node = data;
     const struct http_client_node_type *type;
