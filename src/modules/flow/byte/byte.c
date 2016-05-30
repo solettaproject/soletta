@@ -25,19 +25,19 @@
 #include <errno.h>
 
 struct bitwise_data {
-    unsigned char in0;
-    unsigned char in1;
+    uint8_t in0;
+    uint8_t in1;
     bool in0_init : 1;
     bool in1_init : 1;
 };
 
 static int
-two_port_process(struct sol_flow_node *node, void *data, uint16_t port_in, uint16_t port_out, const struct sol_flow_packet *packet, int (*func)(unsigned char, unsigned char))
+two_port_process(struct sol_flow_node *node, void *data, uint16_t port_in, uint16_t port_out, const struct sol_flow_packet *packet, int (*func)(uint8_t, uint8_t))
 {
     struct bitwise_data *mdata = data;
     int r;
-    unsigned char in_value;
-    unsigned char out_value;
+    uint8_t in_value;
+    uint8_t out_value;
 
     r = sol_flow_packet_get_byte(packet, &in_value);
     SOL_INT_CHECK(r, < 0, r);
@@ -59,7 +59,7 @@ two_port_process(struct sol_flow_node *node, void *data, uint16_t port_in, uint1
 }
 
 static int
-and_func(unsigned char in0, unsigned char in1)
+and_func(uint8_t in0, uint8_t in1)
 {
     return in0 & in1;
 }
@@ -71,7 +71,7 @@ and_process(struct sol_flow_node *node, void *data, uint16_t port, uint16_t conn
 }
 
 static int
-or_func(unsigned char in0, unsigned char in1)
+or_func(uint8_t in0, uint8_t in1)
 {
     return in0 | in1;
 }
@@ -83,7 +83,7 @@ or_process(struct sol_flow_node *node, void *data, uint16_t port, uint16_t conn_
 }
 
 static int
-xor_func(unsigned char in0, unsigned char in1)
+xor_func(uint8_t in0, uint8_t in1)
 {
     return in0 ^ in1;
 }
@@ -97,7 +97,7 @@ xor_process(struct sol_flow_node *node, void *data, uint16_t port, uint16_t conn
 static int
 validate_shift(const struct sol_flow_packet *packet)
 {
-    unsigned char in;
+    uint8_t in;
     int r;
 
     r = sol_flow_packet_get_byte(packet, &in);
@@ -108,7 +108,7 @@ validate_shift(const struct sol_flow_packet *packet)
 }
 
 static int
-shift_left_func(unsigned char in0, unsigned char in1)
+shift_left_func(uint8_t in0, uint8_t in1)
 {
     return in0 << in1;
 }
@@ -121,7 +121,7 @@ shift_left_process(struct sol_flow_node *node, void *data, uint16_t port, uint16
 
         if (r < 0) {
             int err;
-            unsigned char in;
+            uint8_t in;
 
             err = sol_flow_packet_get_byte(packet, &in);
             SOL_INT_CHECK(err, < 0, err);
@@ -139,7 +139,7 @@ shift_left_process(struct sol_flow_node *node, void *data, uint16_t port, uint16
 }
 
 static int
-shift_right_func(unsigned char in0, unsigned char in1)
+shift_right_func(uint8_t in0, uint8_t in1)
 {
     return in0 >> in1;
 }
@@ -152,7 +152,7 @@ shift_right_process(struct sol_flow_node *node, void *data, uint16_t port, uint1
 
         if (r < 0) {
             int err;
-            unsigned char in;
+            uint8_t in;
 
             err = sol_flow_packet_get_byte(packet, &in);
             SOL_INT_CHECK(err, < 0, err);
@@ -173,8 +173,8 @@ static int
 not_process(struct sol_flow_node *node, void *data, uint16_t port, uint16_t conn_id, const struct sol_flow_packet *packet)
 {
     int r;
-    unsigned char in_value;
-    unsigned char out_value;
+    uint8_t in_value;
+    uint8_t out_value;
 
     r = sol_flow_packet_get_byte(packet, &in_value);
     SOL_INT_CHECK(r, < 0, r);
@@ -188,8 +188,8 @@ not_process(struct sol_flow_node *node, void *data, uint16_t port, uint16_t conn
 // =============================================================================
 
 struct byte_filter_data {
-    unsigned char max;
-    unsigned char min;
+    uint8_t max;
+    uint8_t min;
 };
 
 static int
@@ -216,7 +216,7 @@ byte_filter_open(struct sol_flow_node *node, void *data, const struct sol_flow_n
 static int
 byte_filter_process(struct sol_flow_node *node, void *data, uint16_t port, uint16_t conn_id, const struct  sol_flow_packet *packet)
 {
-    unsigned char value;
+    uint8_t value;
     int r;
     struct byte_filter_data *mdata = data;
 
@@ -235,46 +235,46 @@ byte_filter_process(struct sol_flow_node *node, void *data, uint16_t port, uint1
 
 struct byte_comparison_node_type {
     struct sol_flow_node_type base;
-    bool (*func) (unsigned char var0, unsigned char var1);
+    bool (*func) (uint8_t var0, uint8_t var1);
 };
 
 struct byte_comparison_data {
-    unsigned char val[2];
+    uint8_t val[2];
     bool val_initialized[2];
 };
 
 static bool
-byte_val_equal(unsigned char var0, unsigned char var1)
+byte_val_equal(uint8_t var0, uint8_t var1)
 {
     return var0 == var1;
 }
 
 static bool
-byte_val_less(unsigned char var0, unsigned char var1)
+byte_val_less(uint8_t var0, uint8_t var1)
 {
     return var0 < var1;
 }
 
 static bool
-byte_val_less_or_equal(unsigned char var0, unsigned char var1)
+byte_val_less_or_equal(uint8_t var0, uint8_t var1)
 {
     return var0 <= var1;
 }
 
 static bool
-byte_val_greater(unsigned char var0, unsigned char var1)
+byte_val_greater(uint8_t var0, uint8_t var1)
 {
     return var0 > var1;
 }
 
 static bool
-byte_val_greater_or_equal(unsigned char var0, unsigned char var1)
+byte_val_greater_or_equal(uint8_t var0, uint8_t var1)
 {
     return var0 >= var1;
 }
 
 static bool
-byte_val_not_equal(unsigned char var0, unsigned char var1)
+byte_val_not_equal(uint8_t var0, uint8_t var1)
 {
     return var0 != var1;
 }

@@ -522,7 +522,7 @@ setup_ports_vector(struct sol_vector *tokens, struct sol_vector *ports,
         r = get_name_and_type_from_token(slice, &port->name, &type_slice);
         SOL_INT_CHECK(r, < 0, r);
         port->type = use_type_symbol ?
-            (char *)sol_flow_packet_get_packet_type_as_string(type_slice) :
+            (char *)sol_flow_get_packet_type_name(type_slice) :
             strndup(type_slice.data, type_slice.len);
         SOL_NULL_CHECK(port->type, -EINVAL);
         port->idx = i;

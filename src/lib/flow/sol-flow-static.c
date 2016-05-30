@@ -829,7 +829,7 @@ flow_exported_port_process(struct sol_flow_node *node, void *data, uint16_t port
 }
 
 static int
-flow_exported_port_in_connect(struct sol_flow_node *node, void *data, uint16_t port, uint16_t conn_id)
+flow_exported_connect_port_in(struct sol_flow_node *node, void *data, uint16_t port, uint16_t conn_id)
 {
     struct flow_static_type *type;
     struct flow_static_data *fsd;
@@ -848,7 +848,7 @@ flow_exported_port_in_connect(struct sol_flow_node *node, void *data, uint16_t p
 }
 
 static int
-flow_exported_port_in_disconnect(struct sol_flow_node *node, void *data, uint16_t port, uint16_t conn_id)
+flow_exported_disconnect_port_in(struct sol_flow_node *node, void *data, uint16_t port, uint16_t conn_id)
 {
     struct flow_static_type *type;
     struct flow_static_data *fsd;
@@ -867,7 +867,7 @@ flow_exported_port_in_disconnect(struct sol_flow_node *node, void *data, uint16_
 }
 
 static int
-flow_exported_port_out_connect(struct sol_flow_node *node, void *data, uint16_t port, uint16_t conn_id)
+flow_exported_connect_port_out(struct sol_flow_node *node, void *data, uint16_t port, uint16_t conn_id)
 {
     struct flow_static_type *type;
     struct flow_static_data *fsd;
@@ -886,7 +886,7 @@ flow_exported_port_out_connect(struct sol_flow_node *node, void *data, uint16_t 
 }
 
 static int
-flow_exported_port_out_disconnect(struct sol_flow_node *node, void *data, uint16_t port, uint16_t conn_id)
+flow_exported_disconnect_port_out(struct sol_flow_node *node, void *data, uint16_t port, uint16_t conn_id)
 {
     struct flow_static_type *type;
     struct flow_static_data *fsd;
@@ -961,8 +961,8 @@ setup_exported_ports_specs(struct flow_static_type *type)
             SOL_SET_API_VERSION(port_type->api_version = SOL_FLOW_PORT_TYPE_IN_API_VERSION; )
             port_type->packet_type = sol_flow_node_type_get_port_in(type->node_specs[node].type, port)->packet_type;
             port_type->process = flow_exported_port_process;
-            port_type->connect = flow_exported_port_in_connect;
-            port_type->disconnect = flow_exported_port_in_disconnect;
+            port_type->connect = flow_exported_connect_port_in;
+            port_type->disconnect = flow_exported_disconnect_port_in;
         }
     }
 
@@ -980,8 +980,8 @@ setup_exported_ports_specs(struct flow_static_type *type)
             port_type = &type->ports_out[u];
             SOL_SET_API_VERSION(port_type->api_version = SOL_FLOW_PORT_TYPE_OUT_API_VERSION; )
             port_type->packet_type = sol_flow_node_type_get_port_out(type->node_specs[node].type, port)->packet_type;
-            port_type->connect = flow_exported_port_out_connect;
-            port_type->disconnect = flow_exported_port_out_disconnect;
+            port_type->connect = flow_exported_connect_port_out;
+            port_type->disconnect = flow_exported_disconnect_port_out;
         }
     }
 

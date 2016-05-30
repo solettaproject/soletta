@@ -22,6 +22,7 @@
 
 #include "sol-flow.h"
 #include "sol-flow-resolver.h"
+#include "sol-buffer.h"
 
 #ifdef __cplusplus
 extern "C" {
@@ -72,11 +73,10 @@ struct sol_flow_parser_client {
      * @param data Client's data
      * @param name File name to read
      * @param buf Where to store the file
-     * @param size Buffer's size
      *
      * @return @c 0 on success, error code (always negative) otherwise
      */
-    int (*read_file)(void *data, const char *name, const char **buf, size_t *size);
+    int (*read_file)(void *data, const char *name, struct sol_buffer *buf);
 };
 
 /**
@@ -108,15 +108,13 @@ int sol_flow_parser_del(
  *
  * @param parser The Flow Parser handle
  * @param buf Flow description to be parsed
- * @param len Buffer's size
  * @param filename Name of the file which content is in @a buf
  *
  * @return Resulting node type of the parsed FBP on success, @c NULL otherwise.
  */
 struct sol_flow_node_type *sol_flow_parse_buffer(
     struct sol_flow_parser *parser,
-    const char *buf,
-    size_t len,
+    const struct sol_buffer *buf,
     const char *filename);
 
 /**
@@ -142,7 +140,6 @@ struct sol_flow_node_type *sol_flow_parse_string(
  * @param parser The Flow Parser handle
  * @param metatype Content's type (e.g. "fbp", or "js")
  * @param buf Content to be parsed
- * @param len Buffer's size
  * @param filename Name of the file which content is in @a buf
  *
  * @return Resulting node type of the parsed FBP on success, @c NULL otherwise.
@@ -150,8 +147,7 @@ struct sol_flow_node_type *sol_flow_parse_string(
 struct sol_flow_node_type *sol_flow_parse_buffer_metatype(
     struct sol_flow_parser *parser,
     const char *metatype,
-    const char *buf,
-    size_t len,
+    const struct sol_buffer *buf,
     const char *filename);
 
 /**

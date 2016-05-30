@@ -35,9 +35,9 @@ _populate_values(void *data, const char *sequence)
     struct byte_validator_data *mdata = data;
     const char *it;
     char *tail;
-    unsigned char *val;
+    uint8_t *val;
 
-    sol_vector_init(&mdata->values, sizeof(unsigned char));
+    sol_vector_init(&mdata->values, sizeof(uint8_t));
     it = sequence;
     do {
         int int_val;
@@ -101,9 +101,9 @@ byte_validator_process(
     const struct sol_flow_packet *packet)
 {
     struct byte_validator_data *mdata = data;
-    unsigned char *op;
+    uint8_t *op;
     int r;
-    unsigned char val;
+    uint8_t val;
     bool match;
 
     if (mdata->done) {

@@ -95,12 +95,12 @@ struct sol_flow_metatype_context {
      * @param ctx The metatype context.
      * @param name The file path.
      * @param buf Where the file contents should be stored.
-     * @param size The size of the buffer.
      * @return 0 on success, negative value on failure.
      */
     int (*read_file)(
         const struct sol_flow_metatype_context *ctx,
-        const char *name, const char **buf, size_t *size);
+        const char *name,
+        struct sol_buffer *buf);
 
     /**
      * @brief Stores the meta type in the Soletta infrastructure.

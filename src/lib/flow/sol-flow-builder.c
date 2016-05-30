@@ -1115,7 +1115,7 @@ error_name:
 }
 
 SOL_API int
-sol_flow_builder_export_in_port(struct sol_flow_builder *builder, const char *node_name,
+sol_flow_builder_export_port_in(struct sol_flow_builder *builder, const char *node_name,
     const char *port_name, int port_idx, const char *exported_name)
 {
     struct sol_flow_static_node_spec *node_spec;
@@ -1174,7 +1174,7 @@ sol_flow_builder_export_in_port(struct sol_flow_builder *builder, const char *no
 }
 
 SOL_API int
-sol_flow_builder_export_out_port(struct sol_flow_builder *builder, const char *node_name,
+sol_flow_builder_export_port_out(struct sol_flow_builder *builder, const char *node_name,
     const char *port_name, int port_idx, const char *exported_name)
 {
     struct sol_flow_static_node_spec *node_spec;

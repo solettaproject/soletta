@@ -198,9 +198,9 @@ int sol_flow_builder_connect_by_index(struct sol_flow_builder *builder, const ch
  *
  * @return @c 0 on success, error code (always negative) otherwise
  *
- * @see sol_flow_builder_export_out_port
+ * @see sol_flow_builder_export_port_out
  */
-int sol_flow_builder_export_in_port(struct sol_flow_builder *builder, const char *node_name, const char *port_name, int port_idx, const char *exported_name);
+int sol_flow_builder_export_port_in(struct sol_flow_builder *builder, const char *node_name, const char *port_name, int port_idx, const char *exported_name);
 
 /**
  * @brief Exports an output port of a node using @a exported_name as identifier.
@@ -216,9 +216,9 @@ int sol_flow_builder_export_in_port(struct sol_flow_builder *builder, const char
  *
  * @return @c 0 on success, error code (always negative) otherwise
  *
- * @see sol_flow_builder_export_in_port
+ * @see sol_flow_builder_export_port_in
  */
-int sol_flow_builder_export_out_port(struct sol_flow_builder *builder, const char *node_name, const char *port_name, int port_idx, const char *exported_name);
+int sol_flow_builder_export_port_out(struct sol_flow_builder *builder, const char *node_name, const char *port_name, int port_idx, const char *exported_name);
 
 /**
  * @brief Exports an given option of a node using @c exported_name as identifier.

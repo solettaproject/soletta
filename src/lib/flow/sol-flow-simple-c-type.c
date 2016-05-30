@@ -21,29 +21,29 @@
 #include <stdarg.h>
 
 #include "sol-flow-internal.h"
-#include "sol-flow-simplectype.h"
+#include "sol-flow-simple-c-type.h"
 
-struct simplectype_port_in {
+struct simple_c_type_port_in {
     struct sol_flow_port_type_in base;
     char *name;
 };
 
-struct simplectype_port_out {
+struct simple_c_type_port_out {
     struct sol_flow_port_type_out base;
     char *name;
 };
 
-struct simplectype_type_data {
-    int (*func)(struct sol_flow_node *node, const struct sol_flow_simplectype_event *ev, void *data);
+struct simple_c_type_type_data {
+    int (*func)(struct sol_flow_node *node, const struct sol_flow_simple_c_type_event *ev, void *data);
     struct sol_vector ports_in, ports_out;
 };
 
 #ifdef SOL_FLOW_NODE_TYPE_DESCRIPTION_ENABLED
 static bool
-simplectype_create_description_ports_in(const struct simplectype_type_data *type_data, struct sol_flow_node_type_description *desc)
+simple_c_type_create_description_ports_in(const struct simple_c_type_type_data *type_data, struct sol_flow_node_type_description *desc)
 {
     struct sol_flow_port_description **ports_in;
-    struct simplectype_port_in *port;
+    struct simple_c_type_port_in *port;
     uint16_t idx;
 
     ports_in = calloc(type_data->ports_in.len + 1,
@@ -75,10 +75,10 @@ error_port:
 }
 
 static bool
-simplectype_create_description_ports_out(const struct simplectype_type_data *type_data, struct sol_flow_node_type_description *desc)
+simple_c_type_create_description_ports_out(const struct simple_c_type_type_data *type_data, struct sol_flow_node_type_description *desc)
 {
     struct sol_flow_port_description **ports_out;
-    struct simplectype_port_out *port;
+    struct simple_c_type_port_out *port;
     uint16_t idx;
 
     ports_out = calloc(type_data->ports_out.len + 1,
@@ -109,11 +109,11 @@ error_port:
 #endif
 
 static bool
-simplectype_create_description(struct sol_flow_node_type *type, const char *name)
+simple_c_type_create_description(struct sol_flow_node_type *type, const char *name)
 {
 #ifdef SOL_FLOW_NODE_TYPE_DESCRIPTION_ENABLED
     struct sol_flow_node_type_description *desc;
-    const struct simplectype_type_data *type_data = type->type_data;
+    const struct simple_c_type_type_data *type_data = type->type_data;
 
     type->description = desc = calloc(1, sizeof(*desc));
     SOL_NULL_CHECK(type->description, false);
@@ -123,10 +123,10 @@ simplectype_create_description(struct sol_flow_node_type *type, const char *name
     desc->name = strdup(name);
     SOL_NULL_CHECK_GOTO(desc->name, error);
 
-    if (!simplectype_create_description_ports_in(type_data, desc))
+    if (!simple_c_type_create_description_ports_in(type_data, desc))
         goto error;
 
-    if (!simplectype_create_description_ports_out(type_data, desc))
+    if (!simple_c_type_create_description_ports_out(type_data, desc))
         goto error;
 
     return true;
@@ -143,7 +143,7 @@ error:
 }
 
 static void
-simplectype_destroy_description(struct sol_flow_node_type *type)
+simple_c_type_destroy_description(struct sol_flow_node_type *type)
 {
 #ifdef SOL_FLOW_NODE_TYPE_DESCRIPTION_ENABLED
     const struct sol_flow_node_type_description *desc = type->description;
@@ -174,27 +174,27 @@ simplectype_destroy_description(struct sol_flow_node_type *type)
 }
 
 static const struct sol_flow_port_type_in *
-simplectype_get_port_in(const struct sol_flow_node_type *type, uint16_t port)
+simple_c_type_get_port_in(const struct sol_flow_node_type *type, uint16_t port)
 {
-    const struct simplectype_type_data *type_data = type->type_data;
+    const struct simple_c_type_type_data *type_data = type->type_data;
 
     return sol_vector_get(&(type_data->ports_in), port);
 }
 
 static const struct sol_flow_port_type_out *
-simplectype_get_port_out(const struct sol_flow_node_type *type, uint16_t port)
+simple_c_type_get_port_out(const struct sol_flow_node_type *type, uint16_t port)
 {
-    const struct simplectype_type_data *type_data = type->type_data;
+    const struct simple_c_type_type_data *type_data = type->type_data;
 
     return sol_vector_get(&(type_data->ports_out), port);
 }
 
 static int
-simplectype_open(struct sol_flow_node *node, void *data, const struct sol_flow_node_options *options)
+simple_c_type_open(struct sol_flow_node *node, void *data, const struct sol_flow_node_options *options)
 {
-    const struct simplectype_type_data *type_data = node->type->type_data;
-    struct sol_flow_simplectype_event ev = {
-        .type = SOL_FLOW_SIMPLECTYPE_EVENT_TYPE_OPEN,
+    const struct simple_c_type_type_data *type_data = node->type->type_data;
+    struct sol_flow_simple_c_type_event ev = {
+        .type = SOL_FLOW_SIMPLE_C_TYPE_EVENT_TYPE_OPEN,
         .options = options,
     };
 
@@ -202,25 +202,25 @@ simplectype_open(struct sol_flow_node *node, void *data, const struct sol_flow_n
 }
 
 static void
-simplectype_close(struct sol_flow_node *node, void *data)
+simple_c_type_close(struct sol_flow_node *node, void *data)
 {
-    const struct simplectype_type_data *type_data = node->type->type_data;
-    struct sol_flow_simplectype_event ev = {
-        .type = SOL_FLOW_SIMPLECTYPE_EVENT_TYPE_CLOSE,
+    const struct simple_c_type_type_data *type_data = node->type->type_data;
+    struct sol_flow_simple_c_type_event ev = {
+        .type = SOL_FLOW_SIMPLE_C_TYPE_EVENT_TYPE_CLOSE,
     };
 
     type_data->func(node, &ev, data);
 }
 
 static void
-simplectype_dispose(struct sol_flow_node_type *type)
+simple_c_type_dispose(struct sol_flow_node_type *type)
 {
-    struct simplectype_type_data *type_data = (void *)type->type_data;
-    struct simplectype_port_in *port_in;
-    struct simplectype_port_out *port_out;
+    struct simple_c_type_type_data *type_data = (void *)type->type_data;
+    struct simple_c_type_port_in *port_in;
+    struct simple_c_type_port_out *port_out;
     uint16_t idx;
 
-    simplectype_destroy_description(type);
+    simple_c_type_destroy_description(type);
 
     SOL_VECTOR_FOREACH_IDX (&(type_data->ports_in), port_in, idx) {
         free(port_in->name);
@@ -237,12 +237,12 @@ simplectype_dispose(struct sol_flow_node_type *type)
 }
 
 static int
-simplectype_port_in_process(struct sol_flow_node *node, void *data, uint16_t port, uint16_t conn_id, const struct sol_flow_packet *packet)
+simple_c_type_process_port_in(struct sol_flow_node *node, void *data, uint16_t port, uint16_t conn_id, const struct sol_flow_packet *packet)
 {
-    const struct simplectype_type_data *type_data = node->type->type_data;
-    struct simplectype_port_in *p = sol_vector_get(&(type_data->ports_in), port);
-    struct sol_flow_simplectype_event ev = {
-        .type = SOL_FLOW_SIMPLECTYPE_EVENT_TYPE_PORT_IN_PROCESS,
+    const struct simple_c_type_type_data *type_data = node->type->type_data;
+    struct simple_c_type_port_in *p = sol_vector_get(&(type_data->ports_in), port);
+    struct sol_flow_simple_c_type_event ev = {
+        .type = SOL_FLOW_SIMPLE_C_TYPE_EVENT_TYPE_PROCESS_PORT_IN,
         .port = port,
         .conn_id = conn_id,
         .port_name = p->name,
@@ -253,12 +253,12 @@ simplectype_port_in_process(struct sol_flow_node *node, void *data, uint16_t por
 }
 
 static int
-simplectype_port_in_connect(struct sol_flow_node *node, void *data, uint16_t port, uint16_t conn_id)
+simple_c_type_connect_port_in(struct sol_flow_node *node, void *data, uint16_t port, uint16_t conn_id)
 {
-    const struct simplectype_type_data *type_data = node->type->type_data;
-    struct simplectype_port_in *p = sol_vector_get(&(type_data->ports_in), port);
-    struct sol_flow_simplectype_event ev = {
-        .type = SOL_FLOW_SIMPLECTYPE_EVENT_TYPE_PORT_IN_CONNECT,
+    const struct simple_c_type_type_data *type_data = node->type->type_data;
+    struct simple_c_type_port_in *p = sol_vector_get(&(type_data->ports_in), port);
+    struct sol_flow_simple_c_type_event ev = {
+        .type = SOL_FLOW_SIMPLE_C_TYPE_EVENT_TYPE_CONNECT_PORT_IN,
         .port = port,
         .conn_id = conn_id,
         .port_name = p->name,
@@ -268,12 +268,12 @@ simplectype_port_in_connect(struct sol_flow_node *node, void *data, uint16_t por
 }
 
 static int
-simplectype_port_in_disconnect(struct sol_flow_node *node, void *data, uint16_t port, uint16_t conn_id)
+simple_c_type_disconnect_port_in(struct sol_flow_node *node, void *data, uint16_t port, uint16_t conn_id)
 {
-    const struct simplectype_type_data *type_data = node->type->type_data;
-    struct simplectype_port_in *p = sol_vector_get(&(type_data->ports_in), port);
-    struct sol_flow_simplectype_event ev = {
-        .type = SOL_FLOW_SIMPLECTYPE_EVENT_TYPE_PORT_IN_DISCONNECT,
+    const struct simple_c_type_type_data *type_data = node->type->type_data;
+    struct simple_c_type_port_in *p = sol_vector_get(&(type_data->ports_in), port);
+    struct sol_flow_simple_c_type_event ev = {
+        .type = SOL_FLOW_SIMPLE_C_TYPE_EVENT_TYPE_DISCONNECT_PORT_IN,
         .port = port,
         .conn_id = conn_id,
         .port_name = p->name,
@@ -283,12 +283,12 @@ simplectype_port_in_disconnect(struct sol_flow_node *node, void *data, uint16_t 
 }
 
 static int
-simplectype_port_out_connect(struct sol_flow_node *node, void *data, uint16_t port, uint16_t conn_id)
+simple_c_type_connect_port_out(struct sol_flow_node *node, void *data, uint16_t port, uint16_t conn_id)
 {
-    const struct simplectype_type_data *type_data = node->type->type_data;
-    struct simplectype_port_out *p = sol_vector_get(&(type_data->ports_out), port);
-    struct sol_flow_simplectype_event ev = {
-        .type = SOL_FLOW_SIMPLECTYPE_EVENT_TYPE_PORT_OUT_CONNECT,
+    const struct simple_c_type_type_data *type_data = node->type->type_data;
+    struct simple_c_type_port_out *p = sol_vector_get(&(type_data->ports_out), port);
+    struct sol_flow_simple_c_type_event ev = {
+        .type = SOL_FLOW_SIMPLE_C_TYPE_EVENT_TYPE_CONNECT_PORT_OUT,
         .port = port,
         .conn_id = conn_id,
         .port_name = p->name,
@@ -298,12 +298,12 @@ simplectype_port_out_connect(struct sol_flow_node *node, void *data, uint16_t po
 }
 
 static int
-simplectype_port_out_disconnect(struct sol_flow_node *node, void *data, uint16_t port, uint16_t conn_id)
+simple_c_type_disconnect_port_out(struct sol_flow_node *node, void *data, uint16_t port, uint16_t conn_id)
 {
-    const struct simplectype_type_data *type_data = node->type->type_data;
-    struct simplectype_port_out *p = sol_vector_get(&(type_data->ports_out), port);
-    struct sol_flow_simplectype_event ev = {
-        .type = SOL_FLOW_SIMPLECTYPE_EVENT_TYPE_PORT_OUT_DISCONNECT,
+    const struct simple_c_type_type_data *type_data = node->type->type_data;
+    struct simple_c_type_port_out *p = sol_vector_get(&(type_data->ports_out), port);
+    struct sol_flow_simple_c_type_event ev = {
+        .type = SOL_FLOW_SIMPLE_C_TYPE_EVENT_TYPE_DISCONNECT_PORT_OUT,
         .port = port,
         .conn_id = conn_id,
         .port_name = p->name,
@@ -313,16 +313,16 @@ simplectype_port_out_disconnect(struct sol_flow_node *node, void *data, uint16_t
 }
 
 static struct sol_flow_node_type *
-simplectype_new_full_inner(const char *name, size_t private_data_size, uint16_t options_size,
-    int (*func)(struct sol_flow_node *node, const struct sol_flow_simplectype_event *ev, void *data),
+simple_c_type_new_full_inner(const char *name, size_t private_data_size, uint16_t options_size,
+    int (*func)(struct sol_flow_node *node, const struct sol_flow_simple_c_type_event *ev, void *data),
     va_list args)
 {
-    struct sol_vector ports_in = SOL_VECTOR_INIT(struct simplectype_port_in);
-    struct sol_vector ports_out = SOL_VECTOR_INIT(struct simplectype_port_out);
+    struct sol_vector ports_in = SOL_VECTOR_INIT(struct simple_c_type_port_in);
+    struct sol_vector ports_out = SOL_VECTOR_INIT(struct simple_c_type_port_out);
     struct sol_flow_node_type *type;
-    struct simplectype_type_data *type_data;
-    struct simplectype_port_in *port_in;
-    struct simplectype_port_out *port_out;
+    struct simple_c_type_type_data *type_data;
+    struct simple_c_type_port_in *port_in;
+    struct simple_c_type_port_out *port_out;
     const char *port_name;
     uint16_t idx;
     bool ok = true;
@@ -337,7 +337,7 @@ simplectype_new_full_inner(const char *name, size_t private_data_size, uint16_t 
             != SOL_FLOW_PACKET_TYPE_API_VERSION, error);
 #endif
 
-        if (direction == SOL_FLOW_SIMPLECTYPE_PORT_TYPE_IN) {
+        if (direction == SOL_FLOW_SIMPLE_C_TYPE_PORT_TYPE_IN) {
             port_in = sol_vector_append(&ports_in);
             SOL_NULL_CHECK_GOTO(port_in, error);
 
@@ -346,10 +346,10 @@ simplectype_new_full_inner(const char *name, size_t private_data_size, uint16_t 
 
             SOL_SET_API_VERSION(port_in->base.api_version = SOL_FLOW_PORT_TYPE_IN_API_VERSION; )
             port_in->base.packet_type = pt;
-            port_in->base.connect = simplectype_port_in_connect;
-            port_in->base.disconnect = simplectype_port_in_disconnect;
-            port_in->base.process = simplectype_port_in_process;
-        } else if (direction == SOL_FLOW_SIMPLECTYPE_PORT_TYPE_OUT) {
+            port_in->base.connect = simple_c_type_connect_port_in;
+            port_in->base.disconnect = simple_c_type_disconnect_port_in;
+            port_in->base.process = simple_c_type_process_port_in;
+        } else if (direction == SOL_FLOW_SIMPLE_C_TYPE_PORT_TYPE_OUT) {
             port_out = sol_vector_append(&ports_out);
             SOL_NULL_CHECK_GOTO(port_out, error);
 
@@ -358,8 +358,8 @@ simplectype_new_full_inner(const char *name, size_t private_data_size, uint16_t 
 
             SOL_SET_API_VERSION(port_out->base.api_version = SOL_FLOW_PORT_TYPE_OUT_API_VERSION; )
             port_out->base.packet_type = pt;
-            port_out->base.connect = simplectype_port_out_connect;
-            port_out->base.disconnect = simplectype_port_out_disconnect;
+            port_out->base.connect = simple_c_type_connect_port_out;
+            port_out->base.disconnect = simple_c_type_disconnect_port_out;
         } else {
             SOL_WRN("'%s' port '%s' (type %p %s) unexpected direction %d",
                 name, port_name, pt, pt->name ? pt->name : "?", direction);
@@ -392,14 +392,14 @@ simplectype_new_full_inner(const char *name, size_t private_data_size, uint16_t 
     type->ports_in_count = ports_in.len;
     type->ports_out_count = ports_out.len;
 
-    type->get_port_in = simplectype_get_port_in;
-    type->get_port_out = simplectype_get_port_out;
-    type->open = simplectype_open;
-    type->close = simplectype_close;
-    type->dispose_type = simplectype_dispose;
+    type->get_port_in = simple_c_type_get_port_in;
+    type->get_port_out = simple_c_type_get_port_out;
+    type->open = simple_c_type_open;
+    type->close = simple_c_type_close;
+    type->dispose_type = simple_c_type_dispose;
     type->options_size = options_size;
 
-    if (!simplectype_create_description(type, name))
+    if (!simple_c_type_create_description(type, name))
         goto error_desc;
 
     return type;
@@ -423,8 +423,8 @@ error:
 }
 
 SOL_API struct sol_flow_node_type *
-sol_flow_simplectype_new_full(const char *name, size_t private_data_size, uint16_t options_size,
-    int (*func)(struct sol_flow_node *node, const struct sol_flow_simplectype_event *ev,
+sol_flow_simple_c_type_new_full(const char *name, size_t private_data_size, uint16_t options_size,
+    int (*func)(struct sol_flow_node *node, const struct sol_flow_simple_c_type_event *ev,
     void *data), ...)
 {
     struct sol_flow_node_type *type;
@@ -436,17 +436,17 @@ sol_flow_simplectype_new_full(const char *name, size_t private_data_size, uint16
 #endif
 
     va_start(ap, func);
-    type = simplectype_new_full_inner(name, private_data_size, options_size, func, ap);
+    type = simple_c_type_new_full_inner(name, private_data_size, options_size, func, ap);
     va_end(ap);
 
     return type;
 }
 
 SOL_API uint16_t
-sol_flow_simplectype_get_port_out_index(const struct sol_flow_node_type *type, const char *port_out_name)
+sol_flow_simple_c_type_get_port_out_index(const struct sol_flow_node_type *type, const char *port_out_name)
 {
-    const struct simplectype_type_data *type_data;
-    struct simplectype_port_out *port;
+    const struct simple_c_type_type_data *type_data;
+    struct simple_c_type_port_out *port;
     uint16_t idx;
 
     SOL_NULL_CHECK(type, UINT16_MAX);
@@ -462,10 +462,10 @@ sol_flow_simplectype_get_port_out_index(const struct sol_flow_node_type *type, c
 }
 
 SOL_API uint16_t
-sol_flow_simplectype_get_port_in_index(const struct sol_flow_node_type *type, const char *port_in_name)
+sol_flow_simple_c_type_get_port_in_index(const struct sol_flow_node_type *type, const char *port_in_name)
 {
-    const struct simplectype_type_data *type_data;
-    struct simplectype_port_in *port;
+    const struct simple_c_type_type_data *type_data;
+    struct simple_c_type_port_in *port;
     uint16_t idx;
 
     SOL_NULL_CHECK(type, UINT16_MAX);
