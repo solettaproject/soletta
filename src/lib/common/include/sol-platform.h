@@ -514,6 +514,16 @@ int sol_platform_del_locale_monitor(void (*cb)(void *data, enum sol_platform_loc
 int sol_platform_apply_locale(enum sol_platform_locale_category category);
 
 /**
+ * Get current app name.
+ *
+ * Generate current app name from sol_argv[0]. If argv is not set, app name
+ * will be soletta.
+ *
+ * @return The current app name.
+ */
+struct sol_str_slice sol_platform_get_appname(void);
+
+/**
  * @}
  */
 
