@@ -839,31 +839,14 @@ _add_formated_lookup_path(struct sol_vector *vector, const char *fmt, ...)
     }
 }
 
-static char *
-_sanitize_appname(const char *appname)
-{
-    char *name, *lastdot;
-
-    if (!appname || *appname == '/')
-        return NULL;
-
-    lastdot = strrchr(appname, '.');
-    if (lastdot && !strcmp(".fbp", lastdot))
-        name = strndup(appname, lastdot - appname);
-    else
-        name = strdup(appname);
-
-    return name;
-}
-
 static void
-_add_lookup_path(struct sol_vector *vector, char *appname, char *appdir, const char *board_name)
+_add_lookup_path(struct sol_vector *vector, char *appdir, const char *board_name)
 {
     size_t i;
     struct sol_vector files = SOL_VECTOR_INIT(struct sol_str_slice);
     struct sol_str_slice *curr_file;
+    struct sol_str_slice appname;
     uint16_t idx;
-    char *sanitized_appname = NULL;
 
     const char *search_dirs[] = {
         ".", /* $PWD */
@@ -871,15 +854,14 @@ _add_lookup_path(struct sol_vector *vector, char *appname, char *appdir, const c
         PKGSYSCONFDIR, /* i.e /etc/soletta/ */
     };
 
-    sanitized_appname = _sanitize_appname(appname);
-
-    if (sanitized_appname && board_name) {
-        _add_formated_lookup_path(&files, "sol-flow-%s-%s.json", sanitized_appname, board_name);
+    appname = sol_platform_get_appname();
+    if (board_name) {
+        _add_formated_lookup_path(&files, "sol-flow-%.*s-%s.json",
+            SOL_STR_SLICE_PRINT(appname), board_name);
     }
 
-    if (sanitized_appname) {
-        _add_formated_lookup_path(&files, "sol-flow-%s.json", sanitized_appname);
-    }
+    _add_formated_lookup_path(&files, "sol-flow-%.*s.json",
+        SOL_STR_SLICE_PRINT(appname));
 
     if (board_name) {
         _add_formated_lookup_path(&files, "sol-flow-%s.json", board_name);
@@ -901,13 +883,12 @@ _add_lookup_path(struct sol_vector *vector, char *appname, char *appdir, const c
     }
 
     sol_vector_clear(&files);
-    free(sanitized_appname);
 }
 
 static void
 _load_vector_defaults(void)
 {
-    char *appdir = NULL, *appname = NULL, **argv;
+    char *appdir = NULL, **argv;
     char *dir_str = NULL, *name_str = NULL, *sol_conf = NULL;
     const char *board_name;
     uint16_t i;
@@ -925,11 +906,10 @@ _load_vector_defaults(void)
     if (argv && argv[0]) {
         dir_str = strdup(argv[0]);
         name_str = strdup(argv[0]);
-        appname = basename(name_str);
         appdir = dirname(dir_str);
     }
 
-    _add_lookup_path(&fallback_paths, appname, appdir, board_name);
+    _add_lookup_path(&fallback_paths, appdir, board_name);
     sol_conf = getenv("SOL_FLOW_MODULE_RESOLVER_CONFFILE");
     if (sol_conf) {
         env = sol_str_slice_from_str(sol_conf);

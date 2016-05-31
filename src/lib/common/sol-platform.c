@@ -37,6 +37,10 @@
 
 #define SOL_BOARD_NAME_ENVVAR "SOL_BOARD_NAME"
 
+#ifdef SOL_FEATURE_FILESYSTEM
+#include <sol-util-file.h>
+#endif
+
 SOL_LOG_INTERNAL_DECLARE(_sol_platform_log_domain, "platform");
 
 static char *board_name = NULL;
@@ -58,6 +62,9 @@ struct ctx {
     struct sol_monitors locale_monitors;
     struct sol_timeout *locale_timeout;
     char *locale_cache[SOL_PLATFORM_LOCALE_TIME + 1];
+#ifdef SOL_FEATURE_FILESYSTEM
+    struct sol_str_slice appname;
+#endif
 };
 
 static struct ctx _ctx;
@@ -96,6 +103,8 @@ sol_platform_init(void)
     _ctx.locale_timeout = NULL;
     sol_monitors_init_custom(&_ctx.service_monitors, sizeof(struct service_monitor), service_monitor_free);
 
+    _ctx.appname.data = NULL;
+    _ctx.appname.len = 0;
     return sol_platform_impl_init();
 
 err_exit:
@@ -795,6 +804,45 @@ sol_platform_apply_locale(enum sol_platform_locale_category category)
 {
     SOL_INT_CHECK(category, == SOL_PLATFORM_LOCALE_UNKNOWN, -EINVAL);
     return sol_platform_impl_apply_locale(category, _ctx.locale_cache[category] ? : "C");
+}
+
+SOL_API struct sol_str_slice
+sol_platform_get_appname(void)
+{
+    const struct sol_str_slice default_name = SOL_STR_SLICE_LITERAL("soletta");
+
+#ifdef SOL_FEATURE_FILESYSTEM
+#define SUFIX_LEN 4
+#define SUFIX ".fbp"
+
+    char **argv;
+
+    if (!_ctx.appname.data) {
+        argv = sol_argv();
+        if (!argv || sol_argc() == 0 || !argv[0]) {
+            _ctx.appname = default_name;
+            return _ctx.appname;
+        }
+
+        _ctx.appname = sol_util_file_get_basename(sol_str_slice_from_str(argv[0]));
+        if (!_ctx.appname.len || sol_str_slice_str_eq(_ctx.appname, "/")) {
+            _ctx.appname = default_name;
+            return _ctx.appname;
+        }
+
+        if (_ctx.appname.len >= SUFIX_LEN &&
+            strncmp(_ctx.appname.data + _ctx.appname.len - SUFIX_LEN, SUFIX,
+            SUFIX_LEN) == 0)
+            _ctx.appname.len -= 4;
+    }
+
+    return _ctx.appname;
+
+#undef SUFIX_LEN
+#undef SUFIX
+#endif //SOL_FEATURE_FILESYSTEM
+
+    return default_name;
 }
 
 int
