@@ -492,13 +492,6 @@ sol_coap_packet_ref(struct sol_coap_packet *pkt)
     return pkt;
 }
 
-static void
-coap_packet_free(struct sol_coap_packet *pkt)
-{
-    sol_buffer_fini(&pkt->buf);
-    free(pkt);
-}
-
 SOL_API void
 sol_coap_packet_unref(struct sol_coap_packet *pkt)
 {
@@ -509,7 +502,8 @@ sol_coap_packet_unref(struct sol_coap_packet *pkt)
         return;
     }
 
-    coap_packet_free(pkt);
+    sol_buffer_fini(&pkt->buf);
+    free(pkt);
 }
 
 static struct sol_coap_packet *
@@ -1646,7 +1640,7 @@ on_can_read(void *data, struct sol_socket *s)
     err = coap_packet_parse(pkt);
     if (err < 0) {
         SOL_WRN("Failure parsing coap packet");
-        coap_packet_free(pkt);
+        sol_coap_packet_unref(pkt);
         return true;
     }
 
@@ -1659,7 +1653,7 @@ on_can_read(void *data, struct sol_socket *s)
         SOL_WRN("Couldn't respond to packet (%d): %s", -err, sol_util_strerrora(errno));
     }
 
-    coap_packet_free(pkt);
+    sol_coap_packet_unref(pkt);
 
     return true;
 
@@ -1667,7 +1661,7 @@ err_recv:
     err = -len;
     SOL_WRN("Could not read from socket (%d): %s", err,
         sol_util_strerrora(err));
-    coap_packet_free(pkt);
+    sol_coap_packet_unref(pkt);
     return true;
 }
 
