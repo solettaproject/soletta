@@ -43,7 +43,7 @@ struct multi_boolean_data {
 
 static int
 two_ports_process(struct sol_flow_node *node, void *data, uint16_t port_in, uint16_t port_out,
-    const struct sol_flow_packet *packet, bool (*func) (bool in0, bool in1))
+    const struct sol_flow_packet *packet, bool (*func)(bool in0, bool in1))
 {
     int r;
     bool b;
@@ -78,7 +78,7 @@ multi_connect(struct sol_flow_node *node, void *data, uint16_t port, uint16_t co
 }
 
 static int
-multi_ports_process(struct sol_flow_node *node, void *data, uint16_t port_in, uint16_t port_out, const struct sol_flow_packet *packet, bool (*func) (bool in0, bool in1))
+multi_ports_process(struct sol_flow_node *node, void *data, uint16_t port_in, uint16_t port_out, const struct sol_flow_packet *packet, bool (*func)(bool in0, bool in1))
 {
     struct multi_boolean_data *mdata = data;
     uint32_t ports;
@@ -176,6 +176,30 @@ not_process(struct sol_flow_node *node, void *data, uint16_t port, uint16_t conn
 struct toggle_data {
     bool state;
 };
+
+static int
+set_process(struct sol_flow_node *node,
+    void *data,
+    uint16_t port,
+    uint16_t conn_id,
+    const struct sol_flow_packet *packet)
+{
+    struct toggle_data *mdata = data;
+    bool value;
+    int r;
+
+    r = sol_flow_packet_get_boolean(packet, &value);
+    SOL_INT_CHECK(r, < 0, r);
+
+    /* no infinite loops on flows */
+    if (value == mdata->state)
+        return 0;
+
+    mdata->state = value;
+
+    return sol_flow_send_boolean_packet(node,
+        SOL_FLOW_NODE_TYPE_BOOLEAN_TOGGLE__OUT__OUT, mdata->state);
+}
 
 static int
 toggle_process(struct sol_flow_node *node, void *data, uint16_t port, uint16_t conn_id,

@@ -1,10 +1,11 @@
 config CONTIKI
     def_bool y
-    select FEATURE_FLOW
-    select FEATURE_NETWORK
     select FEATURE_COAP
+    select FEATURE_FLOW
+    select FEATURE_HW_GPIO
     select FEATURE_HW_GPIO if HAVE_QMSI
-    select FEATURE_HW_PWM if HAVE_QMSI
     select FEATURE_HW_I2C if HAVE_QMSI
+    select FEATURE_HW_PWM if HAVE_QMSI
     select FEATURE_HW_SPI if HAVE_QMSI
+    select FEATURE_NETWORK
     select FEATURE_PIN_MUX if HAVE_QMSI

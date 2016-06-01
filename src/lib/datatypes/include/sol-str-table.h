@@ -82,7 +82,7 @@ struct sol_str_table {
  * @param key Key to search
  * @param fallback Fallback value
  *
- * @return If @c key is found, return it's value, otherwise @c
+ * @return If @c key is found, return its value, otherwise @c
  *         fallback is returned and errno is set to @c ENOENT if item
  *         is not found of @c EINVAL if parameters were invalid.
  */
@@ -171,14 +171,33 @@ struct sol_str_table_ptr {
  * @param key Key to search
  * @param fallback Fallback pointer
  *
- * @return If @c key is found, return it's value, otherwise @c
- *         fallback is returned is returned and errno is set to @c
+ * @return If @c key is found, return its value, otherwise @c
+ *         fallback is returned and errno is set to @c
  *         ENOENT if item is not found of @c EINVAL if parameters were
  *         invalid.
  */
 const void *sol_str_table_ptr_lookup_fallback(const struct sol_str_table_ptr *table_ptr,
     const struct sol_str_slice key,
     const void *fallback) SOL_ATTR_NON_NULL(1);
+
+/**
+ * @brief Retrieves the table entry associated with a given key from
+ * the string/pointer table.
+ *
+ * Searches the table table for @c key string and return its table
+ * entry pointer. If @c key isn't found (or bad @a table argument is
+ * passed), @c NULL is returned and @c errno is set (either to @c
+ * EINVAL or to @c ENOENT).
+ *
+ * @param table_ptr String/pointer table
+ * @param key Key to search
+ *
+ * @return If @c key is found, it returns its table entry, otherwise
+ *         @c NULL is returned and errno is set to @c ENOENT if the
+ *         item was not found or to @c EINVAL if parameters were
+ *         invalid.
+ */
+const struct sol_str_table_ptr *sol_str_table_ptr_entry_lookup(const struct sol_str_table_ptr *table, const struct sol_str_slice key);
 
 /**
  * @def sol_str_table_ptr_lookup(_table_ptr, _key, _pval)
@@ -259,7 +278,7 @@ struct sol_str_table_int64 {
  * @param key Key to search
  * @param fallback Fallback int64_t
  *
- * @return If @c key is found, return it's value, otherwise @c
+ * @return If @c key is found, return its value, otherwise @c
  *         fallback is returned and errno is set to @c ENOENT if item
  *         is not found of @c EINVAL if parameters were invalid.
  */

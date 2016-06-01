@@ -22,7 +22,6 @@
 #include <stdint.h>
 
 #include "sol-buffer.h"
-#include "sol-log.h"
 #include "sol-str-table.h"
 #include "sol-types.h"
 
@@ -88,13 +87,27 @@ extern "C" {
 
 struct sol_memmap_map {
     uint8_t version; /**< Version of map. Functions will refuse to read/write on storage if this version and the one storad differs */
-    const char *path; /**< Where to find the storage. Under Linux, it is the file mapping the storage, like @c /dev/nvram.
-                       * Optionally, it can also be of form <tt> create,\<bus_type\>,\<rel_path\>,\<devnumber\>,\<devname\> </tt>, where:
-                       * @arg @a bus_type is the bus type, supported values are: i2c
-                       * @arg @a rel_path is the relative path for device on '/sys/devices',
-                       * like 'platform/80860F41:05'
-                       * @arg @a devnumber is device number on bus, like 0x50
-                       * @arg @a devname is device name, the one recognized by its driver
+    const char *path; /**< Where to find the storage. On Linux, it is
+                       * the file mapping the storage, like @c
+                       * /dev/nvram. Optionally, it can also be in the
+                       * form
+                       * <tt>create,\<bus_type\>,\<rel_path\>,\<devnumber\>,\<devname\></tt>,
+                       * where: @arg @a bus_type is the bus type
+                       * (supported values are: @c i2c), @arg @a
+                       * rel_path is the relative path for the device
+                       * on @c /sys/devices, like @c
+                       * platform/80860F41:05, @arg @a devnumber is
+                       * the device number on the bus, like @c 0x50,
+                       * and @arg @a devname is the device name, the
+                       * one recognized by its driver. On Zephyr, this
+                       * field must adhere to the form
+                       * <tt>\<driver_name\>,\<min_erase_size\>,\<max_rw_size\>,\<mem_offset\></tt>,
+                       * where: @arg @a driver_name is the driver name
+                       * string, @arg @a erase_size is the minimum
+                       * erasable section size, @arg @a max_rw_size is
+                       * the maximum read/write sizes allowed and @arg
+                       * @a mem_offset is the flash memory's starting
+                       * offset (all sizes in bytes).
                        */
     uint32_t timeout; /**< Timeout, in milliseconds, of writing operations. After a write is requested, a timer will run and group all
                        * writing operations until it expires, when real writing will be performed */
