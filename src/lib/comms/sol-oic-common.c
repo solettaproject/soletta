@@ -21,7 +21,7 @@
 #include "sol-log.h"
 #include <assert.h>
 
-SOL_API enum sol_oic_map_loop_status
+SOL_API enum sol_oic_map_loop_reason
 sol_oic_map_loop_init(const struct sol_oic_map_reader *map, struct sol_oic_map_reader *iterator, struct sol_oic_repr_field *repr)
 {
     SOL_NULL_CHECK(map, SOL_OIC_MAP_LOOP_ERROR);
@@ -57,7 +57,7 @@ sol_oic_repr_field_clear(struct sol_oic_repr_field *field)
 }
 
 SOL_API bool
-sol_oic_map_loop_next(struct sol_oic_repr_field *repr, struct sol_oic_map_reader *iterator, enum sol_oic_map_loop_status *reason)
+sol_oic_map_loop_next(struct sol_oic_repr_field *repr, struct sol_oic_map_reader *iterator, enum sol_oic_map_loop_reason *reason)
 {
     CborError err;
 

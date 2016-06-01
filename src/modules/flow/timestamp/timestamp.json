@@ -217,7 +217,7 @@
         ],
         "data_type": "struct timestamp_comparison_node_type",
         "extra_methods": {
-          "func": "timestamp_val_equal"
+          "func": "timestamp_val_eq"
         }
       },
       "out_ports": [
@@ -283,7 +283,7 @@
         ],
         "data_type": "struct timestamp_comparison_node_type",
         "extra_methods": {
-          "func": "timestamp_val_greater_or_equal"
+          "func": "timestamp_val_greater_or_eq"
         }
       },
       "out_ports": [
@@ -349,7 +349,7 @@
         ],
         "data_type": "struct timestamp_comparison_node_type",
         "extra_methods": {
-          "func": "timestamp_val_less_or_equal"
+          "func": "timestamp_val_less_or_eq"
         }
       },
       "out_ports": [
@@ -382,7 +382,7 @@
         ],
         "data_type": "struct timestamp_comparison_node_type",
         "extra_methods": {
-          "func": "timestamp_val_not_equal"
+          "func": "timestamp_val_not_eq"
         }
       },
       "out_ports": [

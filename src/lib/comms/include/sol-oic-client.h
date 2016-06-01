@@ -33,14 +33,14 @@ extern "C" {
 
 /**
  * @file
- * @brief Routines to create clients talking OIC protocol.
+ * @brief Routines to create clients talking the OIC protocol.
  */
 
 /**
  * @defgroup oic_client OIC Client
  * @ingroup OIC
  *
- * @brief Routines to create clients talking OIC protocol.
+ * @brief Routines to create clients talking the OIC protocol.
  *
  * @{
  */
@@ -66,7 +66,10 @@ struct sol_oic_client;
 struct sol_oic_pending;
 
 /**
- * @brief Structure defining an oic resource.
+ * @brief Structure defining an OIC resource. It's open to the API
+ * user to bypass the need for getters for everything, but all fields
+ * are marked as const to emphasize that the user must not alter any
+ * of them.
  */
 struct sol_oic_resource {
 #ifndef SOL_NO_API_VERSION
@@ -76,58 +79,33 @@ struct sol_oic_resource {
     /**
      * @brief The resource address.
      */
-    struct sol_network_link_addr addr;
+    const struct sol_network_link_addr addr;
     /**
      * @brief The path pointing at this resource.
      */
-    struct sol_str_slice path;
+    const struct sol_str_slice path;
     /**
-     * @brief The Device ID as UUID 16-byte array.
+     * @brief The Device ID as a UUID 16-byte array.
      */
-    struct sol_str_slice device_id;
+    const struct sol_str_slice device_id;
     /**
-     * @brief List of resource types from this resource.
+     * @brief List of resource types (#sol_str_slice entries)
+     * from this resource.
      */
-    struct sol_vector types;
-    /**
-     * @brief Buffer with types vector data.
-     */
-    char *types_data;
+    const struct sol_vector types;
     /**
      * @brief List of interfaces implemented by this resource.
      */
-    struct sol_vector interfaces;
-    /**
-     * @brief Buffer with interfaces vector data.
-     */
-    char *interfaces_data;
-    /**
-     * @brief Keep internal information to handle observating clients.
-     *
-     * Not expected to be used by clients.
-     */
-    struct {
-        struct sol_timeout *timeout; /** @brief Polling timeout handler */
-        int clear_data; /** @brief Polling counter. */
-        int64_t token; /** @brief Observation token, if in observe mode */
-    } observe;
-    int refcnt; /** @brief Reference counter. */
+    const struct sol_vector interfaces;
     /**
      * @brief True if server supports observe mode for this resource
      */
-    bool observable : 1;
+    const bool observable;
     /**
-     * @brief True if the connection stablished with this resource's server
-     * is secure.
+     * @brief True if the connection established with this resource's
+     * server is secure.
      */
-    bool secure : 1;
-    /**
-     * @brief True if this client is observing the resource.
-     *
-     * It is expected that clients that are observing a resource receives
-     * notifications when resource state changes.
-     */
-    bool is_observed : 1;
+    const bool secure;
 };
 
 /**
@@ -177,7 +155,7 @@ void sol_oic_pending_cancel(struct sol_oic_pending *pending);
  * for responses until next a new timeout window closes, otherwise @a
  * client will terminate response waiting.
  *
- * @param client An oic client instance.
+ * @param client An OIC client instance.
  * @param addr The address of the server that contains the desired resource.
  *        May be a multicast address if it is desired to look for resources in
  *        multiple servers.
@@ -187,10 +165,11 @@ void sol_oic_pending_cancel(struct sol_oic_pending *pending);
  * @param resource_interface A string representation of the interface of the desired
  *        resource. If empty or @c NULL, resources with all interfaces will be
  *        discovered.
- * @param resource_found_cb Callback to be called when a resource is found or
- *        when timeout is reached. Parameter cli is the sol_oic_client used to
- *        perform the request, res is the resource that was discovered and data
- *        is a pointer to the user's data parameter.
+ * @param resource_found_cb Callback to be called when a resource is
+ *        found or when an internal timeout is reached. Parameter @a
+ *        cli is the #sol_oic_client used to perform the request, @a
+ *        res is the resource that was discovered and data is a
+ *        pointer to the user's data parameter.
  * @param data A pointer to user's data.
  *
  * @return @c A pending call handle on success, @c NULL otherwise
@@ -218,7 +197,7 @@ struct sol_oic_pending *sol_oic_client_find_resources(struct sol_oic_client *cli
  * After an internal timeout is reached, @a info_received_cb will be
  * called with @c NULL @a info.
  *
- * @param client An oic client instance.
+ * @param client An OIC client instance.
  * @param resource The resource that is going to receive the request.
  * @param info_received_cb Callback to be called when response is received or
  *        when timeout is reached. Parameter cli is the sol_oic_client used to
@@ -254,7 +233,7 @@ struct sol_oic_pending *sol_oic_client_get_platform_info(struct sol_oic_client *
  * After internal timeout is reached @a info_received_cb will be
  * called with @c NULL @a info.
  *
- * @param client An oic client instance.
+ * @param client An OIC client instance.
  * @param addr The address of the server that contains the desired
  *        information.
  * @param info_received_cb Callback to be called when response is received or
@@ -291,7 +270,7 @@ struct sol_oic_pending *sol_oic_client_get_platform_info_by_addr(struct sol_oic_
  * After internal timeout is reached @a info_received_cb will be
  * called with @c NULL @a info.
  *
- * @param client An oic client instance.
+ * @param client An OIC client instance.
  * @param resource The resource that is going to receive the request.
  * @param info_received_cb Callback to be called when response is received or
  *        when timeout is reached. Parameter cli is the sol_oic_client used to
@@ -327,7 +306,7 @@ struct sol_oic_pending *sol_oic_client_get_server_info(struct sol_oic_client *cl
  * After internal timeout is reached @a info_received_cb will be
  * called with @c NULL @a info.
  *
- * @param client An oic client instance.
+ * @param client An OIC client instance.
  * @param addr The address of the server that contains the desired
  *        information.
  * @param info_received_cb Callback to be called when response is received or
@@ -355,7 +334,7 @@ struct sol_oic_pending *sol_oic_client_get_server_info_by_addr(struct sol_oic_cl
  * response arrives, @a callback will be called.
  * The @a request memory will be freed by this function on success or failure.
  *
- * @param client An oic client instance.
+ * @param client An OIC client instance.
  * @param request A request created using @ref sol_oic_client_request_new()
  *        or sol_oic_client_non_confirmable_request_new().
  * @param callback Callback to be called when a response from this request
@@ -380,7 +359,7 @@ struct sol_oic_pending *sol_oic_client_request(struct sol_oic_client *client,
     const struct sol_oic_map_reader *repr_vec), const void *callback_data);
 
 /**
- * @brief Create an oic client request for an specific @a resource, using a
+ * @brief Create an OIC client request for an specific @a resource, using a
  * confirmable CoAP packet.
  *
  * @param method The coap request method as documented in @ref
@@ -392,7 +371,7 @@ struct sol_oic_pending *sol_oic_client_request(struct sol_oic_client *client,
 struct sol_oic_request *sol_oic_client_request_new(enum sol_coap_method method, struct sol_oic_resource *res);
 
 /**
- * @brief Create an oic client request for an specific @a resource, using a
+ * @brief Create an OIC client request for an specific @a resource, using a
  * non-confirmable CoAP packet.
  *
  * @param method The coap request method as documented in @ref
@@ -436,7 +415,7 @@ struct sol_oic_map_writer *sol_oic_client_request_get_writer(struct sol_oic_requ
  * sol_oic_client_resource_set_observable() with @a observe as @c
  * false.
  *
- * @param client An oic client instance.
+ * @param client An OIC client instance.
  * @param res The resource that is going to be observed
  * @param callback A callback to be called when notification responses arrive.
  *        Parameter @a response_code is the header response code of this
@@ -476,7 +455,7 @@ int sol_oic_client_resource_set_observable(struct sol_oic_client *client, struct
  * this function is that it uses CoAP non-confirmable packets to make the
  * request.
  *
- * @param client An oic client instance.
+ * @param client An OIC client instance.
  * @param res The resource that is going to be observed
  * @param callback A callback to be called when notification responses arrive.
  *        Parameter @a response_code is the header response code of this

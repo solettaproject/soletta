@@ -430,7 +430,7 @@ def generate_object_from_repr_vec_fn_common_c(name, props):
     const struct sol_oic_map_reader *repr_vec, uint32_t decode_mask)
 {
     struct sol_oic_repr_field field;
-    enum sol_oic_map_loop_status end_status;
+    enum sol_oic_map_loop_reason end_reason;
     struct sol_oic_map_reader iterator;
     struct %(struct_name)s fields = {
 %(fields_init)s
@@ -438,10 +438,10 @@ def generate_object_from_repr_vec_fn_common_c(name, props):
     bool updated = false;
     int ret = 0;
 
-    SOL_OIC_MAP_LOOP(repr_vec, &field, &iterator, end_status) {
+    SOL_OIC_MAP_LOOP(repr_vec, &field, &iterator, end_reason) {
 %(fields)s
     }
-    if (end_status != SOL_OIC_MAP_LOOP_OK)
+    if (end_reason != SOL_OIC_MAP_LOOP_OK)
         goto out;
 
 %(update_state)s
@@ -1744,7 +1744,7 @@ check_updated_boolean(const bool a, const bool b)
 static inline bool
 check_updated_number(const double a, const double b)
 {
-    return !sol_util_double_equal(a, b);
+    return !sol_util_double_eq(a, b);
 }
 
 static inline int

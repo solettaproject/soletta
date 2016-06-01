@@ -42,7 +42,7 @@ struct irange_comparison_data {
 };
 
 static bool
-irange_val_equal(int32_t var0, int32_t var1)
+irange_val_eq(int32_t var0, int32_t var1)
 {
     return var0 == var1;
 }
@@ -54,7 +54,7 @@ irange_val_less(int32_t var0, int32_t var1)
 }
 
 static bool
-irange_val_less_or_equal(int32_t var0, int32_t var1)
+irange_val_less_or_eq(int32_t var0, int32_t var1)
 {
     return var0 <= var1;
 }
@@ -66,13 +66,13 @@ irange_val_greater(int32_t var0, int32_t var1)
 }
 
 static bool
-irange_val_greater_or_equal(int32_t var0, int32_t var1)
+irange_val_greater_or_eq(int32_t var0, int32_t var1)
 {
     return var0 >= var1;
 }
 
 static bool
-irange_val_not_equal(int32_t var0, int32_t var1)
+irange_val_not_eq(int32_t var0, int32_t var1)
 {
     return var0 != var1;
 }

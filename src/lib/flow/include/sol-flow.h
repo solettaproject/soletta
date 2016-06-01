@@ -574,7 +574,7 @@ enum sol_flow_node_options_member_type {
  *
  * @return String of the type's name, @c NULL on errors
  */
-const char *sol_flow_node_options_member_type_to_string(enum sol_flow_node_options_member_type type);
+const char *sol_flow_node_options_member_type_to_str(enum sol_flow_node_options_member_type type);
 
 /**
  * @brief Returns the option member type which name is @c data_type.

@@ -32,23 +32,23 @@ extern "C" {
  * @file
  * @brief HTTP server
  *
- * Library to make possible run an HTTP server to deliver and
- * set values from others components.
+ * API to make it possible to run an HTTP server to deliver and
+ * set values from other components.
  */
 
 /**
  * @defgroup HTTP_SERVER HTTP Server
  * @ingroup HTTP
  *
- * @brief Library to make possible run an HTTP server to deliver and
- * set values from others components.
+ * @brief API to make it possible to run an HTTP server to deliver and
+ * set values from other components.
  *
  * @{
  */
 
 /**
  * @struct sol_http_server
- * @brief Opaque handler for a HTTP server instance.
+ * @brief Opaque handler for an HTTP server instance.
  *
  * It's created with sol_http_server_new() and should be later
  * deleted with sol_http_server_del()
@@ -80,7 +80,7 @@ struct sol_http_server_config {
 
 /**
  * @struct sol_http_request
- * @brief Opaque handler for a request made to a HTTP server.
+ * @brief Opaque handler for a request made to an HTTP server.
  *
  * Request properties can be queried with:
  * @li sol_http_request_get_url()
@@ -98,23 +98,23 @@ struct sol_http_request;
  *
  * Progressive responses can be used to create server sent events.
  *
- * This response is create with sol_http_server_send_progressive_response()
- * and data can be given using sol_http_progressive_response_feed(),
- * to delete it use sol_http_progressive_response_del().
+ * This response is created with sol_http_server_send_progressive_response()
+ * and data can be given using sol_http_progressive_response_feed().
+ * To delete it use sol_http_progressive_response_del().
  */
 struct sol_http_progressive_response;
 
 /**
- * @brief Creates a HTTP server, binding on all interfaces
+ * @brief Creates an HTTP server, binding on all interfaces
  * in the specified @a port.
  *
- * With the returned handle it's possible to register paths using
- * @c sol_http_server_register_handler()
- * and dirs with @c sol_http_server_add_dir().
+ * With the returned handle it's possible to register paths using @c
+ * sol_http_server_register_handler() and directories to be served
+ * with @c sol_http_server_add_dir().
  *
  * @note Only one instance of @c sol_http_server is possible per port.
- * Try to run a second instance in the
- * same port will result in fail.
+ * Trying to run a second instance in the same port will result in
+ * failure.
  *
  * @param config The parameters to setup the server.
  *
@@ -135,8 +135,9 @@ void sol_http_server_del(struct sol_http_server *server);
  * @brief Register a handler for a specific path.
  *
  * @param server The value got with @c sol_http_server_new()
- * @param path The path where the handler will serve, it means, when a request comes in this path the
- * callback set will be called and a response should be sent back
+ * @param path The path where the handler will serve, it means, when a
+ * request comes in this path the callback set will be called and a
+ * response should be sent back from it
  * @param request_cb The callback for the request received on the specified path
  * @param data The user data passed in the callback
  *

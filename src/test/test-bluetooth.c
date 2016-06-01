@@ -77,12 +77,12 @@ test_bluetooth_uuid_comparison(void)
     r = sol_bt_uuid_from_str(&u2, slice);
     ASSERT_INT_EQ(r, 0);
 
-    ASSERT(sol_bt_uuid_equal(&u1, &u2));
+    ASSERT(sol_bt_uuid_eq(&u1, &u2));
 
     u1.type = SOL_BT_UUID_TYPE_16;
     u1.val16 = 0x1802;
 
-    ASSERT(!sol_bt_uuid_equal(&u1, &u2));
+    ASSERT(!sol_bt_uuid_eq(&u1, &u2));
 
     r = sol_bt_uuid_to_str(&u2, &buffer);
     ASSERT_INT_EQ(r, 0);

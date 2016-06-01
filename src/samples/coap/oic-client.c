@@ -27,7 +27,7 @@ static void
 got_get_response(void *data, enum sol_coap_response_code response_code, struct sol_oic_client *cli, const struct sol_network_link_addr *srv_addr, const struct sol_oic_map_reader *map_reader)
 {
     struct sol_oic_repr_field field;
-    enum sol_oic_map_loop_status end_status;
+    enum sol_oic_map_loop_reason end_reason;
     struct sol_oic_map_reader iterator;
 
     SOL_BUFFER_DECLARE_STATIC(addr, SOL_NETWORK_INET_ADDR_STR_LEN);
@@ -48,7 +48,7 @@ got_get_response(void *data, enum sol_coap_response_code response_code, struct s
     }
 
     printf("Dumping payload received from addr %.*s {\n", SOL_STR_SLICE_PRINT(sol_buffer_get_slice(&addr)));
-    SOL_OIC_MAP_LOOP(map_reader, &field, &iterator, end_status) {
+    SOL_OIC_MAP_LOOP(map_reader, &field, &iterator, end_reason) {
         printf("\tkey: '%s', value: ", field.key);
 
         switch (field.type) {
@@ -87,7 +87,9 @@ got_get_response(void *data, enum sol_coap_response_code response_code, struct s
 }
 
 static bool
-found_resource(void *data, struct sol_oic_client *cli, struct sol_oic_resource *res)
+found_resource(void *data,
+    struct sol_oic_client *cli,
+    struct sol_oic_resource *res)
 {
     static const char digits[] = "0123456789abcdef";
     struct sol_str_slice *slice;

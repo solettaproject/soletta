@@ -31,7 +31,7 @@ extern "C" {
 
 /**
  * @file
- * @brief Routines to handle MQTT protocol.
+ * @brief Routines to handle the MQTT protocol.
  *
  * Wrapper library for MQTT communication using the mosquitto MQTT
  * library.
@@ -127,7 +127,7 @@ enum sol_mqtt_conn_status {
  *
  * This object is the abstraction of a MQTT session. This is the base
  * structure for all MQTT operations and is obtained through the
- * sol_mqtt_connect API.
+ * sol_mqtt_connect() API.
  */
 struct sol_mqtt;
 

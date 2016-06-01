@@ -110,7 +110,7 @@ static int
 user_handle_put(void *data, struct sol_oic_request *request)
 {
     enum sol_coap_response_code code = SOL_COAP_RESPONSE_CODE_BAD_REQUEST;
-    enum sol_oic_map_loop_status reason;
+    enum sol_oic_map_loop_reason reason;
     struct sol_oic_repr_field field;
     struct sol_oic_map_reader iter;
     struct sol_oic_map_reader *input;

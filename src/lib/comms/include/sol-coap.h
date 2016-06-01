@@ -72,13 +72,15 @@ extern "C" {
 /**
  * @brief Set of CoAP packet options we are aware of.
  *
- * Users may add options other than these to their packets, provided they
- * know how to format them correctly. The only restriction is that all options
- * must be added to a packet in numeric order.
+ * Users may add options other than these to their packets, provided
+ * they know how to format them correctly. The only restriction is
+ * that all options must be added to a packet in numeric order.
+ *
+ * @see sol_coap_find_first_option()
  *
  * Refer to RFC 7252, section 12.2 for more information.
  */
-enum sol_coap_option_num {
+enum sol_coap_option {
     SOL_COAP_OPTION_IF_MATCH = 1,
     SOL_COAP_OPTION_URI_HOST = 3,
     SOL_COAP_OPTION_ETAG = 4,
@@ -132,40 +134,40 @@ enum sol_coap_method {
 /**
  * @brief CoAP packets may be of one of these types.
  */
-enum sol_coap_msgtype {
+enum sol_coap_message_type {
     /**
      * Confirmable messsage.
      *
      * Packet is a request or response that the destination end-point must
      * acknowledge. If received and processed properly, it will receive a
-     * response of matching @c id and type #SOL_COAP_TYPE_ACK.
+     * response of matching @c id and type #SOL_COAP_MESSAGE_TYPE_ACK.
      * If the recipient could not process the request, it will reply with a
-     * matching @c id and type #SOL_COAP_TYPE_RESET.
+     * matching @c id and type #SOL_COAP_MESSAGE_TYPE_RESET.
      */
-    SOL_COAP_TYPE_CON = 0,
+    SOL_COAP_MESSAGE_TYPE_CON = 0,
     /**
      * Non-confirmable message.
      *
      * Packet is a request or response that does not need acknowledge.
      * Destinataries should not reply to them with an ACK, but may respond
-     * with a message of type #SOL_COAP_TYPE_RESET if the package could not
+     * with a message of type #SOL_COAP_MESSAGE_TYPE_RESET if the package could not
      * be processed due to being faulty.
      */
-    SOL_COAP_TYPE_NON_CON = 1,
+    SOL_COAP_MESSAGE_TYPE_NON_CON = 1,
     /**
      * Acknowledge.
      *
      * When a confirmable message is received, a response should be sent to
      * the source with the same @c id and this type.
      */
-    SOL_COAP_TYPE_ACK = 2,
+    SOL_COAP_MESSAGE_TYPE_ACK = 2,
     /**
      * Reset.
      *
      * Rejecting a packet for any reason is done by sending a message of this
      * type with the @c id of the corresponding source message.
      */
-    SOL_COAP_TYPE_RESET = 3
+    SOL_COAP_MESSAGE_TYPE_RESET = 3
 };
 
 /**
@@ -356,7 +358,7 @@ int sol_coap_header_get_version(const struct sol_coap_packet *pkt, uint8_t *vers
  * @brief Gets the type of the message container in the packet.
  *
  * @param pkt The packet containing the message.
- * @param type The type of the message, one of #sol_coap_msgtype.
+ * @param type The type of the message, one of #sol_coap_message_type.
  *
  * @return 0 on success, negative number on error.
  */
@@ -416,7 +418,7 @@ int sol_coap_header_set_version(struct sol_coap_packet *pkt, uint8_t ver);
 /**
  * @brief Sets the message type in the packet's header.
  *
- * Must be one of #sol_coap_msgtype.
+ * Must be one of #sol_coap_message_type.
  *
  * @param pkt The packet to set the type to.
  * @param type The message type to set.
@@ -529,10 +531,10 @@ void sol_coap_server_unref(struct sol_coap_server *server);
  * Creates a packet to send as a request or response.
  * If @a old is not @c NULL, its @c ID and @c token (if any) will be copied to
  * the new packet. This is useful when crafting a new packet as a response
- * to @a old. It's also important to note that if @a old has #sol_coap_msgtype
- * equal to #SOL_COAP_TYPE_CON, the new packet message type will be set to
- * #SOL_COAP_TYPE_ACK. If it has it equal to #SOL_COAP_TYPE_NON_CON,
- * the new packet message type will be set to #SOL_COAP_TYPE_NON_CON.
+ * to @a old. It's also important to note that if @a old has #sol_coap_message_type
+ * equal to #SOL_COAP_MESSAGE_TYPE_CON, the new packet message type will be set to
+ * #SOL_COAP_MESSAGE_TYPE_ACK. If it has it equal to #SOL_COAP_MESSAGE_TYPE_NON_CON,
+ * the new packet message type will be set to #SOL_COAP_MESSAGE_TYPE_NON_CON.
  *
  * @param old An optional packet to use as basis.
  *
@@ -551,7 +553,7 @@ struct sol_coap_packet *sol_coap_packet_new(struct sol_coap_packet *old);
  *
  * @return A new packet, with @c id, @c method and @c type already set.
  */
-struct sol_coap_packet *sol_coap_packet_new_request(enum sol_coap_method method, enum sol_coap_msgtype type);
+struct sol_coap_packet *sol_coap_packet_new_request(enum sol_coap_method method, enum sol_coap_message_type type);
 
 /**
  * @brief Convenience function to create a packet suitable to send as a notification.
@@ -638,7 +640,7 @@ bool sol_coap_packet_has_payload(struct sol_coap_packet *pkt);
  * Options must be added in order, according to their numeric definitions.
  *
  * @param pkt The packet to which the option will be added.
- * @param code The option code, one of #sol_coap_option_num.
+ * @param code The option code, one of #sol_coap_option.
  * @param value Pointer to the value of the option, or NULL if none.
  * @param len Length in bytes of @a value, or 0 if @a value is NULL.
  *
@@ -660,7 +662,8 @@ int sol_coap_packet_add_uri_path_option(struct sol_coap_packet *pkt, const char 
  * @brief Finds the first apeearence of the specified option in a packet.
  *
  * @param pkt The packet holding the options.
- * @param code The option code to look for.
+ * @param code The option code to look for. Pass one of the
+ * #sol_coap_option values or any custom option code.
  * @param len The length in bytes of the option's value.
  *
  * @return Pointer to the option's value, or NULL if not found.
@@ -671,7 +674,8 @@ const void *sol_coap_find_first_option(const struct sol_coap_packet *pkt, uint16
  * @brief Gets a number of specified option in a packet.
  *
  * @param pkt The packet holding the options.
- * @param code The option code to look for.
+ * @param code The option code to look for. Pass one of the
+ * #sol_coap_option values or any custom option code.
  * @param vec An vector of struct sol_str_slice to hold the options.
  * @param veclen The length of @a vec.
  *

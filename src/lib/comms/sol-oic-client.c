@@ -82,6 +82,24 @@ struct ctx {
     struct sol_reentrant reentrant;
 };
 
+struct sol_oic_resource_internal {
+    struct sol_oic_resource base;
+    char *types_data; //Buffer with types vector data.
+    char *interfaces_data; //Buffer with interfaces vector data.
+    struct {
+        struct sol_timeout *timeout; //Polling timeout handler
+        int clear_data; //Polling counter.
+        int64_t token; //Observation token, if in observe mode
+    } observe;
+    int refcnt;
+    /*
+     * True if this client is observing the resource.
+     *
+     * It is expected that clients that are observing a resource
+     * receive notifications when the resource state changes. */
+    bool is_observed : 1;
+};
+
 struct find_resource_ctx {
     struct ctx base;
     bool (*cb)(void *data, struct sol_oic_client *cli, struct sol_oic_resource *res);
@@ -95,14 +113,14 @@ struct server_info_ctx {
 struct sol_oic_client_request {
     struct sol_oic_request base;
     bool (*cb)(void *data, struct sol_coap_server *server, struct sol_coap_packet *req, const struct sol_network_link_addr *addr);
-    struct sol_oic_resource *res;
+    struct sol_oic_resource_internal *res;
     int64_t token;
     struct sol_oic_map_writer writer;
 };
 
 struct resource_request_ctx {
     struct ctx base;
-    struct sol_oic_resource *res;
+    struct sol_oic_resource_internal *res;
     void (*cb)(void *data, enum sol_coap_response_code response_code, struct sol_oic_client *cli, const struct sol_network_link_addr *addr, const struct sol_oic_map_reader *repr_vec);
     const void *data;
     int64_t token;
@@ -112,7 +130,8 @@ SOL_LOG_INTERNAL_DECLARE(_sol_oic_client_log_domain, "oic-client");
 
 static struct sol_coap_server *
 _best_server_for_resource(const struct sol_oic_client *client,
-    const struct sol_oic_resource *res, struct sol_network_link_addr *addr)
+    struct sol_oic_resource *res,
+    struct sol_network_link_addr *addr)
 {
     *addr = res->addr;
 
@@ -187,10 +206,13 @@ _pkt_has_same_token(const struct sol_coap_packet *pkt, int64_t token)
 SOL_API struct sol_oic_resource *
 sol_oic_resource_ref(struct sol_oic_resource *r)
 {
+    struct sol_oic_resource_internal *res =
+        (struct sol_oic_resource_internal *)r;
+
     SOL_NULL_CHECK(r, NULL);
     OIC_RESOURCE_CHECK_API(r, EINVAL, NULL);
 
-    r->refcnt++;
+    res->refcnt++;
     return r;
 }
 
@@ -212,16 +234,20 @@ clear_vector_list(struct sol_vector *vector, void *data)
 SOL_API void
 sol_oic_resource_unref(struct sol_oic_resource *r)
 {
+    struct sol_oic_resource_internal *res =
+        (struct sol_oic_resource_internal *)r;
+
     SOL_NULL_CHECK(r);
     OIC_RESOURCE_CHECK_API(r, 0);
 
-    r->refcnt--;
-    if (!r->refcnt) {
+    res->refcnt--;
+    if (!res->refcnt) {
         free((char *)r->path.data);
         free((char *)r->device_id.data);
 
-        clear_vector_list(&r->types, r->types_data);
-        clear_vector_list(&r->interfaces, r->interfaces_data);
+        clear_vector_list((struct sol_vector *)&r->types, res->types_data);
+        clear_vector_list((struct sol_vector *)&r->interfaces,
+            res->interfaces_data);
 
         free(r);
     }
@@ -501,7 +527,7 @@ client_get_info(struct sol_oic_client *client,
     memcpy(&ctx->base.addr, addr, sizeof(*addr));
 
     ctx->base.req = sol_coap_packet_new_request(SOL_COAP_METHOD_GET,
-        SOL_COAP_TYPE_CON);
+        SOL_COAP_MESSAGE_TYPE_CON);
     if (!ctx->base.req) {
         SOL_WRN("Could not create CoAP packet");
         r = -errno;
@@ -627,30 +653,38 @@ _has_observable_option(struct sol_coap_packet *pkt)
     return ptr && len == 1 && *ptr;
 }
 
-static struct sol_oic_resource *
+static struct sol_oic_resource_internal *
 _new_resource(void)
 {
-    struct sol_oic_resource *res = malloc(sizeof(*res));
+    struct sol_oic_resource_internal *res = malloc(sizeof(*res));
+    struct sol_str_slice *path = (struct sol_str_slice *)&res->base.path;
+    struct sol_str_slice *device_id =
+        (struct sol_str_slice *)&res->base.device_id;
+    bool *observable = (bool *)&res->base.observable;
+    bool *secure = (bool *)&res->base.secure;
 
     SOL_NULL_CHECK(res, NULL);
 
-    res->path = SOL_STR_SLICE_STR(NULL, 0);
-    res->device_id = SOL_STR_SLICE_STR(NULL, 0);
-    sol_vector_init(&res->types, sizeof(struct sol_str_slice));
+    path->len = 0;
+    path->data = NULL;
+    device_id->len = 0;
+    device_id->data = NULL;
+    sol_vector_init((struct sol_vector *)&res->base.types,
+        sizeof(struct sol_str_slice));
     res->types_data = NULL;
-    sol_vector_init(&res->interfaces, sizeof(struct sol_str_slice));
+    sol_vector_init((struct sol_vector *)&res->base.interfaces,
+        sizeof(struct sol_str_slice));
     res->interfaces_data = NULL;
 
     res->observe.timeout = NULL;
     res->observe.clear_data = 0;
 
-    res->observable = false;
-    res->secure = false;
+    *observable = *secure = false;
     res->is_observed = false;
 
     res->refcnt = 1;
 
-    SOL_SET_API_VERSION(res->api_version = SOL_OIC_RESOURCE_API_VERSION; )
+    SOL_SET_API_VERSION(res->base.api_version = SOL_OIC_RESOURCE_API_VERSION; )
 
     return res;
 }
@@ -679,18 +713,16 @@ _iterate_over_resource_reply_payload(struct sol_coap_packet *req,
     const struct sol_network_link_addr *addr,
     const struct find_resource_ctx *ctx, bool *cb_return)
 {
-    CborParser parser;
-    CborError err;
     CborValue root, devices_array, resources_array, value, map;
-    struct sol_buffer *buf;
-    size_t offset;
-    struct sol_buffer device_id;
-    struct sol_oic_resource *res = NULL;
+    struct sol_oic_resource_internal *res = NULL;
     CborValue bitmap_value, secure_value;
-    uint64_t bitmap;
-    bool secure;
     bool discovery_callback_result;
-
+    struct sol_buffer device_id;
+    struct sol_buffer *buf;
+    CborParser parser;
+    uint64_t bitmap;
+    CborError err;
+    size_t offset;
 
     *cb_return  = true;
 
@@ -723,19 +755,30 @@ _iterate_over_resource_reply_payload(struct sol_coap_packet *req,
         SOL_INT_CHECK_GOTO(err, != CborNoError, error);
         for (; cbor_value_is_map(&resources_array) && err == CborNoError;
             err = cbor_value_advance(&resources_array)) {
+            struct sol_network_link_addr *addr_ptr;
+            struct sol_str_slice *device_id_ptr;
+            bool is_secure = false;
+            bool *observable;
+            bool *secure;
+
             res = _new_resource();
             SOL_NULL_CHECK_GOTO(res, error);
+            observable = (bool *)&res->base.observable;
+            secure = (bool *)&res->base.secure;
+            addr_ptr = (struct sol_network_link_addr *)&res->base.addr;
+            device_id_ptr = (struct sol_str_slice *)&res->base.device_id;
 
             if (sol_cbor_map_get_str_value(&resources_array, SOL_OIC_KEY_HREF,
-                &res->path) < 0)
+                (struct sol_str_slice *)&res->base.path) < 0)
                 goto error;
 
             if (!extract_list_from_map(&resources_array,
-                SOL_OIC_KEY_RESOURCE_TYPES, &res->types_data, &res->types))
+                SOL_OIC_KEY_RESOURCE_TYPES, &res->types_data,
+                (struct sol_vector *)&res->base.types))
                 goto error;
             if (!extract_list_from_map(&resources_array,
                 SOL_OIC_KEY_INTERFACES, &res->interfaces_data,
-                &res->interfaces))
+                (struct sol_vector *)&res->base.interfaces))
                 goto error;
 
             err = cbor_value_map_find_value(&resources_array,
@@ -755,36 +798,37 @@ _iterate_over_resource_reply_payload(struct sol_coap_packet *req,
                 &secure_value);
             SOL_INT_CHECK(err, != CborNoError, false);
             if (!cbor_value_is_valid(&secure_value)) {
-                secure = false;
+                is_secure = false;
             } else {
                 if (!cbor_value_is_boolean(&secure_value))
                     goto error;
-                err = cbor_value_get_boolean(&secure_value, &secure);
+                err = cbor_value_get_boolean(&secure_value, &is_secure);
                 SOL_INT_CHECK_GOTO(err, != CborNoError, error);
             }
 
-            res->observable = (bitmap & SOL_OIC_FLAG_OBSERVABLE);
-            res->secure = secure;
-            res->observable = res->observable || _has_observable_option(req);
-            res->addr = *addr;
-            res->device_id.data = sol_util_memdup(device_id.data,
+            *observable = (bitmap & SOL_OIC_FLAG_OBSERVABLE);
+            *secure = is_secure;
+            *observable |= _has_observable_option(req);
+            *addr_ptr = *addr;
+            device_id_ptr->data = sol_util_memdup(device_id.data,
                 device_id.used);
-            if (!res->device_id.data)
+            if (!device_id_ptr->data)
                 goto error;
-            res->device_id.len = device_id.used;
+            device_id_ptr->len = device_id.used;
             SOL_REENTRANT_CALL((*(struct sol_reentrant *)(&(ctx->base.reentrant)))) {
                 discovery_callback_result =
-                    ctx->cb((void *)ctx->base.data, ctx->base.client, res);
+                    ctx->cb((void *)ctx->base.data, ctx->base.client,
+                    (struct sol_oic_resource *)res);
             }
 
             if (!discovery_callback_result || ctx->base.reentrant.delete_me) {
-                sol_oic_resource_unref(res);
+                sol_oic_resource_unref((struct sol_oic_resource *)res);
                 sol_buffer_fini(&device_id);
                 *cb_return  = false;
                 return true;
             }
 
-            sol_oic_resource_unref(res);
+            sol_oic_resource_unref((struct sol_oic_resource *)res);
         }
         sol_buffer_fini(&device_id);
     }
@@ -792,7 +836,7 @@ _iterate_over_resource_reply_payload(struct sol_coap_packet *req,
     return true;
 
 error:
-    sol_oic_resource_unref(res);
+    sol_oic_resource_unref((struct sol_oic_resource *)res);
     sol_buffer_fini(&device_id);
     return false;
 }
@@ -847,7 +891,7 @@ _find_resource_reply_cb(void *data, struct sol_coap_server *server,
         SOL_REENTRANT_FREE(ctx->base.reentrant) {
             free(ctx);
         }
-    return cb_return;
+        return cb_return;
 }
 
 SOL_API struct sol_oic_pending *
@@ -879,7 +923,7 @@ sol_oic_client_find_resources(struct sol_oic_client *client,
 
     /* Multicast discovery should be non-confirmable */
     ctx->base.req = sol_coap_packet_new_request(SOL_COAP_METHOD_GET,
-        SOL_COAP_TYPE_NON_CON);
+        SOL_COAP_MESSAGE_TYPE_NON_CON);
     if (!ctx->base.req) {
         SOL_WRN("Could not create CoAP packet");
         r = -errno;
@@ -1012,10 +1056,12 @@ _resource_request_unobserve(struct sol_oic_client *client, struct sol_oic_resour
 {
     struct sol_coap_server *server;
     struct sol_network_link_addr addr;
+    struct sol_oic_resource_internal *r =
+        (struct sol_oic_resource_internal *)res;
 
     server = _best_server_for_resource(client, res, &addr);
     return sol_coap_unobserve_by_token(server, &addr,
-        (uint8_t *)&res->observe.token, (uint8_t)sizeof(res->observe.token));
+        (uint8_t *)&r->observe.token, (uint8_t)sizeof(r->observe.token));
 }
 
 static struct sol_oic_pending *
@@ -1049,7 +1095,8 @@ _resource_request(struct sol_oic_client_request *request,
         goto cbor_error;
     }
 
-    ctx->base.server = _best_server_for_resource(client, request->res, &addr);
+    ctx->base.server = _best_server_for_resource
+            (client, (struct sol_oic_resource *)request->res, &addr);
     ctx->base.req = request->base.pkt;
     request->base.pkt = NULL;
     r = sol_coap_send_packet_with_reply(ctx->base.server, ctx->base.req,
@@ -1080,14 +1127,19 @@ error:
 }
 
 static struct sol_oic_request *
-request_new(enum sol_coap_method method, enum sol_coap_msgtype type, struct sol_oic_resource *res, bool is_observe)
+request_new(enum sol_coap_method method,
+    enum sol_coap_message_type type,
+    struct sol_oic_resource *res,
+    bool is_observe)
 {
     struct sol_oic_client_request *request;
+    struct sol_oic_resource_internal *r =
+        (struct sol_oic_resource_internal *)res;
     char *path;
-    int r = 0;
+    int ret = 0;
 
-    if (type != SOL_COAP_TYPE_CON && type != SOL_COAP_TYPE_NON_CON) {
-        SOL_WRN("Only SOL_COAP_TYPE_CON and SOL_COAP_TYPE_NON_CON requests are"
+    if (type != SOL_COAP_MESSAGE_TYPE_CON && type != SOL_COAP_MESSAGE_TYPE_NON_CON) {
+        SOL_WRN("Only SOL_COAP_MESSAGE_TYPE_CON and SOL_COAP_MESSAGE_TYPE_NON_CON requests are"
             " supported");
         errno = EINVAL;
         return NULL;
@@ -1096,21 +1148,21 @@ request_new(enum sol_coap_method method, enum sol_coap_msgtype type, struct sol_
     request = calloc(1, sizeof(struct sol_oic_client_request));
     SOL_NULL_CHECK_ERRNO(request, ENOMEM, NULL);
 
-    request->res = res;
+    request->res = r;
     request->base.pkt = sol_coap_packet_new_request(method, type);
     if (!request->base.pkt) {
         SOL_WRN("Could not create CoAP packet");
-        r = -errno;
+        ret = -errno;
         goto error_pkt;
     }
 
-    r = _set_token_and_mid(request->base.pkt, &request->token);
-    SOL_INT_CHECK_GOTO(r, < 0, error;);
+    ret = _set_token_and_mid(request->base.pkt, &request->token);
+    SOL_INT_CHECK_GOTO(ret, < 0, error; );
 
     if (is_observe) {
         uint8_t reg = 0;
 
-        res->observe.token = request->token;
+        r->observe.token = request->token;
         sol_coap_add_option(request->base.pkt, SOL_COAP_OPTION_OBSERVE, &reg,
             sizeof(reg));
         request->cb = _resource_request_cb;
@@ -1119,11 +1171,11 @@ request_new(enum sol_coap_method method, enum sol_coap_msgtype type, struct sol_
 
     path = strndupa(res->path.data, res->path.len);
     if (!path) {
-        r = -ENOMEM;
+        ret = -ENOMEM;
         goto error;
     }
-    r = sol_coap_packet_add_uri_path_option(request->base.pkt, path);
-    if (r < 0) {
+    ret = sol_coap_packet_add_uri_path_option(request->base.pkt, path);
+    if (ret < 0) {
         SOL_WRN("Invalid URI: %s", path);
         goto error;
     }
@@ -1136,7 +1188,7 @@ error:
     sol_coap_packet_unref(request->base.pkt);
 error_pkt:
     free(request);
-    errno = -r;
+    errno = -ret;
     return NULL;
 }
 
@@ -1145,7 +1197,7 @@ sol_oic_client_request_new(enum sol_coap_method method, struct sol_oic_resource 
 {
     OIC_RESOURCE_CHECK_API(res, EINVAL, NULL);
 
-    return request_new(method, SOL_COAP_TYPE_CON, res, false);
+    return request_new(method, SOL_COAP_MESSAGE_TYPE_CON, res, false);
 }
 
 SOL_API struct sol_oic_request *
@@ -1153,7 +1205,7 @@ sol_oic_client_non_confirmable_request_new(enum sol_coap_method method, struct s
 {
     OIC_RESOURCE_CHECK_API(res, EINVAL, NULL);
 
-    return request_new(method, SOL_COAP_TYPE_NON_CON, res, false);
+    return request_new(method, SOL_COAP_MESSAGE_TYPE_NON_CON, res, false);
 }
 
 SOL_API void
@@ -1218,7 +1270,8 @@ _poll_resource(void *data)
     }
 
     /* FIXME: find a way to cancel any previous requests here */
-    request = sol_oic_client_request_new(SOL_COAP_METHOD_GET, ctx->res);
+    request = sol_oic_client_request_new(SOL_COAP_METHOD_GET,
+        (struct sol_oic_resource *)ctx->res);
     SOL_NULL_CHECK_GOTO(request, error);
 
     SOL_NULL_CHECK_GOTO(
@@ -1233,8 +1286,12 @@ error:
 }
 
 static int
-_observe_with_polling(struct sol_oic_client *client, struct sol_oic_resource *res,
-    void (*callback)(void *data, enum sol_coap_response_code response_code, struct sol_oic_client *cli, const struct sol_network_link_addr *addr,
+_observe_with_polling(struct sol_oic_client *client,
+    struct sol_oic_resource_internal *res,
+    void (*callback)(void *data,
+    enum sol_coap_response_code response_code,
+    struct sol_oic_client *cli,
+    const struct sol_network_link_addr *addr,
     const struct sol_oic_map_reader *repr_vec),
     void *data)
 {
@@ -1257,12 +1314,12 @@ _observe_with_polling(struct sol_oic_client *client, struct sol_oic_resource *re
         return -ENOMEM;
     }
 
-    sol_oic_resource_ref(res);
+    sol_oic_resource_ref((struct sol_oic_resource *)res);
     return 0;
 }
 
 static bool
-_stop_observing_with_polling(struct sol_oic_resource *res)
+_stop_observing_with_polling(struct sol_oic_resource_internal *res)
 {
     SOL_INF("Deactivating resource polling timer");
 
@@ -1270,45 +1327,52 @@ _stop_observing_with_polling(struct sol_oic_resource *res)
     res->observe.timeout = NULL;
     res->observe.clear_data++;
 
-    sol_oic_resource_unref(res);
+    sol_oic_resource_unref((struct sol_oic_resource *)res);
 
     return true;
 }
 
 static int
-client_resource_set_observable(struct sol_oic_client *client, struct sol_oic_resource *res,
-    void (*callback)(void *data, enum sol_coap_response_code response_code, struct sol_oic_client *cli, const struct sol_network_link_addr *addr,
+client_resource_set_observable(struct sol_oic_client *client,
+    struct sol_oic_resource_internal *res,
+    void (*callback)(void *data,
+    enum sol_coap_response_code response_code,
+    struct sol_oic_client *cli,
+    const struct sol_network_link_addr *addr,
     const struct sol_oic_map_reader *repr_vec),
-    void *data, bool observe, bool non_confirmable)
+    void *data,
+    bool observe,
+    bool non_confirmable)
 {
-    int r = -EINVAL;
+    int ret = -EINVAL;
+    struct sol_oic_resource *r = (struct sol_oic_resource *)res;
 
     SOL_NULL_CHECK(client, -EINVAL);
     SOL_NULL_CHECK(res, -EINVAL);
-    OIC_RESOURCE_CHECK_API(res, 0, -EINVAL);
+    OIC_RESOURCE_CHECK_API(r, 0, -EINVAL);
 
     if (observe) {
         if (res->is_observed)
             return -EINVAL;
 
-        if (!res->observable) {
-            r = _observe_with_polling(client, res, callback, data);
-            res->is_observed = (r == 0);
+        if (!res->base.observable) {
+            ret = _observe_with_polling(client, res, callback, data);
+            res->is_observed = (ret == 0);
         } else {
             struct sol_oic_request *request;
             struct sol_oic_pending *tmp;
 
             request = request_new(SOL_COAP_METHOD_GET,
-                non_confirmable ? SOL_COAP_TYPE_NON_CON : SOL_COAP_TYPE_CON,
-                res, true);
+                non_confirmable ? SOL_COAP_MESSAGE_TYPE_NON_CON :
+                SOL_COAP_MESSAGE_TYPE_CON, r, true);
             SOL_NULL_CHECK(request, -ENOMEM);
 
             tmp = _resource_request((struct sol_oic_client_request *)request,
                 client, callback, data);
             res->is_observed = (tmp != NULL);
-            r = res->is_observed ? 0 : -errno;
+            ret = res->is_observed ? 0 : -errno;
         }
-        return r;
+        return ret;
     }
 
     if (!res->is_observed) {
@@ -1319,14 +1383,14 @@ client_resource_set_observable(struct sol_oic_client *client, struct sol_oic_res
 
     if (res->observe.timeout) {
         res->is_observed = !_stop_observing_with_polling(res);
-        r = 0;
-    } else if (res->observable) {
-        r = _resource_request_unobserve(client, res);
-        if (r == 0)
+        ret = 0;
+    } else if (res->base.observable) {
+        ret = _resource_request_unobserve(client, r);
+        if (ret == 0)
             res->is_observed = false;
     }
 
-    return r;
+    return ret;
 }
 
 SOL_API int
@@ -1335,8 +1399,9 @@ sol_oic_client_resource_set_observable(struct sol_oic_client *client, struct sol
     const struct sol_oic_map_reader *repr_vec),
     const void *data, bool observe)
 {
-    return client_resource_set_observable(client, res, callback, (void *)data,
-        observe, false);
+    return client_resource_set_observable
+               (client, (struct sol_oic_resource_internal *)res, callback,
+               (void *)data, observe, false);
 }
 
 SOL_API int
@@ -1345,8 +1410,9 @@ sol_oic_client_resource_set_observable_non_confirmable(struct sol_oic_client *cl
     const struct sol_oic_map_reader *repr_vec),
     const void *data, bool observe)
 {
-    return client_resource_set_observable(client, res, callback, (void *)data,
-        observe, true);
+    return client_resource_set_observable
+               (client, (struct sol_oic_resource_internal *)res, callback,
+               (void *)data, observe, true);
 }
 
 SOL_API struct sol_oic_client *

@@ -579,9 +579,9 @@ persist_drange_send_packet(struct sol_flow_node *node)
 {
     struct persist_drange_data *mdata = sol_flow_node_get_private_data(node);
     struct sol_drange *val = mdata->base.value_ptr;
-    bool no_defaults = sol_util_double_equal(val->step, 0) &&
-        sol_util_double_equal(val->min, 0) &&
-        sol_util_double_equal(val->min, 0);
+    bool no_defaults = sol_util_double_eq(val->step, 0) &&
+        sol_util_double_eq(val->min, 0) &&
+        sol_util_double_eq(val->min, 0);
 
     if (mdata->store_only_val || no_defaults) {
         struct sol_drange value = {

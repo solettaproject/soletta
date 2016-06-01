@@ -138,7 +138,7 @@ struct sol_direction_vector {
  *
  * @return @c true if both are equal, @c false otherwise.
  */
-bool sol_direction_vector_equal(const struct sol_direction_vector *var0, const struct sol_direction_vector *var1);
+bool sol_direction_vector_eq(const struct sol_direction_vector *var0, const struct sol_direction_vector *var1);
 
 /**
  * @brief Data type to describe a location.
@@ -169,7 +169,7 @@ struct sol_rgb {
  *
  * @return @c true if both are equal, @c false otherwise.
  */
-bool sol_rgb_equal(const struct sol_rgb *var0, const struct sol_rgb *var1);
+bool sol_rgb_eq(const struct sol_rgb *var0, const struct sol_rgb *var1);
 
 /**
  * @brief Set a maximum value for all components of a RGB color
@@ -308,7 +308,7 @@ int sol_drange_sub(const struct sol_drange *var0, const struct sol_drange *var1,
  *
  * @return @c true if both are equal, @c false otherwise.
  */
-bool sol_drange_equal(const struct sol_drange *var0, const struct sol_drange *var1);
+bool sol_drange_eq(const struct sol_drange *var0, const struct sol_drange *var1);
 
 /**
  * @brief Initializes @c result with the given @c spec and @c value.
@@ -447,7 +447,7 @@ int sol_irange_sub(const struct sol_irange *var0, const struct sol_irange *var1,
  *
  * @return @c true if both are equal, @c false otherwise.
  */
-bool sol_irange_equal(const struct sol_irange *var0, const struct sol_irange *var1);
+bool sol_irange_eq(const struct sol_irange *var0, const struct sol_irange *var1);
 
 /**
  * @brief Initializes @c result with the given @c spec and @c value.

@@ -361,7 +361,7 @@ append_node_options(
         } else if (is_string_value) {
             sol_fbp_log_print(state->filename, meta->position.line, meta->position.column,
                 "Option '%.*s' (%s) of node '%.*s' must not be quoted since it's not a string",
-                SOL_STR_SLICE_PRINT(meta->key), sol_flow_node_options_member_type_to_string(m->type),
+                SOL_STR_SLICE_PRINT(meta->key), sol_flow_node_options_member_type_to_str(m->type),
                 SOL_STR_SLICE_PRINT(node->name));
             failed = true;
             continue;
@@ -374,7 +374,7 @@ append_node_options(
             sol_fbp_log_print(state->filename, meta->position.line, meta->position.column,
                 "Couldn't parse value '%.*s' for option '%.*s' (%s) of node '%.*s'",
                 SOL_STR_SLICE_PRINT(meta->value), SOL_STR_SLICE_PRINT(meta->key),
-                sol_flow_node_options_member_type_to_string(m->type), SOL_STR_SLICE_PRINT(node->name));
+                sol_flow_node_options_member_type_to_str(m->type), SOL_STR_SLICE_PRINT(node->name));
             failed = true;
             continue;
         }

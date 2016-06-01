@@ -743,12 +743,12 @@ set_auth_basic(CURL *curl, const struct sol_http_param_value *param)
     user = password = NULL;
 
     if (param->value.auth.user.len) {
-        user = sol_str_slice_to_string(param->value.auth.user);
+        user = sol_str_slice_to_str(param->value.auth.user);
         SOL_NULL_CHECK(user, false);
     }
 
     if (param->value.auth.password.len) {
-        password = sol_str_slice_to_string(param->value.auth.password);
+        password = sol_str_slice_to_str(param->value.auth.password);
         SOL_NULL_CHECK_GOTO(password, exit);
     }
 

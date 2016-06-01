@@ -29,14 +29,14 @@ extern "C" {
 
 /**
  * @file
- * @brief Routines to create servers talking OIC protocol.
+ * @brief Routines to create servers talking the OIC protocol.
  */
 
 /**
  * @defgroup oic_server OIC Server
  * @ingroup OIC
  *
- * @brief Routines to create servers talking OIC protocol.
+ * @brief Routines to create servers talking the OIC protocol.
  *
  * @{
  */
@@ -154,9 +154,9 @@ struct sol_oic_resource_type {
 };
 
 /**
- * @brief Add resource to oic-server.
+ * @brief Add resource to OIC server.
  *
- * Create a new sol_oic_server_resource and associate it to the oic-server.
+ * Create a new #sol_oic_server_resource and associate it to the OIC server.
  *
  * @param rt The @ref sol_oic_resource_type structure with information about the
  *        resource that is being added.
@@ -164,7 +164,8 @@ struct sol_oic_resource_type {
  *        defined in @a rt.
  * @param flags Resourse flags.
  *
- * @return On success, a pointer to the new resource created. On errors, NULL.
+ * @return On success, a pointer to the new resource created. On
+ * errors, @c NULL.
  *
  * @see sol_oic_server_unregister_resource
  */
@@ -173,10 +174,10 @@ struct sol_oic_server_resource *sol_oic_server_register_resource(
     enum sol_oic_resource_flag flags);
 
 /**
- * @brief Delete a resource from the oic-server.
+ * @brief Delete a resource from the OIC server.
  *
  * Remove a resource created using @ref sol_oic_server_register_resource from the
- * oic-server
+ * OIC server
  *
  * @param resource The resource to be removed from server.
  *

@@ -572,11 +572,11 @@ resolve_i2c_path(const char *path, char **resolved_path)
         goto end;
     }
 
-    rel_path = sol_str_slice_to_string(
+    rel_path = sol_str_slice_to_str(
         *(const struct sol_str_slice *)sol_vector_get(&instructions, REL_PATH_IDX));
     SOL_NULL_CHECK_GOTO(rel_path, end);
 
-    dev_number_s = sol_str_slice_to_string(
+    dev_number_s = sol_str_slice_to_str(
         *(const struct sol_str_slice *)sol_vector_get(&instructions, DEV_NUMBER_IDX));
     SOL_NULL_CHECK_GOTO(dev_number_s, end);
 
@@ -585,7 +585,7 @@ resolve_i2c_path(const char *path, char **resolved_path)
     if (errno || *end_ptr != '\0')
         goto end;
 
-    dev_name = sol_str_slice_to_string(
+    dev_name = sol_str_slice_to_str(
         *(const struct sol_str_slice *)sol_vector_get(&instructions, DEV_NAME_IDX));
     SOL_NULL_CHECK_GOTO(dev_name, end);
 

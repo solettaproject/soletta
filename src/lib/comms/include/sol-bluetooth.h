@@ -67,7 +67,7 @@ enum sol_bt_uuid_type {
 /**
  * @brief Representation of a Bluetooth UUID.
  *
- * In Bluetooth, an UUID represents the type of an entity, for example,
+ * In Bluetooth, a UUID represents the type of an entity, for example,
  * if a service is encountered in a remote device with the 16-bit UUID '0x111F',
  * that service is a "HandsfreeAudioGateway".
  *
@@ -84,7 +84,7 @@ struct sol_bt_uuid {
 };
 
 /**
- * @brief Convert an string to an UUID.
+ * @brief Convert a string to a UUID.
  *
  * @param uuid The uuid in which to store the value.
  * @param str The string from which to convert.
@@ -94,7 +94,7 @@ struct sol_bt_uuid {
 int sol_bt_uuid_from_str(struct sol_bt_uuid *uuid, const struct sol_str_slice str);
 
 /**
- * @brief Convert an string to an UUID.
+ * @brief Convert a string to a UUID.
  *
  * @param uuid The uuid to convert.
  * @param buffer The buffer in which to store the string representation.
@@ -114,7 +114,7 @@ int sol_bt_uuid_to_str(const struct sol_bt_uuid *uuid, struct sol_buffer *buffer
  *
  * @return True if UUIDs are equal, False otherwise.
  */
-bool sol_bt_uuid_equal(const struct sol_bt_uuid *u1, const struct sol_bt_uuid *u2);
+bool sol_bt_uuid_eq(const struct sol_bt_uuid *u1, const struct sol_bt_uuid *u2);
 
 /**
  * @brief Represents an active connection to a Bluetooth device.
@@ -179,8 +179,10 @@ struct sol_bt_conn *sol_bt_connect(const struct sol_network_link_addr *addr,
 /**
  * @brief Terminates a connection, or connection attempt.
  *
- * In case the connection is not already established, the connection attempt
- * will be cancelled after this is called.
+ * In case the connection is not already established, the connection
+ * attempt will be cancelled after this is called, otherwise the @c
+ * on_disconnect() function provided on the call to sol_bt_connect()
+ * will be called.
  *
  * @param conn The reference to a connection.
  *
@@ -206,18 +208,23 @@ struct sol_bt_session;
  * In case the Bluetooth controller is already enabled, the enabled() callback
  * will be called before this function returns.
  *
- * @param enabled Function to be called when the controller changes state.
- * @param user_data User data to be provided to the enabled() callback.
+ * @param on_enabled Function to be called when the controller changes state.
+ * @param user_data User data to be provided to the @a on_enabled callback.
  *
  * @return a reference to a session, used for returning the system to its
  * previous state, @see sol_bt_disable().
  */
 struct sol_bt_session *sol_bt_enable(
-    void (*enabled)(void *data, bool powered),
+    void (*on_enabled)(void *data, bool powered),
     const void *user_data);
 
 /**
  * @brief Disables a session, returning the controller to its previous state.
+ *
+ * In case the session is not already enabled, the enabling attempt
+ * will be cancelled after this is called, otherwise the @c
+ * on_enabled() function provided on the call to sol_bt_enable() will
+ * be called with @c false @c powered argument value.
  *
  * @param session Reference to a session.
  *
@@ -306,8 +313,9 @@ struct sol_bt_scan_pending;
  * discovery will be stopped when the last user calls sol_bt_stop_scan().
  *
  * @param transport The transport in which to discover devices.
- * @param cb The callback to be called for each found device, it may be called
- *        multiple times, when the information about the device changes.
+ * @param on_found The callback to be called for each found device. It
+ *        may be called multiple times, when the information about the
+ *        device changes.
  * @param user_data User data to be passed to the callback.
  *
  * @return pointer to a pending scan session on success, NULL on error,
@@ -315,7 +323,7 @@ struct sol_bt_scan_pending;
  */
 struct sol_bt_scan_pending *sol_bt_start_scan(
     enum sol_bt_transport transport,
-    void (*cb)(void *user_data, const struct sol_bt_device_info *device),
+    void (*on_found)(void *user_data, const struct sol_bt_device_info *device),
     const void *user_data);
 
 /**

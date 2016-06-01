@@ -1122,7 +1122,7 @@ sol_oic_server_notify(struct sol_oic_response *notification)
 close_error:
     r = sol_coap_header_set_code(notification->pkt, code);
     SOL_INT_CHECK_GOTO(r, < 0, error);
-    r = sol_coap_header_set_type(notification->pkt, SOL_COAP_TYPE_ACK);
+    r = sol_coap_header_set_type(notification->pkt, SOL_COAP_MESSAGE_TYPE_ACK);
     SOL_INT_CHECK_GOTO(r, < 0, error);
 
     //Keep reference to CoAP packet, because

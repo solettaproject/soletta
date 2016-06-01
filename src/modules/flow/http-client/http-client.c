@@ -718,7 +718,7 @@ string_process_json(struct sol_flow_node *node, const struct sol_str_slice slice
     if (sol_json_token_get_type(&value) == SOL_JSON_TYPE_STRING)
         result = sol_json_token_get_unescaped_string_copy(&value);
     else
-        result = sol_str_slice_to_string(slice);
+        result = sol_str_slice_to_str(slice);
     SOL_NULL_CHECK(result, -ENOMEM);
 
     return sol_flow_send_string_take_packet(node,
@@ -1495,9 +1495,9 @@ setup_response_headers_and_cookies(struct sol_http_params *params,
 
         resp_param = sol_vector_append(to_append);
         SOL_NULL_CHECK_GOTO(resp_param, err_exit);
-        resp_param->key = sol_str_slice_to_string(param->value.key_value.key);
+        resp_param->key = sol_str_slice_to_str(param->value.key_value.key);
         resp_param->value =
-            sol_str_slice_to_string(param->value.key_value.value);
+            sol_str_slice_to_str(param->value.key_value.value);
     }
 
     return 0;

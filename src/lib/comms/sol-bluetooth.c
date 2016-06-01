@@ -150,7 +150,7 @@ sol_bt_uuid_to_str(const struct sol_bt_uuid *uuid, struct sol_buffer *buffer)
 }
 
 SOL_API bool
-sol_bt_uuid_equal(const struct sol_bt_uuid *u1, const struct sol_bt_uuid *u2)
+sol_bt_uuid_eq(const struct sol_bt_uuid *u1, const struct sol_bt_uuid *u2)
 {
     struct sol_bt_uuid u1_128 = BASE_UUID;
     struct sol_bt_uuid u2_128 = BASE_UUID;

@@ -35,7 +35,7 @@ extern "C" {
 
 /**
  * @file
- * @brief Routines that handle LWM2M protocol.
+ * @brief Routines that handle the LWM2M protocol.
  *
  */
 
@@ -43,7 +43,7 @@ extern "C" {
  * @defgroup LWM2M LWM2M
  * @ingroup Comms
  *
- * @brief Routines that handle LWM2M protocol.
+ * @brief Routines that handle the LWM2M protocol.
  *
  * Supported features:
  * - Registration interface.
@@ -97,7 +97,7 @@ struct sol_lwm2m_client_object;
 /**
  * @brief LWM2M Client binding mode.
  *
- * A LWM2M server, may support multiple forms of binding.
+ * A LWM2M server may support multiple forms of binding.
  * The binding mode is requested by a client during its registration.
  *
  * In Queue binding mode a client flags to the server that it
@@ -154,7 +154,7 @@ enum sol_lwm2m_binding_mode {
 };
 
 /**
- * @brief Enum that express a LWM2M client lifecycle changes.
+ * @brief Enum that expresses a LWM2M client lifecycle changes.
  *
  * @see sol_lwm2m_server_add_registration_monitor()
  */
@@ -179,7 +179,7 @@ enum sol_lwm2m_registration_event {
 };
 
 /**
- * @brief Enum that represent a LWM2M response/request content type.
+ * @brief Enum that represents a LWM2M response/request content type.
  */
 enum sol_lwm2m_content_type {
     /**
@@ -203,7 +203,7 @@ enum sol_lwm2m_content_type {
 };
 
 /**
- * @brief Enum that represent the TLV type.
+ * @brief Enum that represents the TLV type.
  * @see #sol_lwm2m_tlv
  */
 enum sol_lwm2m_tlv_type {
@@ -212,7 +212,7 @@ enum sol_lwm2m_tlv_type {
      */
     SOL_LWM2M_TLV_TYPE_OBJECT_INSTANCE = 0,
     /**
-     * The TLV represents an resource instance.
+     * The TLV represents a resource instance.
      */
     SOL_LWM2M_TLV_TYPE_RESOURCE_INSTANCE = 64,
     /**
@@ -226,7 +226,7 @@ enum sol_lwm2m_tlv_type {
 };
 
 /**
- * @brief Enum that represents an LWM2M resource data type.
+ * @brief Enum that represents a LWM2M resource data type.
  * @see #sol_lwm2m_resource
  */
 enum sol_lwm2m_resource_data_type {
@@ -255,7 +255,7 @@ enum sol_lwm2m_resource_data_type {
      */
     SOL_LWM2M_RESOURCE_DATA_TYPE_TIME,
     /**
-     * The resource value is a object link.
+     * The resource value is an object link.
      */
     SOL_LWM2M_RESOURCE_DATA_TYPE_OBJ_LINK,
     /**
@@ -314,7 +314,7 @@ struct sol_lwm2m_tlv {
 };
 
 /**
- * @brief Struct that represents an LWM2M resource.
+ * @brief Struct that represents a LWM2M resource.
  * @see sol_lwm2m_resource_init()
  */
 struct sol_lwm2m_resource {
@@ -406,7 +406,7 @@ struct sol_lwm2m_resource {
  * location object, the create function will be called.
  * When a LWM2M object does not support a certain operation,
  * one must not implement the corresponding method.
- * In order words, if an LWM2M object can't be deleted,
+ * In order words, if a LWM2M object can't be deleted,
  * the @c del handle must be ponting to @c NULL
  *
  * @see sol_lwm2m_client_new()
@@ -467,8 +467,8 @@ struct sol_lwm2m_object {
     /**
      * @brief Writes a resource.
      *
-     * When the LWM2M server requests to write a resource and
-     * flags that the content type of the request is a text or
+     * When the LWM2M server requests to write a resource and flags
+     * that the content type of the request is text, a scalar type or
      * an opaque type, this function will be called.
      *
      * @param instance_data The instance data.
@@ -499,7 +499,7 @@ struct sol_lwm2m_object {
      * @param user_data The data provided during sol_lwm2m_client_new().
      * @param client The LWM2M client.
      * @param instance_id The instance id.
-     * @param tlvs An vector of #sol_lwm2m_tlv
+     * @param tlvs a vector of #sol_lwm2m_tlv
      * @return 0 on success or -errno on error.
      * @note Since TLV does not contains a field to express the
      * data type. It's the user responsibility to know which
@@ -511,10 +511,10 @@ struct sol_lwm2m_object {
     /**
      * @brief Executes a resource.
      *
-     * A LWM2M Object resource may be executable. An executable resource,
+     * A LWM2M Object resource may be executable. An executable resource
      * means that the LWM2M object instance will initiate some action
      * that was requested by the LWM2M server.
-     * As an example, If the LWM2M server wants that the client
+     * As an example, if the LWM2M server wants that the client
      * sends an update request, the LWM2M server will send
      * an execute command on the path "/1/AnServerInstanceId/8", this will
      * trigger the LWM2M client, which will send the update
@@ -639,8 +639,8 @@ int sol_lwm2m_client_send_update(struct sol_lwm2m_client *client);
  * @param client The LWM2M client.
  * @param paths The resource paths that were changed, must be @c NULL terminated.
  * @return 0 on success, -errno on error.
- * @note If a LWM2M server creates an object instance, write on a object instance or
- * write in a object resource, the LWM2M client infrastruct will automatically notify all
+ * @note If a LWM2M server creates an object instance, write on an object instance or
+ * write in an object resource, the LWM2M client infrastruct will automatically notify all
  * observing servers.
  */
 int sol_lwm2m_client_notify(struct sol_lwm2m_client *client, const char **paths);
@@ -654,7 +654,7 @@ int sol_lwm2m_client_notify(struct sol_lwm2m_client *client, const char **paths)
 void sol_lwm2m_resource_clear(struct sol_lwm2m_resource *resource);
 
 /**
- * @brief Initializes an LWM2M resource.
+ * @brief Initializes a LWM2M resource.
  *
  * This function makes it easier to init a LWM2M resource, it
  * will set the proper fields and fill its data. Note that
@@ -771,9 +771,10 @@ int sol_lwm2m_tlv_get_obj_link(struct sol_lwm2m_tlv *tlv, uint16_t *object_id, u
 /**
  * @brief Adds a registration monitor.
  *
- * This function register a monitor, making it easier to observe a LWM2M client's life cycle.
- * This means that every time a LWM2M client is registered, updated, deleted or timedout,
- * @c sol_lwm2m_server_registration_event_cb will be called.
+ * This function registers a monitor, making it easier to observe a
+ * LWM2M client's life cycle. This means that every time a LWM2M
+ * client is registered, updated, deleted or timed out, @a
+ * sol_lwm2m_server_registration_event_cb will be called.
  *
  * @param server The LWM2M server.
  * @param sol_lwm2m_server_registration_event_cb A callback that is used to inform a LWM2M client registration event - @c data User data; @c server The LWM2M server; @c cinfo The client that generated the registration event; @c event The registration event itself.
@@ -808,7 +809,7 @@ int sol_lwm2m_server_del_registration_monitor(struct sol_lwm2m_server *server,
  * @brief Gets all registerd clients.
  *
  * @param server The LWM2M Server.
- * @return An vector of #sol_lwm2m_client_info or @c NULL on error.
+ * @return a vector of #sol_lwm2m_client_info or @c NULL on error.
  * @note One must not add or remove elements from the returned vector.
  * @see sol_lwm2m_server_add_registration_monitor()
  */
