@@ -42,6 +42,13 @@ extern "C" {
  * @{
  */
 
+/**
+ * @struct sol_spi
+ * @brief A handle to a SPI bus
+ * @see sol_spi_open()
+ * @see sol_spi_close()
+ * @see sol_spi_transfer()
+ */
 struct sol_spi;
 
 /**
@@ -71,15 +78,22 @@ enum sol_spi_mode {
  */
 #define SOL_SPI_DATA_BITS_DEFAULT 8
 
+/**
+ * @brief SPI configuration struct
+ *
+ * This struct is used to configure an SPI bus during its creation.
+ *
+ * @see sol_spi_open()
+ */
 struct sol_spi_config {
 #ifndef SOL_NO_API_VERSION
 #define SOL_SPI_CONFIG_API_VERSION (1)
-    uint16_t api_version;
+    uint16_t api_version; /**< The API version. */
 #endif
-    unsigned int chip_select; /** Also know as slave select */
-    enum sol_spi_mode mode;
-    uint32_t frequency; /** Clock frequency in Hz */
-    uint8_t bits_per_word;
+    unsigned int chip_select; /**< Also know as slave select */
+    enum sol_spi_mode mode; /**< The SPI operation mode */
+    uint32_t frequency; /**< Clock frequency in Hz */
+    uint8_t bits_per_word; /**< Number of bits per word */
 };
 
 /**
@@ -119,16 +133,16 @@ const char *sol_spi_mode_to_str(enum sol_spi_mode spi_mode) SOL_ATTR_WARN_UNUSED
  * in case of success the status parameters on callback should be the same
  * value as count, otherwise a error happen.
  * @param cb_data user data, first parameter of transfer_cb
- * @return true if transfer was started.
+ * @return 0 if the transfer started, -EBUSY if the bus is busy or -errno on error.
  *
  * As SPI works in full-duplex, data are going in and out
- * at same time, so both buffers must have the count size.
+ * at same time, so both buffers must have the same count size.
  * Caller should guarantee that both buffers will not be
  * freed until callback is called.
  * Also there is no transfer queue, calling this function when there is
  * transfer happening would return false.
  */
-bool sol_spi_transfer(struct sol_spi *spi, const uint8_t *tx, uint8_t *rx, size_t count, void (*transfer_cb)(void *cb_data, struct sol_spi *spi, const uint8_t *tx, uint8_t *rx, ssize_t status), const void *cb_data);
+int sol_spi_transfer(struct sol_spi *spi, const uint8_t *tx, uint8_t *rx, size_t count, void (*transfer_cb)(void *cb_data, struct sol_spi *spi, const uint8_t *tx, uint8_t *rx, ssize_t status), const void *cb_data);
 
 /**
  * @brief Close an SPI bus.

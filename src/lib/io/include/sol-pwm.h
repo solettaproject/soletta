@@ -42,6 +42,21 @@ extern "C" {
  * @{
  */
 
+/**
+ * @struct sol_pwm
+ * @brief A handle to a PWM
+ *
+ * @see sol_pwm_open_by_label()
+ * @see sol_pwm_open()
+ * @see sol_pwm_open_raw()
+ * @see sol_pwm_close()
+ * @see sol_pwm_get_duty_cycle()
+ * @see sol_pwm_set_duty_cycle()
+ * @see sol_pwm_get_period()
+ * @see sol_pwm_set_period()
+ * @see sol_pwm_get_enabled()
+ * @see sol_pwm_set_enabled()
+ */
 struct sol_pwm;
 
 /**
@@ -69,16 +84,23 @@ enum sol_pwm_polarity {
     SOL_PWM_POLARITY_INVERSED
 };
 
+/**
+ * @brief PWM configuration struct
+ *
+ * @see sol_pwm_open_by_label()
+ * @see sol_pwm_open()
+ * @see sol_pwm_open_raw()
+ */
 struct sol_pwm_config {
 #ifndef SOL_NO_API_VERSION
 #define SOL_PWM_CONFIG_API_VERSION (1)
-    uint16_t api_version;
+    uint16_t api_version; /**< The API version */
 #endif
-    int32_t period_ns; /* if == -1, won't set */
-    int32_t duty_cycle_ns; /* if == -1, won't set, but if period is set, duty cycle is zeroed */
-    enum sol_pwm_alignment alignment;
-    enum sol_pwm_polarity polarity;
-    bool enabled;
+    int32_t period_ns; /**< The PWM period. If -1, the period is not set */
+    int32_t duty_cycle_ns; /**< The PWM duty cycle. If -1, the duty cycle is not set , but if period is set, the duty cycle is zeroed */
+    enum sol_pwm_alignment alignment; /**< The PWM alignment. @see sol_pwm_alignment */
+    enum sol_pwm_polarity polarity; /**< The PWM polarity. @see sol_pwm_polarity */
+    bool enabled; /**< Set to @c true to for enabled @c false for disabled */
 };
 
 /**

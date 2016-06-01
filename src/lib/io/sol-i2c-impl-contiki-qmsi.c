@@ -70,6 +70,8 @@ static qm_rc_t begin_transfer(qm_i2c_t i2c, uint16_t slave, uint32_t id,
     const uint8_t *tx, uint32_t tx_len, const uint8_t *rx, uint32_t rx_len,
     bool stop);
 
+void sol_i2c_close_raw(struct sol_i2c *i2c);
+
 static void
 i2c_cb_dispatch(void *user_data, process_event_t ev, process_data_t ev_data)
 {
@@ -260,25 +262,23 @@ error:
     return NULL;
 }
 
-SOL_API void
+void
 sol_i2c_close_raw(struct sol_i2c *i2c)
 {
-    SOL_NULL_CHECK(i2c);
-
     buses[i2c->bus] = NULL;
     free(i2c);
 }
 
-SOL_API bool
+SOL_API int
 sol_i2c_set_slave_address(struct sol_i2c *i2c, uint8_t slave_address)
 {
-    SOL_NULL_CHECK(i2c, false);
+    SOL_NULL_CHECK(i2c, -EINVAL);
 
     if (qm_i2c_get_status(i2c->bus) != QM_I2C_IDLE)
-        return false;
+        return -EBUSY;
 
     i2c->slave_addr = slave_address;
-    return true;
+    return 0;
 }
 
 SOL_API uint8_t
@@ -297,14 +297,6 @@ sol_i2c_bus_get(const struct sol_i2c *i2c)
     return i2c->bus;
 }
 
-SOL_API bool
-sol_i2c_busy(struct sol_i2c *i2c)
-{
-    SOL_NULL_CHECK(i2c, false);
-
-    return qm_i2c_get_status(i2c->bus) == QM_I2C_BUSY;
-}
-
 SOL_API struct sol_i2c_pending *
 sol_i2c_write_quick(struct sol_i2c *i2c, bool rw,
     void (*write_quick_cb)(void *cb_data, struct sol_i2c *i2c, ssize_t status),
@@ -321,12 +313,15 @@ sol_i2c_read(struct sol_i2c *i2c, uint8_t *data, size_t count,
 {
     qm_rc_t ret;
 
+    errno = -EINVAL;
     SOL_NULL_CHECK(i2c, NULL);
     SOL_NULL_CHECK(data, NULL);
     SOL_INT_CHECK(count, == 0, NULL);
 
-    if (qm_i2c_get_status(i2c->bus) != QM_I2C_IDLE)
+    if (qm_i2c_get_status(i2c->bus) != QM_I2C_IDLE) {
+        errno = -EBUSY;
         return NULL;
+    }
 
     i2c->xfer.type = READ;
     i2c->xfer.rw = read_cb;
@@ -337,8 +332,10 @@ sol_i2c_read(struct sol_i2c *i2c, uint8_t *data, size_t count,
 
     ret = begin_transfer(i2c->bus, i2c->slave_addr, i2c->bus, NULL, 0,
         data, i2c->xfer.length, true);
+    errno = -EINVAL;
     SOL_EXP_CHECK(ret != QM_RC_OK, NULL);
 
+    errno = 0;
     return (struct sol_i2c_pending *)i2c;
 }
 
@@ -349,12 +346,15 @@ sol_i2c_write(struct sol_i2c *i2c, uint8_t *data, size_t count,
 {
     qm_rc_t ret;
 
+    errno = -EINVAL;
     SOL_NULL_CHECK(i2c, NULL);
     SOL_NULL_CHECK(data, NULL);
     SOL_INT_CHECK(count, == 0, NULL);
 
-    if (qm_i2c_get_status(i2c->bus) != QM_I2C_IDLE)
+    if (qm_i2c_get_status(i2c->bus) != QM_I2C_IDLE) {
+        errno = -EBUSY;
         return NULL;
+    }
 
     i2c->xfer.type = READ;
     i2c->xfer.rw = write_cb;
@@ -367,8 +367,10 @@ sol_i2c_write(struct sol_i2c *i2c, uint8_t *data, size_t count,
 
     ret = begin_transfer(i2c->bus, i2c->slave_addr, i2c->bus, i2c->xfer.data,
         i2c->xfer.length, NULL, 0, true);
+    errno = -EINVAL;
     SOL_EXP_CHECK(ret != QM_RC_OK, NULL);
 
+    errno = 0;
     return (struct sol_i2c_pending *)i2c;
 }
 
@@ -379,12 +381,15 @@ sol_i2c_read_register(struct sol_i2c *i2c, uint8_t reg, uint8_t *data,
 {
     qm_rc_t ret;
 
+    errno = -EINVAL;
     SOL_NULL_CHECK(i2c, NULL);
     SOL_NULL_CHECK(data, NULL);
     SOL_INT_CHECK(count, == 0, NULL);
 
-    if (qm_i2c_get_status(i2c->bus) != QM_I2C_IDLE)
+    if (qm_i2c_get_status(i2c->bus) != QM_I2C_IDLE) {
+        errno = -EBUSY;
         return NULL;
+    }
 
     i2c->xfer.type = READ_REG;
     i2c->xfer.rw_reg = read_reg_cb;
@@ -396,8 +401,10 @@ sol_i2c_read_register(struct sol_i2c *i2c, uint8_t reg, uint8_t *data,
 
     ret = begin_transfer(i2c->bus, i2c->slave_addr, i2c->bus, &i2c->xfer.reg, 1,
         data, i2c->xfer.length, true);
+    errno = -EINVAL;
     SOL_EXP_CHECK(ret != QM_RC_OK, NULL);
 
+    errno = 0;
     return (struct sol_i2c_pending *)i2c;
 }
 
@@ -409,12 +416,15 @@ sol_i2c_read_register_multiple(struct sol_i2c *i2c, uint8_t reg, uint8_t *data,
 {
     qm_rc_t ret;
 
+    errno = -EINVAL;
     SOL_NULL_CHECK(i2c, NULL);
     SOL_NULL_CHECK(data, NULL);
     SOL_INT_CHECK(count, == 0, NULL);
 
-    if (qm_i2c_get_status(i2c->bus) != QM_I2C_IDLE)
+    if (qm_i2c_get_status(i2c->bus) != QM_I2C_IDLE) {
+        errno = -EBUSY;
         return NULL;
+    }
 
     i2c->xfer.type = READ_REG_MULTIPLE;
     i2c->xfer.rw_reg = read_reg_multiple_cb;
@@ -428,8 +438,10 @@ sol_i2c_read_register_multiple(struct sol_i2c *i2c, uint8_t reg, uint8_t *data,
 
     ret = begin_transfer(i2c->bus, i2c->slave_addr, i2c->bus, &i2c->xfer.reg, 1,
         data, i2c->xfer.length, false);
+    errno = -EINVAL;
     SOL_EXP_CHECK(ret != QM_RC_OK, NULL);
 
+    errno = 0;
     return (struct sol_i2c_pending *)i2c;
 }
 
@@ -440,12 +452,15 @@ sol_i2c_write_register(struct sol_i2c *i2c, uint8_t reg, const uint8_t *data,
 {
     qm_rc_t ret;
 
+    errno = -EINVAL;
     SOL_NULL_CHECK(i2c, NULL);
     SOL_NULL_CHECK(data, NULL);
     SOL_INT_CHECK(count, == 0, NULL);
 
-    if (qm_i2c_get_status(i2c->bus) != QM_I2C_IDLE)
+    if (qm_i2c_get_status(i2c->bus) != QM_I2C_IDLE) {
+        errno = -EBUSY;
         return NULL;
+    }
 
     i2c->xfer.type = WRITE_REG;
     i2c->xfer.rw_reg = write_reg_cb;
@@ -459,8 +474,10 @@ sol_i2c_write_register(struct sol_i2c *i2c, uint8_t reg, const uint8_t *data,
 
     ret = begin_transfer(i2c->bus, i2c->slave_addr, i2c->bus, &i2c->xfer.reg, 1,
         NULL, 0, false);
+    errno = -EINVAL;
     SOL_EXP_CHECK(ret != QM_RC_OK, NULL);
 
+    errno = 0;
     return (struct sol_i2c_pending *)i2c;
 }
 

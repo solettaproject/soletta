@@ -136,7 +136,7 @@ int sol_util_vread_file(const char *path, const char *fmt, va_list args) SOL_ATT
  *
  * @see sol_util_load_file_string
  */
-struct sol_buffer *sol_util_load_file_fd_raw(const int fd) SOL_ATTR_WARN_UNUSED_RESULT;
+struct sol_buffer *sol_util_load_file_fd_raw(int fd) SOL_ATTR_WARN_UNUSED_RESULT;
 
 /**
  * @brief Reads the contents of a file.
@@ -164,7 +164,7 @@ char *sol_util_load_file_string(const char *filename, size_t *size) SOL_ATTR_WAR
  *
  * @see sol_util_load_file_string
  */
-char *sol_util_load_file_fd_string(const int fd, size_t *size) SOL_ATTR_WARN_UNUSED_RESULT;
+char *sol_util_load_file_fd_string(int fd, size_t *size) SOL_ATTR_WARN_UNUSED_RESULT;
 
 /**
  * @brief Reads the contents of a file and append to a buffer.
@@ -226,7 +226,7 @@ int sol_util_fd_set_flag(int fd, int flag) SOL_ATTR_WARN_UNUSED_RESULT;
  *
  * @see sol_util_fill_buffer_exactly()
  */
-ssize_t sol_util_fill_buffer(const int fd, struct sol_buffer *buffer, const size_t size);
+ssize_t sol_util_fill_buffer(int fd, struct sol_buffer *buffer, size_t size);
 
 /**
  * @brief Fills @a buffer with data read from file @a fd with an exact amount of bytes.
@@ -253,7 +253,7 @@ ssize_t sol_util_fill_buffer(const int fd, struct sol_buffer *buffer, const size
  * @see sol_util_fill_buffer()
  */
 static inline int
-sol_util_fill_buffer_exactly(const int fd, struct sol_buffer *buffer, const size_t size)
+sol_util_fill_buffer_exactly(int fd, struct sol_buffer *buffer, size_t size)
 {
     ssize_t ret = sol_util_fill_buffer(fd, buffer, size);
 

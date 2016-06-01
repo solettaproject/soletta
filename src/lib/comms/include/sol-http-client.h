@@ -92,7 +92,7 @@ struct sol_http_request_interface {
      *       inside this callback.
      */
     ssize_t (*on_data)(void *userdata, struct sol_http_client_connection *connection,
-        const struct sol_buffer *buffer);
+        struct sol_buffer *buffer);
     /**
      * This callback is called data should be written, it's commonly used for @c POST.
      * When it's used, it's @b MANDATORY either the header @c Content-Length with the correct
