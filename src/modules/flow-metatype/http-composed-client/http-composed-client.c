@@ -338,8 +338,8 @@ http_composed_client_get_process(struct sol_flow_node *node, void *data, uint16_
         return -EINVAL;
 
     sol_http_params_init(&params);
-    if (!sol_http_param_add(&params,
-        SOL_HTTP_REQUEST_PARAM_HEADER("Accept", "application/json"))) {
+    if (sol_http_params_add(&params,
+        SOL_HTTP_REQUEST_PARAM_HEADER("Accept", "application/json")) < 0) {
         SOL_WRN("Failed to set query params");
         sol_http_params_clear(&params);
         return -ENOMEM;
@@ -431,8 +431,8 @@ http_composed_client_post_process(struct sol_flow_node *node, void *data, uint16
         SOL_INT_CHECK_GOTO(r, > 0, end);
     }
 
-    if (!sol_http_param_add(&params,
-        SOL_HTTP_REQUEST_PARAM_POST_DATA_CONTENTS("json", sol_buffer_get_slice(&buffer)))) {
+    if (sol_http_params_add(&params,
+        SOL_HTTP_REQUEST_PARAM_POST_DATA_CONTENTS("json", sol_buffer_get_slice(&buffer))) < 0) {
         SOL_WRN("Failed to set params");
         r = -ENOMEM;
         goto end;

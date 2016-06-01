@@ -27,8 +27,8 @@
 #include "sol-util-internal.h"
 #include "sol-vector.h"
 
-SOL_API bool
-sol_http_param_add(struct sol_http_params *params,
+SOL_API int
+sol_http_params_add(struct sol_http_params *params,
     struct sol_http_param_value value)
 {
     struct sol_http_param_value *ptr;
@@ -40,26 +40,26 @@ sol_http_param_add(struct sol_http_params *params,
     ptr = sol_vector_append(&params->params);
     if (!ptr) {
         SOL_WRN("Could not append option to parameter vector");
-        return false;
+        return -EINVAL;
     }
 
     memcpy(ptr, &value, sizeof(value));
-    return true;
+    return 0;
 }
 
-SOL_API bool
-sol_http_param_add_copy(struct sol_http_params *params,
+SOL_API int
+sol_http_params_add_copy(struct sol_http_params *params,
     struct sol_http_param_value value)
 {
     struct sol_http_param_value *ptr;
     int r;
 
-    SOL_NULL_CHECK(params, false);
-    SOL_HTTP_PARAMS_CHECK_API_VERSION(params, false);
+    SOL_NULL_CHECK(params, -EINVAL);
+    SOL_HTTP_PARAMS_CHECK_API_VERSION(params, -EINVAL);
 
     if (!params->arena) {
         params->arena = sol_arena_new();
-        SOL_NULL_CHECK(params->arena, false);
+        SOL_NULL_CHECK(params->arena, -ENOMEM);
     }
 
     if (value.type == SOL_HTTP_PARAM_QUERY_PARAM ||
@@ -69,12 +69,12 @@ sol_http_param_add_copy(struct sol_http_params *params,
         if (value.value.key_value.key.len) {
             r = sol_arena_slice_dup(params->arena, &value.value.key_value.key,
                 value.value.key_value.key);
-            SOL_INT_CHECK(r, < 0, false);
+            SOL_INT_CHECK(r, < 0, r);
         }
         if (value.value.key_value.value.len) {
             r = sol_arena_slice_dup(params->arena, &value.value.key_value.value,
                 value.value.key_value.value);
-            SOL_INT_CHECK(r, < 0, false);
+            SOL_INT_CHECK(r, < 0, r);
         }
     } else if (value.type == SOL_HTTP_PARAM_POST_DATA) {
         if (value.value.data.value.len) {
@@ -87,34 +87,34 @@ sol_http_param_add_copy(struct sol_http_params *params,
                 value.value.data.filename);
         } else {
             SOL_WRN("POSTDATA must contain data or a filename");
-            return false;
+            return -EINVAL;
         }
-        SOL_INT_CHECK(r, < 0, false);
+        SOL_INT_CHECK(r, < 0, r);
         r = sol_arena_slice_dup(params->arena,
             &value.value.data.key,
             value.value.data.key);
-        SOL_INT_CHECK(r, < 0, false);
+        SOL_INT_CHECK(r, < 0, r);
     } else if (value.type == SOL_HTTP_PARAM_AUTH_BASIC) {
         if (value.value.auth.user.len) {
             r = sol_arena_slice_dup(params->arena, &value.value.auth.user,
                 value.value.auth.user);
-            SOL_INT_CHECK(r, < 0, false);
+            SOL_INT_CHECK(r, < 0, r);
         }
         if (value.value.auth.password.len) {
             r = sol_arena_slice_dup(params->arena, &value.value.auth.password,
                 value.value.auth.password);
-            SOL_INT_CHECK(r, < 0, false);
+            SOL_INT_CHECK(r, < 0, r);
         }
     }
 
     ptr = sol_vector_append(&params->params);
     if (!ptr) {
         SOL_WRN("Could not append option to parameter vector");
-        return false;
+        return -EINVAL;
     }
 
     memcpy(ptr, &value, sizeof(value));
-    return true;
+    return 0;
 }
 
 SOL_API void
@@ -371,7 +371,7 @@ sol_http_decode_params(const struct sol_str_slice params_slice,
 
         param.type = type;
 
-        if (!sol_http_param_add_copy(params, param)) {
+        if (sol_http_params_add_copy(params, param) < 0) {
             SOL_WRN("Could not alloc the param %.*s : %.*s",
                 SOL_STR_SLICE_PRINT(param.value.key_value.key),
                 SOL_STR_SLICE_PRINT(param.value.key_value.value));
@@ -400,7 +400,7 @@ is_host_ipv6(const struct sol_str_slice host)
 }
 
 SOL_API int
-sol_http_create_uri(struct sol_buffer *buf, const struct sol_http_url url,
+sol_http_create_full_uri(struct sol_buffer *buf, const struct sol_http_url url,
     const struct sol_http_params *params)
 {
     struct sol_str_slice scheme;
@@ -518,7 +518,7 @@ _find_fragment(const struct sol_http_params *params)
 }
 
 SOL_API int
-sol_http_create_simple_uri(struct sol_buffer *buf, const struct sol_str_slice base_uri,
+sol_http_create_uri(struct sol_buffer *buf, const struct sol_str_slice base_uri,
     const struct sol_http_params *params)
 {
     struct sol_str_slice *fragment;
@@ -858,8 +858,8 @@ sol_http_split_str_key_value(const char *query, const enum sol_http_param_type t
             value.len = 0;
         }
 
-        if (!sol_http_param_add_copy(params,
-            CREATE_PARAM(key, value))) {
+        if (sol_http_params_add_copy(params,
+            CREATE_PARAM(key, value)) < 0) {
             SOL_ERR("Could not add the HTTP param %.*s:%.*s",
                 SOL_STR_SLICE_PRINT(key), SOL_STR_SLICE_PRINT(value));
             goto exit;

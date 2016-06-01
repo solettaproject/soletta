@@ -368,9 +368,9 @@ _process_get(struct http_composed_server_data *hdata,
     r = sol_buffer_append_char(&response->content, '[');
     SOL_INT_CHECK(r, < 0, r);
 
-    if (!sol_http_param_add(&response->param,
+    if (sol_http_params_add(&response->param,
         SOL_HTTP_REQUEST_PARAM_HEADER(HTTP_HEADER_CONTENT_TYPE,
-        HTTP_HEADER_CONTENT_TYPE_JSON))) {
+        HTTP_HEADER_CONTENT_TYPE_JSON)) < 0) {
         return -ENOMEM;
     }
 
@@ -453,8 +453,8 @@ end:
         sol_http_params_clear(&response.param);
         sol_buffer_append_printf(&response.content,
             "Could not serve request: %s", sol_util_strerrora(-r));
-        if (!sol_http_param_add(&response.param, SOL_HTTP_REQUEST_PARAM_HEADER(
-            HTTP_HEADER_CONTENT_TYPE, HTTP_HEADER_CONTENT_TYPE_TEXT))) {
+        if (sol_http_params_add(&response.param, SOL_HTTP_REQUEST_PARAM_HEADER(
+            HTTP_HEADER_CONTENT_TYPE, HTTP_HEADER_CONTENT_TYPE_TEXT)) < 0) {
             SOL_WRN("could not set response content-type: text/plain: %s",
                 sol_util_strerrora(-r));
         }

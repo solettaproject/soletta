@@ -275,11 +275,11 @@ common_handle_response_cb(struct sol_flow_node *node,
     r = type->response_cb(mdata, &response->content, send_json);
     SOL_INT_CHECK_GOTO(r, < 0, err_exit);
 
-    err_r = sol_http_param_add(&response->param, SOL_HTTP_REQUEST_PARAM_HEADER(
+    err_r = sol_http_params_add(&response->param, SOL_HTTP_REQUEST_PARAM_HEADER(
         HTTP_HEADER_CONTENT_TYPE, (send_json) ? HTTP_HEADER_CONTENT_TYPE_JSON :
         HTTP_HEADER_CONTENT_TYPE_TEXT));
 
-    if (!err_r) {
+    if (err_r < 0) {
         r = -ENOMEM;
         SOL_WRN("Could not set the Content-Type");
         goto err_exit;
@@ -474,8 +474,8 @@ end:
             "Could not serve request: %s", sol_util_strerrora(-r));
 
         sol_http_params_clear(&response.param);
-        if (!sol_http_param_add(&response.param, SOL_HTTP_REQUEST_PARAM_HEADER(
-            HTTP_HEADER_CONTENT_TYPE, HTTP_HEADER_CONTENT_TYPE_TEXT))) {
+        if (sol_http_params_add(&response.param, SOL_HTTP_REQUEST_PARAM_HEADER(
+            HTTP_HEADER_CONTENT_TYPE, HTTP_HEADER_CONTENT_TYPE_TEXT)) < 0) {
             SOL_WRN("could not set response content-type: text/plain:");
         }
 
@@ -1329,8 +1329,8 @@ blob_handle_response_cb(struct sol_flow_node *node,
         (uint8_t *)mdata->value.blob->mem, mdata->value.blob->size);
     SOL_INT_CHECK(r, < 0, r);
 
-    if (!sol_http_param_add(&response->param, SOL_HTTP_REQUEST_PARAM_HEADER(
-        HTTP_HEADER_CONTENT_TYPE, HTTP_HEADER_CONTENT_TYPE_BINARY))) {
+    if (sol_http_params_add(&response->param, SOL_HTTP_REQUEST_PARAM_HEADER(
+        HTTP_HEADER_CONTENT_TYPE, HTTP_HEADER_CONTENT_TYPE_BINARY)) < 0) {
         SOL_WRN("Could not set the Content-Type:application/json");
         return -ENOMEM;
     }

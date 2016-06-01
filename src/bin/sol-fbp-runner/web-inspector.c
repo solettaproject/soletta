@@ -1443,7 +1443,7 @@ url_from_addr(struct sol_buffer *url_buf, const struct sol_network_link_addr *ad
 
     url.host = sol_buffer_get_slice(&addr_buf);
 
-    r = sol_http_create_uri(url_buf, url, NULL);
+    r = sol_http_create_full_uri(url_buf, url, NULL);
 
     sol_buffer_fini(&addr_buf);
 
@@ -1586,12 +1586,12 @@ on_redirect_index(void *data, struct sol_http_request *request)
         return r;
     }
 
-    r = sol_http_param_add_copy(&response.param, SOL_HTTP_REQUEST_PARAM_HEADER("Location", (const char *)url_buf.data));
+    r = sol_http_params_add_copy(&response.param, SOL_HTTP_REQUEST_PARAM_HEADER("Location", (const char *)url_buf.data));
     sol_buffer_fini(&url_buf);
     if (r < 0)
         return r;
 
-    r = sol_http_param_add(&response.param, SOL_HTTP_REQUEST_PARAM_HEADER("Content-Type", "text/html"));
+    r = sol_http_params_add(&response.param, SOL_HTTP_REQUEST_PARAM_HEADER("Content-Type", "text/html"));
     if (r < 0) {
         goto end;
     }

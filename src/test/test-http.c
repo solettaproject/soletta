@@ -209,7 +209,7 @@ test_split_urls(void)
         sol_http_params_init(&params);
         r = sol_http_decode_params(splitted.query, SOL_HTTP_PARAM_QUERY_PARAM, &params);
         ASSERT_INT_EQ(r, 0);
-        r = sol_http_create_uri(&out_uri, splitted, &params);
+        r = sol_http_create_full_uri(&out_uri, splitted, &params);
         ASSERT_INT_EQ(r, 0);
         ASSERT(sol_str_slice_eq(test_split[i].url, sol_buffer_get_slice(&out_uri)));
         sol_http_params_clear(&params);

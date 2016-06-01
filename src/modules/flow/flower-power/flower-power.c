@@ -274,17 +274,17 @@ generate_token(struct http_get_data *mdata)
     int r;
 
     sol_http_params_init(&params);
-    if ((!sol_http_param_add(&params,
-        SOL_HTTP_REQUEST_PARAM_QUERY("grant_type", "password"))) ||
-        (!sol_http_param_add(&params,
-        SOL_HTTP_REQUEST_PARAM_QUERY("username", mdata->username))) ||
-        (!sol_http_param_add(&params,
-        SOL_HTTP_REQUEST_PARAM_QUERY("password", mdata->password))) ||
-        (!sol_http_param_add(&params,
-        SOL_HTTP_REQUEST_PARAM_QUERY("client_id", mdata->client_id))) ||
-        (!sol_http_param_add(&params,
+    if ((sol_http_params_add(&params,
+        SOL_HTTP_REQUEST_PARAM_QUERY("grant_type", "password")) < 0) ||
+        (sol_http_params_add(&params,
+        SOL_HTTP_REQUEST_PARAM_QUERY("username", mdata->username)) < 0) ||
+        (sol_http_params_add(&params,
+        SOL_HTTP_REQUEST_PARAM_QUERY("password", mdata->password)) < 0) ||
+        (sol_http_params_add(&params,
+        SOL_HTTP_REQUEST_PARAM_QUERY("client_id", mdata->client_id)) < 0) ||
+        (sol_http_params_add(&params,
         SOL_HTTP_REQUEST_PARAM_QUERY("client_secret",
-        mdata->client_secret)))) {
+        mdata->client_secret)) < 0)) {
         SOL_WRN("Failed to set query params");
         sol_http_params_clear(&params);
         return -ENOMEM;
@@ -721,8 +721,8 @@ http_get_process(struct sol_flow_node *node, void *data, uint16_t port, uint16_t
     }
 
     sol_http_params_init(&params);
-    if (!sol_http_param_add(&params,
-        SOL_HTTP_REQUEST_PARAM_HEADER("Authorization", mdata->token))) {
+    if (sol_http_params_add(&params,
+        SOL_HTTP_REQUEST_PARAM_HEADER("Authorization", mdata->token)) < 0) {
         SOL_WRN("Failed to set query params");
         sol_http_params_clear(&params);
         return -ENOMEM;

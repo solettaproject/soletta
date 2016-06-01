@@ -89,7 +89,7 @@ request_cb(void *data, struct sol_http_request *request)
 
     response.content = value;
 
-    r = sol_http_param_add(&response.param,
+    r = sol_http_params_add(&response.param,
         SOL_HTTP_REQUEST_PARAM_HEADER("Content-Type", "text/plain"));
     if (r < 0)
         fprintf(stderr, "ERROR: Could not set the 'Content-Type' header\n");
