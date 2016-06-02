@@ -70,7 +70,7 @@ enum sol_mavlink_mode {
      * allowing roll, pitch, and yaw to be controlled normally.
      */
     SOL_MAVLINK_MODE_ALT_HOLD = 2,
-    SOL_MAVLINK_MODE_ATTITUDE = 3,
+    SOL_MAVLINK_MODE_ALTITUDE = 3,
 
     /**
      * In Auto mode the copter will follow a pre-programmed mission script
@@ -80,7 +80,7 @@ enum sol_mavlink_mode {
      */
     SOL_MAVLINK_MODE_AUTO = 4,
 
-    SOL_MAVLINK_MODE_AUTOTUNE = 5,
+    SOL_MAVLINK_MODE_AUTO_TUNE = 5,
 
     /**
      * In circle mode the copter will orbit a point of interest with the nose
@@ -130,7 +130,7 @@ enum sol_mavlink_mode {
      * stick inputs directly control the vehicle’s lean angle providing a more
      * “natural” feel.
      */
-    SOL_MAVLINK_MODE_POSHOLD = 21,
+    SOL_MAVLINK_MODE_POS_HOLD = 21,
 
     /**
      * Position mode is the same as loiter mode, but with manual throttle
@@ -232,7 +232,7 @@ struct sol_mavlink_handlers {
      * @param mavlink Mavlink Object
      *
      * @see sol_mavlink_set_armed
-     * @see sol_mavlink_check_armed
+     * @see sol_mavlink_is_armed
      *
      * Callback called when the vehicle has been armed, no matter if
      * it was armed by your application or not
@@ -246,7 +246,7 @@ struct sol_mavlink_handlers {
      * @param mavlink Mavlink Object
      *
      * @see sol_mavlink_set_armed
-     * @see sol_mavlink_check_armed
+     * @see sol_mavlink_is_armed
      *
      * Callback called when the vehicle has been disarmed, no matter if
      * it was disarmed by your application or not
@@ -259,8 +259,8 @@ struct sol_mavlink_handlers {
      * @param data User provided data
      * @param mavlink Mavlink Object
      *
-     * @see sol_mavlink_takeoff
-     * @see sol_mavlink_get_curr_position
+     * @see sol_mavlink_take_off
+     * @see sol_mavlink_get_current_position
      *
      * Callback called when the vehicle has changed its position, no matter
      * if it was moved by your application or not
@@ -273,8 +273,8 @@ struct sol_mavlink_handlers {
      * @param data User provided data
      * @param mavlink Mavlink Object
      *
-     * @see sol_mavlink_takeoff
-     * @see sol_mavlink_goto
+     * @see sol_mavlink_take_off
+     * @see sol_mavlink_go_to
      *
      * Callback called when the vehicle has reached the current mission's
      * destination.
@@ -343,7 +343,7 @@ void sol_mavlink_disconnect(struct sol_mavlink *mavlink);
  * @param mavlink Mavlink Object;
  * @param armed true to set as armed, false otherwise;
  *
- * @see sol_mavlink_check_armed
+ * @see sol_mavlink_is_armed
  *
  * @return 0 on success, -EINVAL on invalid argument, -errno on error
  */
@@ -356,7 +356,7 @@ int sol_mavlink_set_armed(struct sol_mavlink *mavlink, bool armed);
  * @param pos The target position;
  *
  * @see sol_mavlink_set_armed
- * @see sol_mavlink_check_armed
+ * @see sol_mavlink_is_armed
  * @see sol_mavlink_get_mode
  * @see SOL_MAVLINK_MODE_GUIDED
  *
@@ -366,7 +366,7 @@ int sol_mavlink_set_armed(struct sol_mavlink *mavlink, bool armed);
  * in SOL_MAVLINK_MODE_GUIDED and armed. If the vehicle has already taken off
  * calling this function will have no effect.
  */
-int sol_mavlink_takeoff(struct sol_mavlink *mavlink, struct sol_mavlink_position *pos);
+int sol_mavlink_take_off(struct sol_mavlink *mavlink, struct sol_mavlink_position *pos);
 
 /**
  * @brief Set the vehicle @b mode
@@ -402,7 +402,7 @@ enum sol_mavlink_mode sol_mavlink_get_mode(struct sol_mavlink *mavlink);
  *
  * @return true the vehicle is currently armed, false otherwise
  */
-bool sol_mavlink_check_armed(struct sol_mavlink *mavlink);
+bool sol_mavlink_is_armed(struct sol_mavlink *mavlink);
 
 /**
  * @brief Get the vehicle's current position
@@ -412,7 +412,7 @@ bool sol_mavlink_check_armed(struct sol_mavlink *mavlink);
  *
  * @return 0 on success, -EINVAL on invalid argument
  */
-int sol_mavlink_get_curr_position(struct sol_mavlink *mavlink, struct sol_mavlink_position *pos);
+int sol_mavlink_get_current_position(struct sol_mavlink *mavlink, struct sol_mavlink_position *pos);
 
 /**
  * @brief Get the vehicle's home position
@@ -445,7 +445,7 @@ int sol_mavlink_land(struct sol_mavlink *mavlink, struct sol_mavlink_position *p
  *
  * @return 0 on success, -EINVAL on invalid argument, -errno on error
  */
-int sol_mavlink_goto(struct sol_mavlink *mavlink, struct sol_mavlink_position *pos);
+int sol_mavlink_go_to(struct sol_mavlink *mavlink, struct sol_mavlink_position *pos);
 
 /**
  * @brief Change the vehicle speed
