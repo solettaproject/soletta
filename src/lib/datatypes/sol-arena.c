@@ -58,16 +58,16 @@ sol_arena_del(struct sol_arena *arena)
 }
 
 SOL_API int
-sol_arena_slice_dup_str_n(struct sol_arena *arena, struct sol_str_slice *dst, const char *str, size_t n)
+sol_arena_slice_dup_str_n(struct sol_arena *arena, struct sol_str_slice *dst, const char *src, size_t n)
 {
     struct sol_str_slice slice;
     int r;
 
     SOL_NULL_CHECK(arena, -EINVAL);
-    SOL_NULL_CHECK(str, -EINVAL);
+    SOL_NULL_CHECK(src, -EINVAL);
     SOL_INT_CHECK(n, <= 0, -EINVAL);
 
-    slice.data = strndup(str, n);
+    slice.data = strndup(src, n);
     SOL_NULL_CHECK(slice.data, -errno);
 
     slice.len = n;
@@ -83,16 +83,16 @@ sol_arena_slice_dup_str_n(struct sol_arena *arena, struct sol_str_slice *dst, co
 }
 
 SOL_API int
-sol_arena_slice_dup_str(struct sol_arena *arena, struct sol_str_slice *dst, const char *str)
+sol_arena_slice_dup_str(struct sol_arena *arena, struct sol_str_slice *dst, const char *src)
 {
-    SOL_NULL_CHECK(str, -EINVAL);
-    return sol_arena_slice_dup_str_n(arena, dst, str, strlen(str));
+    SOL_NULL_CHECK(src, -EINVAL);
+    return sol_arena_slice_dup_str_n(arena, dst, src, strlen(src));
 }
 
 SOL_API int
-sol_arena_slice_dup(struct sol_arena *arena, struct sol_str_slice *dst, struct sol_str_slice slice)
+sol_arena_slice_dup(struct sol_arena *arena, struct sol_str_slice *dst, struct sol_str_slice src)
 {
-    return sol_arena_slice_dup_str_n(arena, dst, slice.data, slice.len);
+    return sol_arena_slice_dup_str_n(arena, dst, src.data, src.len);
 }
 
 SOL_API int
@@ -123,11 +123,11 @@ SOL_API char *
 sol_arena_strdup(struct sol_arena *arena, const char *str)
 {
     SOL_NULL_CHECK(str, NULL);
-    return sol_arena_strndup(arena, str, strlen(str));
+    return sol_arena_str_dup_n(arena, str, strlen(str));
 }
 
 SOL_API char *
-sol_arena_strndup(struct sol_arena *arena, const char *str, size_t n)
+sol_arena_str_dup_n(struct sol_arena *arena, const char *str, size_t n)
 {
     char *result;
     int r;
@@ -151,5 +151,5 @@ sol_arena_strndup(struct sol_arena *arena, const char *str, size_t n)
 SOL_API char *
 sol_arena_strdup_slice(struct sol_arena *arena, const struct sol_str_slice slice)
 {
-    return sol_arena_strndup(arena, slice.data, slice.len);
+    return sol_arena_str_dup_n(arena, slice.data, slice.len);
 }
