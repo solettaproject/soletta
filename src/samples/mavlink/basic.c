@@ -31,7 +31,7 @@ takeoff(struct sol_mavlink *mavlink)
     struct sol_mavlink_position takeoff = { 0 };
 
     takeoff.altitude = TAKEOFF_ALT;
-    err = sol_mavlink_takeoff(mavlink, &takeoff);
+    err = sol_mavlink_take_off(mavlink, &takeoff);
 
     if (err < 0) {
         SOL_ERR("Could not takeoff: %s", sol_util_strerrora(-err));
@@ -46,7 +46,7 @@ mode_changed_cb(void *data, struct sol_mavlink *mavlink)
 {
     int err;
     enum sol_mavlink_mode mode = sol_mavlink_get_mode(mavlink);
-    bool armed = sol_mavlink_check_armed(mavlink);
+    bool armed = sol_mavlink_is_armed(mavlink);
 
     if (mode == SOL_MAVLINK_MODE_GUIDED && !armed) {
         err = sol_mavlink_set_armed(mavlink, true);
@@ -62,13 +62,13 @@ position_changed_cb(void *data, struct sol_mavlink *mavlink)
     int err;
     struct sol_mavlink_position pos;
 
-    err = sol_mavlink_get_curr_position(mavlink, &pos);
+    err = sol_mavlink_get_current_position(mavlink, &pos);
     if (err < 0) {
         SOL_ERR("Could not get current position: %s", sol_util_strerrora(-err));
         return;
     }
 
-    if (sol_mavlink_check_armed(mavlink))
+    if (sol_mavlink_is_armed(mavlink))
         printf("lat: %f, long: %f, alt: %f\n", pos.latitude, pos.longitude,
             pos.altitude);
 }
@@ -139,7 +139,7 @@ mavlink_connect_cb(void *data, struct sol_mavlink *mavlink)
         return;
     }
 
-    if (!sol_mavlink_check_armed(mavlink)) {
+    if (!sol_mavlink_is_armed(mavlink)) {
         err = sol_mavlink_set_armed(mavlink, true);
         if (err < 0) {
             SOL_ERR("Could not arm vechicle: %s", sol_util_strerrora(-err));
