@@ -120,7 +120,7 @@ samples: samples-check $(SOL_LIB_OUTPUT) $(samples-out) $(PRE_GEN)
 PHONY += samples samples-check
 
 PRE_INSTALL := default_target $(all-mod-descs)
-PRE_INSTALL += $(NODE_TYPE_SCHEMA_DEST) $(BOARD_DETECT_DEST) $(GDB_AUTOLOAD_PY_DEST)
+EXTRA_FILES := $(NODE_TYPE_SCHEMA_DEST) $(BOARD_DETECT_DEST) $(GDB_AUTOLOAD_PY_DEST)
 
 ifeq (y,$(RPATH))
 rpath-bins := $(subst $(build_sysroot)/,$(DESTDIR),$(bins-out))
