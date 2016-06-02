@@ -60,7 +60,7 @@ test_simple(void)
         ASSERT(dst_str);
         ASSERT(streq(gladiators[i], dst_str));
 
-        dst_str = sol_arena_strndup(arena, gladiators[i], strlen(gladiators[i]));
+        dst_str = sol_arena_str_dup_n(arena, gladiators[i], strlen(gladiators[i]));
         ASSERT(dst_str);
         ASSERT(streq(gladiators[i], dst_str));
     }
@@ -83,7 +83,7 @@ test_null(void)
     ASSERT(sol_arena_slice_dup_str_n(arena, &dst, NULL, 0));
     ASSERT(sol_arena_slice_dup(arena, &dst, SOL_STR_SLICE_STR(NULL, 0)));
     ASSERT(!sol_arena_strdup(arena, NULL));
-    ASSERT(!sol_arena_strndup(arena, NULL, 0));
+    ASSERT(!sol_arena_str_dup_n(arena, NULL, 0));
 
     sol_arena_del(arena);
 }
