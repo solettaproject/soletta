@@ -131,7 +131,7 @@ static const struct sol_mavlink_mode_mapping mode_mapping_apm[] = {
     { SOL_MAVLINK_MODE_FBWA, 5 },
     { SOL_MAVLINK_MODE_FBWB, 6 },
     { SOL_MAVLINK_MODE_CRUISE, 7 },
-    { SOL_MAVLINK_MODE_AUTOTUNE, 8 },
+    { SOL_MAVLINK_MODE_AUTO_TUNE, 8 },
     { SOL_MAVLINK_MODE_AUTO, 10 },
     { SOL_MAVLINK_MODE_RTL, 11 },
     { SOL_MAVLINK_MODE_LOITER, 12 },
@@ -155,8 +155,8 @@ static const struct sol_mavlink_mode_mapping mode_mapping_acm[] = {
     { SOL_MAVLINK_MODE_DRIFT, 11 },
     { SOL_MAVLINK_MODE_SPORT, 13 },
     { SOL_MAVLINK_MODE_FLIP, 14 },
-    { SOL_MAVLINK_MODE_AUTOTUNE, 15 },
-    { SOL_MAVLINK_MODE_POSHOLD, 16 },
+    { SOL_MAVLINK_MODE_AUTO_TUNE, 15 },
+    { SOL_MAVLINK_MODE_POS_HOLD, 16 },
 };
 
 static const struct sol_mavlink_mode_mapping mode_mapping_rover[] = {
@@ -762,7 +762,7 @@ sol_mavlink_set_armed(struct sol_mavlink *mavlink, bool armed)
 
     SOL_NULL_CHECK(mavlink, -EINVAL);
 
-    curr = sol_mavlink_check_armed(mavlink);
+    curr = sol_mavlink_is_armed(mavlink);
     SOL_EXP_CHECK(curr == !!armed, -EINVAL);
 
     mavlink_msg_command_long_pack(mavlink->sysid, mavlink->compid,
@@ -777,7 +777,7 @@ sol_mavlink_set_armed(struct sol_mavlink *mavlink, bool armed)
 }
 
 SOL_API int
-sol_mavlink_takeoff(struct sol_mavlink *mavlink, struct sol_mavlink_position *pos)
+sol_mavlink_take_off(struct sol_mavlink *mavlink, struct sol_mavlink_position *pos)
 {
     mavlink_message_t msg = { 0 };
     uint8_t buf[MAVLINK_MAX_PACKET_LEN];
@@ -850,7 +850,7 @@ sol_mavlink_get_mode(struct sol_mavlink *mavlink)
 }
 
 SOL_API bool
-sol_mavlink_check_armed(struct sol_mavlink *mavlink)
+sol_mavlink_is_armed(struct sol_mavlink *mavlink)
 {
     uint8_t mask = 0, base_mode;
 
@@ -874,7 +874,7 @@ sol_mavlink_check_armed(struct sol_mavlink *mavlink)
 }
 
 SOL_API int
-sol_mavlink_get_curr_position(struct sol_mavlink *mavlink, struct sol_mavlink_position *pos)
+sol_mavlink_get_current_position(struct sol_mavlink *mavlink, struct sol_mavlink_position *pos)
 {
     SOL_NULL_CHECK(mavlink, -EINVAL);
     SOL_NULL_CHECK(pos, -EINVAL);
@@ -903,7 +903,7 @@ sol_mavlink_get_home_position(struct sol_mavlink *mavlink, struct sol_mavlink_po
 }
 
 SOL_API int
-sol_mavlink_goto(struct sol_mavlink *mavlink, struct sol_mavlink_position *pos)
+sol_mavlink_go_to(struct sol_mavlink *mavlink, struct sol_mavlink_position *pos)
 {
     mavlink_message_t msg = { 0 };
     uint8_t buf[MAVLINK_MAX_PACKET_LEN];
