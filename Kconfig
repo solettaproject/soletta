@@ -6,9 +6,9 @@ source "tools/build/Kconfig.features"
 config BASE_OS
     string
     default "contiki" if HAVE_CONTIKI
-    default "linux" if HAVE_LINUX
     default "riot" if HAVE_RIOTOS
     default "zephyr" if HAVE_ZEPHYR
+    default "linux" if HAVE_LINUX
 
 source "tools/build/Kconfig.$BASE_OS"
 
