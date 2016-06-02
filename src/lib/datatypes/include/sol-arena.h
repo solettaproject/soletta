@@ -76,11 +76,11 @@ void sol_arena_del(struct sol_arena *arena);
  *
  * @param arena The arena
  * @param dst String slice of the recently added string
- * @param str String to copy and store
+ * @param src String to copy and store
  *
  * @return @c 0 on success, error code (always negative) otherwise
  */
-int sol_arena_slice_dup_str(struct sol_arena *arena, struct sol_str_slice *dst, const char *str);
+int sol_arena_slice_dup_str(struct sol_arena *arena, struct sol_str_slice *dst, const char *src);
 
 /**
  * @brief Store a copy of at most @c n characters of a given string in the arena.
@@ -89,25 +89,25 @@ int sol_arena_slice_dup_str(struct sol_arena *arena, struct sol_str_slice *dst, 
  *
  * @param arena The arena
  * @param dst String slice of the recently added string
- * @param str String to copy and store
+ * @param src String to copy and store
  * @param n Maximum number of characters to copy
  *
  * @return @c 0 on success, error code (always negative) otherwise
  */
-int sol_arena_slice_dup_str_n(struct sol_arena *arena, struct sol_str_slice *dst, const char *str, size_t n);
+int sol_arena_slice_dup_str_n(struct sol_arena *arena, struct sol_str_slice *dst, const char *src, size_t n);
 
 /**
  * @brief Store a copy of a given string slice in the arena.
  *
- * Also, outputs the recently stored string slice in @c dst.
+ * Also, outputs the recently stored string src in @c dst.
  *
  * @param arena The arena
  * @param dst String slice of the recently added string slice
- * @param slice String slice to copy and store
+ * @param src String slice to copy and store
  *
  * @return @c 0 on success, error code (always negative) otherwise
  */
-int sol_arena_slice_dup(struct sol_arena *arena, struct sol_str_slice *dst, struct sol_str_slice slice);
+int sol_arena_slice_dup(struct sol_arena *arena, struct sol_str_slice *dst, struct sol_str_slice src);
 
 /**
  * @brief Store the output of 'sprintf()' in the arena.
@@ -142,7 +142,7 @@ char *sol_arena_strdup(struct sol_arena *arena, const char *str);
  *
  * @return The stored string
  */
-char *sol_arena_strndup(struct sol_arena *arena, const char *str, size_t n);
+char *sol_arena_str_dup_n(struct sol_arena *arena, const char *str, size_t n);
 
 /**
  * @brief Store a copy of a given string slice in the arena.
