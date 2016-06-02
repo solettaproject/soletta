@@ -16,7 +16,7 @@
  * limitations under the License.
  */
 
-var soletta = require( 'bindings' )( 'soletta' ),
+var soletta = require( './lowlevel'),
 	_ = require( 'lodash' );
 
 
@@ -57,12 +57,14 @@ _.extend( AIOPin.prototype, {
 
 	read: function() {
 		return new Promise( _.bind( function( fulfill, reject ) {
-			this._pending = soletta.sol_aio_get_value( this._pin, function( value ) {
-				fulfill( value );
-			});
+			this._pending = soletta.sol_aio_get_value( this._pin,
+			    _.bind( function( value ) {
+			        this._pending = null;
+			        fulfill( value );
+			    }, this ) );
+
 			if (!this._pending)
 				reject( new Error( "Failed to read the value from AIO device" ) );
-
 		}, this ) );
 	},
 
@@ -72,6 +74,8 @@ _.extend( AIOPin.prototype, {
 	},
 
 	abort: function() {
+		if ( !this._pending )
+		    return;
 		soletta.sol_aio_pending_cancel( this._pin, this._pending );
 		this._pending = null;
 	}
