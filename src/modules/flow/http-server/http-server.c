@@ -224,7 +224,7 @@ common_handle_response_cb(struct sol_flow_node *node,
 {
     int r;
     uint16_t idx;
-    bool send_json, err_r;
+    bool send_json;
     struct sol_http_param_value *value;
     struct http_data *mdata = sol_flow_node_get_private_data(node);
     const struct http_server_node_type *type;
@@ -275,11 +275,11 @@ common_handle_response_cb(struct sol_flow_node *node,
     r = type->response_cb(mdata, &response->content, send_json);
     SOL_INT_CHECK_GOTO(r, < 0, err_exit);
 
-    err_r = sol_http_params_add(&response->param, SOL_HTTP_REQUEST_PARAM_HEADER(
+    r = sol_http_params_add(&response->param, SOL_HTTP_REQUEST_PARAM_HEADER(
         HTTP_HEADER_CONTENT_TYPE, (send_json) ? HTTP_HEADER_CONTENT_TYPE_JSON :
         HTTP_HEADER_CONTENT_TYPE_TEXT));
 
-    if (err_r < 0) {
+    if (r < 0) {
         r = -ENOMEM;
         SOL_WRN("Could not set the Content-Type");
         goto err_exit;
