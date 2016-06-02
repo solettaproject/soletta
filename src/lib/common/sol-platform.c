@@ -1,3 +1,4 @@
+
 /*
  * This file is part of the Soletta Project
  *
@@ -206,7 +207,7 @@ sol_platform_get_board_name(void)
     return board_name;
 }
 
-SOL_API int
+SOL_API enum sol_platform_state
 sol_platform_get_state(void)
 {
     return sol_platform_impl_get_state();

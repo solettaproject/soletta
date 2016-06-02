@@ -132,3 +132,24 @@ align_power2_short_uint(unsigned short u)
 #else
 #define sol_abort() exit(EXIT_FAILURE)
 #endif
+
+/**
+ * @brief Amount of bytes to read in a single call
+ */
+#define CHUNK_READ_SIZE 1024
+
+/**
+ * @brief Allow reading loop to take up to this amount of bytes
+ *
+ * When this amount is reached, stops the chunk reading and allow mainloop to run again.
+ * This keeps memory usage low.
+ */
+#define CHUNK_READ_MAX (10 * (CHUNK_READ_SIZE))
+
+/**
+ * @brief Allow reading/writing loop to take up to this nanoseconds.
+ *
+ * When this time is reached, stops the * chunk reading and allow mainloop to run again.
+ * This keeps interactivity.
+ */
+#define CHUNK_MAX_TIME_NS (20 * 1000000)

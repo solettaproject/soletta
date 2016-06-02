@@ -42,27 +42,6 @@ extern "C" {
  */
 
 /**
- * @brief Amount of bytes to read in a single call
- */
-#define CHUNK_READ_SIZE 1024
-
-/**
- * @brief Allow reading loop to take up to this amount of bytes
- *
- * When this amount is reached, stops the chunk reading and allow mainloop to run again.
- * This keeps memory usage low.
- */
-#define CHUNK_READ_MAX (10 * (CHUNK_READ_SIZE))
-
-/**
- * @brief Allow reading/writing loop to take up to this nanoseconds.
- *
- * When this time is reached, stops the * chunk reading and allow mainloop to run again.
- * This keeps interactivity.
- */
-#define CHUNK_MAX_TIME_NS (20 * 1000000)
-
-/**
  * @brief Retrieves the name of the board on which Soletta is running.
  *
  * @return String containing the board name on success, @c NULL otherwise.
@@ -148,7 +127,7 @@ enum sol_platform_state {
  *
  * @see enum sol_platform_state
  */
-int sol_platform_get_state(void);
+enum sol_platform_state sol_platform_get_state(void);
 
 /**
  * @brief Adds a state monitor.
@@ -282,7 +261,7 @@ int sol_platform_restart_service(const char *service);
 #define SOL_PLATFORM_TARGET_DEFAULT    "default" /**< @brief Default target string */
 #define SOL_PLATFORM_TARGET_RESCUE     "rescue" /**< @brief Rescue target string */
 #define SOL_PLATFORM_TARGET_EMERGENCY  "emergency" /**< @brief Emergency target string */
-#define SOL_PLATFORM_TARGET_POWEROFF   "poweroff" /**< @brief Power-off target string */
+#define SOL_PLATFORM_TARGET_POWER_OFF   "poweroff" /**< @brief Power-off target string */
 #define SOL_PLATFORM_TARGET_REBOOT     "reboot" /**< @brief Reboot target string */
 #define SOL_PLATFORM_TARGET_SUSPEND    "suspend" /**< @brief Suspend target string */
 
