@@ -16,7 +16,7 @@
  * limitations under the License.
  */
 
-var soletta = require( 'bindings' )( 'soletta' ),
+var soletta = require( './lowlevel'),
     _ = require( 'lodash' );
 
 exports.open = function( init ) {
@@ -42,16 +42,19 @@ exports.open = function( init ) {
 var I2CBus = function( i2cbus ) {
     if ( !this._isI2CBus )
         return new I2CBus ( i2cbus );
+    this._construct();
     this._i2cbus = i2cbus;
 }
 
 _.extend( I2CBus.prototype, {
     _isI2CBus: true,
     _pending: null,
-    busy: {
-        get: function() {
-            return soletta.sol_i2c_busy( this._i2cbus );
-        }
+    _construct: function() {
+        Object.defineProperty(this, 'busy', {
+            get: function() {
+                return this._pending === "EBUSY";
+            }
+        } );
     },
 
     read: function( device, size, register, repetitions ) {
@@ -62,27 +65,28 @@ _.extend( I2CBus.prototype, {
             soletta.sol_i2c_set_slave_address( this._i2cbus, device );
             if (register == null) {
                 this._pending = soletta.sol_i2c_read( this._i2cbus,
-                    register, size, function( data, status ) {
+                    size, _.bind( function( data, status ) {
                     this._pending = null;
                     fulfill( data );
-                });
+                }, this ) );
             } else if (repetitions > 1) {
                 this._pending = soletta.sol_i2c_read_register_multiple(
                     this._i2cbus, register, size, repetitions,
-                    function( register, data, status ) {
+                    _.bind( function( register, data, status ) {
                     this._pending = null;
                     fulfill( data );
-                });
+                }, this ) );
             } else {
                 this._pending = soletta.sol_i2c_read_register(
                     this._i2cbus, register, size,
-                    function( register, data, status ) {
+                    _.bind( function( register, data, status ) {
                     this._pending = null;
                     fulfill( data );
-                });
+                }, this ) );
             }
-            if (!this._pending)
-                reject( new Error( "I2C read failed" ) );
+            if ( !this._pending || typeof this._pending === "string" ) {
+                reject( new Error( "I2C read failed with errno: " + this._pending ) );
+            }
         }, this ) );
     },
 
@@ -98,20 +102,21 @@ _.extend( I2CBus.prototype, {
 
             if (!register) {
                 this._pending = soletta.sol_i2c_write( this._i2cbus,
-                    buf, function( data, status ) {
+                    buf, _.bind( function( data, status ) {
                     this._pending = null;
                     fulfill();
-                } );
+                }, this ) );
             } else {
                 this._pending = soletta.sol_i2c_write_register(
                     this._i2cbus, register, buf,
-                    function( register, data, status ) {
+                    _.bind( function( register, data, status ) {
                     this._pending = null;
                     fulfill();
-                } );
+                }, this ) );
             }
-            if (!this._pending)
-                reject( new Error( "I2C write failed" ) );
+            if ( !this._pending || typeof this._pending === "string" ) {
+                reject( new Error( "I2C write failed with errno: " + this._pending ) );
+            }
         }, this ) );
     },
 
@@ -119,23 +124,23 @@ _.extend( I2CBus.prototype, {
         return new Promise( _.bind( function( fulfill, reject ) {
             soletta.sol_i2c_set_slave_address( this._i2cbus, device );
             this._pending = soletta.sol_i2c_write_quick(
-                this._i2cbus, data, function( status ) {
+                this._i2cbus, data, _.bind( function( status ) {
                 this._pending = null;
                 fulfill();
-            } );
-            if (!this._pending)
-                reject( new Error( "I2C writeBit failed" ) );
+            }, this ) );
+            if ( !this._pending || typeof this._pending === "string" ) {
+                reject( new Error( "I2C writeBit failed with errno: " + this._pending ) );
+            }
         }, this ) );
     },
 
     close: function() {
-        if (this.raw)
-            soletta.sol_i2c_close_raw( this._i2cbus);
-        else
-            soletta.sol_i2c_close( this._i2cbus);
+        soletta.sol_i2c_close( this._i2cbus );
     },
 
     abort: function() {
+        if ( !this._pending )
+            return;
         soletta.sol_i2c_pending_cancel( this._i2cbus, this._pending );
         this._pending = null;
     }
