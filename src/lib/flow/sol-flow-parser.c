@@ -423,7 +423,7 @@ build_node(
         return NULL;
     }
 
-    name = sol_arena_strndup(state->arena, node->name.data, node->name.len);
+    name = sol_arena_str_dup_n(state->arena, node->name.data, node->name.len);
     if (!name) {
         err = -errno;
         goto end;

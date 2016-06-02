@@ -223,7 +223,7 @@ load_ext_map(void)
             continue;
 
         len = itr - last;
-        s = sol_arena_strndup(ext_map.arena, last, len);
+        s = sol_arena_str_dup_n(ext_map.arena, last, len);
         SOL_NULL_CHECK_GOTO(s, end);
         last = itr + 1;
 
