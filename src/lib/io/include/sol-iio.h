@@ -44,7 +44,7 @@ extern "C" {
  * @brief An IIO device handle
  * @see sol_iio_open()
  * @see sol_iio_close()
- * @see sol_iio_device_trigger_now()
+ * @see sol_iio_device_trigger()
  * @see sol_iio_device_start_buffer()
  */
 struct sol_iio_device;
@@ -141,9 +141,9 @@ struct sol_iio_channel *sol_iio_add_channel(struct sol_iio_device *device, const
  * @param channel IIO channel handle to be read
  * @param value Where read value will be stored
  *
- * @return true if reading was performed correctly
+ * @return 0 if reading was performed correctly, if fail return error code always negative.
  */
-bool sol_iio_read_channel_value(struct sol_iio_channel *channel, double *value);
+int sol_iio_read_channel_value(struct sol_iio_channel *channel, double *value);
 
 /**
  * @brief Manually 'pull' device current trigger.
@@ -153,9 +153,9 @@ bool sol_iio_read_channel_value(struct sol_iio_channel *channel, double *value);
  *
  * @param device IIO handler of device to have its trigger manually 'pulled'.
  *
- * @return true if writing to file is successful
+ * @return 0 if writing to file is successful, if fail return error code always negative.
  */
-bool sol_iio_device_trigger_now(struct sol_iio_device *device);
+int sol_iio_device_trigger(struct sol_iio_device *device);
 
 /**
  * @brief Start reading device buffer.
@@ -168,9 +168,9 @@ bool sol_iio_device_trigger_now(struct sol_iio_device *device);
  *
  * @param device IIO handler of device on which reading will be performed
  *
- * @return true if reading started successfully
+ * @return 0 if reading started successfully, if fail return error code always negative.
  */
-bool sol_iio_device_start_buffer(struct sol_iio_device *device);
+int sol_iio_device_start_buffer(struct sol_iio_device *device);
 
 /**
  * @brief Address an IIO device from a list of commands to find them.
