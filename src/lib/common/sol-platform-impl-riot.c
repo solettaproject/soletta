@@ -91,7 +91,7 @@ sol_platform_impl_restart_service(const char *service)
 int
 sol_platform_impl_set_target(const char *target)
 {
-    if (!strncasecmp(target, SOL_PLATFORM_TARGET_POWEROFF, strlen(SOL_PLATFORM_TARGET_POWEROFF))) {
+    if (!strncasecmp(target, SOL_PLATFORM_TARGET_POWER_OFF, strlen(SOL_PLATFORM_TARGET_POWER_OFF))) {
         lpm_set(LPM_POWERDOWN);
         return 0;
     }

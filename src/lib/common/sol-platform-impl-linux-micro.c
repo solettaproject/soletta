@@ -923,7 +923,7 @@ sol_platform_impl_restart_service(const char *service)
 int
 sol_platform_impl_set_target(const char *target)
 {
-    if (streq(target, SOL_PLATFORM_TARGET_POWEROFF))
+    if (streq(target, SOL_PLATFORM_TARGET_POWER_OFF))
         reboot_cmd = RB_POWER_OFF;
     else if (streq(target, SOL_PLATFORM_TARGET_REBOOT))
         reboot_cmd = RB_AUTOBOOT;
