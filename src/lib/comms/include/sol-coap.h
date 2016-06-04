@@ -202,6 +202,7 @@ enum sol_coap_response_code {
     SOL_COAP_RESPONSE_CODE_NOT_ACCEPTABLE = sol_coap_make_response_code(4, 6),
     SOL_COAP_RESPONSE_CODE_PRECONDITION_FAILED = sol_coap_make_response_code(4, 12),
     SOL_COAP_RESPONSE_CODE_REQUEST_TOO_LARGE = sol_coap_make_response_code(4, 13),
+    SOL_COAP_RESPONSE_CODE_UNSUPPORTED_CONTENT_FORMAT = sol_coap_make_response_code(4, 15),
     SOL_COAP_RESPONSE_CODE_INTERNAL_ERROR = sol_coap_make_response_code(5, 0),
     SOL_COAP_RESPONSE_CODE_NOT_IMPLEMENTED = sol_coap_make_response_code(5, 1),
     SOL_COAP_RESPONSE_CODE_BAD_GATEWAY = sol_coap_make_response_code(5, 2),
