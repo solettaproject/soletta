@@ -1157,6 +1157,9 @@ sol_coap_packet_add_uri_path_option(struct sol_coap_packet *pkt, const char *uri
         return -EINVAL;
     }
 
+    if (strlen(uri) == 1)
+        return 0;
+
     for (uri++; *uri; uri = slash + 1) {
         int r;
 
