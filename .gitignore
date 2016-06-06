@@ -33,3 +33,5 @@ pwm.js
 spi.js
 uart.js
 i2c.js
+memmap-test.bin
+memmap-test2.bin
