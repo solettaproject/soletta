@@ -136,8 +136,8 @@ void sol_aio_close(struct sol_aio *aio);
  * @return pending An AIO pending operation handle on success and errno is set to @c 0,
  * otherwise @c NULL. It's only valid before @a read_cb is called. It
  * may be used before that to cancel the read operation.
- * If @c NULL is returned, the errno variable will be set with the correct error value. The error value is always negative.
- * In case that the AIO device is in use, the errno variale is set to -EBUSY.
+ * If @c NULL is returned, the errno variable will be set with the correct error value.
+ * In case that the AIO device is in use, the errno variable is set to EBUSY.
  */
 struct sol_aio_pending *sol_aio_get_value(struct sol_aio *aio, void (*read_cb)(void *cb_data, struct sol_aio *aio, int32_t ret), const void *cb_data);
 

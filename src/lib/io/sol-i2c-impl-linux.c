@@ -274,10 +274,10 @@ sol_i2c_write_quick(struct sol_i2c *i2c, bool rw, void (*write_quick_cb)(void *c
     };
 #endif
 
-    errno = -EINVAL;
+    errno = EINVAL;
     SOL_NULL_CHECK(i2c, NULL);
     SOL_INT_CHECK(i2c->dev, == 0, NULL);
-    errno = -EBUSY;
+    errno = EBUSY;
     BUSY_CHECK(i2c, NULL);
 
     i2c->async.data = (uint8_t *)(long)rw;
@@ -300,7 +300,7 @@ sol_i2c_write_quick(struct sol_i2c *i2c, bool rw, void (*write_quick_cb)(void *c
     return pending;
 
 err_no_mem:
-    errno = -ENOMEM;
+    errno = ENOMEM;
     return NULL;
 }
 
@@ -408,12 +408,12 @@ sol_i2c_read(struct sol_i2c *i2c, uint8_t *values, size_t count, void (*read_cb)
     };
 #endif
 
-    errno = -EINVAL;
+    errno = EINVAL;
     SOL_NULL_CHECK(i2c, NULL);
     SOL_NULL_CHECK(values, NULL);
     SOL_INT_CHECK(count, == 0, NULL);
     SOL_INT_CHECK(i2c->dev, == 0, NULL);
-    errno = -EBUSY;
+    errno = EBUSY;
     BUSY_CHECK(i2c, NULL);
 
     i2c->async.data = values;
@@ -437,7 +437,7 @@ sol_i2c_read(struct sol_i2c *i2c, uint8_t *values, size_t count, void (*read_cb)
     return pending;
 
 err_no_mem:
-    errno = -ENOMEM;
+    errno = ENOMEM;
     return NULL;
 }
 
@@ -493,12 +493,12 @@ sol_i2c_write(struct sol_i2c *i2c, uint8_t *values, size_t count, void (*write_c
     };
 #endif
 
-    errno = -EINVAL;
+    errno = EINVAL;
     SOL_NULL_CHECK(i2c, NULL);
     SOL_NULL_CHECK(values, NULL);
     SOL_INT_CHECK(count, == 0, NULL);
     SOL_INT_CHECK(i2c->dev, == 0, NULL);
-    errno = -EBUSY;
+    errno = EBUSY;
     BUSY_CHECK(i2c, NULL);
 
     i2c->async.data = values;
@@ -522,7 +522,7 @@ sol_i2c_write(struct sol_i2c *i2c, uint8_t *values, size_t count, void (*write_c
     return pending;
 
 err_no_mem:
-    errno = -ENOMEM;
+    errno = ENOMEM;
     return NULL;
 }
 
@@ -656,12 +656,12 @@ sol_i2c_read_register(struct sol_i2c *i2c, uint8_t reg, uint8_t *values, size_t 
     };
 #endif
 
-    errno = -EINVAL;
+    errno = EINVAL;
     SOL_NULL_CHECK(i2c, NULL);
     SOL_NULL_CHECK(values, NULL);
     SOL_INT_CHECK(count, == 0, NULL);
     SOL_INT_CHECK(i2c->dev, == 0, NULL);
-    errno = -EBUSY;
+    errno = EBUSY;
     BUSY_CHECK(i2c, NULL);
 
     i2c->async.data = values;
@@ -686,7 +686,7 @@ sol_i2c_read_register(struct sol_i2c *i2c, uint8_t reg, uint8_t *values, size_t 
     return pending;
 
 err_no_mem:
-    errno = -ENOMEM;
+    errno = ENOMEM;
     return NULL;
 }
 
@@ -781,13 +781,13 @@ sol_i2c_read_register_multiple(struct sol_i2c *i2c, uint8_t reg, uint8_t *values
     };
 #endif
 
-    errno = -EINVAL;
+    errno = EINVAL;
     SOL_NULL_CHECK(i2c, NULL);
     SOL_NULL_CHECK(values, NULL);
     SOL_INT_CHECK(count, == 0, NULL);
     SOL_INT_CHECK(times, == 0, NULL);
     SOL_INT_CHECK(i2c->dev, == 0, NULL);
-    errno = -EBUSY;
+    errno = EBUSY;
     BUSY_CHECK(i2c, NULL);
 
     i2c->async.data = values;
@@ -813,7 +813,7 @@ sol_i2c_read_register_multiple(struct sol_i2c *i2c, uint8_t reg, uint8_t *values
     return pending;
 
 err_no_mem:
-    errno = -ENOMEM;
+    errno = ENOMEM;
     return NULL;
 }
 
@@ -932,12 +932,12 @@ sol_i2c_write_register(struct sol_i2c *i2c, uint8_t reg, const uint8_t *values, 
     };
 #endif
 
-    errno = -EINVAL;
+    errno = EINVAL;
     SOL_NULL_CHECK(i2c, NULL);
     SOL_NULL_CHECK(values, NULL);
     SOL_INT_CHECK(count, == 0, NULL);
     SOL_INT_CHECK(i2c->dev, == 0, NULL);
-    errno = -EBUSY;
+    errno = EBUSY;
     BUSY_CHECK(i2c, NULL);
 
     i2c->async.data = (uint8_t *)values;
@@ -962,7 +962,7 @@ sol_i2c_write_register(struct sol_i2c *i2c, uint8_t reg, const uint8_t *values, 
     return pending;
 
 err_no_mem:
-    errno = -ENOMEM;
+    errno = ENOMEM;
     return NULL;
 }
 
