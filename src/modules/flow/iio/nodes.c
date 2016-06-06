@@ -49,16 +49,16 @@ reader_cb(void *data, struct sol_iio_device *device)
         .min = mdata->out_range.min,
         .max = mdata->out_range.max
     };
-    bool b;
+    int b;
 
     b = sol_iio_read_channel_value(mdata->channel_x, &out.x);
-    if (!b) goto error;
+    if (b < 0) goto error;
 
     b = sol_iio_read_channel_value(mdata->channel_y, &out.y);
-    if (!b) goto error;
+    if (b < 0) goto error;
 
     b = sol_iio_read_channel_value(mdata->channel_z, &out.z);
-    if (!b) goto error;
+    if (b < 0) goto error;
 
     sol_flow_send_direction_vector_packet(node,
         SOL_FLOW_NODE_TYPE_IIO_GYROSCOPE__OUT__OUT, &out);
@@ -170,7 +170,7 @@ gyroscope_tick(struct sol_flow_node *node, void *data, uint16_t port, uint16_t c
     struct gyroscope_data *mdata = data;
 
     if (mdata->buffer_enabled) {
-        if (!sol_iio_device_trigger_now(mdata->device))
+        if (sol_iio_device_trigger(mdata->device) < 0)
             goto error;
     } else {
         reader_cb(node, mdata->device);
@@ -209,16 +209,16 @@ magnet_reader_cb(void *data, struct sol_iio_device *device)
         .min = mdata->out_range.min,
         .max = mdata->out_range.max
     };
-    bool b;
+    int b;
 
     b = sol_iio_read_channel_value(mdata->channel_x, &out.x);
-    if (!b) goto error;
+    if (b < 0) goto error;
 
     b = sol_iio_read_channel_value(mdata->channel_y, &out.y);
-    if (!b) goto error;
+    if (b < 0) goto error;
 
     b = sol_iio_read_channel_value(mdata->channel_z, &out.z);
-    if (!b) goto error;
+    if (b < 0) goto error;
 
     sol_flow_send_direction_vector_packet(node,
         SOL_FLOW_NODE_TYPE_IIO_MAGNETOMETER__OUT__OUT, &out);
@@ -329,7 +329,7 @@ magnet_tick(struct sol_flow_node *node, void *data, uint16_t port, uint16_t conn
     struct magnet_data *mdata = data;
 
     if (mdata->buffer_enabled) {
-        if (!sol_iio_device_trigger_now(mdata->device))
+        if (sol_iio_device_trigger(mdata->device) < 0)
             goto error;
     } else {
         magnet_reader_cb(node, mdata->device);
@@ -367,10 +367,10 @@ temp_reader_cb(void *data, struct sol_iio_device *device)
         .max = mdata->out_range.max,
         .step = mdata->out_range.step
     };
-    bool b;
+    int b;
 
     b = sol_iio_read_channel_value(mdata->channel_val, &out.val);
-    if (!b) goto error;
+    if (b < 0) goto error;
 
     sol_flow_send_drange_value_packet(node,
         SOL_FLOW_NODE_TYPE_IIO_THERMOMETER__OUT__OUT, out.val);
@@ -481,7 +481,7 @@ temperature_tick(struct sol_flow_node *node, void *data, uint16_t port, uint16_t
     struct temperature_data *mdata = data;
 
     if (mdata->buffer_enabled) {
-        if (!sol_iio_device_trigger_now(mdata->device))
+        if (sol_iio_device_trigger(mdata->device) < 0)
             goto error;
     } else {
         temp_reader_cb(node, mdata->device);
@@ -519,10 +519,10 @@ pressure_reader_cb(void *data, struct sol_iio_device *device)
         .max = mdata->out_range.max,
         .step = mdata->out_range.step
     };
-    bool b;
+    int b;
 
     b = sol_iio_read_channel_value(mdata->channel_val, &out.val);
-    if (!b) goto error;
+    if (b < 0) goto error;
 
     sol_flow_send_drange_value_packet(node,
         SOL_FLOW_NODE_TYPE_IIO_PRESSURE_SENSOR__OUT__OUT, out.val);
@@ -633,7 +633,7 @@ pressure_tick(struct sol_flow_node *node, void *data, uint16_t port, uint16_t co
     struct pressure_data *mdata = data;
 
     if (mdata->buffer_enabled) {
-        if (!sol_iio_device_trigger_now(mdata->device))
+        if (sol_iio_device_trigger(mdata->device) < 0)
             goto error;
     } else {
         pressure_reader_cb(node, mdata->device);
@@ -674,18 +674,18 @@ color_reader_cb(void *data, struct sol_iio_device *device)
         .blue_max = mdata->out_range.max
     };
     double tmp;
-    bool b;
+    int b;
 
     b = sol_iio_read_channel_value(mdata->channel_red, &tmp);
-    if (!b || tmp < 0 || tmp > UINT32_MAX) goto error;
+    if (b < 0|| tmp < 0 || tmp > UINT32_MAX) goto error;
     out.red = tmp;
 
     b = sol_iio_read_channel_value(mdata->channel_green, &tmp);
-    if (!b || tmp < 0 || tmp > UINT32_MAX) goto error;
+    if (b < 0 || tmp < 0 || tmp > UINT32_MAX) goto error;
     out.green = tmp;
 
     b = sol_iio_read_channel_value(mdata->channel_blue, &tmp);
-    if (!b || tmp < 0 || tmp > UINT32_MAX) goto error;
+    if (b < 0 || tmp < 0 || tmp > UINT32_MAX) goto error;
     out.blue = tmp;
 
     sol_flow_send_rgb_packet(node,
@@ -797,7 +797,7 @@ color_tick(struct sol_flow_node *node, void *data, uint16_t port, uint16_t conn_
     struct color_data *mdata = data;
 
     if (mdata->buffer_enabled) {
-        if (!sol_iio_device_trigger_now(mdata->device))
+        if (sol_iio_device_trigger(mdata->device) < 0)
             goto error;
     } else {
         color_reader_cb(node, mdata->device);
@@ -836,16 +836,16 @@ accelerate_reader_cb(void *data, struct sol_iio_device *device)
         .min = mdata->out_range.min,
         .max = mdata->out_range.max
     };
-    bool b;
+    int b;
 
     b = sol_iio_read_channel_value(mdata->channel_x, &out.x);
-    if (!b) goto error;
+    if (b < 0) goto error;
 
     b = sol_iio_read_channel_value(mdata->channel_y, &out.y);
-    if (!b) goto error;
+    if (b < 0) goto error;
 
     b = sol_iio_read_channel_value(mdata->channel_z, &out.z);
-    if (!b) goto error;
+    if (b < 0) goto error;
 
     sol_flow_send_direction_vector_packet(node,
         SOL_FLOW_NODE_TYPE_IIO_ACCELEROMETER__OUT__OUT, &out);
@@ -956,7 +956,7 @@ accelerate_tick(struct sol_flow_node *node, void *data, uint16_t port, uint16_t 
     struct accelerate_data *mdata = data;
 
     if (mdata->buffer_enabled) {
-        if (!sol_iio_device_trigger_now(mdata->device))
+        if (sol_iio_device_trigger(mdata->device) < 0)
             goto error;
     } else {
         accelerate_reader_cb(node, mdata->device);
@@ -994,10 +994,10 @@ humidity_reader_cb(void *data, struct sol_iio_device *device)
         .max = mdata->out_range.max,
         .step = mdata->out_range.step
     };
-    bool b;
+    int b;
 
     b = sol_iio_read_channel_value(mdata->channel_val, &out.val);
-    if (!b) goto error;
+    if (b < 0) goto error;
 
     sol_flow_send_drange_value_packet(node,
         SOL_FLOW_NODE_TYPE_IIO_HUMIDITY_SENSOR__OUT__OUT, out.val);
@@ -1108,7 +1108,7 @@ humidity_tick(struct sol_flow_node *node, void *data, uint16_t port, uint16_t co
     struct humidity_data *mdata = data;
 
     if (mdata->buffer_enabled) {
-        if (!sol_iio_device_trigger_now(mdata->device))
+        if (sol_iio_device_trigger(mdata->device) < 0)
             goto error;
     } else {
         humidity_reader_cb(node, mdata->device);
@@ -1146,10 +1146,10 @@ adc_reader_cb(void *data, struct sol_iio_device *device)
         .max = mdata->out_range.max,
         .step = mdata->out_range.step
     };
-    bool b;
+    int b;
 
     b = sol_iio_read_channel_value(mdata->channel_val, &out.val);
-    if (!b) goto error;
+    if (b < 0) goto error;
 
     sol_flow_send_drange_value_packet(node,
         SOL_FLOW_NODE_TYPE_IIO_ADC__OUT__OUT, out.val);
@@ -1260,7 +1260,7 @@ adc_tick(struct sol_flow_node *node, void *data, uint16_t port, uint16_t conn_id
     struct adc_data *mdata = data;
 
     if (mdata->buffer_enabled) {
-        if (!sol_iio_device_trigger_now(mdata->device))
+        if (sol_iio_device_trigger(mdata->device) < 0)
             goto error;
     } else {
         adc_reader_cb(node, mdata->device);
@@ -1298,10 +1298,10 @@ light_reader_cb(void *data, struct sol_iio_device *device)
         .max = mdata->out_range.max,
         .step = mdata->out_range.step
     };
-    bool b;
+    int b;
 
     b = sol_iio_read_channel_value(mdata->channel_val, &out.val);
-    if (!b) goto error;
+    if (b < 0) goto error;
 
     sol_flow_send_drange_value_packet(node,
         SOL_FLOW_NODE_TYPE_IIO_LIGHT_SENSOR__OUT__OUT, out.val);
@@ -1414,7 +1414,7 @@ light_tick(struct sol_flow_node *node, void *data, uint16_t port, uint16_t conn_
     struct light_data *mdata = data;
 
     if (mdata->buffer_enabled) {
-        if (!sol_iio_device_trigger_now(mdata->device))
+        if (sol_iio_device_trigger(mdata->device) < 0)
             goto error;
     } else {
         light_reader_cb(node, mdata->device);
@@ -1452,10 +1452,10 @@ proximity_reader_cb(void *data, struct sol_iio_device *device)
         .max = mdata->out_range.max,
         .step = mdata->out_range.step
     };
-    bool b;
+    int b;
 
     b = sol_iio_read_channel_value(mdata->channel_val, &out.val);
-    if (!b) goto error;
+    if (b < 0) goto error;
 
     sol_flow_send_drange_value_packet(node,
         SOL_FLOW_NODE_TYPE_IIO_PROXIMITY_SENSOR__OUT__OUT, out.val);
@@ -1568,7 +1568,7 @@ proximity_tick(struct sol_flow_node *node, void *data, uint16_t port, uint16_t c
     struct proximity_data *mdata = data;
 
     if (mdata->buffer_enabled) {
-        if (!sol_iio_device_trigger_now(mdata->device))
+        if (sol_iio_device_trigger(mdata->device) < 0)
             goto error;
     } else {
         proximity_reader_cb(node, mdata->device);
