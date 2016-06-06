@@ -269,7 +269,7 @@ config PTHREAD
 
 config THREADS
 	bool "Thread safety"
-	depends on (HAVE_PTHREAD_H && LINUX) || RIOT
+	depends on (HAVE_PTHREAD_H && LINUX) || RIOT || ZEPHYR
 	select PTHREAD if LINUX
 	default y
 	help
