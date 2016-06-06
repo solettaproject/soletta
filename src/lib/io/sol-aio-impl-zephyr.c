@@ -157,10 +157,10 @@ sol_aio_get_value(struct sol_aio *aio,
     int32_t ret),
     const void *cb_data)
 {
-    errno = -EINVAL;
+    errno = EINVAL;
     SOL_NULL_CHECK(aio, NULL);
 
-    errno = -EBUSY;
+    errno = EBUSY;
     SOL_EXP_CHECK(aio->async.timeout, NULL);
 
     aio->async.cb_data = cb_data;
@@ -168,7 +168,7 @@ sol_aio_get_value(struct sol_aio *aio,
     aio->async.value = 0;
 
     aio->async.timeout = sol_timeout_add(0, aio_read_timeout_cb, aio);
-    errno = -ENOMEM;
+    errno = ENOMEM;
     SOL_NULL_CHECK(aio->async.timeout, NULL);
 
     errno = 0;

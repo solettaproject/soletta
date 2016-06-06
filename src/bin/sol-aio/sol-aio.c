@@ -45,7 +45,7 @@ static bool
 on_timeout(void *data)
 {
     pending = sol_aio_get_value(aio, read_cb, NULL);
-    if (!pending && errno != -EBUSY)
+    if (!pending && errno != EBUSY)
         fprintf(stderr, "ERROR: Failed to request read operation to <%d, %d>.\n", device, pin);
 
     return true;

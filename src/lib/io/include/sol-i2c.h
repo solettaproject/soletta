@@ -196,8 +196,8 @@ uint8_t sol_i2c_get_slave_address(struct sol_i2c *i2c);
  * @return pending An I2C pending operation handle on success,
  * otherwise @c NULL. It's only valid before @a write_quick_cb is
  * called. It may be used before that to cancel the read operation.
- * If @c NULL is returned, the errno variable will be set with the correct error value. The error value is always negative.
- * In case that the AIO device is in use, the errno variale is set to -EBUSY.
+ * If @c NULL is returned, the errno variable will be set with the correct error value.
+ * In case that the I2C device is in use, the errno variable is set to EBUSY.
  */
 struct sol_i2c_pending *sol_i2c_write_quick(struct sol_i2c *i2c, bool rw, void (*write_quick_cb)(void *cb_data, struct sol_i2c *i2c, ssize_t status), const void *cb_data);
 
@@ -227,8 +227,8 @@ struct sol_i2c_pending *sol_i2c_write_quick(struct sol_i2c *i2c, bool rw, void (
  * @return pending An I2C pending operation handle on success,
  * otherwise @c NULL. It's only valid before @a read_cb is called. It
  * may be used before that to cancel the read operation.
- * If @c NULL is returned, the errno variable will be set with the correct error value. The error value is always negative.
- * In case that the AIO device is in use, the errno variale is set to -EBUSY.
+ * If @c NULL is returned, the errno variable will be set with the correct error value.
+ * In case that the I2C device is in use, the errno variable is set to EBUSY.
  */
 struct sol_i2c_pending *sol_i2c_read(struct sol_i2c *i2c, uint8_t *data, size_t count, void (*read_cb)(void *cb_data, struct sol_i2c *i2c, uint8_t *data, ssize_t status), const void *cb_data);
 
@@ -258,8 +258,8 @@ struct sol_i2c_pending *sol_i2c_read(struct sol_i2c *i2c, uint8_t *data, size_t 
  * @return pending An I2C pending operation handle on success,
  * otherwise @c NULL. It's only valid before @a write_cb is called. It
  * may be used before that to cancel the read operation.
- * If @c NULL is returned, the errno variable will be set with the correct error value. The error value is always negative.
- * In case that the AIO device is in use, the errno variale is set to -EBUSY.
+ * If @c NULL is returned, the errno variable will be set with the correct error value.
+ * In case that the I2C device is in use, the errno variable is set to EBUSY.
  */
 struct sol_i2c_pending *sol_i2c_write(struct sol_i2c *i2c, uint8_t *data, size_t count, void (*write_cb)(void *cb_data, struct sol_i2c *i2c, uint8_t *data, ssize_t status), const void *cb_data);
 
@@ -284,8 +284,8 @@ struct sol_i2c_pending *sol_i2c_write(struct sol_i2c *i2c, uint8_t *data, size_t
  * @return pending An I2C pending operation handle on success,
  * otherwise @c NULL. It's only valid before @a read_reg_cb is called.
  * It may be used before that to cancel the read operation.
- * If @c NULL is returned, the errno variable will be set with the correct error value. The error value is always negative.
- * In case that the AIO device is in use, the errno variale is set to -EBUSY.
+ * If @c NULL is returned, the errno variable will be set with the correct error value.
+ * In case that the I2C device is in use, the errno variable is set to EBUSY.
  */
 struct sol_i2c_pending *sol_i2c_read_register(struct sol_i2c *i2c, uint8_t reg, uint8_t *data, size_t count, void (*read_reg_cb)(void *cb_data, struct sol_i2c *i2c, uint8_t reg, uint8_t *data, ssize_t status), const void *cb_data);
 
@@ -310,8 +310,8 @@ struct sol_i2c_pending *sol_i2c_read_register(struct sol_i2c *i2c, uint8_t reg, 
  * @return pending An I2C pending operation handle on success,
  * otherwise @c NULL. It's only valid before @a write_reg_cb is
  * called. It may be used before that to cancel the read operation.
- * If @c NULL is returned, the errno variable will be set with the correct error value. The error value is always negative.
- * In case that the AIO device is in use, the errno variale is set to -EBUSY.
+ * If @c NULL is returned, the errno variable will be set with the correct error value.
+ * In case that the I2C device is in use, the errno variable is set to EBUSY.
  */
 struct sol_i2c_pending *sol_i2c_write_register(struct sol_i2c *i2c, uint8_t reg, const uint8_t *data, size_t count, void (*write_reg_cb)(void *cb_data, struct sol_i2c *i2c, uint8_t reg, uint8_t *data, ssize_t status), const void *cb_data);
 
@@ -350,8 +350,8 @@ struct sol_i2c_pending *sol_i2c_write_register(struct sol_i2c *i2c, uint8_t reg,
  * @return pending An I2C pending operation handle on success,
  * otherwise @c NULL. It's only valid before @a read_reg_multiple_cb
  * is called. It may be used before that to cancel the read operation.
- * If @c NULL is returned, the errno variable will be set with the correct error value. The error value is always negative.
- * In case that the AIO device is in use, the errno variale is set to -EBUSY.
+ * If @c NULL is returned, the errno variable will be set with the correct error value.
+ * In case that the I2C device is in use, the errno variable is set to EBUSY.
  */
 struct sol_i2c_pending *sol_i2c_read_register_multiple(struct sol_i2c *i2c, uint8_t reg, uint8_t *values, size_t count, uint8_t times, void (*read_reg_multiple_cb)(void *cb_data, struct sol_i2c *i2c, uint8_t reg, uint8_t *data, ssize_t status), const void *cb_data);
 

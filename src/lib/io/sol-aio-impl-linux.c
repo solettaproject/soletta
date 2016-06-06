@@ -221,11 +221,11 @@ sol_aio_get_value(struct sol_aio *aio,
     };
 #endif
 
-    errno = -EINVAL;
+    errno = EINVAL;
     SOL_NULL_CHECK(aio, NULL);
     SOL_NULL_CHECK(aio->fp, NULL);
 
-    errno = -EBUSY;
+    errno = EBUSY;
     BUSY_CHECK(aio, NULL);
 
     aio->async.value = 0;
@@ -249,7 +249,7 @@ sol_aio_get_value(struct sol_aio *aio,
     return pending;
 
 err_no_mem:
-    errno = -ENOMEM;
+    errno = ENOMEM;
     return NULL;
 }
 
