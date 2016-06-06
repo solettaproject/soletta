@@ -49,7 +49,7 @@ SOL_LOG_INTERNAL_DECLARE(_sol_oic_server_log_domain, "oic-server");
 
 struct sol_oic_server_request {
     struct sol_oic_request base;
-    const struct sol_network_link_addr *cliaddr;
+    struct sol_network_link_addr cliaddr;
     struct sol_oic_map_reader reader;
     struct sol_coap_server *server;
 };
@@ -762,7 +762,7 @@ server_request_new(const struct sol_network_link_addr *cliaddr, struct sol_coap_
         free(request);
         return NULL;
     }
-    request->cliaddr = cliaddr;
+    request->cliaddr = *cliaddr;
     request->server = server;
     request->base.pkt = sol_coap_packet_ref(pkt);
     request->base.is_server_request = true;
@@ -865,7 +865,7 @@ sol_oic_server_send_response(struct sol_oic_request *request, struct sol_oic_res
     r = sol_coap_header_set_code(pkt, code);
     SOL_INT_CHECK_GOTO(r, < 0, error_pkt);
 
-    r = sol_coap_send_packet(req->server, pkt, req->cliaddr);
+    r = sol_coap_send_packet(req->server, pkt, &(req->cliaddr));
     goto end;
 
 error_pkt:
