@@ -191,7 +191,8 @@ lsm9ds0_gyro_open(struct sol_flow_node *node, void *data, const struct sol_flow_
     mdata->init = false;
 
     mdata->i2c = sol_i2c_open(opts->i2c_bus, SOL_I2C_SPEED_10KBIT);
-    SOL_NULL_CHECK_MSG(mdata->i2c, -EINVAL, "Failed to open i2c bus: %u", opts->i2c_bus);
+    SOL_NULL_CHECK_MSG(mdata->i2c, -EINVAL,
+        "Failed to open i2c bus: %" PRId32 "", opts->i2c_bus);
 
     mdata->addr = opts->i2c_addr;
     mdata->scale = opts->scale;
@@ -457,7 +458,8 @@ lsm9ds0_xmt_open(struct sol_flow_node *node, void *data, const struct sol_flow_n
     mdata->init = false;
 
     mdata->i2c = sol_i2c_open(opts->i2c_bus, SOL_I2C_SPEED_10KBIT);
-    SOL_NULL_CHECK_MSG(mdata->i2c, -EINVAL, "Failed to open i2c bus: %u", opts->i2c_bus);
+    SOL_NULL_CHECK_MSG(mdata->i2c, -EINVAL,
+        "Failed to open i2c bus: %" PRId32 "", opts->i2c_bus);
 
     mdata->addr = opts->i2c_addr;
 
