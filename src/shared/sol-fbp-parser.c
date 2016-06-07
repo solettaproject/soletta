@@ -114,7 +114,8 @@ static bool
 parse_exported_port(struct sol_fbp_parser *p,
     struct sol_str_slice *node, struct sol_str_slice *port, int *port_idx,
     struct sol_str_slice *exported_port)
-{
+{   
+    long int *r = (long int*) port_idx;
     if (next_token(p) != SOL_FBP_TOKEN_EQUAL)
         return set_parse_error(p, "Expected '=' after exported port keyword");
 
@@ -146,7 +147,7 @@ parse_exported_port(struct sol_fbp_parser *p,
             return set_parse_error(p, "Expected ']' after port index");
         }
 
-        sol_str_slice_to_int(idx, port_idx);
+        sol_str_slice_to_int(idx, r);
     }
 
     if (next_token(p) != SOL_FBP_TOKEN_COLON)
@@ -511,7 +512,7 @@ static bool
 parse_port(struct sol_fbp_parser *p, struct sol_str_slice *name, int *port_idx)
 {
     struct sol_str_slice idx;
-
+    long int *r = (long int*)port_idx;
     if (next_token(p) != SOL_FBP_TOKEN_IDENTIFIER) {
         return set_parse_error(p, "Expected port identifier."
             " e.g. 'node(nodetype) OUTPUT_PORT_NAME -> INPUT_PORT_NAME node2(nodetype2)'");
@@ -534,7 +535,7 @@ parse_port(struct sol_fbp_parser *p, struct sol_str_slice *name, int *port_idx)
         return set_parse_error(p, "Expected ']' after port index");
     }
 
-    sol_str_slice_to_int(idx, port_idx);
+    sol_str_slice_to_int(idx, r);
 
     return true;
 }

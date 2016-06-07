@@ -25,7 +25,7 @@
 #include "sol-util-internal.h"
 
 SOL_API int
-sol_str_slice_to_int(const struct sol_str_slice s, int *value)
+sol_str_slice_to_int(const struct sol_str_slice s, long int *value)
 {
     char *endptr = NULL;
     long int v;

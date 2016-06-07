@@ -633,6 +633,7 @@ sol_mavlink_parse_addr_protocol(const char *str, struct sol_str_slice *addr, int
     struct sol_vector tokens;
     struct sol_str_slice slice = sol_str_slice_from_str(str);
     const void *init;
+    long int *r = (long int*)port;
 
     tokens = sol_str_slice_split(slice, ":", 0);
     if (tokens.len <= 1) {
@@ -649,9 +650,8 @@ sol_mavlink_parse_addr_protocol(const char *str, struct sol_str_slice *addr, int
     }
 
     *addr = STR_SLICE_VAL(sol_vector_get(&tokens, 1));
-
     if (tokens.len >= 3)
-        sol_str_slice_to_int(STR_SLICE_VAL(sol_vector_get(&tokens, 2)), port);
+        sol_str_slice_to_int(STR_SLICE_VAL(sol_vector_get(&tokens, 2)), r);
 
     sol_vector_clear(&tokens);
 
