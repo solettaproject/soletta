@@ -957,6 +957,10 @@ sol_platform_impl_load_locales(char **locale_cache)
 
     line = NULL;
     while (fscanf(f, "%m[^\n]\n", &line) != EOF) {
+        /* It is possible to have comments in locale.conf, ignore them */
+        if (line[0] == '#')
+            goto ignore;
+
         sep = strchr(line, '=');
         if (!sep) {
             SOL_WRN("The locale entry: %s does not have the separator '='",
