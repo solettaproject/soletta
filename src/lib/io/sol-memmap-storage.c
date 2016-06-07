@@ -132,7 +132,6 @@ check_version(struct map_internal *map_internal)
             sol_blob_unref(blob);
             return false;
         }
-        sol_blob_unref(blob);
     } else if (ret < 0) {
         SOL_WRN("Could not read current map version (path is %s): %s",
             map_internal->map->path, sol_util_strerrora(-ret));
