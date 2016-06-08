@@ -325,13 +325,13 @@ persist_open(struct sol_flow_node *node,
     r = storage_read(mdata, &buf);
     if (mdata->packet_data_size) {
         if (r >= 0) {
-            /* entry's total size may be bigger that actual
+            /* entry's total size may be bigger than actual
              * packet_data_size (think bit fields). the useful data
              * with be the leading bytes, on all cases */
             r = sol_buffer_remove_data(&buf, mdata->packet_data_size,
                 buf.used - mdata->packet_data_size);
             if (r >= 0)
-                mdata->value_ptr = sol_buffer_steal(&buf, NULL);
+                memcpy(mdata->value_ptr, buf.data, buf.used);
         }
     } else {
         if (r >= 0) {
@@ -591,7 +591,7 @@ persist_drange_send_packet(struct sol_flow_node *node)
     struct sol_drange *val = mdata->base.value_ptr;
     bool no_defaults = sol_util_double_eq(val->step, 0) &&
         sol_util_double_eq(val->min, 0) &&
-        sol_util_double_eq(val->min, 0);
+        sol_util_double_eq(val->max, 0);
 
     if (mdata->store_only_val || no_defaults) {
         struct sol_drange value = {
