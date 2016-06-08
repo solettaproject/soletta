@@ -17,11 +17,21 @@
  */
 
 /*
-   To run: ./lwm2m-sample-client [client name]
+   To run: ./lwm2m-sample-client <client name> [bootstrap]
+   If [bootstrap] argument is not given:
    This LWM2M client sample will try to connect to a LWM2M server @ locahost:5683.
    If a location object is created by the LWM2M server, it will report its location
    every one second.
+
+   If [bootstrap] argument is given:
+   This LWM2M client sample will try to connect to a LWM2M server @ locahost:5683.
+   It should fail and thus will expect a server-initiated bootstrap.
+   If it doesn't happen in 30s, it will try to connect to a LWM2M bootstrap server
+   @ localhost:5783 and perform client-initiated bootstrap.
+   If the bootstrap is successfull, it will try to connect and register with the
+   server received in the bootstrap information.
  */
+
 
 #include "sol-lwm2m.h"
 #include "sol-mainloop.h"
@@ -51,6 +61,13 @@
 #define SECURITY_SERVER_SERVER_URI_RES_ID (0)
 #define SECURITY_SERVER_IS_BOOTSTRAP_RES_ID (1)
 #define SECURITY_SERVER_SERVER_ID_RES_ID (10)
+#define SECURITY_SERVER_CLIENT_HOLD_OFF_TIME_RES_ID (11)
+#define SECURITY_SERVER_BOOTSTRAP_SERVER_ACCOUNT_TIMEOUT_RES_ID (12)
+
+struct client_data_ctx {
+    bool has_location_instance;
+    bool is_bootstrap;
+};
 
 struct location_obj_instance_ctx {
     struct sol_timeout *timeout;
@@ -60,7 +77,15 @@ struct location_obj_instance_ctx {
     int64_t timestamp;
 };
 
-static struct sol_blob addr = {
+static struct sol_blob bootstrap_server_addr = {
+    .type = &SOL_BLOB_TYPE_NO_FREE,
+    .parent = NULL,
+    .mem = (void *)"coap://localhost:5783",
+    .size = sizeof("coap://localhost:5783") - 1,
+    .refcnt = 1
+};
+
+static struct sol_blob server_addr = {
     .type = &SOL_BLOB_TYPE_NO_FREE,
     .parent = NULL,
     .mem = (void *)"coap://localhost:5683",
@@ -132,14 +157,14 @@ create_location_obj(void *user_data, struct sol_lwm2m_client *client,
     const struct sol_str_slice content)
 {
     struct location_obj_instance_ctx *instance_ctx;
-    bool *has_location_instance = user_data;
+    struct client_data_ctx *data_ctx = user_data;
     struct sol_vector tlvs;
     int r;
     uint16_t i;
     struct sol_lwm2m_tlv *tlv;
 
     //Only one location object is allowed
-    if (*has_location_instance) {
+    if (data_ctx->has_location_instance) {
         fprintf(stderr, "Only one location object instance is allowed\n");
         return -EINVAL;
     }
@@ -211,7 +236,7 @@ create_location_obj(void *user_data, struct sol_lwm2m_client *client,
 
     instance_ctx->client = client;
     *instance_data = instance_ctx;
-    *has_location_instance = true;
+    data_ctx->has_location_instance = true;
     sol_lwm2m_tlv_list_clear(&tlvs);
     printf("Location object created\n");
 
@@ -263,30 +288,56 @@ read_location_obj(void *instance_data, void *user_data,
 }
 
 static int
-read_security_server_obj(void *instance_data, void *user_data,
+read_security_obj(void *instance_data, void *user_data,
     struct sol_lwm2m_client *client,
     uint16_t instance_id, uint16_t res_id, struct sol_lwm2m_resource *res)
 {
+    struct client_data_ctx *data_ctx = user_data;
     int r;
 
-    //It implements only the necassary info to connect to a LWM2M server Without encryption.
-    switch (res_id) {
-    case SECURITY_SERVER_SERVER_URI_RES_ID:
-        SOL_LWM2M_RESOURCE_INIT(r, res, 0, 1,
-            SOL_LWM2M_RESOURCE_DATA_TYPE_STRING, &addr);
-        break;
-    case SECURITY_SERVER_IS_BOOTSTRAP_RES_ID:
-        SOL_LWM2M_RESOURCE_INIT(r, res, 1, 1,
-            SOL_LWM2M_RESOURCE_DATA_TYPE_BOOL, false);
-        break;
-    case SECURITY_SERVER_SERVER_ID_RES_ID:
-        SOL_LWM2M_RESOURCE_INT_INIT(r, res, 10, 101);
-        break;
-    default:
-        if (res_id >= 2 && res_id <= 11)
-            r = -ENOENT;
-        else
-            r = -EINVAL;
+    //It implements only the necassary info to connect to a LWM2M server
+    // or bootstrap server without encryption.
+    if (!data_ctx->is_bootstrap) {
+        switch (res_id) {
+        case SECURITY_SERVER_SERVER_URI_RES_ID:
+            SOL_LWM2M_RESOURCE_INIT(r, res, 0, 1,
+                SOL_LWM2M_RESOURCE_DATA_TYPE_STRING, &server_addr);
+            break;
+        case SECURITY_SERVER_IS_BOOTSTRAP_RES_ID:
+            SOL_LWM2M_RESOURCE_INIT(r, res, 1, 1,
+                SOL_LWM2M_RESOURCE_DATA_TYPE_BOOLEAN, false);
+            break;
+        case SECURITY_SERVER_SERVER_ID_RES_ID:
+            SOL_LWM2M_RESOURCE_INT_INIT(r, res, 10, 101);
+            break;
+        default:
+            if (res_id >= 2 && res_id <= 12)
+                r = -ENOENT;
+            else
+                r = -EINVAL;
+        }
+    } else {
+        switch (res_id) {
+        case SECURITY_SERVER_SERVER_URI_RES_ID:
+            SOL_LWM2M_RESOURCE_INIT(r, res, 0, 1,
+                SOL_LWM2M_RESOURCE_DATA_TYPE_STRING, &bootstrap_server_addr);
+            break;
+        case SECURITY_SERVER_IS_BOOTSTRAP_RES_ID:
+            SOL_LWM2M_RESOURCE_INIT(r, res, 1, 1,
+                SOL_LWM2M_RESOURCE_DATA_TYPE_BOOLEAN, true);
+            break;
+        case SECURITY_SERVER_CLIENT_HOLD_OFF_TIME_RES_ID:
+            SOL_LWM2M_RESOURCE_INT_INIT(r, res, 11, 30);
+            break;
+        case SECURITY_SERVER_BOOTSTRAP_SERVER_ACCOUNT_TIMEOUT_RES_ID:
+            SOL_LWM2M_RESOURCE_INT_INIT(r, res, 12, 0);
+            break;
+        default:
+            if (res_id >= 2 && res_id <= 10)
+                r = -ENOENT;
+            else
+                r = -EINVAL;
+        }
     }
 
     return r;
@@ -299,7 +350,8 @@ read_server_obj(void *instance_data, void *user_data,
 {
     int r;
 
-    //It implements only the necassary info to connect to a LWM2M server Without encryption.
+    //It implements only the necassary info to connect to a LWM2M server
+    // without encryption.
     switch (res_id) {
     case SERVER_OBJ_SHORT_RES_ID:
         SOL_LWM2M_RESOURCE_INT_INIT(r, res, res_id, 101);
@@ -337,13 +389,29 @@ del_location_obj(void *instance_data, void *user_data,
     struct sol_lwm2m_client *client, uint16_t instance_id)
 {
     struct location_obj_instance_ctx *instance_ctx = instance_data;
-    bool *has_location_instance = user_data;
+    struct client_data_ctx *data_ctx = user_data;
 
     if (instance_ctx->timeout)
         sol_timeout_del(instance_ctx->timeout);
     free(instance_ctx);
-    *has_location_instance = false;
+    data_ctx->has_location_instance = false;
     return 0;
+}
+
+static void
+bootstrap_cb(void *data,
+    struct sol_lwm2m_client *client,
+    enum sol_lwm2m_bootstrap_event event)
+{
+    if (event == SOL_LWM2M_BOOTSTRAP_EVENT_FINISHED) {
+        printf("...<Call local Bootstrap clean-up operations>...\n"
+            "...<Now that it should have a Server, try to register again>\n");
+        //sol_lwm2m_client_start(client);
+        return;
+    } else if (event == SOL_LWM2M_BOOTSTRAP_EVENT_ERROR) {
+        fprintf(stderr, "Bootstrap Request or Bootstrap Finish Failed!\n");
+        return;
+    }
 }
 
 static const struct sol_lwm2m_object location_object = {
@@ -359,7 +427,7 @@ static const struct sol_lwm2m_object security_object = {
     SOL_SET_API_VERSION(.api_version = SOL_LWM2M_OBJECT_API_VERSION, )
     .id = SECURITY_SERVER_OBJ_ID,
     .resources_count = 12,
-    .read = read_security_server_obj
+    .read = read_security_obj
 };
 
 static const struct sol_lwm2m_object server_object = {
@@ -376,19 +444,25 @@ main(int argc, char *argv[])
     struct sol_lwm2m_client *client;
     static const struct sol_lwm2m_object *objects[] =
     { &security_object, &server_object, &location_object, NULL };
-    bool has_location_instance = false;
+    struct client_data_ctx data_ctx = {
+        .is_bootstrap = false,
+        .has_location_instance = false
+    };
     int r;
 
     srand(time(NULL));
     if (argc < 2) {
-        fprintf(stderr, "Usage: ./lwm2m-sample-client [client-name]\n");
+        fprintf(stderr, "Usage: ./lwm2m-sample-client <client-name> [bootstrap]\n");
         return -1;
     }
 
     sol_init();
 
+    if (argv[2])
+        data_ctx.is_bootstrap = true;
+
     client = sol_lwm2m_client_new(argv[1], NULL, NULL, objects,
-        &has_location_instance);
+        &data_ctx);
 
     if (!client) {
         r = -1;
@@ -396,10 +470,19 @@ main(int argc, char *argv[])
         goto exit;
     }
 
-    r = sol_lwm2m_add_object_instance(client, &server_object, NULL);
-    if (r < 0) {
-        fprintf(stderr, "Could not add a server object instance\n");
-        goto exit_del;
+    if (!data_ctx.is_bootstrap) {
+        r = sol_lwm2m_add_object_instance(client, &server_object, NULL);
+        if (r < 0) {
+            fprintf(stderr, "Could not add a server object instance\n");
+            goto exit_del;
+        }
+    } else {
+        r = sol_lwm2m_client_add_bootstrap_finish_monitor(client, bootstrap_cb,
+            NULL);
+        if (r < 0) {
+            fprintf(stderr, "Could not add a bootstrap monitor\n");
+            goto exit_del;
+        }
     }
 
     r = sol_lwm2m_add_object_instance(client, &security_object, NULL);
