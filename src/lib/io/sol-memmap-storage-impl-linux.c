@@ -86,7 +86,7 @@ error:
     SOL_WRN("Flash read failed");
     if (!ret)
         ret = -errno;
-    if (fd > 0)
+    if (fd >= 0)
         close(fd);
 
     return ret;
