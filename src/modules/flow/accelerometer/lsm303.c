@@ -104,7 +104,11 @@ set_slave(struct accelerometer_lsm303_data *mdata, bool (*cb)(void *data))
 static void
 lsm303_scale_bit_set(struct accelerometer_lsm303_data *mdata)
 {
-    if (!sol_i2c_set_slave_address(mdata->i2c, mdata->slave)) {
+    int r;
+
+    r = sol_i2c_set_slave_address(mdata->i2c, mdata->slave);
+
+    if (r < 0) {
         SOL_WRN("Failed to set slave at address 0x%02x\n", mdata->slave);
         return;
     }

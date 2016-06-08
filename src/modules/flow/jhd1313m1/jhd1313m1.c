@@ -357,7 +357,11 @@ i2c_write_cb(void *cb_data,
 static int
 command_send(struct lcd_data *mdata, struct command *cmd)
 {
-    if (!sol_i2c_set_slave_address(mdata->i2c, cmd->chip_addr)) {
+    int r;
+
+    r = sol_i2c_set_slave_address(mdata->i2c, cmd->chip_addr);
+
+    if (r < 0) {
         SOL_WRN("Failed to set slave at address 0x%02x\n", cmd->chip_addr);
         return -EIO;
     }
