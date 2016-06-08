@@ -69,6 +69,15 @@ struct client_data_ctx {
     bool is_bootstrap;
 };
 
+struct security_obj_instance_ctx {
+    struct sol_lwm2m_client *client;
+    char* server_uri;
+    bool is_bootstrap;
+    int64_t server_id;
+    int64_t bootstrap_server_account_timeout;
+    int64_t client_hold_off_time;
+};
+
 struct location_obj_instance_ctx {
     struct sol_timeout *timeout;
     struct sol_lwm2m_client *client;
@@ -288,7 +297,7 @@ read_location_obj(void *instance_data, void *user_data,
 }
 
 static int
-read_security_obj(void *instance_data, void *user_data,
+read_security_server_obj(void *instance_data, void *user_data,
     struct sol_lwm2m_client *client,
     uint16_t instance_id, uint16_t res_id, struct sol_lwm2m_resource *res)
 {
@@ -340,6 +349,147 @@ read_security_obj(void *instance_data, void *user_data,
         }
     }
 
+    return r;
+}
+
+static int
+write_security_server_res(void *instance_data, void *user_data,
+    struct sol_lwm2m_client *client,
+    uint16_t instance_id, uint16_t res_id, const struct sol_lwm2m_resource *res)
+{
+    struct security_obj_instance_ctx *instance_ctx = instance_data;
+    int r;
+
+    // res_id?
+    switch (res->id) {
+    case SECURITY_SERVER_SERVER_URI_RES_ID:
+        // TODO: Should I check if exists and free() first?
+        instance_ctx->server_uri = strdup(sol_str_slice_to_str(sol_str_slice_from_blob(res->data->blob)));
+        break;
+    case SECURITY_SERVER_IS_BOOTSTRAP_RES_ID:
+        instance_ctx->is_bootstrap = res->data->b;
+        break;
+    case SECURITY_SERVER_SERVER_ID_RES_ID:
+        instance_ctx->server_id = res->data->integer;
+        break;
+    case SECURITY_SERVER_CLIENT_HOLD_OFF_TIME_RES_ID:
+        instance_ctx->client_hold_off_time = res->data->integer;
+        break;
+    case SECURITY_SERVER_BOOTSTRAP_SERVER_ACCOUNT_TIMEOUT_RES_ID:
+        instance_ctx->bootstrap_server_account_timeout = res->data->integer;
+        break;
+    default:
+        if (res_id >= 2 && res_id <= 9)
+            r = -ENOENT;
+        else
+            r = -EINVAL;
+    }
+
+    return r;
+}
+
+static int
+write_security_server_tlv(void *instance_data, void *user_data,
+    struct sol_lwm2m_client *client,
+    uint16_t instance_id, struct sol_vector *tlvs)
+{
+    int r;
+    uint16_t i;
+    struct sol_lwm2m_tlv *tlv;
+    struct security_obj_instance_ctx *instance_ctx = instance_data;
+
+    SOL_VECTOR_FOREACH_IDX (tlvs, tlv, i) {
+        SOL_BUFFER_DECLARE_STATIC(buf, 64);
+
+        switch (tlv->id) {
+        case SECURITY_SERVER_SERVER_URI_RES_ID:
+            // TODO: Should I check if exists and free() first?
+            r = sol_lwm2m_tlv_get_bytes(tlv, &buf);
+            instance_ctx->server_uri = strdup(sol_str_slice_to_str(sol_buffer_get_slice(&buf)));
+            break;
+        case SECURITY_SERVER_IS_BOOTSTRAP_RES_ID:
+            r = sol_lwm2m_tlv_get_bool(tlv, &instance_ctx->is_bootstrap);
+            break;
+        case SECURITY_SERVER_SERVER_ID_RES_ID:
+            r = sol_lwm2m_tlv_get_int(tlv, &instance_ctx->server_id);
+            break;
+        case SECURITY_SERVER_CLIENT_HOLD_OFF_TIME_RES_ID:
+            r = sol_lwm2m_tlv_get_int(tlv, &instance_ctx->client_hold_off_time);
+            break;
+        case SECURITY_SERVER_BOOTSTRAP_SERVER_ACCOUNT_TIMEOUT_RES_ID:
+            r = sol_lwm2m_tlv_get_int(tlv, &instance_ctx->bootstrap_server_account_timeout);
+            break;
+        default:
+            // TODO: How to inform the infra of each failed resource id (tlv->id)?
+            fprintf(stderr, "tlv type: %u, ID: %" PRIu16 ", Size: %zu, Content: %.*s"
+                " could not be written to Security Server Object at /0/%" PRIu16,
+                tlv->type, tlv->id, tlv->content.used,
+                SOL_STR_SLICE_PRINT(sol_buffer_get_slice(&tlv->content)), instance_id);
+            break;
+        }
+    }
+
+    return r;
+}
+
+static int
+create_security_obj(void *user_data, struct sol_lwm2m_client *client,
+    uint16_t instance_id, void **instance_data,
+    enum sol_lwm2m_content_type content_type,
+    const struct sol_str_slice content)
+{
+    struct security_obj_instance_ctx *instance_ctx;
+    struct sol_vector tlvs;
+    int r;
+    uint16_t i;
+    struct sol_lwm2m_tlv *tlv;
+
+    if (content_type != SOL_LWM2M_CONTENT_TYPE_TLV) {
+        fprintf(stderr, "Content type is not in TLV format\n");
+        return -EINVAL;
+    }
+
+    instance_ctx = calloc(1, sizeof(struct security_obj_instance_ctx));
+    if (!instance_ctx) {
+        fprintf(stderr, "Could not alloc memory for security object context\n");
+        return -ENOMEM;
+    }
+
+    r = sol_lwm2m_parse_tlv(content, &tlvs);
+    if (r < 0) {
+        fprintf(stderr, "Could not parse the TLV content\n");
+        goto err_free_tlvs;
+    }
+
+    SOL_VECTOR_FOREACH_IDX (&tlvs, tlv, i) {
+        SOL_BUFFER_DECLARE_STATIC(buf, 64);
+
+        if (tlv->id == SECURITY_SERVER_SERVER_URI_RES_ID) {
+            r = sol_lwm2m_tlv_get_bytes(tlv, &buf);
+            instance_ctx->server_uri = strdup(sol_str_slice_to_str(sol_buffer_get_slice(&buf)));
+        } else if (tlv->id == SECURITY_SERVER_IS_BOOTSTRAP_RES_ID) {
+            r = sol_lwm2m_tlv_get_bool(tlv, &instance_ctx->is_bootstrap);
+        } else if (tlv->id == SECURITY_SERVER_SERVER_ID_RES_ID) {
+            r = sol_lwm2m_tlv_get_int(tlv, &instance_ctx->server_id);
+        }
+
+        if (r < 0) {
+            fprintf(stderr, "Could not get the tlv value for resource %"
+                PRIu16 "\n", tlv->id);
+            goto err_free_tlvs;
+        }
+    }
+
+    instance_ctx->client = client;
+    *instance_data = instance_ctx;
+    sol_lwm2m_tlv_list_clear(&tlvs);
+    printf("Security object created\n");
+
+    return 0;
+
+err_free_tlvs:
+    sol_lwm2m_tlv_list_clear(&tlvs);
+    free(instance_ctx);
     return r;
 }
 
@@ -427,7 +577,10 @@ static const struct sol_lwm2m_object security_object = {
     SOL_SET_API_VERSION(.api_version = SOL_LWM2M_OBJECT_API_VERSION, )
     .id = SECURITY_SERVER_OBJ_ID,
     .resources_count = 12,
-    .read = read_security_obj
+    .read = read_security_server_obj,
+    .create = create_security_obj,
+    .write_resource = write_security_server_res,
+    .write_tlv = write_security_server_tlv
 };
 
 static const struct sol_lwm2m_object server_object = {
