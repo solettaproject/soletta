@@ -90,7 +90,7 @@ main(int argc, char *argv[])
     struct sol_mqtt_config config = {
         SOL_SET_API_VERSION(.api_version = SOL_MQTT_CONFIG_API_VERSION, )
         .clean_session = true,
-        .keepalive = 60,
+        .keep_alive = 60,
         .handlers = {
             SOL_SET_API_VERSION(.api_version = SOL_MQTT_HANDLERS_API_VERSION, )
             .connect = on_connect,
