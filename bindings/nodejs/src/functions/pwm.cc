@@ -157,7 +157,7 @@ NAN_METHOD(bind_sol_pwm_set_duty_cycle) {
 }
 
 
-NAN_METHOD(bind_sol_pwm_get_enabled) {
+NAN_METHOD(bind_sol_pwm_is_enabled) {
     VALIDATE_ARGUMENT_COUNT(info, 1);
     VALIDATE_ARGUMENT_TYPE(info, 0, IsObject);
 
@@ -166,7 +166,7 @@ NAN_METHOD(bind_sol_pwm_get_enabled) {
     if (!pwm)
         return;
 
-    info.GetReturnValue().Set(Nan::New(sol_pwm_get_enabled(pwm)));
+    info.GetReturnValue().Set(Nan::New(sol_pwm_is_enabled(pwm)));
 }
 
 NAN_METHOD(bind_sol_pwm_get_period) {

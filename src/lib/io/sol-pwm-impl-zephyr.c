@@ -127,7 +127,7 @@ sol_pwm_set_enabled(struct sol_pwm *pwm, bool enabled)
 }
 
 SOL_API bool
-sol_pwm_get_enabled(const struct sol_pwm *pwm)
+sol_pwm_is_enabled(const struct sol_pwm *pwm)
 {
     SOL_NULL_CHECK(pwm, false);
 

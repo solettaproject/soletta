@@ -54,7 +54,7 @@ extern "C" {
  * @see sol_pwm_set_duty_cycle()
  * @see sol_pwm_get_period()
  * @see sol_pwm_set_period()
- * @see sol_pwm_get_enabled()
+ * @see sol_pwm_is_enabled()
  * @see sol_pwm_set_enabled()
  */
 struct sol_pwm;
@@ -238,7 +238,7 @@ bool sol_pwm_set_enabled(struct sol_pwm *pwm, bool enable);
  *
  * @return @c true if enabled or @c false if disabled or on error.
  */
-bool sol_pwm_get_enabled(const struct sol_pwm *pwm);
+bool sol_pwm_is_enabled(const struct sol_pwm *pwm);
 
 /**
  * @brief Set PWM period in nanoseconds.
