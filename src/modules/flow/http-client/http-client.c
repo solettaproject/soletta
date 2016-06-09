@@ -803,7 +803,8 @@ int_process_json(struct sol_flow_node *node, const struct sol_str_slice slice)
 static int
 int_process_data(struct sol_flow_node *node, struct sol_buffer *buf)
 {
-    int value, r;
+    int r;
+    long int value;
 
     r = sol_str_slice_to_int(sol_buffer_get_slice(buf), &value);
     SOL_INT_CHECK(r, < 0, r);
