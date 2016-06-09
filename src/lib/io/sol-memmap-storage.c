@@ -428,26 +428,26 @@ sol_memmap_remove_map(const struct sol_memmap_map *map)
     return -ENOENT;
 }
 
-SOL_API bool
+SOL_API int
 sol_memmap_set_timeout(struct sol_memmap_map *map, uint32_t timeout)
 {
     struct map_internal *map_internal;
     int i;
 
-    SOL_NULL_CHECK(map, false);
+    SOL_NULL_CHECK(map, -EINVAL);
 
     /* Rememeber, as we may have a copy of map (due to device resolving),
      * we need to update our proper copy */
     SOL_PTR_VECTOR_FOREACH_IDX (&memory_maps, map_internal, i) {
         if (map_internal->map == map) {
             map->timeout = timeout;
-            return true;
+            return 0;
         }
     }
 
     SOL_WRN("Map %p was not previously added. Call 'sol_memmap_add_map' before.",
         map);
-    return false;
+    return -ENOENT;
 }
 
 SOL_API uint32_t
