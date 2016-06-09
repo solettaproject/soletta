@@ -1542,7 +1542,7 @@ error:
 SOL_API int32_t
 sol_json_path_array_get_segment_index(struct sol_str_slice key)
 {
-    int index_val;
+    long int index_val;
     int r;
 
     SOL_NULL_CHECK(key.data, -EINVAL);
@@ -1555,7 +1555,7 @@ sol_json_path_array_get_segment_index(struct sol_str_slice key)
         &index_val);
     SOL_INT_CHECK(r, < 0, r);
 
-    if ((int)(uint16_t)index_val != index_val)
+    if ((long int)(uint16_t)index_val != index_val)
         return -ERANGE;
 
     return index_val;

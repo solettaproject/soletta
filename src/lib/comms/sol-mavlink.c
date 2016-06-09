@@ -628,7 +628,7 @@ static const struct sol_str_table_ptr protocol_table[] = {
 };
 
 static inline const void *
-sol_mavlink_parse_addr_protocol(const char *str, struct sol_str_slice *addr, int *port)
+sol_mavlink_parse_addr_protocol(const char *str, struct sol_str_slice *addr, long int *port)
 {
     struct sol_vector tokens;
     struct sol_str_slice slice = sol_str_slice_from_str(str);
@@ -679,7 +679,7 @@ sol_mavlink_connect(const char *addr, const struct sol_mavlink_config *config, c
 {
     struct sol_mavlink *mavlink;
     struct sol_str_slice address;
-    int port;
+    long int port;
 
     int (*init) (struct sol_mavlink *mavlink);
 

@@ -112,7 +112,7 @@ set_parse_error(struct sol_fbp_parser *p, const char *fmt, ...)
 
 static bool
 parse_exported_port(struct sol_fbp_parser *p,
-    struct sol_str_slice *node, struct sol_str_slice *port, int *port_idx,
+    struct sol_str_slice *node, struct sol_str_slice *port, long int *port_idx,
     struct sol_str_slice *exported_port)
 {
     if (next_token(p) != SOL_FBP_TOKEN_EQUAL)
@@ -240,8 +240,9 @@ parse_inport_stmt(struct sol_fbp_parser *p)
     struct sol_fbp_position node_position;
     struct sol_fbp_node *err_node;
     struct sol_fbp_exported_port *ep;
-    int node_idx, port_idx = -1;
+    int node_idx;
     int err;
+    long int port_idx = -1;
 
     assert(next_token(p) == SOL_FBP_TOKEN_INPORT_KEYWORD);
     if (!parse_exported_port(p, &node, &port, &port_idx, &exported_port))
@@ -255,7 +256,10 @@ parse_inport_stmt(struct sol_fbp_parser *p)
 
     sol_fbp_graph_add_in_port(p->graph, node_idx, port, get_token_position(&p->current_token));
 
-    err = sol_fbp_graph_add_exported_in_port(p->graph, node_idx, port, port_idx, exported_port, get_token_position(&p->current_token), &ep);
+    if ((long int)(int)port_idx != port_idx)
+        return false;
+
+    err = sol_fbp_graph_add_exported_in_port(p->graph, node_idx, port, (int)port_idx, exported_port, get_token_position(&p->current_token), &ep);
     if (err == -EEXIST) {
         return set_parse_error(p,
             "Exported input port with name '%.*s' already declared in %d:%d",
@@ -279,8 +283,8 @@ parse_outport_stmt(struct sol_fbp_parser *p)
     struct sol_fbp_position node_position;
     struct sol_fbp_node *err_node;
     struct sol_fbp_exported_port *ep;
-    int node_idx, port_idx = -1;
-    int err;
+    int node_idx, err;
+    long int port_idx = -1;
 
     assert(next_token(p) == SOL_FBP_TOKEN_OUTPORT_KEYWORD);
     if (!parse_exported_port(p, &node, &port, &port_idx, &exported_port))
@@ -294,7 +298,10 @@ parse_outport_stmt(struct sol_fbp_parser *p)
 
     sol_fbp_graph_add_out_port(p->graph, node_idx, port, get_token_position(&p->current_token));
 
-    err = sol_fbp_graph_add_exported_out_port(p->graph, node_idx, port, port_idx, exported_port, get_token_position(&p->current_token), &ep);
+    if ((long int)(int)port_idx != port_idx)
+        return false;
+
+    err = sol_fbp_graph_add_exported_out_port(p->graph, node_idx, port, (int)port_idx, exported_port, get_token_position(&p->current_token), &ep);
     if (err == -EEXIST) {
         return set_parse_error(p,
             "Exported output port with name '%.*s' already declared in %d:%d",
@@ -508,7 +515,7 @@ end:
 }
 
 static bool
-parse_port(struct sol_fbp_parser *p, struct sol_str_slice *name, int *port_idx)
+parse_port(struct sol_fbp_parser *p, struct sol_str_slice *name, long int *port_idx)
 {
     struct sol_str_slice idx;
 
@@ -558,7 +565,7 @@ parse_conn_stmt(struct sol_fbp_parser *p)
     }
 
     while (peek_token(p) == SOL_FBP_TOKEN_IDENTIFIER) {
-        int src_port_idx = -1, dst_port_idx = -1;
+        long int src_port_idx = -1, dst_port_idx = -1;
         if (!parse_port(p, &src_port_name, &src_port_idx))
             return false;
 
@@ -596,9 +603,15 @@ parse_conn_stmt(struct sol_fbp_parser *p)
 
         sol_fbp_graph_add_in_port(p->graph, dst, dst_port_name, in_port_position);
 
-        r = sol_fbp_graph_add_conn(p->graph, src, src_port_name, src_port_idx, dst, dst_port_name, dst_port_idx, conn_position);
+        if ((long int)(int)src_port_idx != src_port_idx)
+            return false;
+
+        if ((long int)(int)dst_port_idx != dst_port_idx)
+            return false;
+
+        r = sol_fbp_graph_add_conn(p->graph, src, src_port_name, (int)src_port_idx, dst, dst_port_name, (int)dst_port_idx, conn_position);
         if (r < 0)
-            return handle_conn_error(p, src, &src_port_name, src_port_idx, dst, &dst_port_name, dst_port_idx, &conn_position, r);
+            return handle_conn_error(p, src, &src_port_name, (int)src_port_idx, dst, &dst_port_name, (int)dst_port_idx, &conn_position, r);
 
         /* When parsing a chain of connections, the destination node
          * from previous will be the source node of the next. */
