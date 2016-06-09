@@ -65,6 +65,10 @@ int sol_efivars_write_raw(const char *name, struct sol_blob *blob,
 /**
  * @brief Read stored contents and set to buffer.
  *
+ * This function will read the contents of the EFI variable @a name
+ * into the buffer @a buffer. It will try to resize the buffer if
+ * needed.
+ *
  * @param name name of property. It will look for an EFI variable with
  * this name.
  * @param buffer buffer that will be set with read contents.
@@ -103,6 +107,18 @@ int sol_efivars_read_raw(const char *name, struct sol_buffer *buffer);
         return -EINVAL; \
     }
 
+/**
+ * @brief Reads an uint8_t from the EFI given variable and set to value.
+ *
+ * This function will read the contents of the EFI variable @a name
+ * into the variable @a value.
+ *
+ * @param name name of property. It will look for an EFI variable with
+ * this name.
+ * @param value Teh variable that will be set with read contents.
+ *
+ * return @c 0 on success, a negative number on failure
+ */
 static inline int
 sol_efivars_read_uint8(const char *name, uint8_t *value)
 {
@@ -111,6 +127,21 @@ sol_efivars_read_uint8(const char *name, uint8_t *value)
     return sol_efivars_read_raw(name, &buf);
 }
 
+/**
+ * @brief Writes an uint8_t into an EFI variable.
+ *
+ * This function uses sol_efivars_write_raw() internally, the same
+ * behaviour should be considered.
+ *
+ * @param name name of property. It will create a new EFI variable with
+ * this name.
+ * @param value The value to be written.
+ * @param cb callback to be called when writing finishes. It contains status
+ * of writing: if failed, is lesser than zero.
+ * @param data user data to be sent to callback @a cb
+ *
+ * return @c 0 on success, a negative number on failure
+ */
 static inline int
 sol_efivars_write_uint8(const char *name, uint8_t value,
     void (*cb)(void *data, const char *name, struct sol_blob *blob, int status),
@@ -125,6 +156,18 @@ sol_efivars_write_uint8(const char *name, uint8_t value,
     return r;
 }
 
+/**
+ * @brief Reads a boolean from the EFI given variable and set to value.
+ *
+ * This function will read the contents of the EFI variable @a name
+ * into the variable @a value.
+ *
+ * @param name name of property. It will look for an EFI variable with
+ * this name.
+ * @param value Teh variable that will be set with read contents.
+ *
+ * return @c 0 on success, a negative number on failure
+ */
 static inline int
 sol_efivars_read_bool(const char *name, bool *value)
 {
@@ -133,6 +176,21 @@ sol_efivars_read_bool(const char *name, bool *value)
     return sol_efivars_read_raw(name, &buf);
 }
 
+/**
+ * @brief Writes a boolean into an EFI variable.
+ *
+ * This function uses sol_efivars_write_raw() internally, the same
+ * behaviour should be considered.
+ *
+ * @param name name of property. It will create a new EFI variable with
+ * this name.
+ * @param value The value to be written.
+ * @param cb callback to be called when writing finishes. It contains status
+ * of writing: if failed, is lesser than zero.
+ * @param data user data to be sent to callback @a cb
+ *
+ * return @c 0 on success, a negative number on failure
+ */
 static inline int
 sol_efivars_write_bool(const char *name, bool value,
     void (*cb)(void *data, const char *name, struct sol_blob *blob, int status),
@@ -147,6 +205,18 @@ sol_efivars_write_bool(const char *name, bool value,
     return r;
 }
 
+/**
+ * @brief Reads an int32_t from the EFI given variable and set to value.
+ *
+ * This function will read the contents of the EFI variable @a name
+ * into the variable @a value.
+ *
+ * @param name name of property. It will look for an EFI variable with
+ * this name.
+ * @param value Teh variable that will be set with read contents.
+ *
+ * return @c 0 on success, a negative number on failure
+ */
 static inline int
 sol_efivars_read_int32(const char *name, int32_t *value)
 {
@@ -155,6 +225,21 @@ sol_efivars_read_int32(const char *name, int32_t *value)
     return sol_efivars_read_raw(name, &buf);
 }
 
+/**
+ * @brief Writes an int32_t into an EFI variable.
+ *
+ * This function uses sol_efivars_write_raw() internally, the same
+ * behaviour should be considered.
+ *
+ * @param name name of property. It will create a new EFI variable with
+ * this name.
+ * @param value The value to be written.
+ * @param cb callback to be called when writing finishes. It contains status
+ * of writing: if failed, is lesser than zero.
+ * @param data user data to be sent to callback @a cb
+ *
+ * return @c 0 on success, a negative number on failure
+ */
 static inline int
 sol_efivars_write_int32(const char *name, int32_t value,
     void (*cb)(void *data, const char *name, struct sol_blob *blob, int status),
@@ -169,6 +254,18 @@ sol_efivars_write_int32(const char *name, int32_t value,
     return r;
 }
 
+/**
+ * @brief Reads a sol_irange from the EFI given variable and set to value.
+ *
+ * This function will read the contents of the EFI variable @a name
+ * into the variable @a value.
+ *
+ * @param name name of property. It will look for an EFI variable with
+ * this name.
+ * @param value Teh variable that will be set with read contents.
+ *
+ * return @c 0 on success, a negative number on failure
+ */
 static inline int
 sol_efivars_read_irange(const char *name, struct sol_irange *value)
 {
@@ -177,6 +274,21 @@ sol_efivars_read_irange(const char *name, struct sol_irange *value)
     return sol_efivars_read_raw(name, &buf);
 }
 
+/**
+ * @brief Writes a sol_irange into an EFI variable.
+ *
+ * This function uses sol_efivars_write_raw() internally, the same
+ * behaviour should be considered.
+ *
+ * @param name name of property. It will create a new EFI variable with
+ * this name.
+ * @param value The value to be written.
+ * @param cb callback to be called when writing finishes. It contains status
+ * of writing: if failed, is lesser than zero.
+ * @param data user data to be sent to callback @a cb
+ *
+ * return @c 0 on success, a negative number on failure
+ */
 static inline int
 sol_efivars_write_irange(const char *name, struct sol_irange *value,
     void (*cb)(void *data, const char *name, struct sol_blob *blob, int status),
@@ -191,6 +303,18 @@ sol_efivars_write_irange(const char *name, struct sol_irange *value,
     return r;
 }
 
+/**
+ * @brief Reads a sol_drange from the EFI given variable and set to value.
+ *
+ * This function will read the contents of the EFI variable @a name
+ * into the variable @a value.
+ *
+ * @param name name of property. It will look for an EFI variable with
+ * this name.
+ * @param value Teh variable that will be set with read contents.
+ *
+ * return @c 0 on success, a negative number on failure
+ */
 static inline int
 sol_efivars_read_drange(const char *name, struct sol_drange *value)
 {
@@ -199,6 +323,21 @@ sol_efivars_read_drange(const char *name, struct sol_drange *value)
     return sol_efivars_read_raw(name, &buf);
 }
 
+/**
+ * @brief Writes a sol_drange into an EFI variable.
+ *
+ * This function uses sol_efivars_write_raw() internally, the same
+ * behaviour should be considered.
+ *
+ * @param name name of property. It will create a new EFI variable with
+ * this name.
+ * @param value The value to be written.
+ * @param cb callback to be called when writing finishes. It contains status
+ * of writing: if failed, is lesser than zero.
+ * @param data user data to be sent to callback @a cb
+ *
+ * return @c 0 on success, a negative number on failure
+ */
 static inline int
 sol_efivars_write_drange(const char *name, struct sol_drange *value,
     void (*cb)(void *data, const char *name, struct sol_blob *blob, int status),
@@ -213,6 +352,18 @@ sol_efivars_write_drange(const char *name, struct sol_drange *value,
     return r;
 }
 
+/**
+ * @brief Reads a double from the EFI given variable and set to value.
+ *
+ * This function will read the contents of the EFI variable @a name
+ * into the variable @a value.
+ *
+ * @param name name of property. It will look for an EFI variable with
+ * this name.
+ * @param value Teh variable that will be set with read contents.
+ *
+ * return @c 0 on success, a negative number on failure
+ */
 static inline int
 sol_efivars_read_double(const char *name, double *value)
 {
@@ -221,6 +372,21 @@ sol_efivars_read_double(const char *name, double *value)
     return sol_efivars_read_raw(name, &buf);
 }
 
+/**
+ * @brief Writes a double into an EFI variable.
+ *
+ * This function uses sol_efivars_write_raw() internally, the same
+ * behaviour should be considered.
+ *
+ * @param name name of property. It will create a new EFI variable with
+ * this name.
+ * @param value The value to be written.
+ * @param cb callback to be called when writing finishes. It contains status
+ * of writing: if failed, is lesser than zero.
+ * @param data user data to be sent to callback @a cb
+ *
+ * return @c 0 on success, a negative number on failure
+ */
 static inline int
 sol_efivars_write_double(const char *name, double value,
     void (*cb)(void *data, const char *name, struct sol_blob *blob, int status),
@@ -235,6 +401,18 @@ sol_efivars_write_double(const char *name, double value,
     return r;
 }
 
+/**
+ * @brief Reads a string from the EFI given variable and set to value.
+ *
+ * This function will read the contents of the EFI variable @a name
+ * into the variable @a value.
+ *
+ * @param name name of property. It will look for an EFI variable with
+ * this name.
+ * @param value Teh variable that will be set with read contents.
+ *
+ * return @c 0 on success, a negative number on failure
+ */
 static inline int
 sol_efivars_read_string(const char *name, char **value)
 {
@@ -252,6 +430,21 @@ sol_efivars_read_string(const char *name, char **value)
     return 0;
 }
 
+/**
+ * @brief Writes a string into an EFI variable.
+ *
+ * This function uses sol_efivars_write_raw() internally, the same
+ * behaviour should be considered.
+ *
+ * @param name name of property. It will create a new EFI variable with
+ * this name.
+ * @param value The value to be written.
+ * @param cb callback to be called when writing finishes. It contains status
+ * of writing: if failed, is lesser than zero.
+ * @param data user data to be sent to callback @a cb
+ *
+ * return @c 0 on success, a negative number on failure
+ */
 static inline int
 sol_efivars_write_string(const char *name, const char *value,
     void (*cb)(void *data, const char *name, struct sol_blob *blob, int status),
