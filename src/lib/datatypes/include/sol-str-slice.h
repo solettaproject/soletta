@@ -96,7 +96,7 @@ struct sol_str_slice {
  *
  * @return @c true if the contents are equal, @c false otherwise
  *
- * @see sol_str_slice_str_caseeq
+ * @see sol_str_slice_str_case_eq
  */
 static inline bool
 sol_str_slice_str_eq(const struct sol_str_slice a, const char *b)
@@ -112,7 +112,7 @@ sol_str_slice_str_eq(const struct sol_str_slice a, const char *b)
  *
  * @return @c true if the contents are equal, @c false otherwise
  *
- * @see sol_str_slice_caseeq
+ * @see sol_str_slice_case_eq
  */
 static inline bool
 sol_str_slice_eq(const struct sol_str_slice a, const struct sol_str_slice b)
@@ -133,7 +133,7 @@ sol_str_slice_eq(const struct sol_str_slice a, const struct sol_str_slice b)
  * @see sol_str_slice_str_eq
  */
 static inline bool
-sol_str_slice_str_caseeq(const struct sol_str_slice a, const char *b)
+sol_str_slice_str_case_eq(const struct sol_str_slice a, const char *b)
 {
     return b && a.len == strlen(b) && (strncasecmp(a.data, b, a.len) == 0);
 }
@@ -141,7 +141,7 @@ sol_str_slice_str_caseeq(const struct sol_str_slice a, const char *b)
 /**
  * @brief Checks if the content of both slices are equal.
  *
- * Similar to @ref sol_str_slice_caseeq, but ignoring the case of the characters.
+ * Similar to @ref sol_str_slice_case_eq, but ignoring the case of the characters.
  *
  * @param a First slice
  * @param b Second slice
@@ -151,7 +151,7 @@ sol_str_slice_str_caseeq(const struct sol_str_slice a, const char *b)
  * @see sol_str_slice_eq
  */
 static inline bool
-sol_str_slice_caseeq(const struct sol_str_slice a, const struct sol_str_slice b)
+sol_str_slice_case_eq(const struct sol_str_slice a, const struct sol_str_slice b)
 {
     return a.len == b.len && (strncasecmp(a.data, b.data, a.len) == 0);
 }
@@ -293,7 +293,7 @@ sol_str_slice_to_blob(const struct sol_str_slice slice)
  *
  * @return @c 0 on success, error code (always negative) otherwise
  */
-int sol_str_slice_to_int(const struct sol_str_slice s, int *value);
+int sol_str_slice_to_int(const struct sol_str_slice s, long int *value);
 
 /**
  * @brief Creates a string from a string slice.
