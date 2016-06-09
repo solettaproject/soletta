@@ -628,7 +628,7 @@ int sol_http_decode_params(const struct sol_str_slice params_slice, enum sol_htt
 int sol_http_split_uri(const struct sol_str_slice full_uri, struct sol_http_url *url);
 
 /**
- * @brief A wrapper on top of sol_http_create_simple_uri()
+ * @brief A wrapper on top of sol_http_create_uri()
  *
  * @param buf Where the created URI should be appended (the buffer must be already initialized)
  * @param base_url The base URI to be used.
