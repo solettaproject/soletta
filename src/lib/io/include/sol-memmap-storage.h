@@ -184,12 +184,12 @@ int sol_memmap_remove_map(const struct sol_memmap_map *map);
  * @param map map to have its timeout changed
  * @param timeout new timeout, in milliseconds.
  *
- * @return true if successfully set map timeout.
+ * @return 0 on success, a negative number on failure.
  *
  * @note This change will take effect after current active timer expires.
  * Active ones will remain unchanged
  */
-bool sol_memmap_set_timeout(struct sol_memmap_map *map, uint32_t timeout);
+int sol_memmap_set_timeout(struct sol_memmap_map *map, uint32_t timeout);
 
 /**
  * @brief Get map timeout
