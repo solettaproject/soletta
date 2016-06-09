@@ -70,10 +70,7 @@ int_generator_open(
     }
     it = opts->sequence;
 
-    if (opts->interval < 0)
-        SOL_WRN("Option 'interval' < 0, setting it to 0.");
-
-    mdata->interval = opts->interval >= 0 ? opts->interval : 0;
+    mdata->interval = opts->interval;
     mdata->next_index = 0;
 
     sol_vector_init(&mdata->values, sizeof(int32_t));

@@ -197,8 +197,6 @@ quadrature_encoder_open(struct sol_flow_node *node, void *data,
     const struct sol_flow_node_type_robotics_quadrature_encoder_options *opts =
         (const struct sol_flow_node_type_robotics_quadrature_encoder_options *)options;
 
-    SOL_INT_CHECK(opts->period, < 0, -EINVAL);
-
     priv->old_index = priv->new_index = 0;
     priv->input_a = priv->input_b = 0;
     priv->ticks = 0;

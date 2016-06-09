@@ -1122,6 +1122,8 @@ get_type_data_by_name(const char *type)
         return "bool";
     if (streq(type, "byte"))
         return "unsigned char";
+    if (streq(type, "uint"))
+        return "uint32_t";
     return NULL;
 }
 

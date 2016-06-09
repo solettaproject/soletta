@@ -72,7 +72,6 @@ led_strip_controler_open(struct sol_flow_node *node, void *data, const struct so
 
     opts = (const struct sol_flow_node_type_led_strip_lpd8806_options *)options;
 
-    SOL_INT_CHECK(opts->pixel_count, < 0, -EINVAL);
     mdata->pixel_count = opts->pixel_count;
 
     data_bytes = mdata->pixel_count * 3;

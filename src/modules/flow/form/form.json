@@ -76,12 +76,12 @@
       "options": {
         "members": [
           {
-            "data_type": "int",
+            "data_type": "uint",
             "description": "The number of available columns to lay out the output string with. It must be a positive integer.",
             "name": "columns"
           },
           {
-            "data_type": "int",
+            "data_type": "uint",
             "description": "The number of available rows to lay out the output string with. It must be a positive integer.",
             "name": "rows"
           },
@@ -178,12 +178,12 @@
       "options": {
         "members": [
           {
-            "data_type": "int",
+            "data_type": "uint",
             "description": "The number of available columns to lay out the output string with. It must be a positive integer.",
             "name": "columns"
           },
           {
-            "data_type": "int",
+            "data_type": "uint",
             "description": "The number of available rows to lay out the output string with. It must be a positive integer.",
             "name": "rows"
           },
@@ -282,12 +282,12 @@
       "options": {
         "members": [
           {
-            "data_type": "int",
+            "data_type": "uint",
             "description": "The number of available columns to lay out the output string with. It must be a positive integer.",
             "name": "columns"
           },
           {
-            "data_type": "int",
+            "data_type": "uint",
             "description": "The number of available rows to lay out the output string with. It must be a positive integer.",
             "name": "rows"
           },
@@ -425,12 +425,12 @@
       "options": {
         "members": [
           {
-            "data_type": "int",
+            "data_type": "uint",
             "description": "The number of available columns to lay out the output string with. It must be a positive integer.",
             "name": "columns"
           },
           {
-            "data_type": "int",
+            "data_type": "uint",
             "description": "The number of available rows to lay out the output string with. It must be a positive integer.",
             "name": "rows"
           },
@@ -568,12 +568,12 @@
       "options": {
         "members": [
           {
-            "data_type": "int",
+            "data_type": "uint",
             "description": "The number of available columns to lay out the output string with. It must be a positive integer.",
             "name": "columns"
           },
           {
-            "data_type": "int",
+            "data_type": "uint",
             "description": "The number of available rows to lay out the output string with. It must be a positive integer.",
             "name": "rows"
           },
@@ -584,13 +584,13 @@
             "name": "blink_time"
           },
           {
-            "data_type": "int",
+            "data_type": "uint",
             "default": 0,
             "description": "Minimum output string length (must be non-negative and less than or equal to 'max_length' option's value).",
             "name": "min_length"
           },
           {
-            "data_type": "int",
+            "data_type": "uint",
             "default": 0,
             "description": "Maximum output string length (must be non-negative and greater than or equal to 'min_length' option's value). The special value of 0 means no maximum will be applied.",
             "name": "max_length"

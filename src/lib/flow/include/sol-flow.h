@@ -565,6 +565,7 @@ enum sol_flow_node_options_member_type {
     SOL_FLOW_NODE_OPTIONS_MEMBER_IRANGE_SPEC,
     SOL_FLOW_NODE_OPTIONS_MEMBER_RGB,
     SOL_FLOW_NODE_OPTIONS_MEMBER_STRING,
+    SOL_FLOW_NODE_OPTIONS_MEMBER_UINT
 };
 
 /**
@@ -602,6 +603,7 @@ struct sol_flow_node_named_options_member {
         struct sol_direction_vector direction_vector; /**< @brief Value of a direction vector member */
         const char *string; /**< @brief Value of a string member */
         double f; /**< @brief Value of a float member */
+        uint32_t u; /**< @brief Value of a uint member */
     };
 };
 
@@ -711,6 +713,7 @@ struct sol_flow_node_options_member_description {
         const char *s; /**< @brief Option member's default string value */
         const void *ptr; /**< @brief Option member's default "blob" value */
         double f; /**< @brief Option member's default float value */
+        uint32_t u; /**< @brief Option member's default uint value */
     } defvalue; /**< @brief Option member's default value, according to its #data_type */
     uint16_t offset; /**< @brief Option member's offset inside the final options blob for a node */
     uint16_t size; /**< @brief Option member's size inside the final options blob for a node */

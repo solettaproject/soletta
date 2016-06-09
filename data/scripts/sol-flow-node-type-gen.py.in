@@ -246,7 +246,8 @@ data_type_to_c_map = {
     "direction-vector": "struct sol_direction_vector",
     "string": "const char *",
     "location": "struct sol_location",
-    "timestamp": "struct timespec"
+    "timestamp": "struct timespec",
+    "uint": "uint32_t"
     }
 def data_type_to_c(typename):
     return data_type_to_c_map[typename]
@@ -260,7 +261,8 @@ data_type_to_default_member_map = {
     "irange-spec": "irange_spec",
     "string": "s",
     "rgb": "rgb",
-    "direction-vector": "direction_vector"
+    "direction-vector": "direction_vector",
+    "uint": "u"
     }
 composed_types_signatures = {}
 

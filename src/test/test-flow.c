@@ -1238,12 +1238,12 @@ named_options_init_from_strv(void)
 
         m++;
         ASSERT_STR_EQ(m->name, "period");
-        ASSERT(m->type == SOL_FLOW_NODE_OPTIONS_MEMBER_INT);
+        ASSERT(m->type == SOL_FLOW_NODE_OPTIONS_MEMBER_UINT);
         ASSERT_INT_EQ(m->i, 42);
 
         m++;
         ASSERT_STR_EQ(m->name, "duty_cycle");
-        ASSERT(m->type == SOL_FLOW_NODE_OPTIONS_MEMBER_INT);
+        ASSERT(m->type == SOL_FLOW_NODE_OPTIONS_MEMBER_UINT);
         ASSERT_INT_EQ(m->i, 88);
 
         sol_flow_node_named_options_fini(&named_opts);
@@ -1293,8 +1293,8 @@ node_options_new(void)
         { .name = "pin", .type = SOL_FLOW_NODE_OPTIONS_MEMBER_STRING, .string = "2 7" },
         { .name = "raw", .type = SOL_FLOW_NODE_OPTIONS_MEMBER_BOOLEAN, .boolean = true },
         { .name = "enabled", .type = SOL_FLOW_NODE_OPTIONS_MEMBER_BOOLEAN, .boolean = true },
-        { .name = "period", .type = SOL_FLOW_NODE_OPTIONS_MEMBER_INT, .i = 42 },
-        { .name = "duty_cycle", .type = SOL_FLOW_NODE_OPTIONS_MEMBER_INT, .i = 88 },
+        { .name = "period", .type = SOL_FLOW_NODE_OPTIONS_MEMBER_UINT, .i = 42 },
+        { .name = "duty_cycle", .type = SOL_FLOW_NODE_OPTIONS_MEMBER_UINT, .i = 88 },
     };
 
     struct sol_flow_node_named_options_member string_options[] = {

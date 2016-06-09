@@ -56,7 +56,7 @@
             "name": "chip_select"
           },
           {
-            "data_type": "int",
+            "data_type": "uint",
             "default": 32,
             "description": "Pixel count. How many LEDs are on the strip.",
             "name": "pixel_count"

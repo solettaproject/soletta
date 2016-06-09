@@ -28,7 +28,7 @@
       "options": {
         "members": [
           {
-            "data_type": "int",
+            "data_type": "uint",
             "default": 0,
             "description": "Amount of chars to be compared between strings. If zero, the whole strings will be compared.",
             "name": "chars"
@@ -117,7 +117,7 @@
       "options": {
         "members": [
           {
-            "data_type": "int",
+            "data_type": "uint",
             "default": 0,
             "description": "Maximum length to be checked. If a string is greater than that, maxlen value will be sent. If zero, no limit is applied.",
             "name": "maxlen"
@@ -241,13 +241,13 @@
       "options": {
         "members": [
           {
-            "data_type": "int",
+            "data_type": "uint",
             "default": 0,
             "description": "A string can be split in many substrings. This value defines which substring should be sent. It must be non-negative. It can be overriden by values received on 'INDEX' port.",
             "name": "index"
           },
           {
-            "data_type": "int",
+            "data_type": "uint",
             "default": 0,
             "description": "A string can be split in many substrings. This value defines the maximum number of splits (separated by the separator option) to generate, and must be non-negative. The default value of zero means to generate all substrings between the given separator. This option can be overriden by values received on the 'MAX_SPLIT' port.",
             "name": "max_split"
@@ -515,7 +515,7 @@
       "options": {
         "members": [
           {
-            "data_type": "int",
+            "data_type": "uint",
             "default": 0,
             "description": "A string can have a substring replaced in many points. This value defines the maximum number of replacements to attempt, and must be non-negative. The default value of zero means to replace all possible substrings. This option can be overriden by values received on the 'MAX_REPLACE' port.",
             "name": "max_replace"

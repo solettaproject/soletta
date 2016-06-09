@@ -1250,6 +1250,7 @@ get_member_alignment(const struct sol_flow_node_options_member_description *memb
             __alignof__(member->defvalue.irange_spec)),
         SOL_STR_TABLE_ITEM("rgb", __alignof__(member->defvalue.rgb)),
         SOL_STR_TABLE_ITEM("string", __alignof__(member->defvalue.s)),
+        SOL_STR_TABLE_ITEM("uint", __alignof__(member->defvalue.u)),
         { }
     };
 

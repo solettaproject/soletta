@@ -31,7 +31,7 @@
 #include "string-uuid.h"
 
 struct string_data {
-    int32_t n;
+    uint32_t n;
     char *string[2];
 };
 
@@ -192,14 +192,7 @@ string_compare_open(struct sol_flow_node *node,
 
     opts = (const struct sol_flow_node_type_string_compare_options *)options;
 
-    if (opts->chars < 0) {
-        SOL_WRN("Option 'chars' (%" PRId32 ") must be a positive "
-            "amount of chars to be compared or zero if whole strings "
-            "should be compared. Considering zero.", opts->chars);
-        mdata->base.n = 0;
-    } else
-        mdata->base.n = opts->chars;
-
+    mdata->base.n = opts->chars;
     mdata->ignore_case = opts->ignore_case;
 
     return 0;
@@ -372,13 +365,7 @@ string_length_open(struct sol_flow_node *node,
 
     opts = (const struct sol_flow_node_type_string_length_options *)options;
 
-    if (opts->maxlen < 0) {
-        SOL_WRN("Option 'maxlen' (%" PRId32 ") must be a positive "
-            "or zero if the whole string should be measured. "
-            "Considering zero.", opts->maxlen);
-        mdata->n = 0;
-    } else
-        mdata->n = opts->maxlen;
+    mdata->n = opts->maxlen;
 
     return 0;
 }
@@ -411,7 +398,7 @@ struct string_split_data {
     struct sol_vector substrings;
     char *string;
     char *separator;
-    int32_t index, max_split;
+    uint32_t index, max_split;
 };
 
 static int
@@ -427,16 +414,6 @@ string_split_open(struct sol_flow_node *node,
         -EINVAL);
     opts = (const struct sol_flow_node_type_string_split_options *)options;
 
-    if (opts->index < 0) {
-        SOL_WRN("Index (%" PRId32 ") must be a non-negative value",
-            opts->index);
-        return -EINVAL;
-    }
-    if (opts->max_split < 0) {
-        SOL_WRN("Max split (%" PRId32 ") must be a non-negative value",
-            opts->max_split);
-        return -EINVAL;
-    }
     mdata->index = opts->index;
     mdata->max_split = opts->max_split;
 
@@ -486,7 +463,7 @@ calculate_substrings(struct string_split_data *mdata,
 static int
 send_substring(struct string_split_data *mdata, struct sol_flow_node *node)
 {
-    int32_t len;
+    uint32_t len;
     struct sol_str_slice *sub_slice;
 
     if (!(mdata->string && mdata->separator))
@@ -670,7 +647,7 @@ struct string_replace_data {
     char *orig_string;
     char *from_string;
     char *to_string;
-    int32_t max_replace;
+    uint32_t max_replace;
     bool forward_on_no_match;
 };
 
@@ -689,12 +666,7 @@ string_replace_open(struct sol_flow_node *node,
 
     mdata->node = node;
     mdata->forward_on_no_match = opts->forward_on_no_match;
-    if (opts->max_replace < 0) {
-        SOL_WRN("Max replace (%" PRId32 ") must be a non-negative value",
-            opts->max_replace);
-        return -EINVAL;
-    }
-    mdata->max_replace = opts->max_replace ? : INT32_MAX;
+    mdata->max_replace = opts->max_replace ? : UINT32_MAX;
 
     mdata->from_string = strdup(opts->from_string);
     if (!opts->from_string)

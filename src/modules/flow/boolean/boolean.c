@@ -556,18 +556,13 @@ boolean_buffer_open(struct sol_flow_node *node, void *data,
         -EINVAL);
 
     mdata->n_samples = opts->samples;
-    if (opts->samples <= 0) {
+    if (opts->samples == 0) {
         SOL_WRN("Invalid samples (%" PRId32 "). Must be positive. "
             "Set to %" PRId32 ".", opts->samples, def_opts->samples);
         mdata->n_samples = def_opts->samples;
     }
 
     mdata->timeout = opts->timeout;
-    if (opts->timeout < 0) {
-        SOL_WRN("Invalid timeout (%" PRId32 "). Must be non negative. "
-            "Set to 0.", opts->timeout);
-        mdata->timeout = 0;
-    }
 
     mdata->normalize_cb = sol_str_table_ptr_lookup_fallback
             (table, sol_str_slice_from_str(opts->operation), NULL);
