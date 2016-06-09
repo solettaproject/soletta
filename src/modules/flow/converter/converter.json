@@ -2322,6 +2322,79 @@
       ],
       "private_data_type": "sol_converter_string_blob",
       "url": "http://solettaproject.org/doc/latest/node_types/converter/string-to-json-array.html"
+    },
+    {
+      "category": "converter",
+      "description": "Receives location packets and converts to float values.",
+      "in_ports": [
+        {
+          "data_type": "location",
+          "description": "Location to be decomposed.",
+          "methods": {
+            "process": "location_to_drange_convert"
+          },
+          "name": "IN"
+        }
+      ],
+      "name": "converter/location-to-float",
+      "out_ports": [
+        {
+          "data_type": "float",
+          "description": "Float value for latitude coordinate.",
+          "name": "LATITUDE"
+        },
+        {
+          "data_type": "float",
+          "description": "Float value for longitude coordinate.",
+          "name": "LONGITUDE"
+        },
+        {
+          "data_type": "float",
+          "description": "Float value for altitude coordinate.",
+          "name": "ALTITUDE"
+        }
+      ],
+      "url": "http://solettaproject.org/doc/latest/node_types/converter/location-to-float.html"
+    },
+    {
+      "category": "converter",
+      "description": "Receives float packets and converts to location ones.",
+      "in_ports": [
+        {
+          "data_type": "float",
+          "description": "Float value for latitude coordinate.",
+          "methods": {
+            "process": "drange_to_location_convert"
+          },
+          "name": "LATITUDE"
+        },
+        {
+          "data_type": "float",
+          "description": "Float value for longitude coordinate.",
+          "methods": {
+            "process": "drange_to_location_convert"
+          },
+          "name": "LONGITUDE"
+        },
+        {
+          "data_type": "float",
+          "description": "Float value for altitude coordinate.",
+          "methods": {
+            "process": "drange_to_location_convert"
+          },
+          "name": "ALTITUDE"
+        }
+      ],
+      "name": "converter/float-to-location",
+      "out_ports": [
+        {
+          "data_type": "location",
+          "description": "Float values converted to location.",
+          "name": "OUT"
+        }
+      ],
+      "private_data_type": "sol_converter_location",
+      "url": "http://solettaproject.org/doc/latest/node_types/converter/float-to-location.html"
     }
   ]
 }

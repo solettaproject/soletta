@@ -63,6 +63,11 @@ struct sol_converter_direction_vector {
     bool output_initialized[3];
 };
 
+struct sol_converter_location {
+    struct sol_location output_value;
+    bool output_initialized[3];
+};
+
 struct sol_converter_irange_compose {
     unsigned int output_value;
     unsigned char connected_ports : 4;
@@ -2384,6 +2389,60 @@ string_to_json_array_convert(struct sol_flow_node *node, void *data, uint16_t po
     sol_blob_unref(blob);
 
     return ret;
+}
+
+static int
+drange_to_location_convert(struct sol_flow_node *node, void *data, uint16_t port, uint16_t conn_id, const struct sol_flow_packet *packet)
+{
+    struct sol_converter_location *mdata = data;
+    double in_val;
+    unsigned int i;
+    int r;
+
+    r = sol_flow_packet_get_drange_value(packet, &in_val);
+    SOL_INT_CHECK(r, < 0, r);
+
+    mdata->output_initialized[port] = true;
+    if (port == 0) {
+        mdata->output_value.lat = in_val;
+    } else if (port == 1) {
+        mdata->output_value.lon = in_val;
+    } else {
+        mdata->output_value.alt = in_val;
+    }
+
+    for (i = 0; i < sol_util_array_size(mdata->output_initialized); i++) {
+        if (!mdata->output_initialized[i])
+            return 0;
+    }
+
+    return sol_flow_send_location_packet(node,
+        SOL_FLOW_NODE_TYPE_CONVERTER_FLOAT_TO_LOCATION__OUT__OUT,
+        &mdata->output_value);
+}
+
+static int
+location_to_drange_convert(struct sol_flow_node *node, void *data, uint16_t port, uint16_t conn_id, const struct sol_flow_packet *packet)
+{
+    struct sol_location location;
+    int r;
+
+    r = sol_flow_packet_get_location(packet, &location);
+    SOL_INT_CHECK(r, < 0, r);
+
+    r = sol_flow_send_drange_value_packet(node,
+        SOL_FLOW_NODE_TYPE_CONVERTER_LOCATION_TO_FLOAT__OUT__LATITUDE,
+        location.lat);
+    SOL_INT_CHECK(r, < 0, r);
+
+    r = sol_flow_send_drange_value_packet(node,
+        SOL_FLOW_NODE_TYPE_CONVERTER_LOCATION_TO_FLOAT__OUT__LONGITUDE,
+        location.lon);
+    SOL_INT_CHECK(r, < 0, r);
+
+    return sol_flow_send_drange_value_packet(node,
+        SOL_FLOW_NODE_TYPE_CONVERTER_LOCATION_TO_FLOAT__OUT__ALTITUDE,
+        location.alt);
 }
 
 #include "converter-gen.c"

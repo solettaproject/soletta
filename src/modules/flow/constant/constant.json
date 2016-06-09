@@ -227,6 +227,45 @@
         }
       ],
       "url": "http://solettaproject.org/doc/latest/node_types/constant/string.html"
+    },
+    {
+      "category": "constant",
+      "description": "Send an initial location packet with a constant value set via options.",
+      "methods": {
+        "open": "constant_location_open"
+      },
+      "name": "constant/location",
+      "options": {
+        "members": [
+          {
+            "data_type": "float",
+            "default": 0,
+            "description": "Latitude coordinate",
+            "name": "latitude"
+          },
+          {
+            "data_type": "float",
+            "default": 0,
+            "description": "Longitude coordinate",
+            "name": "longitude"
+          },
+          {
+            "data_type": "float",
+            "default": 0,
+            "description": "Altitude coordinate",
+            "name": "altitude"
+          }
+        ],
+        "version": 1
+      },
+      "out_ports": [
+        {
+          "data_type": "location",
+          "description": "Constant value, sent only once, when connected to a node.",
+          "name": "OUT"
+        }
+      ],
+      "url": "http://solettaproject.org/doc/latest/node_types/constant/location.html"
     }
   ]
 }

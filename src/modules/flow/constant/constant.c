@@ -132,4 +132,22 @@ constant_direction_vector_open(struct sol_flow_node *node, void *data, const str
     return 0;
 }
 
+static int
+constant_location_open(struct sol_flow_node *node, void *data, const struct sol_flow_node_options *options)
+{
+    const struct sol_flow_node_type_constant_location_options *opts;
+    struct sol_location location;
+
+    SOL_FLOW_NODE_OPTIONS_SUB_API_CHECK(options,
+        SOL_FLOW_NODE_TYPE_CONSTANT_LOCATION_OPTIONS_API_VERSION, -EINVAL);
+    opts = (const struct sol_flow_node_type_constant_location_options *)options;
+
+    location.lat = opts->latitude;
+    location.lon = opts->longitude;
+    location.alt = opts->altitude;
+
+    return sol_flow_send_location_packet(node,
+        SOL_FLOW_NODE_TYPE_CONSTANT_LOCATION__OUT__OUT, &location);
+}
+
 #include "constant-gen.c"
