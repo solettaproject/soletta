@@ -40,7 +40,7 @@ extern "C" {
  *
  * @brief Memory mapped persistence storage (like NVRAM or EEPROM) API on Soletta.
  *
- * A map must be provided, either directly via @c sol_memmap_add_map or by
+ * A map must be provided, either directly via sol_memmap_add_map() or by
  * informing a JSON file to Soletta runner or generator.
  * This map needs to contain a property @c _version (@c SOL_MEMMAP_VERSION_ENTRY),
  * which will store version of map stored. This API will refuse to work if
@@ -61,7 +61,10 @@ extern "C" {
  * @{
  */
 
-#define SOL_MEMMAP_VERSION_ENTRY "_version" /**< Name of property which contains stored map version */
+/**
+ * @brief Name of property which contains stored map version
+ */
+#define SOL_MEMMAP_VERSION_ENTRY "_version"
 
 /**
  * @brief Macro to declare a @ref sol_memmap_entry variable setting fields
@@ -85,6 +88,13 @@ extern "C" {
 #define SOL_MEMMAP_BOOL_ENTRY(_name, _offset, _bit_offset) \
     SOL_MEMMAP_ENTRY_BIT_SIZE(_name, _offset, 1, _bit_offset, 1)
 
+/**
+ * @struct sol_memmap_map
+ *
+ * @brief Memory map basic struct.
+ *
+ * This struct holds informations about a memory map.
+ */
 struct sol_memmap_map {
     uint8_t version; /**< Version of map. Functions will refuse to read/write on storage if this version and the one storad differs */
     const char *path; /**< Where to find the storage. On Linux, it is
@@ -114,6 +124,13 @@ struct sol_memmap_map {
     const struct sol_str_table_ptr *entries; /**< Entries on map, containing name, offset and size */ /* Memory trick in place, must be last on struct*/
 };
 
+/**
+ * @struct sol_memmap_entry
+ *
+ * @brief A memory map entry.
+ *
+ * @see sol_memmap_map
+ */
 struct sol_memmap_entry {
     size_t offset; /**< Offset of this entry on storage, in bytes. If zero, it will be calculated from previous entry on @c entries array */
     size_t size; /**< Total size of this entry on storage, in bytes. */
@@ -131,14 +148,14 @@ struct sol_memmap_entry {
  * completed.
  *
  * @param name name of property. must be present in one of maps previoulsy
- * added via @c sol_memmap_add_map (if present in more than one,
+ * added via sol_memmap_add_map() (if present in more than one,
  * behaviour is undefined)
  * @param blob blob that will be written, according to its entry on map.
  * @param cb callback to be called when writing finishes. It contains status
  * of writing: if failed, is lesser than zero.
- * @param data user data to be sent to callback @c cb
+ * @param data user data to be sent to callback @a cb
  *
- * return 0 on success, a negative number on failure
+ * return @c 0 on success, a negative number on failure
  */
 int sol_memmap_write_raw(const char *name, struct sol_blob *blob,
     void (*cb)(void *data, const char *name, struct sol_blob *blob, int status),
@@ -148,12 +165,12 @@ int sol_memmap_write_raw(const char *name, struct sol_blob *blob,
  * @brief Read storage contents to buffer.
  *
  * @param name name of property. must be present in one of maps previoulsy
- * added via @c sol_memmap_add_map (if present in more than one,
+ * added via sol_memmap_add_map() (if present in more than one,
  * behaviour is undefined)
  * @param buffer buffer where result will be read into, according to its entry
  * on map.
  *
- * return 0 on success, a negative number on failure
+ * return @c 0 on success, a negative number on failure
  */
 int sol_memmap_read_raw(const char *name, struct sol_buffer *buffer);
 
@@ -165,7 +182,7 @@ int sol_memmap_read_raw(const char *name, struct sol_buffer *buffer);
  *
  * @param map map to be add.
  *
- * @return 0 on success, a negative number on failure.
+ * @return @c 0 on success, a negative number on failure.
  */
 int sol_memmap_add_map(const struct sol_memmap_map *map);
 
@@ -174,7 +191,7 @@ int sol_memmap_add_map(const struct sol_memmap_map *map);
  *
  * @param map map to be removed.
  *
- * @return 0 on success, a negative number on failure.
+ * @return @c 0 on success, a negative number on failure.
  */
 int sol_memmap_remove_map(const struct sol_memmap_map *map);
 
@@ -184,7 +201,7 @@ int sol_memmap_remove_map(const struct sol_memmap_map *map);
  * @param map map to have its timeout changed
  * @param timeout new timeout, in milliseconds.
  *
- * @return 0 on success, a negative number on failure.
+ * @return @c 0 on success, a negative number on failure.
  *
  * @note This change will take effect after current active timer expires.
  * Active ones will remain unchanged
@@ -225,6 +242,16 @@ uint32_t sol_memmap_get_timeout(const struct sol_memmap_map *map);
         return -EINVAL; \
     }
 
+/**
+ * @brief Read an uint8_t contents.
+ *
+ * @param name name of property. must be present in one of maps previoulsy
+ * added via sol_memmap_add_map() (if present in more than one,
+ * behaviour is undefined)
+ * @param value where result will be read into, according to its entry
+ *
+ * return @c 0 on success, a negative number on failure
+ */
 static inline int
 sol_memmap_read_uint8(const char *name, uint8_t *value)
 {
@@ -233,6 +260,24 @@ sol_memmap_read_uint8(const char *name, uint8_t *value)
     return sol_memmap_read_raw(name, &buf);
 }
 
+/**
+ * @brief Writes an uint8_t contents to storage.
+ *
+ * This funcion uses the function sol_memmap_write_raw() internally,
+ * so the same behaviour must be considered.
+ *
+ * @param name name of property. must be present in one of maps previoulsy
+ * added via sol_memmap_add_map() (if present in more than one,
+ * behaviour is undefined)
+ * @param value the variable containing the value to be written.
+ * @param cb callback to be called when writing finishes. It contains status
+ * of writing: if failed, is lesser than zero.
+ * @param data user data to be sent to callback @a cb
+ *
+ * return @c 0 on success, a negative number on failure
+ *
+ * @see sol_memmap_write_raw()
+ */
 static inline int
 sol_memmap_write_uint8(const char *name, uint8_t value,
     void (*cb)(void *data, const char *name, struct sol_blob *blob, int status),
@@ -247,6 +292,16 @@ sol_memmap_write_uint8(const char *name, uint8_t value,
     return r;
 }
 
+/**
+ * @brief Reads a boolean contents.
+ *
+ * @param name name of property. must be present in one of maps previoulsy
+ * added via sol_memmap_add_map() (if present in more than one,
+ * behaviour is undefined)
+ * @param value where result will be read into, according to its entry
+ *
+ * return @c 0 on success, a negative number on failure
+ */
 static inline int
 sol_memmap_read_bool(const char *name, bool *value)
 {
@@ -255,6 +310,24 @@ sol_memmap_read_bool(const char *name, bool *value)
     return sol_memmap_read_raw(name, &buf);
 }
 
+/**
+ * @brief Writes a bool contents to storage.
+ *
+ * This funcion uses the function sol_memmap_write_raw() internally,
+ * so the same behaviour must be considered.
+ *
+ * @param name name of property. must be present in one of maps previoulsy
+ * added via sol_memmap_add_map() (if present in more than one,
+ * behaviour is undefined)
+ * @param value the variable containing the value to be written.
+ * @param cb callback to be called when writing finishes. It contains status
+ * of writing: if failed, is lesser than zero.
+ * @param data user data to be sent to callback @a cb
+ *
+ * return @c 0 on success, a negative number on failure
+ *
+ * @see sol_memmap_write_raw()
+ */
 static inline int
 sol_memmap_write_bool(const char *name, bool value,
     void (*cb)(void *data, const char *name, struct sol_blob *blob, int status),
@@ -269,6 +342,16 @@ sol_memmap_write_bool(const char *name, bool value,
     return r;
 }
 
+/**
+ * @brief Reads an int32_t contents.
+ *
+ * @param name name of property. must be present in one of maps previoulsy
+ * added via sol_memmap_add_map() (if present in more than one,
+ * behaviour is undefined)
+ * @param value where result will be read into, according to its entry
+ *
+ * return @c 0 on success, a negative number on failure
+ */
 static inline int
 sol_memmap_read_int32(const char *name, int32_t *value)
 {
@@ -277,6 +360,24 @@ sol_memmap_read_int32(const char *name, int32_t *value)
     return sol_memmap_read_raw(name, &buf);
 }
 
+/**
+ * @brief Writes an int32_t contents to storage.
+ *
+ * This funcion uses the function sol_memmap_write_raw() internally,
+ * so the same behaviour must be considered.
+ *
+ * @param name name of property. must be present in one of maps previoulsy
+ * added via sol_memmap_add_map() (if present in more than one,
+ * behaviour is undefined)
+ * @param value the variable containing the value to be written.
+ * @param cb callback to be called when writing finishes. It contains status
+ * of writing: if failed, is lesser than zero.
+ * @param data user data to be sent to callback @a cb
+ *
+ * return @c 0 on success, a negative number on failure
+ *
+ * @see sol_memmap_write_raw()
+ */
 static inline int
 sol_memmap_write_int32(const char *name, int32_t value,
     void (*cb)(void *data, const char *name, struct sol_blob *blob, int status),
@@ -291,6 +392,18 @@ sol_memmap_write_int32(const char *name, int32_t value,
     return r;
 }
 
+/**
+ * @brief Reads an irange content.
+ *
+ * @param name name of property. must be present in one of maps previoulsy
+ * added via sol_memmap_add_map() (if present in more than one,
+ * behaviour is undefined)
+ * @param value where result will be read into, according to its entry
+ *
+ * return @c 0 on success, a negative number on failure
+ *
+ * @ref sol_irange
+ */
 static inline int
 sol_memmap_read_irange(const char *name, struct sol_irange *value)
 {
@@ -299,6 +412,25 @@ sol_memmap_read_irange(const char *name, struct sol_irange *value)
     return sol_memmap_read_raw(name, &buf);
 }
 
+/**
+ * @brief Writes an irange contents to storage.
+ *
+ * This funcion uses the function sol_memmap_write_raw() internally,
+ * so the same behaviour must be considered.
+ *
+ * @param name name of property. must be present in one of maps previoulsy
+ * added via sol_memmap_add_map() (if present in more than one,
+ * behaviour is undefined)
+ * @param value the variable containing the value to be written.
+ * @param cb callback to be called when writing finishes. It contains status
+ * of writing: if failed, is lesser than zero.
+ * @param data user data to be sent to callback @a cb
+ *
+ * return @c 0 on success, a negative number on failure
+ *
+ * @see sol_memmap_write_raw()
+ * @ref sol_irange
+ */
 static inline int
 sol_memmap_write_irange(const char *name, struct sol_irange *value,
     void (*cb)(void *data, const char *name, struct sol_blob *blob, int status),
@@ -313,6 +445,18 @@ sol_memmap_write_irange(const char *name, struct sol_irange *value,
     return r;
 }
 
+/**
+ * @brief Reads a drange contents.
+ *
+ * @param name name of property. must be present in one of maps previoulsy
+ * added via sol_memmap_add_map() (if present in more than one,
+ * behaviour is undefined)
+ * @param value where result will be read into, according to its entry
+ *
+ * return @c 0 on success, a negative number on failure
+ *
+ * @ref sol_drange
+ */
 static inline int
 sol_memmap_read_drange(const char *name, struct sol_drange *value)
 {
@@ -321,6 +465,25 @@ sol_memmap_read_drange(const char *name, struct sol_drange *value)
     return sol_memmap_read_raw(name, &buf);
 }
 
+/**
+ * @brief Writes an drange contents to storage.
+ *
+ * This funcion uses the function sol_memmap_write_raw() internally,
+ * so the same behaviour must be considered.
+ *
+ * @param name name of property. must be present in one of maps previoulsy
+ * added via sol_memmap_add_map() (if present in more than one,
+ * behaviour is undefined)
+ * @param value the variable containing the value to be written.
+ * @param cb callback to be called when writing finishes. It contains status
+ * of writing: if failed, is lesser than zero.
+ * @param data user data to be sent to callback @a cb
+ *
+ * return @c 0 on success, a negative number on failure
+ *
+ * @see sol_memmap_write_raw()
+ * @ref sol_drange
+ */
 static inline int
 sol_memmap_write_drange(const char *name, struct sol_drange *value,
     void (*cb)(void *data, const char *name, struct sol_blob *blob, int status),
@@ -335,6 +498,16 @@ sol_memmap_write_drange(const char *name, struct sol_drange *value,
     return r;
 }
 
+/**
+ * @brief Reads a double contents.
+ *
+ * @param name name of property. must be present in one of maps previoulsy
+ * added via sol_memmap_add_map() (if present in more than one,
+ * behaviour is undefined)
+ * @param value where result will be read into, according to its entry
+ *
+ * return @c 0 on success, a negative number on failure
+ */
 static inline int
 sol_memmap_read_double(const char *name, double *value)
 {
@@ -343,6 +516,24 @@ sol_memmap_read_double(const char *name, double *value)
     return sol_memmap_read_raw(name, &buf);
 }
 
+/**
+ * @brief Writes a double contents to storage.
+ *
+ * This funcion uses the function sol_memmap_write_raw() internally,
+ * so the same behaviour must be considered.
+ *
+ * @param name name of property. must be present in one of maps previoulsy
+ * added via sol_memmap_add_map() (if present in more than one,
+ * behaviour is undefined)
+ * @param value the variable containing the value to be written.
+ * @param cb callback to be called when writing finishes. It contains status
+ * of writing: if failed, is lesser than zero.
+ * @param data user data to be sent to callback @a cb
+ *
+ * return @c 0 on success, a negative number on failure
+ *
+ * @see sol_memmap_write_raw()
+ */
 static inline int
 sol_memmap_write_double(const char *name, double value,
     void (*cb)(void *data, const char *name, struct sol_blob *blob, int status),
@@ -357,6 +548,16 @@ sol_memmap_write_double(const char *name, double value,
     return r;
 }
 
+/**
+ * @brief Reads a string contents.
+ *
+ * @param name name of property. must be present in one of maps previoulsy
+ * added via sol_memmap_add_map() (if present in more than one,
+ * behaviour is undefined)
+ * @param value where result will be read into, according to its entry
+ *
+ * return @c 0 on success, a negative number on failure
+ */
 static inline int
 sol_memmap_read_string(const char *name, char **value)
 {
@@ -374,6 +575,24 @@ sol_memmap_read_string(const char *name, char **value)
     return 0;
 }
 
+/**
+ * @brief Writes a string contents to storage.
+ *
+ * This funcion uses the function sol_memmap_write_raw() internally,
+ * so the same behaviour must be considered.
+ *
+ * @param name name of property. must be present in one of maps previoulsy
+ * added via sol_memmap_add_map() (if present in more than one,
+ * behaviour is undefined)
+ * @param value the variable containing the value to be written.
+ * @param cb callback to be called when writing finishes. It contains status
+ * of writing: if failed, is lesser than zero.
+ * @param data user data to be sent to callback @a cb
+ *
+ * return @c 0 on success, a negative number on failure
+ *
+ * @see sol_memmap_write_raw()
+ */
 static inline int
 sol_memmap_write_string(const char *name, const char *value,
     void (*cb)(void *data, const char *name, struct sol_blob *blob, int status),
