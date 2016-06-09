@@ -101,7 +101,7 @@ enum sol_json_type {
  * when what was parsed doesn't match the requirements provided through 'loop'
  * parameters.
  */
-enum sol_json_loop_reason {
+enum sol_json_loop_status {
     SOL_JSON_LOOP_REASON_OK = 0, /**< @brief Content successfully parsed. */
     SOL_JSON_LOOP_REASON_INVALID /**< @brief Failed to parse the content. */
 };
@@ -110,17 +110,17 @@ enum sol_json_loop_reason {
  * @brief Helper macro to iterate over the elements of a @b nested array in a JSON document
  *
  * When iterating over nested objects and arrays, you don't want to call
- * @ref sol_json_loop_helper_init, that is why you need to use this macro for
+ * @ref sol_json_loop_iterate_init, that is why you need to use this macro for
  * nested stuff.
  *
  * @param scanner_ JSON scanner
  * @param token_ Current token on each iteration
  * @param element_type_ Token type of the elements in the array
- * @param end_reason_ Loop exit status
+ * @param status_ Loop exit status
  */
-#define SOL_JSON_SCANNER_ARRAY_LOOP_NEST(scanner_, token_, element_type_, end_reason_) \
-    for (end_reason_ = SOL_JSON_LOOP_REASON_OK; \
-        sol_json_loop_helper_array(scanner_, token_, &end_reason_, element_type_);)
+#define SOL_JSON_SCANNER_ARRAY_LOOP_TYPE_NESTED(scanner_, token_, element_type_, status_) \
+    for (status_ = SOL_JSON_LOOP_REASON_OK; \
+        sol_json_loop_iterate_array(scanner_, token_, &status_, element_type_);)
 
 /**
  * @brief Helper macro to iterate over the elements of an array in a JSON document
@@ -128,29 +128,29 @@ enum sol_json_loop_reason {
  * @param scanner_ JSON scanner
  * @param token_ Current token on each iteration
  * @param element_type_ Token type of the elements in the array
- * @param end_reason_ Loop exit status
+ * @param status_ Loop exit status
  *
  * @see sol_json_scanner_init
  */
-#define SOL_JSON_SCANNER_ARRAY_LOOP(scanner_, token_, element_type_, end_reason_) \
-    for (end_reason_ = sol_json_loop_helper_init(scanner_, token_, SOL_JSON_TYPE_ARRAY_START); \
-        sol_json_loop_helper_array(scanner_, token_, &end_reason_, element_type_);)
+#define SOL_JSON_SCANNER_ARRAY_LOOP_TYPE(scanner_, token_, element_type_, status_) \
+    for (status_ = sol_json_loop_iterate_init(scanner_, token_, SOL_JSON_TYPE_ARRAY_START); \
+        sol_json_loop_iterate_array(scanner_, token_, &status_, element_type_);)
 
 /**
  * @brief Helper macro to iterate over the elements of a @b nested array in a JSON document,
  * ignoring the elements type.
  *
  * When iterating over nested objects and arrays, you don't want to call
- * @ref sol_json_loop_helper_init, that is why you need to use this macro for
+ * @ref sol_json_loop_iterate_init, that is why you need to use this macro for
  * nested stuff.
  *
  * @param scanner_ JSON scanner
  * @param token_ Current token on each iteration
- * @param end_reason_ Loop exit status
+ * @param status_ Loop exit status
  */
-#define SOL_JSON_SCANNER_ARRAY_LOOP_ALL_NEST(scanner_, token_, end_reason_) \
-    for (end_reason_ = SOL_JSON_LOOP_REASON_OK; \
-        sol_json_loop_helper_generic(scanner_, token_, SOL_JSON_TYPE_ARRAY_END, &end_reason_);)
+#define SOL_JSON_SCANNER_ARRAY_LOOP_NESTED(scanner_, token_, status_) \
+    for (status_ = SOL_JSON_LOOP_REASON_OK; \
+        sol_json_loop_iterate_generic(scanner_, token_, SOL_JSON_TYPE_ARRAY_END, &status_);)
 
 /**
  * @brief Helper macro to iterate over the elements an array in a JSON document,
@@ -158,28 +158,28 @@ enum sol_json_loop_reason {
  *
  * @param scanner_ JSON scanner
  * @param token_ Current token on each iteration
- * @param end_reason_ Loop exit status
+ * @param status_ Loop exit status
  */
-#define SOL_JSON_SCANNER_ARRAY_LOOP_ALL(scanner_, token_, end_reason_) \
-    for (end_reason_ = sol_json_loop_helper_init(scanner_, token_, SOL_JSON_TYPE_ARRAY_START); \
-        sol_json_loop_helper_generic(scanner_, token_, SOL_JSON_TYPE_ARRAY_END, &end_reason_);)
+#define SOL_JSON_SCANNER_ARRAY_LOOP(scanner_, token_, status_) \
+    for (status_ = sol_json_loop_iterate_init(scanner_, token_, SOL_JSON_TYPE_ARRAY_START); \
+        sol_json_loop_iterate_generic(scanner_, token_, SOL_JSON_TYPE_ARRAY_END, &status_);)
 
 /**
  * @brief Helper macro to iterate over the elements of a @b nested object in a JSON document
  *
  * When iterating over nested objects and arrays, you don't want to call
- * @ref sol_json_loop_helper_init, that is why you need to use this macro for
+ * @ref sol_json_loop_iterate_init, that is why you need to use this macro for
  * nested stuff.
  *
  * @param scanner_ JSON scanner
  * @param token_ Current token on each iteration
  * @param key_ Token to the current pair's key on each iteration
  * @param value_ Token to the current pair's value on each iteration
- * @param end_reason_ Loop exit status
+ * @param status_ Loop exit status
  */
-#define SOL_JSON_SCANNER_OBJECT_LOOP_NEST(scanner_, token_, key_, value_, end_reason_) \
-    for (end_reason_ = SOL_JSON_LOOP_REASON_OK; \
-        sol_json_loop_helper_object(scanner_, token_, key_, value_, &end_reason_);)
+#define SOL_JSON_SCANNER_OBJECT_LOOP_NESTED(scanner_, token_, key_, value_, status_) \
+    for (status_ = SOL_JSON_LOOP_REASON_OK; \
+        sol_json_loop_iterate_object(scanner_, token_, key_, value_, &status_);)
 
 /**
  * @brief Helper macro to iterate over the elements of an object in a JSON document
@@ -188,13 +188,13 @@ enum sol_json_loop_reason {
  * @param token_ Current token on each iteration
  * @param key_ Token to the current pair's key on each iteration
  * @param value_ Token to the current pair's value on each iteration
- * @param end_reason_ Loop exit status
+ * @param status_ Loop exit status
  *
  * @see sol_json_scanner_init
  */
-#define SOL_JSON_SCANNER_OBJECT_LOOP(scanner_, token_, key_, value_, end_reason_) \
-    for (end_reason_ = sol_json_loop_helper_init(scanner_, token_, SOL_JSON_TYPE_OBJECT_START); \
-        sol_json_loop_helper_object(scanner_, token_, key_, value_, &end_reason_);)
+#define SOL_JSON_SCANNER_OBJECT_LOOP(scanner_, token_, key_, value_, status_) \
+    for (status_ = sol_json_loop_iterate_init(scanner_, token_, SOL_JSON_TYPE_OBJECT_START); \
+        sol_json_loop_iterate_object(scanner_, token_, key_, value_, &status_);)
 
 /**
  * @brief Initializes a JSON scanner.
@@ -206,7 +206,7 @@ enum sol_json_loop_reason {
  * @note May or may not be NULL terminated.
  */
 static inline void
-sol_json_scanner_init(struct sol_json_scanner *scanner, const void *mem, unsigned int size)
+sol_json_scanner_init(struct sol_json_scanner *scanner, const void *mem, size_t size)
 {
     scanner->mem = (const char *)mem;
     scanner->mem_end = scanner->mem + size;
@@ -292,7 +292,7 @@ sol_json_scanner_init_from_token(struct sol_json_scanner *scanner,
  *
  * @return Remaining size in bytes
  */
-static inline unsigned int
+static inline size_t
 sol_json_scanner_get_size_remaining(const struct sol_json_scanner *scanner)
 {
     return scanner->mem_end - scanner->current;
@@ -308,13 +308,13 @@ sol_json_scanner_get_size_remaining(const struct sol_json_scanner *scanner)
  *
  * @return Offset in bytes, @c -1 in case of error.
  */
-static inline unsigned int
+static inline size_t
 sol_json_scanner_get_mem_offset(const struct sol_json_scanner *scanner, const void *mem)
 {
     const char *p = (const char *)mem;
 
     if (p < scanner->mem || p > scanner->mem_end)
-        return (unsigned int)-1;
+        return (size_t)-1;
     return p - scanner->mem;
 }
 
@@ -357,7 +357,7 @@ sol_json_token_get_type(const struct sol_json_token *token)
  *
  * @return Token size in bytes
  */
-static inline unsigned int
+static inline size_t
 sol_json_token_get_size(const struct sol_json_token *token)
 {
     return token->end - token->start;
@@ -376,9 +376,9 @@ sol_json_token_get_size(const struct sol_json_token *token)
  * to compare compatible strings.
  */
 static inline bool
-sol_json_token_str_eq(const struct sol_json_token *token, const char *str, unsigned int len)
+sol_json_token_str_eq(const struct sol_json_token *token, const char *str, size_t len)
 {
-    unsigned int size;
+    size_t size;
 
     assert(sol_json_token_get_type(token) == SOL_JSON_TYPE_STRING);
 
@@ -554,7 +554,7 @@ bool sol_json_scanner_next(struct sol_json_scanner *scanner,
  *
  * @return @c true if successfully skipped the token, @c false otherwise
  */
-bool sol_json_scanner_skip_over(struct sol_json_scanner *scanner,
+bool sol_json_scanner_skip(struct sol_json_scanner *scanner,
     struct sol_json_token *token) SOL_ATTR_WARN_UNUSED_RESULT SOL_ATTR_NON_NULL(1, 2);
 
 /**
@@ -583,8 +583,8 @@ bool sol_json_scanner_get_dict_pair(struct sol_json_scanner *scanner,
  * @return @c true if successfully iterated over the sequence, @c false otherwise
  */
 static inline bool
-sol_json_loop_helper_generic(struct sol_json_scanner *scanner, struct sol_json_token *token,
-    enum sol_json_type end_type, enum sol_json_loop_reason *reason)
+sol_json_loop_iterate_generic(struct sol_json_scanner *scanner, struct sol_json_token *token,
+    enum sol_json_type end_type, enum sol_json_loop_status *reason)
 {
     if (*reason != SOL_JSON_LOOP_REASON_OK)
         return false;
@@ -620,10 +620,10 @@ sol_json_loop_helper_generic(struct sol_json_scanner *scanner, struct sol_json_t
  * @return @c true if successfully iterated over the sequence, @c false otherwise
  */
 static inline bool
-sol_json_loop_helper_array(struct sol_json_scanner *scanner, struct sol_json_token *token,
-    enum sol_json_loop_reason *reason, enum sol_json_type element_type)
+sol_json_loop_iterate_array(struct sol_json_scanner *scanner, struct sol_json_token *token,
+    enum sol_json_loop_status *reason, enum sol_json_type element_type)
 {
-    if (!sol_json_loop_helper_generic(scanner, token, SOL_JSON_TYPE_ARRAY_END, reason))
+    if (!sol_json_loop_iterate_generic(scanner, token, SOL_JSON_TYPE_ARRAY_END, reason))
         return false;
 
     if (sol_json_token_get_type(token) == element_type) {
@@ -647,10 +647,10 @@ sol_json_loop_helper_array(struct sol_json_scanner *scanner, struct sol_json_tok
  * @return @c true if successfully iterated over the sequence, @c false otherwise
  */
 static inline bool
-sol_json_loop_helper_object(struct sol_json_scanner *scanner, struct sol_json_token *token,
-    struct sol_json_token *key, struct sol_json_token *value, enum sol_json_loop_reason *reason)
+sol_json_loop_iterate_object(struct sol_json_scanner *scanner, struct sol_json_token *token,
+    struct sol_json_token *key, struct sol_json_token *value, enum sol_json_loop_status *reason)
 {
-    if (!sol_json_loop_helper_generic(scanner, token, SOL_JSON_TYPE_OBJECT_END, reason))
+    if (!sol_json_loop_iterate_generic(scanner, token, SOL_JSON_TYPE_OBJECT_END, reason))
         return false;
 
     *key = *token;
@@ -672,8 +672,8 @@ sol_json_loop_helper_object(struct sol_json_scanner *scanner, struct sol_json_to
  *
  * @return Exit status of the initialization
  */
-static inline enum sol_json_loop_reason
-sol_json_loop_helper_init(struct sol_json_scanner *scanner, struct sol_json_token *token,
+static inline enum sol_json_loop_status
+sol_json_loop_iterate_init(struct sol_json_scanner *scanner, struct sol_json_token *token,
     enum sol_json_type start_type)
 {
     if (!sol_json_scanner_next(scanner, token))
@@ -995,7 +995,7 @@ int sol_json_path_scanner_init(struct sol_json_path_scanner *scanner, struct sol
  * @param scanner An initialized JSON Path scanner.
  * @param slice A pointer to the slicer structure to be filled with next
  *        JSON Path segment.
- * @param end_reason A pointer to the field to be filled with the reason this
+ * @param status A pointer to the field to be filled with the reason this
  *        function termination. SOL_JSON_LOOP_REASON_INVALID if an error
  *        occurred when parsing the JSON Path. SOL_JSON_LOOP_REASON_OK if the
  *        next segment was updated in @a slice or if there is no more segments
@@ -1004,7 +1004,7 @@ int sol_json_path_scanner_init(struct sol_json_path_scanner *scanner, struct sol
  * @return True if next segment was updated in @a value. False if an error
  *         occurred or if there is no more segments available.
  */
-bool sol_json_path_get_next_segment(struct sol_json_path_scanner *scanner, struct sol_str_slice *slice, enum sol_json_loop_reason *end_reason) SOL_ATTR_NON_NULL(1, 2, 3);
+bool sol_json_path_get_next_segment(struct sol_json_path_scanner *scanner, struct sol_str_slice *slice, enum sol_json_loop_status *status) SOL_ATTR_NON_NULL(1, 2, 3);
 
 /**
  * @brief Get the integer index from a JSON Path array segment.
@@ -1042,7 +1042,7 @@ sol_json_path_is_array_key(struct sol_str_slice slice)
 }
 
 /**
- * @def SOL_JSON_PATH_FOREACH(scanner, key, end_reason)
+ * @def SOL_JSON_PATH_FOREACH(scanner, key, status)
  *
  * @brief Go through all segments of a JSON Path.
  *
@@ -1053,7 +1053,7 @@ sol_json_path_is_array_key(struct sol_str_slice slice)
  * @param scanner An initialized struct sol_json_path_scanner.
  * @param key A pointer to struct sol_str_slice, that is going to be filled
  *        with the current key being visited.
- * @param end_reason A pointer to the field to be filled with the reason this
+ * @param status A pointer to the field to be filled with the reason this
  *        macro termination. SOL_JSON_LOOP_REASON_INVALID if an error
  *        occurred when parsing the JSON Path. SOL_JSON_LOOP_REASON_OK if
  *        we reached the end of the JSON Path.
@@ -1063,7 +1063,7 @@ sol_json_path_is_array_key(struct sol_str_slice slice)
  *
  * const char *path = "$.my_key[3].other_key"; //Replace path here
  * struct sol_json_path_scanner path_scanner;
- * enum sol_json_loop_reason reason;
+ * enum sol_json_loop_status reason;
  * struct sol_str_slice key_slice;
  *
  * sol_json_path_scanner_init(&path_scanner, path);
@@ -1072,7 +1072,7 @@ sol_json_path_is_array_key(struct sol_str_slice slice)
  *     //Do something else
  * }
  *
- * if (end_reason != SOL_JSON_LOOP_REASON_OK) {
+ * if (status != SOL_JSON_LOOP_REASON_OK) {
  *     //Error Handling
  * }
  *
@@ -1085,9 +1085,9 @@ sol_json_path_is_array_key(struct sol_str_slice slice)
  * other_key
  * @endcode
  */
-#define SOL_JSON_PATH_FOREACH(scanner, key, end_reason) \
-    for (end_reason = SOL_JSON_LOOP_REASON_OK; \
-        sol_json_path_get_next_segment(&scanner, &key_slice, &end_reason);)
+#define SOL_JSON_PATH_FOREACH(scanner, key, status) \
+    for (status = SOL_JSON_LOOP_REASON_OK; \
+        sol_json_path_get_next_segment(&scanner, &key_slice, &status);)
 
 /**
  * @}

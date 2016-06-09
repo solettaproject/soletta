@@ -109,10 +109,10 @@ _parse_regex_array(struct sol_json_token *array, struct sol_vector *vector)
 {
     struct sol_json_scanner scanner;
     struct sol_json_token *token;
-    enum sol_json_loop_reason reason;
+    enum sol_json_loop_status reason;
 
     sol_json_scanner_init_from_token(&scanner, array);
-    SOL_JSON_SCANNER_ARRAY_LOOP (&scanner, array, SOL_JSON_TYPE_STRING, reason) {
+    SOL_JSON_SCANNER_ARRAY_LOOP_TYPE (&scanner, array, SOL_JSON_TYPE_STRING, reason) {
         token = sol_vector_append(vector);
         SOL_NULL_CHECK(token, -errno);
         *token = *array;
@@ -129,18 +129,18 @@ _board_validation(const struct sol_json_token *validation)
     struct sol_vector match, dont_match;
     struct sol_json_scanner scanner;
     struct sol_json_token token, key, value, file_path;
-    enum sol_json_loop_reason reason;
+    enum sol_json_loop_status reason;
 
     sol_vector_init(&match, sizeof(struct sol_json_token));
     sol_vector_init(&dont_match, sizeof(struct sol_json_token));
     sol_json_scanner_init_from_token(&scanner, validation);
 
-    SOL_JSON_SCANNER_ARRAY_LOOP (&scanner, &token, SOL_JSON_TYPE_OBJECT_START, reason) {
+    SOL_JSON_SCANNER_ARRAY_LOOP_TYPE (&scanner, &token, SOL_JSON_TYPE_OBJECT_START, reason) {
         file_path = (struct sol_json_token) {NULL, NULL };
         sol_vector_clear(&match);
         sol_vector_clear(&dont_match);
 
-        SOL_JSON_SCANNER_OBJECT_LOOP_NEST (&scanner, &token, &key, &value, reason) {
+        SOL_JSON_SCANNER_OBJECT_LOOP_NESTED (&scanner, &token, &key, &value, reason) {
             if (SOL_JSON_TOKEN_STR_LITERAL_EQ(&key, "file_path")) {
                 if (sol_json_token_get_type(&value) != SOL_JSON_TYPE_STRING)
                     continue;
@@ -227,7 +227,7 @@ _process_file(const char *path)
     struct sol_file_reader *json_doc;
     struct sol_json_scanner scanner;
     struct sol_json_token token, key, value, board_name = { NULL };
-    enum sol_json_loop_reason reason;
+    enum sol_json_loop_status reason;
 
     json_doc = _json_open_doc(path, &scanner);
     if (!json_doc) {
@@ -245,11 +245,11 @@ _process_file(const char *path)
         goto end;
 
     sol_json_scanner_init_from_token(&scanner, &value);
-    SOL_JSON_SCANNER_ARRAY_LOOP (&scanner, &token, SOL_JSON_TYPE_OBJECT_START, reason) {
+    SOL_JSON_SCANNER_ARRAY_LOOP_TYPE (&scanner, &token, SOL_JSON_TYPE_OBJECT_START, reason) {
         board_name = (struct sol_json_token) {NULL, NULL };
         found = false;
 
-        SOL_JSON_SCANNER_OBJECT_LOOP_NEST (&scanner, &token, &key, &value, reason) {
+        SOL_JSON_SCANNER_OBJECT_LOOP_NESTED (&scanner, &token, &key, &value, reason) {
             if (SOL_JSON_TOKEN_STR_LITERAL_EQ(&key, "name")) {
                 if (sol_json_token_get_type(&value) != SOL_JSON_TYPE_STRING)
                     continue;

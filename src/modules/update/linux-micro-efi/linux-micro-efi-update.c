@@ -320,7 +320,7 @@ fill_metadata_fields(const struct sol_buffer *meta, char **hash,
 {
     struct sol_json_scanner scanner;
     struct sol_json_token token, key, value;
-    enum sol_json_loop_reason reason;
+    enum sol_json_loop_status reason;
 
     sol_json_scanner_init(&scanner, meta->data, meta->used);
     SOL_JSON_SCANNER_OBJECT_LOOP (&scanner, &token, &key, &value, reason) {

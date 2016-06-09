@@ -56,7 +56,7 @@ metadata_to_update_info(const struct sol_buffer *metadata,
 {
     struct sol_json_scanner scanner;
     struct sol_json_token token, key, value;
-    enum sol_json_loop_reason reason;
+    enum sol_json_loop_status reason;
 
     response->version = NULL;
 

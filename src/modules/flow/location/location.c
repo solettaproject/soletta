@@ -43,7 +43,7 @@ freegeoip_query_finished(void *data,
     struct freegeoip_data *mdata = data;
     struct sol_json_scanner scanner;
     struct sol_json_token token, key, value;
-    enum sol_json_loop_reason reason;
+    enum sol_json_loop_status reason;
     struct sol_location location = {
         .lat = FP_NAN,
         .lon = FP_NAN,

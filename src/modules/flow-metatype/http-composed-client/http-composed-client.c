@@ -298,10 +298,10 @@ http_composed_client_request_finished(void *data,
     if (streq(response->content_type, "application/json")) {
         struct sol_json_scanner scanner;
         struct sol_json_token token;
-        enum sol_json_loop_reason reason;
+        enum sol_json_loop_status reason;
 
         sol_json_scanner_init(&scanner, response->content.data, response->content.used);
-        SOL_JSON_SCANNER_ARRAY_LOOP_ALL(&scanner, &token, reason) {
+        SOL_JSON_SCANNER_ARRAY_LOOP(&scanner, &token, reason) {
             struct http_composed_client_port_in *in = sol_vector_get(&ntype->ports_in, i);
 
             SOL_NULL_CHECK_GOTO(in, err);

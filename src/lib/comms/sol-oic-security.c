@@ -183,12 +183,12 @@ creds_add_json_token(struct creds *creds, struct sol_json_scanner *scanner,
     struct sol_json_token *token)
 {
     struct sol_json_token key, value;
-    enum sol_json_loop_reason reason;
+    enum sol_json_loop_status reason;
     struct sol_str_slice psk = SOL_STR_SLICE_EMPTY;
     struct sol_str_slice id = SOL_STR_SLICE_EMPTY;
     struct sol_buffer id_buf, psk_buf;
 
-    SOL_JSON_SCANNER_OBJECT_LOOP_NEST (scanner, token, &key, &value, reason) {
+    SOL_JSON_SCANNER_OBJECT_LOOP_NESTED (scanner, token, &key, &value, reason) {
         if (SOL_JSON_TOKEN_STR_LITERAL_EQ(&key, "id")) {
             id = remove_quotes(sol_json_token_to_slice(&value));
         } else if (SOL_JSON_TOKEN_STR_LITERAL_EQ(&key, "psk")) {
@@ -252,7 +252,7 @@ creds_init(const void *data)
     struct creds *creds;
     struct sol_json_scanner scanner;
     struct sol_json_token token;
-    enum sol_json_loop_reason reason;
+    enum sol_json_loop_status reason;
     char *file_data;
     size_t length;
     char file_name[256];
@@ -271,7 +271,7 @@ creds_init(const void *data)
         return creds;
 
     sol_json_scanner_init(&scanner, file_data, length);
-    SOL_JSON_SCANNER_ARRAY_LOOP (&scanner, &token, SOL_JSON_TYPE_OBJECT_START, reason) {
+    SOL_JSON_SCANNER_ARRAY_LOOP_TYPE (&scanner, &token, SOL_JSON_TYPE_OBJECT_START, reason) {
         if (!creds_add_json_token(creds, &scanner, &token)) {
             creds_clear(creds);
             creds = NULL;

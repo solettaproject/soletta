@@ -156,9 +156,9 @@
     "    if (!strcmp(response->content_type, \"application/json\")) {\n" \
     "        struct sol_json_scanner scanner;\n" \
     "        struct sol_json_token token;\n" \
-    "        enum sol_json_loop_reason reason;\n" \
+    "        enum sol_json_loop_status reason;\n" \
     "        sol_json_scanner_init(&scanner, response->content.data, response->content.used);\n" \
-    "        SOL_JSON_SCANNER_ARRAY_LOOP_ALL(&scanner, &token, reason) {\n" \
+    "        SOL_JSON_SCANNER_ARRAY_LOOP(&scanner, &token, reason) {\n" \
     "            struct http_composed_client_port_in *in =\n" \
     "                (struct http_composed_client_port_in *)ntype->get_port_in(ntype, i);\n" \
     "            SOL_NULL_CHECK_GOTO(in, err);\n" \

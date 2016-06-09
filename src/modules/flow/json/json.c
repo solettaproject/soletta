@@ -75,7 +75,7 @@ create_sub_json(struct sol_blob *parent, struct sol_json_scanner *scanner, struc
             token->end - token->start);
 
     mem = token->start;
-    if (!sol_json_scanner_skip_over(scanner, token))
+    if (!sol_json_scanner_skip(scanner, token))
         return NULL;
 
     if (sol_json_token_get_type(token) != type) {
@@ -264,7 +264,7 @@ json_object_length_process(struct sol_flow_node *node, void *data, uint16_t port
     int r;
     struct sol_blob *in_value;
     struct sol_json_scanner scanner;
-    enum sol_json_loop_reason reason;
+    enum sol_json_loop_status reason;
     struct sol_json_token token, key, value;
     struct sol_irange len = { 0, 0, INT32_MAX, 1 };
 
@@ -289,7 +289,7 @@ json_object_get_all_keys_process(struct sol_flow_node *node, void *data, uint16_
     int r;
     struct sol_blob *in_value;
     struct sol_json_scanner scanner;
-    enum sol_json_loop_reason reason;
+    enum sol_json_loop_status reason;
     struct sol_json_token token, key, value;
     struct sol_buffer buffer;
     bool empty = true;
@@ -411,7 +411,7 @@ json_array_length_process(struct sol_flow_node *node, void *data, uint16_t port,
     int r;
     struct sol_blob *in_value;
     struct sol_json_scanner scanner;
-    enum sol_json_loop_reason reason;
+    enum sol_json_loop_status reason;
     struct sol_json_token token;
     struct sol_irange len = { 0, 0, INT32_MAX, 1 };
 
@@ -419,8 +419,8 @@ json_array_length_process(struct sol_flow_node *node, void *data, uint16_t port,
     SOL_INT_CHECK(r, < 0, r);
 
     sol_json_scanner_init(&scanner, in_value->mem, in_value->size);
-    SOL_JSON_SCANNER_ARRAY_LOOP_ALL(&scanner, &token, reason) {
-        if (!sol_json_scanner_skip_over(&scanner, &token))
+    SOL_JSON_SCANNER_ARRAY_LOOP(&scanner, &token, reason) {
+        if (!sol_json_scanner_skip(&scanner, &token))
             return -EINVAL;
 
         if (len.val == INT32_MAX)
@@ -438,7 +438,7 @@ json_array_get_all_elements_process(struct sol_flow_node *node, void *data, uint
     int r;
     struct sol_blob *json_array;
     struct sol_json_scanner scanner;
-    enum sol_json_loop_reason reason;
+    enum sol_json_loop_status reason;
     struct sol_json_token token;
     bool empty = true;
 
@@ -446,7 +446,7 @@ json_array_get_all_elements_process(struct sol_flow_node *node, void *data, uint
     SOL_INT_CHECK(r, < 0, r);
 
     sol_json_scanner_init(&scanner, json_array->mem, json_array->size);
-    SOL_JSON_SCANNER_ARRAY_LOOP_ALL(&scanner, &token, reason) {
+    SOL_JSON_SCANNER_ARRAY_LOOP(&scanner, &token, reason) {
         r = send_token_packet(node, &scanner, json_array, &token);
         SOL_INT_CHECK(r, < 0, r);
         empty = false;
@@ -801,15 +801,15 @@ json_element_parse_array(struct sol_json_token *token, struct json_element *elem
     struct sol_json_scanner scanner;
     struct sol_json_token child_token;
     struct json_element *new;
-    enum sol_json_loop_reason reason;
+    enum sol_json_loop_status reason;
     int r;
 
     init_json_array_element(element);
 
     sol_json_scanner_init(&scanner, token->start, token->end - token->start);
-    SOL_JSON_SCANNER_ARRAY_LOOP_ALL(&scanner, token, reason) {
+    SOL_JSON_SCANNER_ARRAY_LOOP(&scanner, token, reason) {
         child_token.start = token->start;
-        if (!sol_json_scanner_skip_over(&scanner, token))
+        if (!sol_json_scanner_skip(&scanner, token))
             goto error_json;
 
         child_token.end = token->end;
@@ -836,7 +836,7 @@ json_element_parse_object(struct sol_json_token *token, struct json_element *ele
     struct sol_json_scanner scanner;
     struct sol_json_token key, value;
     struct json_key_element *new;
-    enum sol_json_loop_reason reason;
+    enum sol_json_loop_status reason;
     int r = 0;
 
     init_json_object_element(element);
@@ -956,7 +956,7 @@ static int
 json_path_add_new_element(struct sol_flow_node *node, struct json_element *base_element, const char *key, struct json_element *new_element)
 {
     struct sol_json_path_scanner path_scanner;
-    enum sol_json_loop_reason reason;
+    enum sol_json_loop_status reason;
     struct sol_str_slice key_slice = SOL_STR_SLICE_EMPTY;
     struct json_element *cur_element;
     struct json_key_element *key_element;

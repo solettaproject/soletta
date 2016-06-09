@@ -114,11 +114,11 @@
     "    uint16_t i = 0;\n" \
     "    struct sol_json_scanner scanner;\n" \
     "    struct sol_json_token token;\n" \
-    "    enum sol_json_loop_reason reason;\n" \
+    "    enum sol_json_loop_status reason;\n" \
     "    struct http_composed_server_data *hdata = sol_flow_node_get_private_data(node);\n" \
     "    const struct sol_flow_node_type *type = sol_flow_node_get_type(node);\n" \
     "    sol_json_scanner_init(&scanner, contents.data, contents.len);\n" \
-    "    SOL_JSON_SCANNER_ARRAY_LOOP_ALL(&scanner, &token, reason) {\n" \
+    "    SOL_JSON_SCANNER_ARRAY_LOOP(&scanner, &token, reason) {\n" \
     "        struct http_composed_server_port_in *in;\n" \
     "        if (i >= hdata->inputs_len)\n" \
     "            return -EINVAL;\n" \
