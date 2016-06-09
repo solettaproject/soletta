@@ -985,7 +985,7 @@ error:
     return NULL;
 }
 
-static bool
+static int
 iio_read_buffer_channel_value(struct sol_iio_channel *channel, double *value)
 {
     uint64_t data = 0;
@@ -996,18 +996,18 @@ iio_read_buffer_channel_value(struct sol_iio_channel *channel, double *value)
     struct sol_iio_device *device = channel->device;
     uint8_t *buffer = device->buffer.data;
 
-    SOL_NULL_CHECK(buffer, false);
+    SOL_NULL_CHECK(buffer, -EINVAL);
 
     if (channel->storagebits > 64) {
         SOL_WRN("Could not read channel [%s] value - more than 64 bits of"
             " storage - found %d. Use sol_iio_read_channel_raw_buffer() instead",
             channel->name, channel->storagebits);
-        return false;
+        return -EBADMSG;
     }
 
     if (channel->offset_in_buffer + channel->storagebits > device->buffer_size * 8) {
         SOL_WRN("Invalid read on buffer.");
-        return false;
+        return -EBADMSG;
     }
 
     offset_bytes = channel->offset_in_buffer / 8;
@@ -1041,10 +1041,10 @@ iio_read_buffer_channel_value(struct sol_iio_channel *channel, double *value)
     if (!channel->processed)
         *value = (*value + channel->offset) * channel->scale;
 
-    return true;
+    return 0;
 }
 
-SOL_API bool
+SOL_API int
 sol_iio_read_channel_value(struct sol_iio_channel *channel, double *value)
 {
     int len;
@@ -1053,8 +1053,8 @@ sol_iio_read_channel_value(struct sol_iio_channel *channel, double *value)
     struct sol_iio_device *device;
     bool r;
 
-    SOL_NULL_CHECK(channel, false);
-    SOL_NULL_CHECK(value, false);
+    SOL_NULL_CHECK(channel, -EINVAL);
+    SOL_NULL_CHECK(value, -EINVAL);
 
     device = channel->device;
 
@@ -1068,21 +1068,21 @@ sol_iio_read_channel_value(struct sol_iio_channel *channel, double *value)
     if (!r) {
         SOL_WRN("Could not read channel [%s] in device%d", channel->name,
             device->device_id);
-        return false;
+        return -ENOMEM;
     }
 
     len = sol_util_read_file(path, "%lf", &raw_value);
     if (len < 0) {
         SOL_WRN("Could not read channel [%s] in device%d", channel->name,
             device->device_id);
-        return false;
+        return -EIO;
     }
 
     if (channel->processed)
         *value = raw_value;
     else
         *value = (raw_value + channel->offset) * channel->scale;
-    return true;
+    return 0;
 }
 
 static int
@@ -1099,18 +1099,18 @@ calc_channel_offset_in_buffer(const struct sol_iio_channel *channel)
     return offset;
 }
 
-SOL_API bool
-sol_iio_device_trigger_now(struct sol_iio_device *device)
+SOL_API int
+sol_iio_device_trigger(struct sol_iio_device *device)
 {
     char path[PATH_MAX];
     bool r;
     int i;
 
-    SOL_NULL_CHECK(device, false);
+    SOL_NULL_CHECK(device, -EINVAL);
 
     if (!device->manual_triggering) {
         SOL_WRN("No manual triggering available for device%d", device->device_id);
-        return false;
+        return -EBADF;
     }
 
     r = craft_filename_path(path, sizeof(path), SYSFS_TRIGGER_NOW_BY_ID_PATH,
@@ -1118,37 +1118,37 @@ sol_iio_device_trigger_now(struct sol_iio_device *device)
     if (!r) {
         SOL_WRN("No valid trigger_now file available for trigger [%s]",
             device->trigger_name);
-        return false;
+        return -EBADF;
     }
 
     if ((i = sol_util_write_file(path, "%d", 1)) < 0) {
         SOL_WRN("Could not write to trigger_now file for trigger [%s]: %s",
             device->trigger_name, sol_util_strerrora(i));
-        return false;
+        return -EBADF;
     }
 
-    return true;
+    return 0;
 }
 
-SOL_API bool
+SOL_API int
 sol_iio_device_start_buffer(struct sol_iio_device *device)
 {
     struct sol_iio_channel *channel;
     int i;
 
-    SOL_NULL_CHECK(device, false);
+    SOL_NULL_CHECK(device, -EINVAL);
 
     /* Enable device after added all channels */
     if (device->buffer_enabled && !set_buffer_enabled(device, true)) {
         SOL_WRN("Could not enable buffer for device. No readings will be performed");
-        return false;
+        return -EBADMSG;
     }
 
     device->buffer_size = calc_buffer_size(device);
     i = sol_buffer_ensure(&device->buffer, device->buffer_size);
     if (i < 0) {
         SOL_WRN("Could not alloc buffer for device. No readings will be performed");
-        return false;
+        return -ENOMEM;
     }
 
     /* Now that all channels have been added, calc their offset in buffer */
@@ -1156,7 +1156,7 @@ sol_iio_device_start_buffer(struct sol_iio_device *device)
         channel->offset_in_buffer = calc_channel_offset_in_buffer(channel);
     }
 
-    return true;
+    return 0;
 }
 
 static enum sol_util_iterate_dir_reason
