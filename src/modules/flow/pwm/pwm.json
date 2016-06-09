@@ -70,7 +70,6 @@
    },
    {
     "data_type": "int",
-    "default": 0,
     "description": "Initial period",
     "name": "period"
    },
