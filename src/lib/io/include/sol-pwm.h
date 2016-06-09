@@ -227,9 +227,9 @@ void sol_pwm_close(struct sol_pwm *pwm);
  *
  * @param enable If @c true pwm is enabled and if @c false it's disabled.
  *
- * @return @c true on success or @c false on error.
+ * @return @c 0 on success or a negative number on error.
  */
-bool sol_pwm_set_enabled(struct sol_pwm *pwm, bool enable);
+int sol_pwm_set_enabled(struct sol_pwm *pwm, bool enable);
 
 /**
  * @brief Check wheter a pmw pin is enabled or disabled.
@@ -250,9 +250,9 @@ bool sol_pwm_is_enabled(const struct sol_pwm *pwm);
  *
  * @param period_ns Period in nanoseconds.
  *
- * @return @c true on success and @c false on error.
+ * @return @c 0 on success or @c a negative number on error.
  */
-bool sol_pwm_set_period(struct sol_pwm *pwm, uint32_t period_ns);
+int sol_pwm_set_period(struct sol_pwm *pwm, uint32_t period_ns);
 
 /**
  * @brief Get PWM period in nanoseconds.
@@ -278,9 +278,9 @@ int32_t sol_pwm_get_period(const struct sol_pwm *pwm);
  *
  * @param duty_cycle_ns Duty cycle in nanoseconds.
  *
- * @return @c true on success and @c false on error.
+ * @return @c 0 on success or a negative number on error.
  */
-bool sol_pwm_set_duty_cycle(struct sol_pwm *pwm, uint32_t duty_cycle_ns);
+int sol_pwm_set_duty_cycle(struct sol_pwm *pwm, uint32_t duty_cycle_ns);
 
 /**
  * @brief Get PWM duty cycle in nanoseconds.

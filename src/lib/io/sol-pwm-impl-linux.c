@@ -327,17 +327,17 @@ sol_pwm_close(struct sol_pwm *pwm)
     free(pwm);
 }
 
-SOL_API bool
+SOL_API int
 sol_pwm_set_enabled(struct sol_pwm *pwm, bool enable)
 {
-    SOL_NULL_CHECK(pwm, false);
+    SOL_NULL_CHECK(pwm, -EINVAL);
 
     if (_pwm_write(pwm, "enable", "%d", enable) < 0) {
         SOL_WRN("pwm #%d,%d: could not %s", pwm->device, pwm->channel, enable ? "enable" : "disable");
-        return false;
+        return -EIO;
     }
 
-    return true;
+    return 0;
 }
 
 SOL_API bool
@@ -355,21 +355,21 @@ sol_pwm_is_enabled(const struct sol_pwm *pwm)
     return value;
 }
 
-SOL_API bool
+SOL_API int
 sol_pwm_set_period(struct sol_pwm *pwm, uint32_t period_ns)
 {
-    SOL_NULL_CHECK(pwm, false);
+    SOL_NULL_CHECK(pwm, -EINVAL);
 
     if (!pwm->period) {
         if (!_pwm_open_period(pwm))
-            return false;
+            return -EIO;
     }
     if (fprintf(pwm->period, "%u", period_ns) < 0) {
         SOL_WRN("pwm #%d,%d: could not set period", pwm->device, pwm->channel);
-        return false;
+        return -EIO;
     }
 
-    return true;
+    return 0;
 }
 
 SOL_API int32_t
@@ -394,17 +394,17 @@ sol_pwm_get_period(const struct sol_pwm *pwm)
     return value;
 }
 
-SOL_API bool
+SOL_API int
 sol_pwm_set_duty_cycle(struct sol_pwm *pwm, uint32_t duty_cycle_ns)
 {
-    SOL_NULL_CHECK(pwm, false);
+    SOL_NULL_CHECK(pwm, -EINVAL);
 
     if (fprintf(pwm->duty_cycle, "%u", duty_cycle_ns) < 0) {
         SOL_WRN("pwm #%d,%d: could not set duty_cycle", pwm->device, pwm->channel);
-        return false;
+        return -EIO;
     }
 
-    return true;
+    return 0;
 }
 
 SOL_API int32_t

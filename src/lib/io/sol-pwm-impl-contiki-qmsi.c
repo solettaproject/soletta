@@ -44,6 +44,7 @@ sol_pwm_open_raw(int device, int channel, const struct sol_pwm_config *config)
     struct sol_pwm *pwm;
     qm_pwm_config_t cfg;
     qm_rc_t ret;
+    int v;
     bool r;
 
     SOL_LOG_INTERNAL_INIT_ONCE;
@@ -92,8 +93,8 @@ sol_pwm_open_raw(int device, int channel, const struct sol_pwm_config *config)
     if (config->duty_cycle_ns != -1)
         sol_pwm_set_duty_cycle(pwm, config->duty_cycle_ns);
 
-    r = sol_pwm_set_enabled(pwm, config->enabled);
-    SOL_EXP_CHECK_GOTO(!r, error);
+    v = sol_pwm_set_enabled(pwm, config->enabled);
+    SOL_INT_CHECK_GOTO(v, < 0, error);
 
     return pwm;
 
@@ -112,12 +113,12 @@ sol_pwm_close(struct sol_pwm *pwm)
     free(pwm);
 }
 
-SOL_API bool
+SOL_API int
 sol_pwm_set_enabled(struct sol_pwm *pwm, bool enable)
 {
     qm_rc_t ret;
 
-    SOL_NULL_CHECK(pwm, false);
+    SOL_NULL_CHECK(pwm, -EINVAL);
 
     if (enable)
         ret = qm_pwm_start(pwm->dev, pwm->channel);
@@ -125,7 +126,7 @@ sol_pwm_set_enabled(struct sol_pwm *pwm, bool enable)
         ret = qm_pwm_stop(pwm->dev, pwm->channel);
     pwm->enabled = enable;
 
-    return ret == QM_RC_OK;
+    return (ret == QM_RC_OK) ? 0 : -EIO;
 }
 
 SOL_API bool
@@ -147,12 +148,12 @@ pwm_set_values(struct sol_pwm *pwm)
     return qm_pwm_set(pwm->dev, pwm->channel, lo, pwm->duty_cycle);
 }
 
-SOL_API bool
+SOL_API int
 sol_pwm_set_period(struct sol_pwm *pwm, uint32_t period_ns)
 {
     qm_rc_t ret;
 
-    SOL_NULL_CHECK(pwm, false);
+    SOL_NULL_CHECK(pwm, -EINVAL);
 
     pwm->period = period_ns / CLOCK_TICK_TIME_NS;
     if (!pwm->period)
@@ -160,7 +161,7 @@ sol_pwm_set_period(struct sol_pwm *pwm, uint32_t period_ns)
     if (pwm->duty_cycle > pwm->period)
         pwm->duty_cycle = pwm->period;
     ret = pwm_set_values(pwm);
-    return ret == QM_RC_OK;
+    return ret == QM_RC_OK ? 0 : -EIO;
 }
 
 SOL_API int32_t
@@ -171,20 +172,20 @@ sol_pwm_get_period(const struct sol_pwm *pwm)
     return (int32_t)(pwm->period * CLOCK_TICK_TIME_NS);
 }
 
-SOL_API bool
+SOL_API int
 sol_pwm_set_duty_cycle(struct sol_pwm *pwm, uint32_t duty_cycle_ns)
 {
     qm_rc_t ret;
     uint32_t duty = duty_cycle_ns / CLOCK_TICK_TIME_NS;
 
-    SOL_NULL_CHECK(pwm, false);
-    SOL_INT_CHECK(duty, > pwm->period, false);
+    SOL_NULL_CHECK(pwm, -EINVAL);
+    SOL_INT_CHECK(duty, > pwm->period, -EINVAL);
 
     pwm->duty_cycle = duty;
     if (!pwm->duty_cycle)
         pwm->duty_cycle = 1;
     ret = pwm_set_values(pwm);
-    return ret == QM_RC_OK;
+    return ret == QM_RC_OK ? 0 : -EIO;
 }
 
 SOL_API int32_t

@@ -131,10 +131,10 @@ sol_pwm_close(struct sol_pwm *pwm)
     free(pwm);
 }
 
-SOL_API bool
+SOL_API int
 sol_pwm_set_enabled(struct sol_pwm *pwm, bool enable)
 {
-    SOL_NULL_CHECK(pwm, false);
+    SOL_NULL_CHECK(pwm, -EINVAL);
 
     if (enable)
         pwm_start(pwm->dev);
@@ -142,7 +142,7 @@ sol_pwm_set_enabled(struct sol_pwm *pwm, bool enable)
         pwm_stop(pwm->dev);
     pwm->enable = enable;
 
-    return true;
+    return 0;
 }
 
 SOL_API bool
@@ -152,13 +152,13 @@ sol_pwm_is_enabled(const struct sol_pwm *pwm)
     return pwm->enable;
 }
 
-SOL_API bool
+SOL_API int
 sol_pwm_set_period(struct sol_pwm *pwm, uint32_t period_ns)
 {
-    SOL_NULL_CHECK(pwm, false);
+    SOL_NULL_CHECK(pwm, -EINVAL);
     pwm->period = period_ns;
 
-    return pwm_init(pwm->dev, pwm->phase, SOL_UTIL_NSEC_PER_SEC / pwm->period, RESOLUTION) == 0;
+    return pwm_init(pwm->dev, pwm->phase, SOL_UTIL_NSEC_PER_SEC / pwm->period, RESOLUTION);
 }
 
 SOL_API int32_t
@@ -168,20 +168,20 @@ sol_pwm_get_period(const struct sol_pwm *pwm)
     return (int32_t)pwm->period;
 }
 
-SOL_API bool
+SOL_API int
 sol_pwm_set_duty_cycle(struct sol_pwm *pwm, uint32_t duty_cycle_ns)
 {
     double value;
 
-    SOL_NULL_CHECK(pwm, false);
-    SOL_INT_CHECK(duty_cycle_ns, > pwm->period, false);
+    SOL_NULL_CHECK(pwm, -EINVAL);
+    SOL_INT_CHECK(duty_cycle_ns, > pwm->period, -EINVAL);
 
     pwm->duty_cycle = duty_cycle_ns;
     value = (RESOLUTION * duty_cycle_ns) / pwm->period;
 
     pwm_set(pwm->dev, pwm->channel, value);
 
-    return true;
+    return 0;
 }
 
 SOL_API int32_t
