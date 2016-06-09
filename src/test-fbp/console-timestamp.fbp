@@ -1,0 +1,40 @@
+# This file is part of the Soletta Project
+#
+# Copyright (C) 2016 Intel Corporation. All rights reserved.
+#
+# Licensed under the Apache License, Version 2.0 (the "License");
+# you may not use this file except in compliance with the License.
+# You may obtain a copy of the License at
+#
+#     http://www.apache.org/licenses/LICENSE-2.0
+#
+# Unless required by applicable law or agreed to in writing, software
+# distributed under the License is distributed on an "AS IS" BASIS,
+# WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+# See the License for the specific language governing permissions and
+# limitations under the License.
+
+Time(timestamp/make-time)
+
+Year(constant/int:value=2015)
+Month(constant/int:value=8)
+Day(constant/int:value=26)
+Hour(constant/int:value=15)
+Minute(constant/int:value=20)
+Second(constant/int:value=59)
+NanoSecond(constant/int:value=13)
+
+Year OUT -> YEAR Time
+Month OUT -> MONTH Time
+Day OUT -> MONTH_DAY Time
+Hour OUT -> HOUR Time
+Minute OUT -> MINUTE Time
+Second OUT -> SECOND Time
+NanoSecond OUT -> NANO_SECOND Time
+
+Time OUT -> IN c(console)
+
+_(constant/int:value=1) OUT -> INTERVAL _(timer) OUT -> QUIT _(app/quit)
+
+## TEST-OUTPUT-REGEX
+# c 2015-08-26T.*:20:59Z \(timestamp\)

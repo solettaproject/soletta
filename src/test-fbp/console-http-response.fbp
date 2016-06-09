@@ -1,0 +1,27 @@
+# This file is part of the Soletta Project
+#
+# Copyright (C) 2016 Intel Corporation. All rights reserved.
+#
+# Licensed under the Apache License, Version 2.0 (the "License");
+# you may not use this file except in compliance with the License.
+# You may obtain a copy of the License at
+#
+#     http://www.apache.org/licenses/LICENSE-2.0
+#
+# Unless required by applicable law or agreed to in writing, software
+# distributed under the License is distributed on an "AS IS" BASIS,
+# WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+# See the License for the specific language governing permissions and
+# limitations under the License.
+
+constant-server(constant/string:value="howdy!")
+server(http-server/string:path=/test,port=8080)
+constant-server OUT -> IN server
+client(http-client/request:url="http://localhost:8080/test",method="GET",timeout=3000)
+
+_(constant/empty) OUT -> TRIGGER client
+client OUT -> IN c(console)
+client OUT -> QUIT _(app/quit)
+
+## TEST-OUTPUT-REGEX
+# c  HTTP response:200, url:http:\/\/localhost:8080\/test, content type:text\/plain, headers:\{Connection:Keep-Alive,Content-Length:6,Last-Modified:.*,Content-Type:text\/plain,Date:.*\}, cookies:\{\}, blob:c type=0x.*, parent=\(nil\), size=6, refcnt=1, mem=0x.* \{0x68\(h\), 0x6f\(o\), 0x77\(w\), 0x64\(d\), 0x79\(y\), 0x21\(!\)\}.*
