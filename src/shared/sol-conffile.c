@@ -122,7 +122,7 @@ sol_conffile_set_entry_options(struct sol_conffile_entry *entry, struct sol_json
     struct sol_json_token token, key, value;
     struct sol_ptr_vector vec_options;
     int r;
-    enum sol_json_loop_reason reason;
+    enum sol_json_loop_status reason;
 
     sol_ptr_vector_init(&vec_options);
 
@@ -229,7 +229,7 @@ static bool
 _parse_memmap_entries(struct sol_vector *entries_vector, struct sol_json_token token)
 {
     struct sol_json_scanner entries;
-    enum sol_json_loop_reason reason;
+    enum sol_json_loop_status reason;
     struct sol_json_token key, value;
     struct sol_memmap_entry *memmap_entry = NULL;
     struct sol_str_table_ptr *ptr_table_entry;
@@ -238,11 +238,11 @@ _parse_memmap_entries(struct sol_vector *entries_vector, struct sol_json_token t
 
     sol_json_scanner_init_from_token(&entries, &token);
 
-    SOL_JSON_SCANNER_ARRAY_LOOP (&entries, &token, SOL_JSON_TYPE_OBJECT_START, reason) {
+    SOL_JSON_SCANNER_ARRAY_LOOP_TYPE (&entries, &token, SOL_JSON_TYPE_OBJECT_START, reason) {
         uint32_t size = 0, offset = 0, bit_offset = 0, bit_size = 0;
         struct sol_json_token name = { NULL, NULL };
 
-        SOL_JSON_SCANNER_OBJECT_LOOP_NEST (&entries, &token, &key, &value, reason) {
+        SOL_JSON_SCANNER_OBJECT_LOOP_NESTED (&entries, &token, &key, &value, reason) {
             if (SOL_JSON_TOKEN_STR_LITERAL_EQ(&key, "name")) {
                 name = value;
             } else if (SOL_JSON_TOKEN_STR_LITERAL_EQ(&key, "offset")) {
@@ -344,7 +344,7 @@ static bool
 _parse_maps(struct sol_json_token token)
 {
     struct sol_json_token key, value;
-    enum sol_json_loop_reason reason;
+    enum sol_json_loop_status reason;
     struct sol_vector entries_vector = SOL_VECTOR_INIT(struct sol_str_table_ptr);
     struct sol_memmap_map *map;
     struct sol_json_scanner scanner;
@@ -356,14 +356,14 @@ _parse_maps(struct sol_json_token token)
     int r;
 
     sol_json_scanner_init_from_token(&scanner, &token);
-    SOL_JSON_SCANNER_ARRAY_LOOP (&scanner, &token, SOL_JSON_TYPE_OBJECT_START, reason) {
+    SOL_JSON_SCANNER_ARRAY_LOOP_TYPE (&scanner, &token, SOL_JSON_TYPE_OBJECT_START, reason) {
         struct sol_json_token path = { NULL, NULL };
         uint32_t version = 0, timeout = 0;
         void *entries_destination;
 
         map = NULL;
 
-        SOL_JSON_SCANNER_OBJECT_LOOP_NEST (&scanner, &token, &key, &value, reason) {
+        SOL_JSON_SCANNER_OBJECT_LOOP_NESTED (&scanner, &token, &key, &value, reason) {
             if (SOL_JSON_TOKEN_STR_LITERAL_EQ(&key, "path"))
                 path = value;
             else if (SOL_JSON_TOKEN_STR_LITERAL_EQ(&key, "version")) {
@@ -461,7 +461,7 @@ _json_to_vector(struct sol_json_scanner scanner)
     const char *node_options = "options";
     struct sol_json_token token, key, value, nodes = { 0 }, maps = { 0 };
     struct sol_json_scanner obj_scanner;
-    enum sol_json_loop_reason reason;
+    enum sol_json_loop_status reason;
 
     SOL_JSON_SCANNER_OBJECT_LOOP (&scanner, &token, &key, &value, reason) {
         if (sol_json_token_str_eq(&key, node_group, strlen(node_group))) {
@@ -490,13 +490,13 @@ _json_to_vector(struct sol_json_scanner scanner)
     }
 
     sol_json_scanner_init_from_token(&obj_scanner, &nodes);
-    SOL_JSON_SCANNER_ARRAY_LOOP (&obj_scanner, &token, SOL_JSON_TYPE_OBJECT_START, reason) {
+    SOL_JSON_SCANNER_ARRAY_LOOP_TYPE (&obj_scanner, &token, SOL_JSON_TYPE_OBJECT_START, reason) {
         bool duplicate = false;
 
         entry = calloc(1, sizeof(*entry));
         SOL_NULL_CHECK_GOTO(entry, err);
         sol_ptr_vector_init(&entry->options);
-        SOL_JSON_SCANNER_OBJECT_LOOP_NEST (&obj_scanner, &token, &key, &value, reason) {
+        SOL_JSON_SCANNER_OBJECT_LOOP_NESTED (&obj_scanner, &token, &key, &value, reason) {
             if (sol_json_token_str_eq(&key, node_name, strlen(node_name))) {
                 entry->id = _dup_json_str(value);
                 /* if we already have this entry on the vector, try the next.
@@ -584,7 +584,7 @@ _get_json_include_paths(
 
     struct sol_json_token token, key, value;
     struct sol_json_scanner include_scanner;
-    enum sol_json_loop_reason reason;
+    enum sol_json_loop_status reason;
 
     SOL_JSON_SCANNER_OBJECT_LOOP (&json_scanner, &token, &key, &value, reason) {
         if (sol_json_token_str_eq(&key, include_group, strlen(include_group))) {
@@ -958,7 +958,7 @@ iterate_dir_cb(void *data, const char *dir_path, struct dirent *en)
     struct sol_vector aliases = SOL_VECTOR_INIT(struct sol_str_slice);
     char path[PATH_MAX], *sep, *endptr = NULL;
     struct sol_buffer *file_contents = data;
-    enum sol_json_loop_reason end_reason;
+    enum sol_json_loop_status end_reason;
     struct sol_json_scanner scanner;
     unsigned long precedence = 0;
     struct sol_json_token value;
@@ -995,12 +995,12 @@ iterate_dir_cb(void *data, const char *dir_path, struct dirent *en)
 
     sol_json_scanner_init(&scanner, file_contents->data, file_contents->used);
 
-    SOL_JSON_SCANNER_ARRAY_LOOP (&scanner, &value, SOL_JSON_TYPE_OBJECT_START,
+    SOL_JSON_SCANNER_ARRAY_LOOP_TYPE (&scanner, &value, SOL_JSON_TYPE_OBJECT_START,
         end_reason) {
         struct sol_alias_ctx *alias_ctx;
         struct sol_json_token obj_key, obj_value;
 
-        SOL_JSON_SCANNER_OBJECT_LOOP_NEST (&scanner, &value, &obj_key,
+        SOL_JSON_SCANNER_OBJECT_LOOP_NESTED (&scanner, &value, &obj_key,
             &obj_value, end_reason) {
             struct sol_json_scanner array_scanner;
             struct sol_json_token array_token;
@@ -1008,7 +1008,7 @@ iterate_dir_cb(void *data, const char *dir_path, struct dirent *en)
             if (SOL_JSON_TOKEN_STR_LITERAL_EQ(&obj_key, "aliases")) {
                 sol_json_scanner_init_from_token(&array_scanner, &obj_value);
 
-                SOL_JSON_SCANNER_ARRAY_LOOP (&array_scanner, &array_token,
+                SOL_JSON_SCANNER_ARRAY_LOOP_TYPE (&array_scanner, &array_token,
                     SOL_JSON_TYPE_STRING, end_reason) {
                     struct sol_buffer buf;
 

@@ -775,7 +775,7 @@ static int
 int_process_json(struct sol_flow_node *node, const struct sol_str_slice slice)
 {
     struct sol_irange irange = SOL_IRANGE_INIT();
-    enum sol_json_loop_reason reason;
+    enum sol_json_loop_status reason;
     struct sol_json_scanner sub_scanner;
     struct sol_json_token sub_key, sub_value, token;
 
@@ -860,7 +860,7 @@ static int
 float_process_json(struct sol_flow_node *node, const struct sol_str_slice slice)
 {
     struct sol_drange drange = SOL_DRANGE_INIT();
-    enum sol_json_loop_reason reason;
+    enum sol_json_loop_status reason;
     struct sol_json_scanner sub_scanner;
     struct sol_json_token token, sub_key, sub_value;
 
@@ -958,7 +958,7 @@ static int
 rgb_process_json(struct sol_flow_node *node, const struct sol_str_slice slice)
 {
     struct sol_rgb rgb = { 0 };
-    enum sol_json_loop_reason reason;
+    enum sol_json_loop_status reason;
     struct sol_json_scanner sub_scanner;
     struct sol_json_token sub_key, sub_value, token;
 
@@ -1104,7 +1104,7 @@ static int
 direction_vector_process_json(struct sol_flow_node *node, const struct sol_str_slice slice)
 {
     struct sol_direction_vector dir_vector = { 0 };
-    enum sol_json_loop_reason reason;
+    enum sol_json_loop_status reason;
     struct sol_json_scanner sub_scanner;
     struct sol_json_token sub_key, sub_value, token;
 

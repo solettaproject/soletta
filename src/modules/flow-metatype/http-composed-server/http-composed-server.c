@@ -309,13 +309,13 @@ _process_json(struct sol_flow_node *node, struct sol_str_slice contents)
     uint16_t i = 0;
     struct sol_json_scanner scanner;
     struct sol_json_token token;
-    enum sol_json_loop_reason reason;
+    enum sol_json_loop_status reason;
     struct http_composed_server_data *hdata = sol_flow_node_get_private_data(node);
     const struct http_composed_server_type *type =
         (const struct http_composed_server_type *)sol_flow_node_get_type(node);
 
     sol_json_scanner_init(&scanner, contents.data, contents.len);
-    SOL_JSON_SCANNER_ARRAY_LOOP_ALL(&scanner, &token, reason) {
+    SOL_JSON_SCANNER_ARRAY_LOOP(&scanner, &token, reason) {
         struct http_composed_server_port_in *in;
 
         if (i >= hdata->inputs_len)

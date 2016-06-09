@@ -139,7 +139,7 @@ startup()
     struct sol_json_token token, token_key, token_value;
     struct sol_json_path_scanner path_scanner;
     struct sol_json_scanner scanner;
-    enum sol_json_loop_reason json_reason;
+    enum sol_json_loop_status json_reason;
     struct sol_str_slice key_slice;
     enum sol_json_type elem_type;
 
@@ -147,12 +147,12 @@ startup()
 
     SOL_JSON_PATH_FOREACH(path_scanner, key_slice, json_reason);
 
-    SOL_JSON_SCANNER_ARRAY_LOOP_NEST(&scanner, &token, elem_type, json_reason);
-    SOL_JSON_SCANNER_ARRAY_LOOP(&scanner, &token, elem_type, json_reason);
-    SOL_JSON_SCANNER_ARRAY_LOOP_ALL_NEST(&scanner, &token, json_reason);
-    SOL_JSON_SCANNER_ARRAY_LOOP_ALL(&scanner, &token, json_reason);
+    SOL_JSON_SCANNER_ARRAY_LOOP_TYPE_NESTED(&scanner, &token, elem_type, json_reason);
+    SOL_JSON_SCANNER_ARRAY_LOOP_TYPE(&scanner, &token, elem_type, json_reason);
+    SOL_JSON_SCANNER_ARRAY_LOOP_NESTED(&scanner, &token, json_reason);
+    SOL_JSON_SCANNER_ARRAY_LOOP(&scanner, &token, json_reason);
     SOL_JSON_SCANNER_OBJECT_LOOP(&scanner, &token, &token_key, &token_value, json_reason);
-    SOL_JSON_SCANNER_OBJECT_LOOP_NEST(&scanner, &token, &token_key, &token_value, json_reason);
+    SOL_JSON_SCANNER_OBJECT_LOOP_NESTED(&scanner, &token, &token_key, &token_value, json_reason);
 
 #ifdef USE_FLOW
     struct sol_flow_static_node_spec node_spec = SOL_FLOW_STATIC_NODE_SPEC_GUARD;

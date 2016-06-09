@@ -210,7 +210,7 @@ generate_token_cb(void *data,
     struct sol_json_scanner scanner;
     struct sol_json_token token, key, value;
     struct sol_buffer buffer;
-    enum sol_json_loop_reason reason;
+    enum sol_json_loop_status reason;
     const size_t auth_len = strlen(AUTH_START);
 
     if (sol_ptr_vector_remove(&mdata->pending_conns, connection) < 0)
@@ -341,7 +341,7 @@ get_measure(struct sol_json_token *measure_token, struct sol_drange *measure,
 {
     struct sol_json_scanner scanner;
     struct sol_json_token token, key, value;
-    enum sol_json_loop_reason reason;
+    enum sol_json_loop_status reason;
     bool found_key = false;
 
     sol_json_scanner_init_from_token(&scanner, measure_token);
@@ -522,7 +522,7 @@ http_get_cb(void *data, struct sol_http_client_connection *connection,
     struct sol_json_scanner scanner, locations_scanner, sensors_scanner;
     struct sol_json_token token, key, value, locations, sensors;
     int r = 0;
-    enum sol_json_loop_reason reason;
+    enum sol_json_loop_status reason;
     bool found_locations = false, found_sensors = false;
 
     if (sol_ptr_vector_remove(&mdata->pending_conns, connection) < 0)
@@ -566,12 +566,12 @@ http_get_cb(void *data, struct sol_http_client_connection *connection,
         SOL_DBG("No plants found on response");
     } else {
         sol_json_scanner_init_from_token(&locations_scanner, &locations);
-        SOL_JSON_SCANNER_ARRAY_LOOP (&locations_scanner, &token,
+        SOL_JSON_SCANNER_ARRAY_LOOP_TYPE (&locations_scanner, &token,
             SOL_JSON_TYPE_OBJECT_START, reason) {
             struct sol_flower_power_data fpd =
                 SOL_FLOWER_POWER_DATA_INIT_VALUE(NAN);
 
-            SOL_JSON_SCANNER_OBJECT_LOOP_NEST (&locations_scanner, &token,
+            SOL_JSON_SCANNER_OBJECT_LOOP_NESTED (&locations_scanner, &token,
                 &key, &value, reason) {
                 if (SOL_JSON_TOKEN_STR_LITERAL_EQ(&key, "fertilizer")) {
                     INIT_FERTILIZER(fpd.fertilizer);
@@ -650,14 +650,14 @@ fpd_error:
         SOL_DBG("No sensors found on response");
     } else {
         sol_json_scanner_init_from_token(&sensors_scanner, &sensors);
-        SOL_JSON_SCANNER_ARRAY_LOOP (&sensors_scanner, &token,
+        SOL_JSON_SCANNER_ARRAY_LOOP_TYPE (&sensors_scanner, &token,
             SOL_JSON_TYPE_OBJECT_START, reason) {
             struct sol_drange battery_level = { -1, 0, 100, DBL_MIN };
             struct timespec timestamp = { 0 };
             struct timespec battery_end_of_life = { 0 };
             char *id = NULL;
 
-            SOL_JSON_SCANNER_OBJECT_LOOP_NEST (&sensors_scanner, &token,
+            SOL_JSON_SCANNER_OBJECT_LOOP_NESTED (&sensors_scanner, &token,
                 &key, &value, reason) {
                 if (SOL_JSON_TOKEN_STR_LITERAL_EQ(&key, "battery_level")) {
                     sol_json_scanner_init_from_token(&scanner, &value);

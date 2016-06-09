@@ -181,7 +181,7 @@ read_json_property_value(struct decoder *d, struct sol_json_token *value)
     if (!sol_json_scanner_next(&d->scanner, value))
         return false;
     start = value->start;
-    if (!sol_json_scanner_skip_over(&d->scanner, value))
+    if (!sol_json_scanner_skip(&d->scanner, value))
         return false;
     value->start = start;
     return true;
@@ -414,7 +414,7 @@ parse_spec_range_default_value(struct sol_json_scanner *s, struct option_descrip
     struct option_spec_range_value *spec_range;
     struct sol_json_token tmp, key, value;
     struct sol_str_slice key_slice;
-    enum sol_json_loop_reason reason;
+    enum sol_json_loop_status reason;
     char *value_data;
 
     spec_range = &o->default_value.spec_range;
@@ -446,7 +446,7 @@ parse_rgb_default_value(struct sol_json_scanner *s, struct option_description *o
     struct option_rgb_value *rgb;
     struct sol_json_token tmp, key, value;
     struct sol_str_slice key_slice;
-    enum sol_json_loop_reason reason;
+    enum sol_json_loop_status reason;
     char *value_data;
 
     rgb = &o->default_value.rgb;
@@ -483,7 +483,7 @@ parse_direction_vector_default_value(struct sol_json_scanner *s, struct option_d
 {
     struct option_direction_vector_value *direction_vector;
     struct sol_json_token tmp, key, value;
-    enum sol_json_loop_reason reason;
+    enum sol_json_loop_status reason;
     struct sol_str_slice key_slice;
     char *value_data;
 

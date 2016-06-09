@@ -39,8 +39,8 @@ static bool
 check_symbol(struct sol_json_scanner *scanner, struct sol_json_token *token,
     const char *symname, unsigned symlen)
 {
-    if (sol_json_scanner_get_size_remaining(scanner) < symlen) {
-        SOL_ERR("%u: premature end of buffer: %u available, "
+    if (sol_json_scanner_get_size_remaining(scanner) < (size_t)symlen) {
+        SOL_ERR("%zu: premature end of buffer: %zu available, "
             "need sizeof(%s)=%u",
             sol_json_scanner_get_mem_offset(scanner, scanner->current),
             sol_json_scanner_get_size_remaining(scanner), symname,
@@ -49,7 +49,7 @@ check_symbol(struct sol_json_scanner *scanner, struct sol_json_token *token,
         return false;
     }
     if (memcmp(scanner->current, symname, symlen) != 0) {
-        SOL_ERR("%u: expected token \"%s\", have \"%.*s\"",
+        SOL_ERR("%zu: expected token \"%s\", have \"%.*s\"",
             sol_json_scanner_get_mem_offset(scanner, scanner->current),
             symname, symlen, scanner->current);
         errno = EINVAL;
@@ -73,7 +73,7 @@ check_string(struct sol_json_scanner *scanner, struct sol_json_token *token)
         if (escaped) {
             escaped = false;
             if (!memchr(escapable_chars, c, sizeof(escapable_chars))) {
-                SOL_ERR("%u: cannot escape %#x (%c)",
+                SOL_ERR("%zu: cannot escape %#x (%c)",
                     sol_json_scanner_get_mem_offset(scanner, scanner->current),
                     scanner->current[0], scanner->current[0]);
                 token->start = NULL;
@@ -88,7 +88,7 @@ check_string(struct sol_json_scanner *scanner, struct sol_json_token *token)
             return true;
         }
     }
-    SOL_ERR("%u: unfinished string.", sol_json_scanner_get_mem_offset(scanner, scanner->current));
+    SOL_ERR("%zu: unfinished string.", sol_json_scanner_get_mem_offset(scanner, scanner->current));
     token->start = NULL;
     errno = EINVAL;
     return false;
@@ -123,7 +123,7 @@ check_number(struct sol_json_scanner *scanner, struct sol_json_token *token)
         }
     }
     if (frac == scanner->current || exp == scanner->current) {
-        SOL_ERR("%u: missing trailing digits in number",
+        SOL_ERR("%zu: missing trailing digits in number",
             sol_json_scanner_get_mem_offset(scanner, scanner->current));
         token->start = NULL;
         errno = EINVAL;
@@ -160,14 +160,14 @@ token_get_uint64(const struct sol_json_token *token, uint64_t *value)
         *value = tmpvar; /* best effort */
         SOL_DBG("unexpected char '%c' at position %u of integer token %.*s",
             c, (unsigned)(itr - token->start),
-            sol_json_token_get_size(token), token->start);
+            (int)sol_json_token_get_size(token), token->start);
         return -EINVAL;
 
 overflow:
         *value = UINT64_MAX; /* best effort */
         SOL_DBG("number is too large at position %u of integer token %.*s",
             (unsigned)(itr - token->start),
-            sol_json_token_get_size(token), token->start);
+            (int)sol_json_token_get_size(token), token->start);
         return -ERANGE;
     }
 
@@ -347,12 +347,12 @@ sol_json_token_get_uint64(const struct sol_json_token *token, uint64_t *value)
     if (sol_json_token_get_type(token) != SOL_JSON_TYPE_NUMBER) {
         SOL_WRN("expected number, got token type '%c' for token \"%.*s\"",
             sol_json_token_get_type(token),
-            sol_json_token_get_size(token), token->start);
+            (int)sol_json_token_get_size(token), token->start);
         return -EINVAL;
     }
     if (*token->start == '-') {
         SOL_DBG("%.*s: negative number where unsigned is expected",
-            sol_json_token_get_size(token), token->start);
+            (int)sol_json_token_get_size(token), token->start);
         return -ERANGE;
     }
 
@@ -375,7 +375,7 @@ sol_json_token_get_int64(const struct sol_json_token *token, int64_t *value)
     if (sol_json_token_get_type(token) != SOL_JSON_TYPE_NUMBER) {
         SOL_WRN("expected number, got token type '%c' for token \"%.*s\"",
             sol_json_token_get_type(token),
-            sol_json_token_get_size(token), token->start);
+            (int)sol_json_token_get_size(token), token->start);
         return -EINVAL;
     }
 
@@ -412,7 +412,7 @@ sol_json_token_get_double(const struct sol_json_token *token, double *value)
         r = -EINVAL;
     else if (isinf(*value)) {
         SOL_DBG("token '%.*s' is infinite",
-            sol_json_token_get_size(token), token->start);
+            (int)sol_json_token_get_size(token), token->start);
         if (*value < 0)
             *value = -DBL_MAX;
         else
@@ -420,7 +420,7 @@ sol_json_token_get_double(const struct sol_json_token *token, double *value)
         r = -ERANGE;
     } else if (isnan(*value)) {
         SOL_DBG("token '%.*s' is not a number",
-            sol_json_token_get_size(token), token->start);
+            (int)sol_json_token_get_size(token), token->start);
         *value = 0;
         r = -EINVAL;
     } else if (fpclassify(*value) == FP_SUBNORMAL) {
@@ -441,7 +441,7 @@ sol_json_scanner_next(struct sol_json_scanner *scanner, struct sol_json_token *t
         switch (type) {
         case SOL_JSON_TYPE_UNKNOWN:
             if (!isspace((uint8_t)scanner->current[0])) {
-                SOL_ERR("%u: unexpected symbol %#x (%c)",
+                SOL_ERR("%zu: unexpected symbol %#x (%c)",
                     sol_json_scanner_get_mem_offset(scanner, scanner->current),
                     scanner->current[0], scanner->current[0]);
                 errno = EINVAL;
@@ -482,7 +482,7 @@ sol_json_scanner_next(struct sol_json_scanner *scanner, struct sol_json_token *t
 }
 
 SOL_API bool
-sol_json_scanner_skip_over(struct sol_json_scanner *scanner,
+sol_json_scanner_skip(struct sol_json_scanner *scanner,
     struct sol_json_token *token)
 {
     int level = 0;
@@ -537,7 +537,7 @@ sol_json_scanner_get_dict_pair(struct sol_json_scanner *scanner,
     const char *start;
 
     if (sol_json_mem_get_type(key->start) != SOL_JSON_TYPE_STRING) {
-        SOL_ERR("offset %u: unexpected token '%c' (want string)",
+        SOL_ERR("offset %zu: unexpected token '%c' (want string)",
             sol_json_scanner_get_mem_offset(scanner, key->start),
             key->start[0]);
         errno = EINVAL;
@@ -545,14 +545,14 @@ sol_json_scanner_get_dict_pair(struct sol_json_scanner *scanner,
     }
 
     if (!sol_json_scanner_next(scanner, value)) {
-        SOL_ERR("offset %u: unexpected end of file (want pair separator)",
+        SOL_ERR("offset %zu: unexpected end of file (want pair separator)",
             sol_json_scanner_get_mem_offset(scanner, scanner->current));
         errno = EINVAL;
         return false;
     }
 
     if (sol_json_token_get_type(value) != SOL_JSON_TYPE_PAIR_SEP) {
-        SOL_ERR("offset %u: unexpected token '%c' (want pair separator)",
+        SOL_ERR("offset %zu: unexpected token '%c' (want pair separator)",
             sol_json_scanner_get_mem_offset(scanner, value->start),
             value->start[0]);
         errno = EINVAL;
@@ -560,15 +560,15 @@ sol_json_scanner_get_dict_pair(struct sol_json_scanner *scanner,
     }
 
     if (!sol_json_scanner_next(scanner, value)) {
-        SOL_ERR("offset %u: unexpected end of file (want pair value)",
+        SOL_ERR("offset %zu: unexpected end of file (want pair value)",
             sol_json_scanner_get_mem_offset(scanner, scanner->current));
         errno = EINVAL;
         return false;
     }
 
     start = value->start;
-    if (!sol_json_scanner_skip_over(scanner, value)) {
-        SOL_ERR("offset %u: unexpected end of file (want pair value to skip over)",
+    if (!sol_json_scanner_skip(scanner, value)) {
+        SOL_ERR("offset %zu: unexpected end of file (want pair value to skip over)",
             sol_json_scanner_get_mem_offset(scanner, scanner->current));
         errno = EINVAL;
         return false;
@@ -687,7 +687,7 @@ sol_json_is_valid_type(struct sol_json_scanner *scanner, enum sol_json_type type
 
     return sol_json_scanner_next(scanner, &token) &&
            sol_json_token_get_type(&token) == type &&
-           sol_json_scanner_skip_over(scanner, &token) &&
+           sol_json_scanner_skip(scanner, &token) &&
            token.end == last_position;
 }
 
@@ -1031,7 +1031,7 @@ sol_json_load_memdesc(const struct sol_json_token *token, const struct sol_memde
             return r;
         } else {
             SOL_WRN("enumerations should be number of string, got json-type %c: %.*s",
-                tt, sol_json_token_get_size(token), token->start);
+                tt, (int)sol_json_token_get_size(token), token->start);
             return -EINVAL;
         }
     }
@@ -1065,7 +1065,7 @@ sol_json_load_memdesc(const struct sol_json_token *token, const struct sol_memde
         const struct sol_memdesc_structure_member *itr;
         struct sol_json_scanner scanner;
         struct sol_json_token sub, key, value;
-        enum sol_json_loop_reason reason;
+        enum sol_json_loop_status reason;
         enum sol_json_type tt;
         bool *done;
         size_t len, idx;
@@ -1143,7 +1143,7 @@ sol_json_load_memdesc(const struct sol_json_token *token, const struct sol_memde
     case SOL_MEMDESC_TYPE_ARRAY: {
         struct sol_json_scanner scanner;
         struct sol_json_token sub;
-        enum sol_json_loop_reason reason;
+        enum sol_json_loop_status reason;
         enum sol_json_type tt;
         size_t len;
         int ret;
@@ -1181,8 +1181,8 @@ sol_json_load_memdesc(const struct sol_json_token *token, const struct sol_memde
 
         sol_json_scanner_init_from_token(&scanner, token);
         len = 0;
-        SOL_JSON_SCANNER_ARRAY_LOOP_ALL(&scanner, &sub, reason) {
-            if (!sol_json_scanner_skip_over(&scanner, &sub))
+        SOL_JSON_SCANNER_ARRAY_LOOP(&scanner, &sub, reason) {
+            if (!sol_json_scanner_skip(&scanner, &sub))
                 return -EINVAL;
             len++;
         }
@@ -1196,11 +1196,11 @@ sol_json_load_memdesc(const struct sol_json_token *token, const struct sol_memde
         sol_json_scanner_init_from_token(&scanner, token);
         len = 0;
         ret = 0;
-        SOL_JSON_SCANNER_ARRAY_LOOP_ALL(&scanner, &sub, reason) {
+        SOL_JSON_SCANNER_ARRAY_LOOP(&scanner, &sub, reason) {
             struct sol_json_token el = sub;
             void *itmem;
 
-            if (!sol_json_scanner_skip_over(&scanner, &el))
+            if (!sol_json_scanner_skip(&scanner, &el))
                 return -EINVAL;
             el.start = sub.start;
 
@@ -1384,7 +1384,7 @@ SOL_API int
 sol_json_object_get_value_by_key(struct sol_json_scanner *scanner, const struct sol_str_slice key_slice, struct sol_json_token *value)
 {
     struct sol_json_token token, key;
-    enum sol_json_loop_reason reason;
+    enum sol_json_loop_status reason;
 
     SOL_NULL_CHECK(scanner, -EINVAL);
     SOL_NULL_CHECK(key_slice.data, -EINVAL);
@@ -1406,7 +1406,7 @@ SOL_API int
 sol_json_array_get_at_index(struct sol_json_scanner *scanner, uint16_t i, struct sol_json_token *value)
 {
     uint16_t cur_index = 0;
-    enum sol_json_loop_reason reason;
+    enum sol_json_loop_status reason;
 
     SOL_NULL_CHECK(scanner, -EINVAL);
     SOL_NULL_CHECK(value, -EINVAL);
@@ -1414,11 +1414,11 @@ sol_json_array_get_at_index(struct sol_json_scanner *scanner, uint16_t i, struct
     if (sol_json_mem_get_type(scanner->current) != SOL_JSON_TYPE_ARRAY_START)
         return -EINVAL;
 
-    SOL_JSON_SCANNER_ARRAY_LOOP_ALL(scanner, value, reason) {
+    SOL_JSON_SCANNER_ARRAY_LOOP(scanner, value, reason) {
         if (i == cur_index)
             return 0;
 
-        if (!sol_json_scanner_skip_over(scanner, value))
+        if (!sol_json_scanner_skip(scanner, value))
             return -ENOENT;
         cur_index++;
     }
@@ -1447,7 +1447,7 @@ sol_json_get_value_by_path(struct sol_json_scanner *scanner, struct sol_str_slic
     struct sol_str_slice key_slice = SOL_STR_SLICE_EMPTY;
     struct sol_buffer current_key;
     struct sol_json_path_scanner path_scanner;
-    enum sol_json_loop_reason reason;
+    enum sol_json_loop_status reason;
     const char *start;
     int32_t index_val;
     bool found;
@@ -1506,7 +1506,7 @@ sol_json_get_value_by_path(struct sol_json_scanner *scanner, struct sol_str_slic
 }
 
 SOL_API bool
-sol_json_path_get_next_segment(struct sol_json_path_scanner *scanner, struct sol_str_slice *slice, enum sol_json_loop_reason *end_reason)
+sol_json_path_get_next_segment(struct sol_json_path_scanner *scanner, struct sol_str_slice *slice, enum sol_json_loop_status *end_reason)
 {
     if (scanner->path == scanner->end)
         goto error;
