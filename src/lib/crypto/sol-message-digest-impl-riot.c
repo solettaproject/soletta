@@ -69,7 +69,7 @@ _sol_message_digest_sha256_read_digest(struct sol_message_digest *handle, void *
     if (len < SHA256_DIGEST_LENGTH)
         return -EINVAL;
 
-    sha256_final(mem, ctx);
+    sha256_final(ctx, mem);
     return len;
 }
 
