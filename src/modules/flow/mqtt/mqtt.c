@@ -153,7 +153,7 @@ mqtt_init(struct client_data *mdata)
         SOL_SET_API_VERSION(.api_version = SOL_MQTT_CONFIG_API_VERSION, )
         .port = mdata->port,
         .clean_session = mdata->clean_session,
-        .keepalive = mdata->keepalive,
+        .keep_alive = mdata->keepalive,
         .username = mdata->user,
         .client_id = mdata->id,
         .password = mdata->pass,
