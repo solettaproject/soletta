@@ -464,7 +464,7 @@ child_watch_process(void)
     uint16_t i;
 
     sol_mainloop_impl_lock();
-    sol_ptr_vector_steal(&CHILD_WATCH_PROCESS, &CHILD_WATCH_ACUM);
+    sol_mainloop_ptr_vector_steal(&CHILD_WATCH_PROCESS, &CHILD_WATCH_ACUM);
     child_watch_processing = true;
     sol_mainloop_impl_unlock();
 
@@ -666,7 +666,7 @@ fd_process(void)
     nfds = ppoll(pollfds, pollfds_used, use_ts ? &ts : NULL, &emptyset);
 
     sol_mainloop_impl_lock();
-    sol_ptr_vector_steal(&FD_PROCESS, &FD_ACUM);
+    sol_mainloop_ptr_vector_steal(&FD_PROCESS, &FD_ACUM);
     fd_processing = true;
     sol_mainloop_impl_unlock();
 

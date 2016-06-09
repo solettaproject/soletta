@@ -929,13 +929,13 @@ sol_flow_builder_get_node_type(struct sol_flow_builder *builder)
 
     /* If the type was successfully created, detach the data from the
      * vectors. The data is owned by the type now. */
-    sol_vector_take_data(&builder->nodes);
-    sol_vector_take_data(&builder->conns);
-    sol_vector_take_data(&builder->exported_in);
-    sol_vector_take_data(&builder->exported_out);
-    sol_vector_take_data(&builder->node_extras);
-    sol_ptr_vector_take_data(&builder->ports_in_desc);
-    sol_ptr_vector_take_data(&builder->ports_out_desc);
+    sol_vector_steal_data(&builder->nodes);
+    sol_vector_steal_data(&builder->conns);
+    sol_vector_steal_data(&builder->exported_in);
+    sol_vector_steal_data(&builder->exported_out);
+    sol_vector_steal_data(&builder->node_extras);
+    sol_ptr_vector_steal_data(&builder->ports_in_desc);
+    sol_ptr_vector_steal_data(&builder->ports_out_desc);
 
     desc->options = opts;
     builder->node_type->type_data = builder->type_data;

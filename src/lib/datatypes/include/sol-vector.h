@@ -234,7 +234,7 @@ void sol_vector_clear(struct sol_vector *v);
  * @remark Time complexity: constant
  */
 static inline void *
-sol_vector_take_data(struct sol_vector *v)
+sol_vector_steal_data(struct sol_vector *v)
 {
     void *data = v->data;
 
@@ -607,7 +607,7 @@ sol_ptr_vector_del_last(struct sol_ptr_vector *pv)
  * @remark Time complexity: linear in distance between @a i and the end of the vector
  */
 static inline void *
-sol_ptr_vector_take(struct sol_ptr_vector *pv, uint16_t i)
+sol_ptr_vector_steal(struct sol_ptr_vector *pv, uint16_t i)
 {
     void *result = sol_ptr_vector_get(pv, i);
 
@@ -625,11 +625,11 @@ sol_ptr_vector_take(struct sol_ptr_vector *pv, uint16_t i)
  * @remark Time complexity: amortized constant
  */
 static inline void *
-sol_ptr_vector_take_last(struct sol_ptr_vector *pv)
+sol_ptr_vector_steal_last(struct sol_ptr_vector *pv)
 {
     if (pv->base.len == 0)
         return NULL;
-    return sol_ptr_vector_take(pv, pv->base.len - 1);
+    return sol_ptr_vector_steal(pv, pv->base.len - 1);
 }
 
 /**
@@ -659,9 +659,9 @@ sol_ptr_vector_clear(struct sol_ptr_vector *pv)
  * @remark Time complexity: constant
  */
 static inline void *
-sol_ptr_vector_take_data(struct sol_ptr_vector *pv)
+sol_ptr_vector_steal_data(struct sol_ptr_vector *pv)
 {
-    return sol_vector_take_data(&pv->base);
+    return sol_vector_steal_data(&pv->base);
 }
 
 /**

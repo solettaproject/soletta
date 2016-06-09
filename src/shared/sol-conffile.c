@@ -404,7 +404,7 @@ _parse_maps(struct sol_json_token token)
             sol_buffer_get_slice(&path_buffer));
         sol_buffer_fini(&path_buffer);
         SOL_NULL_CHECK_GOTO(map->path, error);
-        data = sol_vector_take_data(&entries_vector);
+        data = sol_vector_steal_data(&entries_vector);
         entries_destination = &map->entries + 1;
         memmove(entries_destination, data, entries_vector_size);
         map->entries = entries_destination;

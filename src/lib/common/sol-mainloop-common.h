@@ -43,7 +43,7 @@ struct sol_idler_common {
 
 /* must be called with mainloop lock held */
 static inline void
-sol_ptr_vector_steal(struct sol_ptr_vector *to, struct sol_ptr_vector *from)
+sol_mainloop_ptr_vector_steal(struct sol_ptr_vector *to, struct sol_ptr_vector *from)
 {
 #ifdef THREADS
     *to = *from;

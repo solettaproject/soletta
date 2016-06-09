@@ -148,7 +148,7 @@ uart_tx(void *arg)
     struct sol_blob *blob;
     bool r = true;
 
-    blob = sol_ptr_vector_take(&uart->pending_blobs, 0);
+    blob = sol_ptr_vector_steal(&uart->pending_blobs, 0);
 
     uart_write(uart->id, blob->mem, blob->size);
 
