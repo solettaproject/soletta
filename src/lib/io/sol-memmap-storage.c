@@ -110,10 +110,10 @@ check_version(struct map_internal *map_internal)
     }
 
     if (!get_entry_metadata_on_map
-            (MEMMAP_VERSION_ENTRY, NULL, map_internal->map, &entry,
+            (SOL_MEMMAP_VERSION_ENTRY, NULL, map_internal->map, &entry,
         &mask)) {
 
-        SOL_WRN("No entry on memory map to property [%s]", MEMMAP_VERSION_ENTRY);
+        SOL_WRN("No entry on memory map to property [%s]", SOL_MEMMAP_VERSION_ENTRY);
         return false;
     }
 
@@ -125,7 +125,7 @@ check_version(struct map_internal *map_internal)
         /* No version on file, we should be initialising it */
         version = map_internal->map->version;
         if ((ret = sol_memmap_impl_write_raw(map_internal,
-                MEMMAP_VERSION_ENTRY, entry, mask, blob, version_write_cb,
+                SOL_MEMMAP_VERSION_ENTRY, entry, mask, blob, version_write_cb,
                 NULL)) < 0) {
             SOL_WRN("Could not write current map version (path is %s): %s",
                 map_internal->map->path, sol_util_strerrora(-ret));

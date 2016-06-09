@@ -42,7 +42,7 @@ extern "C" {
  *
  * A map must be provided, either directly via @c sol_memmap_add_map or by
  * informing a JSON file to Soletta runner or generator.
- * This map needs to contain a property @c _version (@c MEMMAP_VERSION_ENTRY),
+ * This map needs to contain a property @c _version (@c SOL_MEMMAP_VERSION_ENTRY),
  * which will store version of map stored. This API will refuse to work if
  * stored map is different from map version. Note that @c _version field
  * is a @c uint8_t and that versions should start on 1, so Soletta will know
@@ -61,7 +61,7 @@ extern "C" {
  * @{
  */
 
-#define MEMMAP_VERSION_ENTRY "_version" /**< Name of property which contains stored map version */
+#define SOL_MEMMAP_VERSION_ENTRY "_version" /**< Name of property which contains stored map version */
 
 /**
  * @brief Macro to declare a @ref sol_memmap_entry variable setting fields
