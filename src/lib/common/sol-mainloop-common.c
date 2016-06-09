@@ -170,7 +170,7 @@ sol_mainloop_common_timeout_process(void)
     uint32_t i;
 
     sol_mainloop_impl_lock();
-    sol_ptr_vector_steal(&TIMEOUT_PROCESS, &TIMEOUT_ACUM);
+    sol_mainloop_ptr_vector_steal(&TIMEOUT_PROCESS, &TIMEOUT_ACUM);
     timeout_processing = true;
     sol_mainloop_impl_unlock();
 
@@ -244,7 +244,7 @@ sol_mainloop_common_idler_process(void)
     uint16_t i;
 
     sol_mainloop_impl_lock();
-    sol_ptr_vector_steal(&IDLER_PROCESS, &IDLER_ACUM);
+    sol_mainloop_ptr_vector_steal(&IDLER_PROCESS, &IDLER_ACUM);
     idler_processing = true;
     sol_mainloop_impl_unlock();
 
@@ -373,7 +373,7 @@ sol_mainloop_common_source_prepare(void)
     bool ready = false;
 
     sol_mainloop_impl_lock();
-    sol_ptr_vector_steal(&SOURCE_PROCESS, &SOURCE_ACUM);
+    sol_mainloop_ptr_vector_steal(&SOURCE_PROCESS, &SOURCE_ACUM);
     source_processing = true;
     sol_mainloop_impl_unlock();
 
@@ -406,7 +406,7 @@ sol_mainloop_common_source_get_next_timeout_locked(struct timespec *timeout)
     struct sol_mainloop_source_common *source;
     uint16_t i;
 
-    sol_ptr_vector_steal(&SOURCE_PROCESS, &SOURCE_ACUM);
+    sol_mainloop_ptr_vector_steal(&SOURCE_PROCESS, &SOURCE_ACUM);
     source_processing = true;
     sol_mainloop_impl_unlock();
 
@@ -461,7 +461,7 @@ sol_mainloop_common_source_check(void)
     bool ready = false;
 
     sol_mainloop_impl_lock();
-    sol_ptr_vector_steal(&SOURCE_PROCESS, &SOURCE_ACUM);
+    sol_mainloop_ptr_vector_steal(&SOURCE_PROCESS, &SOURCE_ACUM);
     source_processing = true;
     sol_mainloop_impl_unlock();
 
@@ -490,7 +490,7 @@ sol_mainloop_common_source_dispatch(void)
     uint16_t i;
 
     sol_mainloop_impl_lock();
-    sol_ptr_vector_steal(&SOURCE_PROCESS, &SOURCE_ACUM);
+    sol_mainloop_ptr_vector_steal(&SOURCE_PROCESS, &SOURCE_ACUM);
     source_processing = true;
     sol_mainloop_impl_unlock();
 

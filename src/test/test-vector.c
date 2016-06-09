@@ -167,7 +167,7 @@ test_ptr_vector_sorted(void)
     ASSERT_INT_EQ(found, 0);
 
     while (pv.base.len > 0)
-        free(sol_ptr_vector_take(&pv, 0));
+        free(sol_ptr_vector_steal(&pv, 0));
 }
 
 DEFINE_TEST(test_ptr_vector);
@@ -193,8 +193,8 @@ test_ptr_vector(void)
     ASSERT_INT_EQ(pv.base.len, N + 2);
 
     // Delete two first elements.
-    free(sol_ptr_vector_take(&pv, 0));
-    free(sol_ptr_vector_take(&pv, 0));
+    free(sol_ptr_vector_steal(&pv, 0));
+    free(sol_ptr_vector_steal(&pv, 0));
     ASSERT_INT_EQ(pv.base.len, N);
 
     // Verify elements.
@@ -207,13 +207,13 @@ test_ptr_vector(void)
 
     // Delete remaining elements.
     while (pv.base.len > 0)
-        free(sol_ptr_vector_take(&pv, 0));
+        free(sol_ptr_vector_steal(&pv, 0));
     ASSERT_INT_EQ(pv.base.len, 0);
 
     sol_ptr_vector_append(&pv, create_s(1));
     ASSERT_INT_EQ(pv.base.len, 1);
 
-    free(sol_ptr_vector_take(&pv, 0));
+    free(sol_ptr_vector_steal(&pv, 0));
     ASSERT_INT_EQ(pv.base.len, 0);
 }
 
@@ -275,7 +275,7 @@ vector_take_data(void)
 
     ASSERT_INT_EQ(v->len, 16);
 
-    taken = sol_vector_take_data(v);
+    taken = sol_vector_steal_data(v);
 
     ASSERT(taken);
     ASSERT_INT_EQ(v->len, 0);
@@ -544,7 +544,7 @@ test_ptr_vector_del(void)
     ASSERT_INT_EQ(r, 0);
     free(s);
 
-    free(sol_ptr_vector_take_last(&pv));
+    free(sol_ptr_vector_steal_last(&pv));
     ASSERT_INT_EQ(pv.base.len, N);
 
     s = create_s(999);
@@ -574,7 +574,7 @@ test_ptr_vector_del(void)
 
     // Delete remaining elements.
     while (pv.base.len > 0)
-        free(sol_ptr_vector_take(&pv, 0));
+        free(sol_ptr_vector_steal(&pv, 0));
     ASSERT_INT_EQ(pv.base.len, 0);
 
     r = sol_ptr_vector_del_element(&pv, &pv);
@@ -583,10 +583,10 @@ test_ptr_vector_del(void)
     r = sol_ptr_vector_del_last(&pv);
     ASSERT_INT_EQ(r, 0);
 
-    s = sol_ptr_vector_take_last(&pv);
+    s = sol_ptr_vector_steal_last(&pv);
     ASSERT(s == NULL);
 
-    s = sol_ptr_vector_take_last(&pv);
+    s = sol_ptr_vector_steal_last(&pv);
     ASSERT(s == NULL);
 }
 
