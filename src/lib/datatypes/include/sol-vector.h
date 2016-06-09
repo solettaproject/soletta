@@ -726,7 +726,7 @@ sol_ptr_vector_steal_data(struct sol_ptr_vector *pv)
  * @see sol_ptr_vector_match_sorted()
  * @see sol_ptr_vector_find_sorted()
  */
-static inline int
+static inline int32_t
 sol_ptr_vector_find_last(const struct sol_ptr_vector *pv, const void *elem)
 {
     uint16_t i;
@@ -759,7 +759,7 @@ sol_ptr_vector_find_last(const struct sol_ptr_vector *pv, const void *elem)
  * @see sol_ptr_vector_match_sorted()
  * @see sol_ptr_vector_find_sorted()
  */
-static inline int
+static inline int32_t
 sol_ptr_vector_find_first(const struct sol_ptr_vector *pv, const void *elem)
 {
     uint16_t i;
