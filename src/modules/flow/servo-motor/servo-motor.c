@@ -112,8 +112,8 @@ set_pulse_width(struct servo_motor_data *mdata, int32_t pulse_width)
         return 0;
 
     mdata->duty_cycle_range.val = pulse_width;
-    if (!sol_pwm_set_duty_cycle(mdata->pwm,
-        mdata->duty_cycle_range.val * 1000)) {
+    if (sol_pwm_set_duty_cycle(mdata->pwm,
+        mdata->duty_cycle_range.val * 1000) < 0) {
         SOL_WRN("Failed to write duty cycle %" PRId32 "ns.",
             mdata->duty_cycle_range.val * 1000);
         return -1;

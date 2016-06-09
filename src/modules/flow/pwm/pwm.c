@@ -40,7 +40,7 @@ pwm_process_enable(struct sol_flow_node *node, void *data, uint16_t port, uint16
 
     SOL_INT_CHECK(r, < 0, r);
 
-    if (!sol_pwm_set_enabled(mdata->pwm, enabled))
+    if (sol_pwm_set_enabled(mdata->pwm, enabled) < 0)
         return -EIO;
 
     return 0;
@@ -55,7 +55,7 @@ pwm_process_period(struct sol_flow_node *node, void *data, uint16_t port, uint16
 
     SOL_INT_CHECK(r, < 0, r);
 
-    if (!sol_pwm_set_period(mdata->pwm, period))
+    if (sol_pwm_set_period(mdata->pwm, period) < 0)
         return -EIO;
 
     return 0;
@@ -70,7 +70,7 @@ pwm_process_duty_cycle(struct sol_flow_node *node, void *data, uint16_t port, ui
 
     SOL_INT_CHECK(r, < 0, r);
 
-    if (!sol_pwm_set_duty_cycle(mdata->pwm, dc))
+    if (sol_pwm_set_duty_cycle(mdata->pwm, dc) < 0)
         return -EIO;
 
     return 0;
@@ -110,7 +110,7 @@ pwm_process_duty_cycle_percent(struct sol_flow_node *node, void *data, uint16_t 
     duty_cycle = map_irange_to_period(value, period);
     SOL_INT_CHECK(duty_cycle, == UINT32_MAX, -EINVAL);
 
-    if (!sol_pwm_set_duty_cycle(mdata->pwm, duty_cycle))
+    if (sol_pwm_set_duty_cycle(mdata->pwm, duty_cycle) < 0)
         return -EIO;
 
     return 0;
