@@ -774,15 +774,15 @@ sol_ptr_vector_find_first(const struct sol_ptr_vector *pv, const void *elem)
 }
 
 /**
- * @brief Match for the first occurrence matching template @c elem.
+ * @brief Match for the first occurrence matching template @c tempt.
  *
  * @note this function returns a match given @a compare_cb, that is,
- *       one that returns 0. To find the actual pointer @a elem, use
+ *       one that returns 0. To find the actual pointer element, use
  *       sol_ptr_vector_find_first().
  *
  * @param pv Pointer Vector pointer
- * @param elem Element (template) to find, the returned index may not
- * be of @a elem pointer, but to another element which makes @a
+ * @param tempt The template used to find, the returned index may not
+ * be of @a tempt pointer, but to another element which makes @a
  * compare_cb return 0.
  * @param compare_cb Function to compare elements in the list. It should return an integer
  * less than, equal to, or greater than zero if @c data1 is found, respectively,
@@ -798,13 +798,13 @@ sol_ptr_vector_find_first(const struct sol_ptr_vector *pv, const void *elem)
  * @see sol_ptr_vector_find_first_sorted()
  */
 static inline int32_t
-sol_ptr_vector_match_first(const struct sol_ptr_vector *pv, const void *elem, int (*compare_cb)(const void *data1, const void *data2))
+sol_ptr_vector_match_first(const struct sol_ptr_vector *pv, const void *tempt, int (*compare_cb)(const void *data1, const void *data2))
 {
     uint16_t i;
     const void *p;
 
     SOL_PTR_VECTOR_FOREACH_IDX (pv, p, i) {
-        if (compare_cb(elem, p) == 0)
+        if (compare_cb(tempt, p) == 0)
             return i;
     }
 
@@ -812,15 +812,15 @@ sol_ptr_vector_match_first(const struct sol_ptr_vector *pv, const void *elem, in
 }
 
 /**
- * @brief Match for the last occurrence matching template @c elem.
+ * @brief Match for the last occurrence matching template @c tempt.
  *
  * @note this function returns a match given @a compare_cb, that is,
- *       one that returns 0. To find the actual pointer @a elem, use
+ *       one that returns 0. To find the actual pointer element, use
  *       sol_ptr_vector_find_first() or sol_ptr_vector_find_last().
  *
  * @param pv Pointer Vector pointer
- * @param elem Element (template) to find, the returned index may not
- * be of @a elem pointer, but to another element which makes @a
+ * @param tempt The template used to find, the returned index may not
+ * be of @a tempt pointer, but to another element which makes @a
  * compare_cb return 0.
  * @param compare_cb Function to compare elements in the list. It should return an integer
  * less than, equal to, or greater than zero if @c data1 is found, respectively,
@@ -836,13 +836,13 @@ sol_ptr_vector_match_first(const struct sol_ptr_vector *pv, const void *elem, in
  * @see sol_ptr_vector_find_last_sorted()
  */
 static inline int32_t
-sol_ptr_vector_match_last(const struct sol_ptr_vector *pv, const void *elem, int (*compare_cb)(const void *data1, const void *data2))
+sol_ptr_vector_match_last(const struct sol_ptr_vector *pv, const void *tempt, int (*compare_cb)(const void *data1, const void *data2))
 {
     uint16_t i;
     const void *p;
 
     SOL_PTR_VECTOR_FOREACH_REVERSE_IDX (pv, p, i) {
-        if (compare_cb(elem, p) == 0)
+        if (compare_cb(tempt, p) == 0)
             return i;
     }
 
@@ -850,15 +850,15 @@ sol_ptr_vector_match_last(const struct sol_ptr_vector *pv, const void *elem, int
 }
 
 /**
- * @brief Match for occurrence matching template @c elem in the sorted vector @c pv.
+ * @brief Match for occurrence matching template @c tempt in the sorted vector @c pv.
  *
  * @note this function returns a match given @a compare_cb, that is,
- *       one that returns 0. To find the actual pointer @a elem, use
+ *       one that returns 0. To find the actual pointer element, use
  *       sol_ptr_vector_find_sorted().
  *
  * @param pv Pointer Vector pointer (already sorted)
- * @param elem Element (template) to find, the returned index may not
- * be of @a elem pointer, but to another element which makes @a
+ * @param tempt The template used to find, the returned index may not
+ * be of @a tempt pointer, but to another element which makes @a
  * compare_cb return 0.
  * @param compare_cb Function to compare elements in the list. It should return an integer
  * less than, equal to, or greater than zero if @c data1 is found, respectively,
@@ -877,7 +877,7 @@ sol_ptr_vector_match_last(const struct sol_ptr_vector *pv, const void *elem, int
  * @see sol_ptr_vector_match_first()
  * @see sol_ptr_vector_match_last()
  */
-int32_t sol_ptr_vector_match_sorted(const struct sol_ptr_vector *pv, const void *elem, int (*compare_cb)(const void *data1, const void *data2));
+int32_t sol_ptr_vector_match_sorted(const struct sol_ptr_vector *pv, const void *tempt, int (*compare_cb)(const void *data1, const void *data2));
 
 /**
  * @brief Find the exact occurrence of @c elem in the sorted vector @c pv.
