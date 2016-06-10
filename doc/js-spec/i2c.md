@@ -1,4 +1,4 @@
-I2C Web API for Soletta
+I2C Web API for Soletta™ Framework
 =======================
 
 Introduction
