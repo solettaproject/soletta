@@ -94,7 +94,7 @@ i2c_dispatcher_op_done(void *cb_data, struct sol_i2c *i2c, uint8_t reg, uint8_t 
     if (!op_set->delete_me) {
         if (status <= 0) {
             SOL_ERR("[bus=%d addr=0x%02x reg=0x%02x] I2C operation failed!",
-                sol_i2c_bus_get(i2c), op_set->addr, reg);
+                sol_i2c_get_bus(i2c), op_set->addr, reg);
         } else if (++dispatcher->set_idx < op_set->set->len) {
             goto proceed;
         }
@@ -151,7 +151,7 @@ i2c_dispatcher_exec_op(void *data)
         }
 
         SOL_ERR("Failed to set slave address 0x%02x on I2C bus: %d.",
-            op_set->addr, sol_i2c_bus_get(shared->i2c));
+            op_set->addr, sol_i2c_get_bus(shared->i2c));
         i2c_dispatcher_end_set(dispatcher, -1);
 
         return true;
@@ -299,7 +299,7 @@ sol_i2c_open(uint8_t bus, enum sol_i2c_speed speed)
     SOL_LOG_INTERNAL_INIT_ONCE;
 
     SOL_VECTOR_FOREACH_IDX (&i2c_shared_vector, i2c_shared, i) {
-        if (sol_i2c_bus_get(i2c_shared->i2c) == bus) {
+        if (sol_i2c_get_bus(i2c_shared->i2c) == bus) {
             i2c_shared->refcount++;
             return i2c_shared->i2c;
         }

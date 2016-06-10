@@ -535,7 +535,7 @@ sol_i2c_get_slave_address(struct sol_i2c *i2c)
 }
 
 SOL_API uint8_t
-sol_i2c_bus_get(const struct sol_i2c *i2c)
+sol_i2c_get_bus(const struct sol_i2c *i2c)
 {
     SOL_NULL_CHECK(i2c, 0);
     return i2c->dev_ref - devs[0];

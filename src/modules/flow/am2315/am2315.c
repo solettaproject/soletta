@@ -82,7 +82,7 @@ am2315_open(uint8_t bus, uint8_t slave)
 
     /* Is the requested device already open? */
     SOL_PTR_VECTOR_FOREACH_IDX (&devices, device, i) {
-        if (sol_i2c_bus_get(device->i2c) == bus && device->slave == slave) {
+        if (sol_i2c_get_bus(device->i2c) == bus && device->slave == slave) {
             device->refcount++;
             return device;
         }

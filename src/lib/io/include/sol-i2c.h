@@ -51,7 +51,7 @@ extern "C" {
  * @see sol_i2c_close()
  * @see sol_i2c_set_slave_address()
  * @see sol_i2c_get_slave_address()
- * @see sol_i2c_bus_get()
+ * @see sol_i2c_get_bus()
  * @see sol_i2c_write_quick()
  * @see sol_i2c_read()
  * @see sol_i2c_write()
@@ -362,7 +362,7 @@ struct sol_i2c_pending *sol_i2c_read_register_multiple(struct sol_i2c *i2c, uint
  *
  * @return the bus id
  */
-uint8_t sol_i2c_bus_get(const struct sol_i2c *i2c);
+uint8_t sol_i2c_get_bus(const struct sol_i2c *i2c);
 
 /**
  * @brief Cancel a pending operation.
