@@ -1,4 +1,4 @@
-# Makefile magic to determine the Soletta directory based on this very file.
+# Makefile magic to determine the Soletta™ Framework directory based on this very file.
 thisdir := $(realpath $(dir $(lastword $(MAKEFILE_LIST))))
 
 # Set variables that the build system including this file can use
