@@ -124,6 +124,19 @@ cert_alloc_error:
     return NULL;
 }
 
+SOL_API struct sol_cert *
+sol_cert_ref(struct sol_cert *cert)
+{
+    SOL_NULL_CHECK(cert, NULL);
+
+    errno = ENOMEM;
+    SOL_INT_CHECK(cert->refcnt, == UINT16_MAX, NULL);
+    errno = 0;
+
+    cert->refcnt++;
+    return cert;
+}
+
 SOL_API void
 sol_cert_unref(struct sol_cert *cert)
 {

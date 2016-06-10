@@ -61,6 +61,15 @@ struct sol_cert;
 struct sol_cert *sol_cert_load_from_id(const char *id);
 
 /**
+ * @brief Increments the reference counter of the given sol_cert.
+ *
+ * @param cert The certificate to increase the references
+ *
+ * @return Pointer to the referenced certificate.
+ */
+struct sol_cert *sol_cert_ref(struct sol_cert *cert);
+
+/**
  * @brief Free the resources a sol_cert object and the object itself
  *
  * @param cert The object to be freed
