@@ -357,7 +357,7 @@ localtime_process(struct sol_flow_node *node, void *data, uint16_t port, uint16_
     if (split_time.tm_isdst < 0)
         SOL_DBG("Daylight saving time information not available.");
     else {
-        r = sol_flow_send_boolean_packet(node,
+        r = sol_flow_send_bool_packet(node,
             SOL_FLOW_NODE_TYPE_TIMESTAMP_SPLIT_TIME__OUT__DAYLIGHT_SAVING_TIME,
             !!split_time.tm_isdst);
         SOL_INT_CHECK(r, < 0, r);
@@ -454,7 +454,7 @@ comparison_process(struct sol_flow_node *node, void *data, uint16_t port, uint16
 
     output = type->func(&mdata->val[0], &mdata->val[1]);
 
-    return sol_flow_send_boolean_packet(node, 0, output);
+    return sol_flow_send_bool_packet(node, 0, output);
 }
 
 static int

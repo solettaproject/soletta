@@ -269,7 +269,7 @@ def data_type_to_default_member(typename):
 
 data_type_to_packet_type_map = {
     "empty": "SOL_FLOW_PACKET_TYPE_EMPTY",
-    "boolean": "SOL_FLOW_PACKET_TYPE_BOOLEAN",
+    "boolean": "SOL_FLOW_PACKET_TYPE_BOOL",
     "int": "SOL_FLOW_PACKET_TYPE_IRANGE",
     "byte": "SOL_FLOW_PACKET_TYPE_BYTE",
     "string": "SOL_FLOW_PACKET_TYPE_STRING",

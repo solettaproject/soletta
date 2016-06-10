@@ -148,7 +148,7 @@ pop_boolean(duk_context *ctx)
 
     value = duk_require_boolean(ctx, -1);
 
-    return sol_flow_packet_new_boolean(value);
+    return sol_flow_packet_new_bool(value);
 }
 
 static struct sol_flow_packet *
@@ -488,7 +488,7 @@ get_output_port_number(const struct flow_js_type *type, const char *port_name)
 static struct sol_flow_packet *
 create_packet(const struct sol_flow_packet_type *packet_type, duk_context *ctx)
 {
-    if (packet_type == SOL_FLOW_PACKET_TYPE_BOOLEAN)
+    if (packet_type == SOL_FLOW_PACKET_TYPE_BOOL)
         return pop_boolean(ctx);
     if (packet_type == SOL_FLOW_PACKET_TYPE_BYTE)
         return pop_byte(ctx);
@@ -865,7 +865,7 @@ push_boolean(const struct sol_flow_packet *packet,
     bool value;
     int r;
 
-    r = sol_flow_packet_get_boolean(packet, &value);
+    r = sol_flow_packet_get_bool(packet, &value);
     SOL_INT_CHECK(r, < 0, r);
 
     duk_push_boolean(duk_ctx, value);
@@ -1177,7 +1177,7 @@ process_simple_packet(const struct sol_flow_packet *packet,
     const struct sol_flow_packet_type *packet_type =
         sol_flow_packet_get_type(packet);
 
-    if (packet_type == SOL_FLOW_PACKET_TYPE_BOOLEAN)
+    if (packet_type == SOL_FLOW_PACKET_TYPE_BOOL)
         return push_boolean(packet, duk_ctx);
     if (packet_type == SOL_FLOW_PACKET_TYPE_BYTE)
         return push_byte(packet, duk_ctx);

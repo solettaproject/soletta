@@ -27,10 +27,10 @@ static void
 test_composed_type(void)
 {
     const struct sol_flow_packet_type *types[] =
-    { SOL_FLOW_PACKET_TYPE_BOOLEAN, SOL_FLOW_PACKET_TYPE_STRING,
+    { SOL_FLOW_PACKET_TYPE_BOOL, SOL_FLOW_PACKET_TYPE_STRING,
       SOL_FLOW_PACKET_TYPE_IRANGE, NULL };
     const struct sol_flow_packet_type *types2[] =
-    { SOL_FLOW_PACKET_TYPE_BOOLEAN, SOL_FLOW_PACKET_TYPE_STRING, NULL };
+    { SOL_FLOW_PACKET_TYPE_BOOL, SOL_FLOW_PACKET_TYPE_STRING, NULL };
     const struct sol_flow_packet_type *composed_type, *composed_type2,
     *composed_type3;
     bool is_composed;

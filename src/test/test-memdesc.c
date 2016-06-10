@@ -67,13 +67,13 @@ TEST_SIMPLE_INTEGER(long, SOL_MEMDESC_TYPE_LONG, l, LONG_MAX / 10);
 TEST_SIMPLE_INTEGER(ssize_t, SOL_MEMDESC_TYPE_SSIZE, ssz, SSIZE_MAX / 10);
 
 
-DEFINE_TEST(test_simple_SOL_MEMDESC_TYPE_BOOLEAN);
+DEFINE_TEST(test_simple_SOL_MEMDESC_TYPE_BOOL);
 static void
-test_simple_SOL_MEMDESC_TYPE_BOOLEAN(void)
+test_simple_SOL_MEMDESC_TYPE_BOOL(void)
 {
     const struct sol_memdesc desc = {
         SOL_SET_API_VERSION(.api_version = SOL_MEMDESC_API_VERSION, )
-        .type = SOL_MEMDESC_TYPE_BOOLEAN,
+        .type = SOL_MEMDESC_TYPE_BOOL,
         .defcontent.b = true,
     };
     bool a, b, c;
@@ -480,7 +480,7 @@ test_SOL_MEMDESC_TYPE_STRUCTURE_of_struct(void)
             {
                 .base = {
                     SOL_SET_API_VERSION(.api_version = SOL_MEMDESC_API_VERSION, )
-                    .type = SOL_MEMDESC_TYPE_BOOLEAN,
+                    .type = SOL_MEMDESC_TYPE_BOOL,
                     .defcontent.i64 = true,
                 },
                 .offset = offsetof(struct otherst, b),

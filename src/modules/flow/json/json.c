@@ -126,11 +126,11 @@ send_token_packet(struct sol_flow_node *node, struct sol_json_scanner *scanner, 
         sol_blob_unref(new_blob);
         return r;
     case SOL_JSON_TYPE_TRUE:
-        return sol_flow_send_boolean_packet(node,
+        return sol_flow_send_bool_packet(node,
             SOL_FLOW_NODE_TYPE_JSON_OBJECT_GET_KEY__OUT__BOOLEAN,
             true);
     case SOL_JSON_TYPE_FALSE:
-        return sol_flow_send_boolean_packet(node,
+        return sol_flow_send_bool_packet(node,
             SOL_FLOW_NODE_TYPE_JSON_OBJECT_GET_KEY__OUT__BOOLEAN,
             false);
     case SOL_JSON_TYPE_NULL:
@@ -310,7 +310,7 @@ json_object_get_all_keys_process(struct sol_flow_node *node, void *data, uint16_
         empty = false;
     }
 
-    return sol_flow_send_boolean_packet(node,
+    return sol_flow_send_bool_packet(node,
         SOL_FLOW_NODE_TYPE_JSON_OBJECT_GET_ALL_KEYS__OUT__EMPTY, empty);
 }
 
@@ -457,7 +457,7 @@ json_array_get_all_elements_process(struct sol_flow_node *node, void *data, uint
             "Invalid JSON array (%.*s)", (int)json_array->size,
             (char *)json_array->mem);
 
-    return sol_flow_send_boolean_packet(node,
+    return sol_flow_send_bool_packet(node,
         SOL_FLOW_NODE_TYPE_JSON_ARRAY_GET_ALL_ELEMENTS__OUT__EMPTY, empty);
 }
 
@@ -603,7 +603,7 @@ json_node_fill_element(const struct sol_flow_packet *packet, uint16_t port, stru
         break;
     case SOL_FLOW_NODE_TYPE_JSON_CREATE_OBJECT__IN__BOOLEAN:
         element->type = JSON_TYPE_BOOLEAN;
-        r = sol_flow_packet_get_boolean(packet, &element->bool_value);
+        r = sol_flow_packet_get_bool(packet, &element->bool_value);
         SOL_INT_CHECK(r, < 0, r);
         break;
     case SOL_FLOW_NODE_TYPE_JSON_CREATE_OBJECT__IN__STRING:
@@ -735,7 +735,7 @@ json_serialize(struct sol_buffer *buffer, struct json_element *element)
     case JSON_TYPE_FLOAT:
         return sol_json_serialize_double(buffer, element->float_value);
     case JSON_TYPE_BOOLEAN:
-        return sol_json_serialize_boolean(buffer, element->bool_value);
+        return sol_json_serialize_bool(buffer, element->bool_value);
     case JSON_TYPE_STRING:
         return sol_json_serialize_string(buffer, element->str);
     case JSON_TYPE_ARRAY_BLOB:

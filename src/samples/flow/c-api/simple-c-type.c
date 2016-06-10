@@ -67,7 +67,7 @@ isodd(struct sol_flow_node *node, const struct sol_flow_simple_c_type_event *ev,
         return r;
 
     /* we use port index '0' here, after all we have a single port */
-    return sol_flow_send_boolean_packet(node, 0, (val % 2 != 0));
+    return sol_flow_send_bool_packet(node, 0, (val % 2 != 0));
 }
 
 /*
@@ -163,7 +163,7 @@ mytype_func(struct sol_flow_node *node, const struct sol_flow_simple_c_type_even
             }
         } else if (strcmp(ev->port_name, "BOOLEAN") == 0) {
             bool val;
-            if (sol_flow_packet_get_boolean(ev->packet, &val) == 0) {
+            if (sol_flow_packet_get_bool(ev->packet, &val) == 0) {
                 printf("simple_c_type updated boolean from %d to %d\n",
                     ctx->somebool, val);
                 ctx->somebool = val;
@@ -223,7 +223,7 @@ startup(void)
     isoddtype = sol_flow_simple_c_type_new_nocontext(
         isodd,
         SOL_FLOW_SIMPLE_C_TYPE_PORT_IN("IN", SOL_FLOW_PACKET_TYPE_IRANGE),
-        SOL_FLOW_SIMPLE_C_TYPE_PORT_OUT("OUT", SOL_FLOW_PACKET_TYPE_BOOLEAN),
+        SOL_FLOW_SIMPLE_C_TYPE_PORT_OUT("OUT", SOL_FLOW_PACKET_TYPE_BOOL),
         NULL);
 
     /* declare mytype with 'struct mytype_context' private data and with ports:
@@ -234,7 +234,7 @@ startup(void)
         "mytype", sizeof(struct mytype_context), sizeof(struct mytype_options),
         mytype_func,
         SOL_FLOW_SIMPLE_C_TYPE_PORT_IN("IRANGE", SOL_FLOW_PACKET_TYPE_IRANGE),
-        SOL_FLOW_SIMPLE_C_TYPE_PORT_IN("BOOLEAN", SOL_FLOW_PACKET_TYPE_BOOLEAN),
+        SOL_FLOW_SIMPLE_C_TYPE_PORT_IN("BOOLEAN", SOL_FLOW_PACKET_TYPE_BOOL),
         SOL_FLOW_SIMPLE_C_TYPE_PORT_OUT("STRING", SOL_FLOW_PACKET_TYPE_STRING),
         NULL);
 

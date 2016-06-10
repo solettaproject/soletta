@@ -116,7 +116,7 @@ sol_memdesc_type_from_str(const char *str)
         SOL_STR_TABLE_ITEM("int64_t", SOL_MEMDESC_TYPE_INT64),
         SOL_STR_TABLE_ITEM("long", SOL_MEMDESC_TYPE_LONG),
         SOL_STR_TABLE_ITEM("ssize_t", SOL_MEMDESC_TYPE_SSIZE),
-        SOL_STR_TABLE_ITEM("boolean", SOL_MEMDESC_TYPE_BOOLEAN),
+        SOL_STR_TABLE_ITEM("boolean", SOL_MEMDESC_TYPE_BOOL),
         SOL_STR_TABLE_ITEM("double", SOL_MEMDESC_TYPE_DOUBLE),
         SOL_STR_TABLE_ITEM("string", SOL_MEMDESC_TYPE_STRING),
         SOL_STR_TABLE_ITEM("const string", SOL_MEMDESC_TYPE_CONST_STRING),
@@ -149,7 +149,7 @@ sol_memdesc_type_to_str(enum sol_memdesc_type type)
         [SOL_MEMDESC_TYPE_INT64] = "int64_t",
         [SOL_MEMDESC_TYPE_LONG] = "long",
         [SOL_MEMDESC_TYPE_SSIZE] = "ssize_t",
-        [SOL_MEMDESC_TYPE_BOOLEAN] = "boolean",
+        [SOL_MEMDESC_TYPE_BOOL] = "boolean",
         [SOL_MEMDESC_TYPE_DOUBLE] = "double",
         [SOL_MEMDESC_TYPE_STRING] = "string",
         [SOL_MEMDESC_TYPE_CONST_STRING] = "const string",
@@ -219,7 +219,7 @@ get_defcontent(const struct sol_memdesc *desc)
         return &desc->defcontent.l;
     case SOL_MEMDESC_TYPE_SSIZE:
         return &desc->defcontent.ssz;
-    case SOL_MEMDESC_TYPE_BOOLEAN:
+    case SOL_MEMDESC_TYPE_BOOL:
         return &desc->defcontent.b;
     case SOL_MEMDESC_TYPE_DOUBLE:
         return &desc->defcontent.d;
@@ -469,7 +469,7 @@ compare_content(const struct sol_memdesc *desc, const void *a_mem, const void *b
         RET_CMP_INT(long);
     case SOL_MEMDESC_TYPE_SSIZE:
         RET_CMP_INT(ssize_t);
-    case SOL_MEMDESC_TYPE_BOOLEAN: {
+    case SOL_MEMDESC_TYPE_BOOL: {
         const bool *a = a_mem;
         const bool *b = b_mem;
 
@@ -973,7 +973,7 @@ default_serialize_double(const struct sol_memdesc *desc, double value, struct so
 }
 
 static int
-default_serialize_boolean(const struct sol_memdesc *desc, bool value, struct sol_buffer *buffer)
+default_serialize_bool(const struct sol_memdesc *desc, bool value, struct sol_buffer *buffer)
 {
     if (value)
         return sol_buffer_append_slice(buffer, sol_str_slice_from_str("true"));
@@ -1245,7 +1245,7 @@ SOL_API const struct sol_memdesc_serialize_options SOL_MEMDESC_SERIALIZE_OPTIONS
     .serialize_int64 = default_serialize_int64,
     .serialize_uint64 = default_serialize_uint64,
     .serialize_double = default_serialize_double,
-    .serialize_boolean = default_serialize_boolean,
+    .serialize_bool = default_serialize_bool,
     .serialize_pointer = default_serialize_pointer,
     .serialize_string = default_serialize_string,
     .serialize_enumeration = default_serialize_enumeration,
@@ -1286,14 +1286,14 @@ SOL_API const struct sol_memdesc_serialize_options SOL_MEMDESC_SERIALIZE_OPTIONS
 };
 
 static int
-serialize_boolean(const struct sol_memdesc *desc, const void *memory, struct sol_buffer *buf, const struct sol_memdesc_serialize_options *opts)
+serialize_bool(const struct sol_memdesc *desc, const void *memory, struct sol_buffer *buf, const struct sol_memdesc_serialize_options *opts)
 {
     const bool *m = memory;
 
-    if (opts->serialize_boolean)
-        return opts->serialize_boolean(desc, *m, buf);
+    if (opts->serialize_bool)
+        return opts->serialize_bool(desc, *m, buf);
     else
-        return default_serialize_boolean(desc, *m, buf);
+        return default_serialize_bool(desc, *m, buf);
 }
 
 static int
@@ -1472,8 +1472,8 @@ serialize_array(const struct sol_memdesc *desc, const void *memory, struct sol_b
 static int
 serialize(const struct sol_memdesc *desc, const void *memory, struct sol_buffer *buf, const struct sol_memdesc_serialize_options *opts, struct sol_buffer *prefix)
 {
-    if (desc->type == SOL_MEMDESC_TYPE_BOOLEAN)
-        return serialize_boolean(desc, memory, buf, opts);
+    if (desc->type == SOL_MEMDESC_TYPE_BOOL)
+        return serialize_bool(desc, memory, buf, opts);
     else if (desc->type == SOL_MEMDESC_TYPE_DOUBLE)
         return serialize_double(desc, memory, buf, opts);
     else if (desc->type == SOL_MEMDESC_TYPE_STRING ||

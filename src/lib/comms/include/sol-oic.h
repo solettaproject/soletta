@@ -200,15 +200,15 @@ struct sol_oic_device_info {
  * @brief field type of sol_oic_repr_field structure.
  */
 enum sol_oic_repr_type {
-    SOL_OIC_REPR_TYPE_UINT, /**< Unsigned int type. */
-    SOL_OIC_REPR_TYPE_INT, /**< Signed int type. */
-    SOL_OIC_REPR_TYPE_SIMPLE, /**< Unsigned 8-bit integer type. */
-    SOL_OIC_REPR_TYPE_TEXT_STRING, /**< String with text type. */
-    SOL_OIC_REPR_TYPE_BYTE_STRING, /**< String with bytes type. */
-    SOL_OIC_REPR_TYPE_HALF_FLOAT, /**< Half-precision float number type. */
-    SOL_OIC_REPR_TYPE_FLOAT, /**< Single-precision float number type. */
-    SOL_OIC_REPR_TYPE_DOUBLE, /**< Double-precision float number type. */
-    SOL_OIC_REPR_TYPE_BOOLEAN, /**< Boolean type. */
+    SOL_OIC_REPR_TYPE_UINT, /** Unsigned int type. */
+    SOL_OIC_REPR_TYPE_INT, /** Signed int type. */
+    SOL_OIC_REPR_TYPE_SIMPLE, /** Unsigned 8-bit integer type. */
+    SOL_OIC_REPR_TYPE_TEXT_STRING, /** String with text type. */
+    SOL_OIC_REPR_TYPE_BYTE_STRING, /** String with bytes type. */
+    SOL_OIC_REPR_TYPE_HALF_FLOAT, /** Half-precision float number type. */
+    SOL_OIC_REPR_TYPE_FLOAT, /** Single-precision float number type. */
+    SOL_OIC_REPR_TYPE_DOUBLE, /** Double-precision float number type. */
+    SOL_OIC_REPR_TYPE_BOOL, /** Boolean precision type. */
     SOL_OIC_REPR_TYPE_UNSUPPORTED /**< Unsupported type. */
 };
 
@@ -266,7 +266,7 @@ struct sol_oic_repr_field {
          */
         void *v_voidptr;
         /**
-         * @brief Field's data if type is SOL_OIC_REPR_TYPE_BOOLEAN.
+         * @brief Field's data if type is SOL_OIC_REPR_TYPE_BOOL.
          */
         bool v_boolean;
     };
@@ -306,8 +306,8 @@ struct sol_oic_repr_field {
  * @param key_ Field's key.
  * @param value_ The boolean value of this field.
  */
-#define SOL_OIC_REPR_BOOLEAN(key_, value_) \
-    SOL_OIC_REPR_FIELD(key_, SOL_OIC_REPR_TYPE_BOOLEAN, .v_boolean = !!(value_))
+#define SOL_OIC_REPR_BOOL(key_, value_) \
+    SOL_OIC_REPR_FIELD(key_, SOL_OIC_REPR_TYPE_BOOL, .v_boolean = !!(value_))
 
 /**
  * @brief Helper macro to create a simple integer #sol_oic_repr_field.

@@ -148,7 +148,7 @@ extern const struct sol_flow_packet_type *SOL_FLOW_PACKET_TYPE_EMPTY;
 /**
  * @brief Type of the Boolean packet
  */
-extern const struct sol_flow_packet_type *SOL_FLOW_PACKET_TYPE_BOOLEAN;
+extern const struct sol_flow_packet_type *SOL_FLOW_PACKET_TYPE_BOOL;
 
 /**
  * @brief Type of the Byte packet
@@ -239,7 +239,7 @@ struct sol_flow_packet *sol_flow_packet_new_empty(void);
  *
  * @return A new Boolean packet
  */
-struct sol_flow_packet *sol_flow_packet_new_boolean(bool boolean);
+struct sol_flow_packet *sol_flow_packet_new_bool(bool boolean);
 
 /**
  * @brief Retrieves the content of a Boolean packet.
@@ -249,7 +249,7 @@ struct sol_flow_packet *sol_flow_packet_new_boolean(bool boolean);
  *
  * @return @c 0 if the content was successfully retrieved, error code (always negative) otherwise.
  */
-int sol_flow_packet_get_boolean(const struct sol_flow_packet *packet, bool *boolean);
+int sol_flow_packet_get_bool(const struct sol_flow_packet *packet, bool *boolean);
 
 /**
  * @brief Creates a new packet of type Byte.

@@ -72,7 +72,7 @@ sequence_process(
         return 0;
     }
 
-    r = sol_flow_packet_get_boolean(packet, &val);
+    r = sol_flow_packet_get_bool(packet, &val);
     SOL_INT_CHECK(r, < 0, r);
 
     input = val ? 'T' : 'F';
@@ -81,7 +81,7 @@ sequence_process(
 
     mdata->it++;
     if (*mdata->it == '\0' || !match) {
-        sol_flow_send_boolean_packet(node, SOL_FLOW_NODE_TYPE_TEST_BOOLEAN_VALIDATOR__OUT__OUT,
+        sol_flow_send_bool_packet(node, SOL_FLOW_NODE_TYPE_TEST_BOOLEAN_VALIDATOR__OUT__OUT,
             match);
         mdata->done = true;
     }

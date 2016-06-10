@@ -34,7 +34,7 @@ string_is_empty(struct sol_flow_node *node,
     r = sol_flow_packet_get_string(packet, &in_value);
     SOL_INT_CHECK(r, < 0, r);
 
-    return sol_flow_send_boolean_packet(node,
+    return sol_flow_send_bool_packet(node,
         SOL_FLOW_NODE_TYPE_STRING_IS_EMPTY__OUT__OUT, strlen(in_value) == 0);
 }
 

@@ -1249,7 +1249,7 @@ get_resource_len(const struct sol_lwm2m_resource *resource, uint16_t index,
     case SOL_LWM2M_RESOURCE_DATA_TYPE_TIME:
         *len = get_int_size(resource->data[index].integer);
         return 0;
-    case SOL_LWM2M_RESOURCE_DATA_TYPE_BOOLEAN:
+    case SOL_LWM2M_RESOURCE_DATA_TYPE_BOOL:
         *len = 1;
         return 0;
     case SOL_LWM2M_RESOURCE_DATA_TYPE_FLOAT:
@@ -1330,7 +1330,7 @@ add_resource_bytes_to_buffer(const struct sol_lwm2m_resource *resource,
     case SOL_LWM2M_RESOURCE_DATA_TYPE_TIME:
     case SOL_LWM2M_RESOURCE_DATA_TYPE_OBJ_LINK:
         return add_int_resource(buf, resource->data[idx].integer, len);
-    case SOL_LWM2M_RESOURCE_DATA_TYPE_BOOLEAN:
+    case SOL_LWM2M_RESOURCE_DATA_TYPE_BOOL:
         b = resource->data[idx].integer != 0 ? 1 : 0;
         return sol_buffer_append_bytes(buf, (uint8_t *)&b, 1);
     case SOL_LWM2M_RESOURCE_DATA_TYPE_FLOAT:
@@ -1775,7 +1775,7 @@ sol_lwm2m_resource_init(struct sol_lwm2m_resource *resource,
         case SOL_LWM2M_RESOURCE_DATA_TYPE_TIME:
             resource->data[i].integer = va_arg(ap, int64_t);
             break;
-        case SOL_LWM2M_RESOURCE_DATA_TYPE_BOOLEAN:
+        case SOL_LWM2M_RESOURCE_DATA_TYPE_BOOL:
             resource->data[i].integer = va_arg(ap, int);
             break;
         case SOL_LWM2M_RESOURCE_DATA_TYPE_OBJ_LINK:

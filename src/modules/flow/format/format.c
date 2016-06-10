@@ -1096,7 +1096,7 @@ string_formatted_enabled_set(struct sol_flow_node *node,
     bool value;
     int r;
 
-    r = sol_flow_packet_get_boolean(packet, &value);
+    r = sol_flow_packet_get_bool(packet, &value);
     SOL_INT_CHECK(r, < 0, r);
 
     mdata->enabled = value;

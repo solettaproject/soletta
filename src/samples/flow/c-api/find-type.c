@@ -350,7 +350,7 @@ show_resolved_type(const char *name)
         for (; itr < itr_end; itr++) {
             printf("%s=", itr->name);
             switch (itr->type) {
-            case SOL_FLOW_NODE_OPTIONS_MEMBER_BOOLEAN:
+            case SOL_FLOW_NODE_OPTIONS_MEMBER_BOOL:
                 printf("%s", itr->boolean ? "true" : "false");
                 break;
             case SOL_FLOW_NODE_OPTIONS_MEMBER_BYTE:

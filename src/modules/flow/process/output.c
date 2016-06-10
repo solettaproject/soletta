@@ -111,7 +111,7 @@ watch_cb(void *data, int fd, uint32_t active_flags)
 
         SOL_PTR_VECTOR_FOREACH_IDX (&output->monitors, n, i) {
             sol_flow_send_error_packet(n, -err, "%s", sol_util_strerrora(-err));
-            sol_flow_send_boolean_packet(n, output->port, true);
+            sol_flow_send_bool_packet(n, output->port, true);
         }
 
         SOL_VECTOR_FOREACH_IDX (&output->data, w, i)
@@ -216,7 +216,7 @@ common_connect(struct output_data *output, struct sol_flow_node *node)
     int flags;
 
     flags = fcntl(output->fd, F_GETFL);
-    return sol_flow_send_boolean_packet(node, output->port, (flags < 0));
+    return sol_flow_send_bool_packet(node, output->port, (flags < 0));
 }
 
 int

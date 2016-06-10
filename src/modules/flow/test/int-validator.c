@@ -113,7 +113,7 @@ int_validator_process(
     mdata->next_index++;
 
     if (mdata->next_index == mdata->values.len || !match) {
-        sol_flow_send_boolean_packet(node,
+        sol_flow_send_bool_packet(node,
             SOL_FLOW_NODE_TYPE_TEST_INT_VALIDATOR__OUT__OUT, match);
         mdata->done = true;
     }

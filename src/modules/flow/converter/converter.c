@@ -218,7 +218,7 @@ boolean_to_irange_convert(struct sol_flow_node *node, void *data, uint16_t port,
     int r;
     bool in_value;
 
-    r = sol_flow_packet_get_boolean(packet, &in_value);
+    r = sol_flow_packet_get_bool(packet, &in_value);
     SOL_INT_CHECK(r, < 0, r);
 
     return sol_flow_send_irange_value_packet(node,
@@ -267,7 +267,7 @@ irange_to_boolean_convert(struct sol_flow_node *node, void *data, uint16_t port,
     else
         out_value = true;
 
-    return sol_flow_send_boolean_packet(node,
+    return sol_flow_send_bool_packet(node,
         SOL_FLOW_NODE_TYPE_CONVERTER_INT_TO_BOOLEAN__OUT__OUT,
         out_value);
 }
@@ -297,7 +297,7 @@ boolean_to_drange_convert(struct sol_flow_node *node, void *data, uint16_t port,
     int r;
     bool in_value;
 
-    r = sol_flow_packet_get_boolean(packet, &in_value);
+    r = sol_flow_packet_get_bool(packet, &in_value);
     SOL_INT_CHECK(r, < 0, r);
 
     return sol_flow_send_drange_value_packet(node,
@@ -343,7 +343,7 @@ drange_to_boolean_convert(struct sol_flow_node *node, void *data, uint16_t port,
 
     out_value = !((in_value < mdata->min) || (in_value > mdata->max));
 
-    return sol_flow_send_boolean_packet(node,
+    return sol_flow_send_bool_packet(node,
         SOL_FLOW_NODE_TYPE_CONVERTER_FLOAT_TO_BOOLEAN__OUT__OUT,
         out_value);
 }
@@ -373,7 +373,7 @@ boolean_to_byte_convert(struct sol_flow_node *node, void *data, uint16_t port, u
     int r;
     bool in_value;
 
-    r = sol_flow_packet_get_boolean(packet, &in_value);
+    r = sol_flow_packet_get_bool(packet, &in_value);
     SOL_INT_CHECK(r, < 0, r);
 
     return sol_flow_send_byte_packet(node,
@@ -419,7 +419,7 @@ byte_to_boolean_convert(struct sol_flow_node *node, void *data, uint16_t port, u
 
     out_value = !((in_value < mdata->min) || (in_value > mdata->max));
 
-    return sol_flow_send_boolean_packet(node,
+    return sol_flow_send_bool_packet(node,
         SOL_FLOW_NODE_TYPE_CONVERTER_BYTE_TO_BOOLEAN__OUT__OUT,
         out_value);
 }
@@ -682,7 +682,7 @@ empty_to_boolean_convert(struct sol_flow_node *node, void *data, uint16_t port, 
 {
     struct sol_converter_boolean *mdata = data;
 
-    return sol_flow_send_boolean_packet(node,
+    return sol_flow_send_bool_packet(node,
         SOL_FLOW_NODE_TYPE_CONVERTER_EMPTY_TO_BOOLEAN__OUT__OUT,
         mdata->output_value);
 }
@@ -739,7 +739,7 @@ pulse_if_true(struct sol_flow_node *node, void *data, uint16_t port, uint16_t co
     bool in_value;
     int r;
 
-    r = sol_flow_packet_get_boolean(packet, &in_value);
+    r = sol_flow_packet_get_bool(packet, &in_value);
     SOL_INT_CHECK(r, < 0, r);
 
     if (!in_value)
@@ -755,7 +755,7 @@ pulse_if_false(struct sol_flow_node *node, void *data, uint16_t port, uint16_t c
     bool in_value;
     int r;
 
-    r = sol_flow_packet_get_boolean(packet, &in_value);
+    r = sol_flow_packet_get_bool(packet, &in_value);
     SOL_INT_CHECK(r, < 0, r);
 
     if (in_value)
@@ -1120,7 +1120,7 @@ boolean_to_string_convert(struct sol_flow_node *node, void *data, uint16_t port,
     int r;
     bool in_value;
 
-    r = sol_flow_packet_get_boolean(packet, &in_value);
+    r = sol_flow_packet_get_bool(packet, &in_value);
     SOL_INT_CHECK(r, < 0, r);
 
     return sol_flow_send_string_packet(node,
@@ -1197,7 +1197,7 @@ static int
 empty_boolean_output_set(struct sol_flow_node *node, void *data, uint16_t port, uint16_t conn_id, const struct sol_flow_packet *packet)
 {
     struct sol_converter_boolean *mdata = data;
-    int r = sol_flow_packet_get_boolean(packet, &mdata->output_value);
+    int r = sol_flow_packet_get_bool(packet, &mdata->output_value);
 
     SOL_INT_CHECK(r, < 0, r);
     return 0;
@@ -1287,7 +1287,7 @@ byte_to_bits_convert(struct sol_flow_node *node, void *data, uint16_t port, uint
         if (mdata->output_initialized && last_bit == next_bit)
             continue;
 
-        sol_flow_send_boolean_packet(node,
+        sol_flow_send_bool_packet(node,
             SOL_FLOW_NODE_TYPE_CONVERTER_BYTE_TO_BITS__OUT__OUT_0 + i, next_bit);
     }
 
@@ -1314,7 +1314,7 @@ string_to_boolean_convert(struct sol_flow_node *node, void *data, uint16_t port,
                    (node, EINVAL, "String %s isn't a valid boolean", in_value);
     }
 
-    return sol_flow_send_boolean_packet(node,
+    return sol_flow_send_bool_packet(node,
         SOL_FLOW_NODE_TYPE_CONVERTER_STRING_TO_BOOLEAN__OUT__OUT,
         out_value);
 }
@@ -1948,7 +1948,7 @@ bits_to_byte_convert(struct sol_flow_node *node, void *data, uint16_t port, uint
     int idx = port - SOL_FLOW_NODE_TYPE_CONVERTER_BITS_TO_BYTE__IN__IN_0;
     bool in_val;
 
-    int r = sol_flow_packet_get_boolean(packet, &in_val);
+    int r = sol_flow_packet_get_bool(packet, &in_val);
 
     SOL_INT_CHECK(r, < 0, r);
 

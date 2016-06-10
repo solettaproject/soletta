@@ -81,7 +81,7 @@ blob_validator_process(
     SOL_INT_CHECK(r, < 0, r);
     match = (mdata->expected.size == val->size) && memcmp(mdata->expected.mem, val->mem, val->size) == 0;
 
-    sol_flow_send_boolean_packet(node, SOL_FLOW_NODE_TYPE_TEST_BOOLEAN_VALIDATOR__OUT__OUT, match);
+    sol_flow_send_bool_packet(node, SOL_FLOW_NODE_TYPE_TEST_BOOLEAN_VALIDATOR__OUT__OUT, match);
     mdata->done = true;
 
     return 0;

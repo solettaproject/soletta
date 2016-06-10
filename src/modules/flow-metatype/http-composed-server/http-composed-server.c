@@ -285,9 +285,9 @@ _create_packet(const struct sol_flow_packet_type *type,
 
     json_type = sol_json_token_get_type(token);
     if (json_type == SOL_JSON_TYPE_FALSE) {
-        return sol_flow_packet_new_boolean(false);
+        return sol_flow_packet_new_bool(false);
     } else if (json_type == SOL_JSON_TYPE_TRUE) {
-        return sol_flow_packet_new_boolean(true);
+        return sol_flow_packet_new_bool(true);
     } else if (json_type == SOL_JSON_TYPE_NUMBER) {
         return _create_packet_number(type, token);
     } else if (json_type == SOL_JSON_TYPE_STRING) {
@@ -391,11 +391,11 @@ _process_get(struct http_composed_server_data *hdata,
             r = sol_flow_packet_get_string(hdata->inputs[i], &val);
             SOL_INT_CHECK(r, < 0, r);
             r = sol_json_serialize_string(&response->content, val);
-        } else if (packet_type == SOL_FLOW_PACKET_TYPE_BOOLEAN) {
+        } else if (packet_type == SOL_FLOW_PACKET_TYPE_BOOL) {
             bool val;
-            r = sol_flow_packet_get_boolean(hdata->inputs[i], &val);
+            r = sol_flow_packet_get_bool(hdata->inputs[i], &val);
             SOL_INT_CHECK(r, < 0, r);
-            r = sol_json_serialize_boolean(&response->content, val);
+            r = sol_json_serialize_bool(&response->content, val);
         } else if (packet_type == SOL_FLOW_PACKET_TYPE_IRANGE) {
             int32_t val;
             r = sol_flow_packet_get_irange_value(hdata->inputs[i], &val);

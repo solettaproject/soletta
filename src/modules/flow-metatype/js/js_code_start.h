@@ -72,7 +72,7 @@
     "{\n" \
     "    bool value;\n" \
     "    value = duk_require_boolean(ctx, -1);\n" \
-    "    return sol_flow_packet_new_boolean(value);\n" \
+    "    return sol_flow_packet_new_bool(value);\n" \
     "}\n" \
     "static struct sol_flow_packet *\n" \
     "js_metatype_pop_byte(duk_context *ctx)\n" \
@@ -309,7 +309,7 @@
     "static struct sol_flow_packet *\n" \
     "js_metatype_create_packet(const struct sol_flow_packet_type *packet_type, duk_context *ctx)\n" \
     "{\n" \
-    "    if (packet_type == SOL_FLOW_PACKET_TYPE_BOOLEAN)\n" \
+    "    if (packet_type == SOL_FLOW_PACKET_TYPE_BOOL)\n" \
     "        return js_metatype_pop_boolean(ctx);\n" \
     "    if (packet_type == SOL_FLOW_PACKET_TYPE_BYTE)\n" \
     "        return js_metatype_pop_byte(ctx);\n" \
@@ -427,7 +427,7 @@
     "{\n" \
     "    bool value;\n" \
     "    int r;\n" \
-    "    r = sol_flow_packet_get_boolean(packet, &value);\n" \
+    "    r = sol_flow_packet_get_bool(packet, &value);\n" \
     "    SOL_INT_CHECK(r, < 0, r);\n" \
     "    duk_push_boolean(duk_ctx, value);\n" \
     "    return 0;\n" \
@@ -664,7 +664,7 @@
     "{\n" \
     "    const struct sol_flow_packet_type *packet_type =\n" \
     "        sol_flow_packet_get_type(packet);\n" \
-    "    if (packet_type == SOL_FLOW_PACKET_TYPE_BOOLEAN)\n" \
+    "    if (packet_type == SOL_FLOW_PACKET_TYPE_BOOL)\n" \
     "        return js_metatype_push_boolean(packet, duk_ctx);\n" \
     "    if (packet_type == SOL_FLOW_PACKET_TYPE_BYTE)\n" \
     "        return js_metatype_push_byte(packet, duk_ctx);\n" \

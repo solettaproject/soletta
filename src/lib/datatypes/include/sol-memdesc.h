@@ -149,7 +149,7 @@ enum sol_memdesc_type {
      * Initial content is specified in
      * struct sol_memdesc::defcontent::b.
      */
-    SOL_MEMDESC_TYPE_BOOLEAN,
+    SOL_MEMDESC_TYPE_BOOL,
     /**
      * @brief double precision floating point equivalent.
      *
@@ -448,7 +448,7 @@ struct sol_memdesc_ops {
      * strings.
      *
      * The parameter @c ptr_content is a pointer to the actual content,
-     * depends on the actual type. If a SOL_MEMDESC_TYPE_BOOLEAN, for
+     * depends on the actual type. If a SOL_MEMDESC_TYPE_BOOL, for
      * example, it must be a @c bool*. For SOL_MEMDESC_TYPE_ENUMERATION,
      * the pointer will be memcpy() using the given sol_memdesc_get_size().
      *
@@ -553,7 +553,7 @@ struct sol_memdesc {
         int64_t i64; /**< @brief use when SOL_MEMDESC_TYPE_INT64 */
         long l; /**< @brief use when SOL_MEMDESC_TYPE_LONG */
         ssize_t ssz; /**< @brief use when SOL_MEMDESC_TYPE_SSIZE */
-        bool b; /**< @brief use when SOL_MEMDESC_TYPE_BOOLEAN */
+        bool b; /**< @brief use when SOL_MEMDESC_TYPE_BOOL */
         double d; /**< @brief use when SOL_MEMDESC_TYPE_DOUBLE */
         int64_t e; /**< @brief use when SOL_MEMDESC_TYPE_ENUMERATION */
         const char *s; /**< @brief use when SOL_MEMDESC_TYPE_STRING or SOL_MEMDESC_TYPE_CONST_STRING */
@@ -723,7 +723,7 @@ sol_memdesc_get_size(const struct sol_memdesc *desc)
         return sizeof(long);
     case SOL_MEMDESC_TYPE_SSIZE:
         return sizeof(ssize_t);
-    case SOL_MEMDESC_TYPE_BOOLEAN:
+    case SOL_MEMDESC_TYPE_BOOL:
         return sizeof(bool);
     case SOL_MEMDESC_TYPE_DOUBLE:
         return sizeof(double);
@@ -789,7 +789,7 @@ int sol_memdesc_copy(const struct sol_memdesc *desc, const void *src_memory, voi
  * @param desc the memory description.
  * @param memory the memory to set content.
  * @param ptr_content a pointer to the given content, dependent on the
- *        type. If a SOL_MEMDESC_TYPE_BOOLEAN, then it must be a
+ *        type. If a SOL_MEMDESC_TYPE_BOOL, then it must be a
  *        pointer to a bool.
  *
  * @return 0 on success, negative errno on failure.
@@ -955,7 +955,7 @@ int sol_memdesc_resize_array(const struct sol_memdesc *array_desc, void *memory,
  * @param array_desc the memory description of type SOL_MEMDESC_TYPE_ARRAY.
  * @param memory the memory holding the array.
  * @param ptr_content a pointer to the given content, dependent on the
- *        type of array_item. If a SOL_MEMDESC_TYPE_BOOLEAN, then it must
+ *        type of array_item. If a SOL_MEMDESC_TYPE_BOOL, then it must
  *        be a pointer to a bool.
  *
  * @return On error, negative errno is returned. 0 on success
@@ -1246,7 +1246,7 @@ sol_memdesc_get_as_uint64(const struct sol_memdesc *desc, const void *memory)
     case SOL_MEMDESC_TYPE_SSIZE:
         i64 = *(const ssize_t *)memory;
         goto check_signed;
-    case SOL_MEMDESC_TYPE_BOOLEAN:
+    case SOL_MEMDESC_TYPE_BOOL:
         return *(const bool *)memory;
     case SOL_MEMDESC_TYPE_DOUBLE:
         i64 = *(const double *)memory;
@@ -1337,7 +1337,7 @@ sol_memdesc_get_as_int64(const struct sol_memdesc *desc, const void *memory)
         return *(const long *)memory;
     case SOL_MEMDESC_TYPE_SSIZE:
         return *(const ssize_t *)memory;
-    case SOL_MEMDESC_TYPE_BOOLEAN:
+    case SOL_MEMDESC_TYPE_BOOL:
         return *(const bool *)memory;
     case SOL_MEMDESC_TYPE_DOUBLE:
         return *(const double *)memory;
@@ -1455,7 +1455,7 @@ sol_memdesc_set_as_uint64(const struct sol_memdesc *desc, void *memory, uint64_t
             return -EOVERFLOW;
         *(ssize_t *)memory = value;
         return 0;
-    case SOL_MEMDESC_TYPE_BOOLEAN:
+    case SOL_MEMDESC_TYPE_BOOL:
         *(bool *)memory = !!value;
         return 0;
     case SOL_MEMDESC_TYPE_DOUBLE:
@@ -1568,7 +1568,7 @@ sol_memdesc_set_as_int64(const struct sol_memdesc *desc, void *memory, int64_t v
             return -EOVERFLOW;
         *(ssize_t *)memory = value;
         return 0;
-    case SOL_MEMDESC_TYPE_BOOLEAN:
+    case SOL_MEMDESC_TYPE_BOOL:
         *(bool *)memory = !!value;
         return 0;
     case SOL_MEMDESC_TYPE_DOUBLE:
@@ -1639,7 +1639,7 @@ sol_memdesc_is_unsigned_integer(const struct sol_memdesc *desc)
     case SOL_MEMDESC_TYPE_INT64:
     case SOL_MEMDESC_TYPE_LONG:
     case SOL_MEMDESC_TYPE_SSIZE:
-    case SOL_MEMDESC_TYPE_BOOLEAN:
+    case SOL_MEMDESC_TYPE_BOOL:
     case SOL_MEMDESC_TYPE_DOUBLE:
     case SOL_MEMDESC_TYPE_STRING:
     case SOL_MEMDESC_TYPE_CONST_STRING:
@@ -1689,7 +1689,7 @@ sol_memdesc_is_signed_integer(const struct sol_memdesc *desc)
     case SOL_MEMDESC_TYPE_SSIZE:
     case SOL_MEMDESC_TYPE_ENUMERATION:
         return true;
-    case SOL_MEMDESC_TYPE_BOOLEAN:
+    case SOL_MEMDESC_TYPE_BOOL:
     case SOL_MEMDESC_TYPE_DOUBLE:
     case SOL_MEMDESC_TYPE_STRING:
     case SOL_MEMDESC_TYPE_CONST_STRING:
@@ -1740,7 +1740,7 @@ struct sol_memdesc_serialize_options {
      *
      * Should return 0 on success, negative errno on failure.
      */
-    int (*serialize_boolean)(const struct sol_memdesc *desc, bool value, struct sol_buffer *buffer);
+    int (*serialize_bool)(const struct sol_memdesc *desc, bool value, struct sol_buffer *buffer);
     /**
      * @brief function used to format a pointer.
      *

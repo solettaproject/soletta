@@ -158,13 +158,13 @@ keyboard_boolean_on_code(struct keyboard_common_data *data,
             mdata->common.last_code = 0;
         else
             mdata->common.last_code = code;
-        sol_flow_send_boolean_packet(handle, 0,
+        sol_flow_send_bool_packet(handle, 0,
             mdata->common.last_code == mdata->binary_code);
     } else {
         mdata->common.last_code = code;
-        sol_flow_send_boolean_packet(handle, 0, true);
+        sol_flow_send_bool_packet(handle, 0, true);
         mdata->common.last_code = 0;
-        sol_flow_send_boolean_packet(handle, 0, false);
+        sol_flow_send_bool_packet(handle, 0, false);
     }
 }
 

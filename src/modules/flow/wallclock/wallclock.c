@@ -680,7 +680,7 @@ wallclock_enabled_process(struct sol_flow_node *node, void *data, uint16_t port,
     bool enabled;
     struct wallclock_data *mdata = data;
 
-    r = sol_flow_packet_get_boolean(packet, &enabled);
+    r = sol_flow_packet_get_bool(packet, &enabled);
     SOL_INT_CHECK(r, < 0, r);
 
     if (enabled && !mdata->registered) {
@@ -703,7 +703,7 @@ wallclock_timeblock_enabled_process(struct sol_flow_node *node,
     bool enabled;
     struct wallclock_timeblock_data *mdata = data;
 
-    r = sol_flow_packet_get_boolean(packet, &enabled);
+    r = sol_flow_packet_get_bool(packet, &enabled);
     SOL_INT_CHECK(r, < 0, r);
 
     if (!enabled && mdata->timer) {

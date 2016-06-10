@@ -770,7 +770,7 @@ set_display_on(struct sol_flow_node *node,
     bool in_value;
     int r;
 
-    r = sol_flow_packet_get_boolean(packet, &in_value);
+    r = sol_flow_packet_get_bool(packet, &in_value);
     SOL_INT_CHECK(r, < 0, r);
 
     if (in_value)
@@ -796,7 +796,7 @@ set_underline_cursor(struct sol_flow_node *node,
     bool in_value;
     int r;
 
-    r = sol_flow_packet_get_boolean(packet, &in_value);
+    r = sol_flow_packet_get_bool(packet, &in_value);
     SOL_INT_CHECK(r, < 0, r);
 
     if (in_value)
@@ -822,7 +822,7 @@ set_blinking_cursor(struct sol_flow_node *node,
     bool in_value;
     int r;
 
-    r = sol_flow_packet_get_boolean(packet, &in_value);
+    r = sol_flow_packet_get_bool(packet, &in_value);
     SOL_INT_CHECK(r, < 0, r);
 
     if (in_value)
@@ -856,7 +856,7 @@ set_ltr(struct sol_flow_node *node,
     bool in_value;
     int r;
 
-    r = sol_flow_packet_get_boolean(packet, &in_value);
+    r = sol_flow_packet_get_bool(packet, &in_value);
     SOL_INT_CHECK(r, < 0, r);
 
     if (in_value)
@@ -882,7 +882,7 @@ set_autoscroll(struct sol_flow_node *node,
     bool in_value;
     int r;
 
-    r = sol_flow_packet_get_boolean(packet, &in_value);
+    r = sol_flow_packet_get_bool(packet, &in_value);
     SOL_INT_CHECK(r, < 0, r);
 
     if (in_value)

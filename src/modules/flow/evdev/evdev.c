@@ -76,7 +76,7 @@ evdev_event_handler(const struct sol_flow_node *node, const struct input_event *
     mdata->value = ev->value;
 
     if ((ev->value && mdata->on_press) || (!ev->value && mdata->on_release))
-        sol_flow_send_boolean_packet((struct sol_flow_node *)node,
+        sol_flow_send_bool_packet((struct sol_flow_node *)node,
             SOL_FLOW_NODE_TYPE_EVDEV_BOOLEAN__OUT__OUT,
             (bool)mdata->value);
 }

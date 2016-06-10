@@ -94,9 +94,9 @@
     "    enum sol_json_type json_type;\n" \
     "    json_type = sol_json_token_get_type(token);\n" \
     "    if (json_type == SOL_JSON_TYPE_FALSE) {\n" \
-    "        return sol_flow_packet_new_boolean(false);\n" \
+    "        return sol_flow_packet_new_bool(false);\n" \
     "    } else if (json_type == SOL_JSON_TYPE_TRUE) {\n" \
-    "        return sol_flow_packet_new_boolean(true);\n" \
+    "        return sol_flow_packet_new_bool(true);\n" \
     "    } else if (json_type == SOL_JSON_TYPE_NUMBER) {\n" \
     "        return _create_packet_number(type, token);\n" \
     "    } else if (json_type == SOL_JSON_TYPE_STRING) {\n" \
@@ -177,11 +177,11 @@
     "            r = sol_flow_packet_get_string(hdata->inputs[i], &val);\n" \
     "            SOL_INT_CHECK(r, < 0, r);\n" \
     "            r = sol_json_serialize_string(&response->content, val);\n" \
-    "        } else if (packet_type == SOL_FLOW_PACKET_TYPE_BOOLEAN) {\n" \
+    "        } else if (packet_type == SOL_FLOW_PACKET_TYPE_BOOL) {\n" \
     "            bool val;\n" \
-    "            r = sol_flow_packet_get_boolean(hdata->inputs[i], &val);\n" \
+    "            r = sol_flow_packet_get_bool(hdata->inputs[i], &val);\n" \
     "            SOL_INT_CHECK(r, < 0, r);\n" \
-    "            r = sol_json_serialize_boolean(&response->content, val);\n" \
+    "            r = sol_json_serialize_bool(&response->content, val);\n" \
     "        } else if (packet_type == SOL_FLOW_PACKET_TYPE_IRANGE) {\n" \
     "            int32_t val;\n" \
     "            r = sol_flow_packet_get_irange_value(hdata->inputs[i], &val);\n" \

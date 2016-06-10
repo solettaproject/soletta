@@ -197,7 +197,7 @@ web_inspector_add_port_descriptions(struct sol_buffer *buf, const struct sol_flo
         if (r < 0)
             return r;
 
-        r = sol_json_serialize_boolean(buf, desc->required);
+        r = sol_json_serialize_bool(buf, desc->required);
         if (r < 0)
             return r;
 
@@ -294,7 +294,7 @@ web_inspector_add_option_value(struct sol_buffer *buf, const char *data_type, co
     } else if (streq(data_type, "boolean")) {
         const bool *b = mem;
 
-        r = sol_json_serialize_boolean(buf, *b);
+        r = sol_json_serialize_bool(buf, *b);
     } else if (streq(data_type, "byte")) {
         const uint8_t *b = mem;
 
@@ -546,7 +546,7 @@ web_inspector_did_open_node(const struct sol_flow_inspector *inspector, const st
             if (r < 0)
                 goto end;
 
-            r = sol_json_serialize_boolean(&buf, itr->required);
+            r = sol_json_serialize_bool(&buf, itr->required);
             if (r < 0)
                 goto end;
 
@@ -820,14 +820,14 @@ web_inspector_add_packet_simple(struct sol_buffer *buf, const struct sol_flow_pa
             return r;
 
         r = sol_buffer_append_char(buf, '}');
-    } else if (type == SOL_FLOW_PACKET_TYPE_BOOLEAN) {
+    } else if (type == SOL_FLOW_PACKET_TYPE_BOOL) {
         bool v;
 
-        r = sol_flow_packet_get_boolean(packet, &v);
+        r = sol_flow_packet_get_bool(packet, &v);
         if (r < 0)
             return r;
 
-        r = sol_json_serialize_boolean(buf, v);
+        r = sol_json_serialize_bool(buf, v);
     } else if (type == SOL_FLOW_PACKET_TYPE_BYTE) {
         unsigned char v;
 

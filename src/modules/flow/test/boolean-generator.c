@@ -48,7 +48,7 @@ timer_tick(void *data)
         return false;
     }
 
-    sol_flow_send_boolean_packet(node, SOL_FLOW_NODE_TYPE_TEST_BOOLEAN_GENERATOR__OUT__OUT,
+    sol_flow_send_bool_packet(node, SOL_FLOW_NODE_TYPE_TEST_BOOLEAN_GENERATOR__OUT__OUT,
         out_packet);
 
     mdata->it++;

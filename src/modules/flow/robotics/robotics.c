@@ -52,22 +52,22 @@ hbridge_command(struct sol_flow_node *node, enum switches switches)
 {
     int r;
 
-    r = sol_flow_send_boolean_packet(node,
+    r = sol_flow_send_bool_packet(node,
         SOL_FLOW_NODE_TYPE_ROBOTICS_HBRIDGE_L293D__OUT__OUT_0,
         switches & SW_S1);
     SOL_INT_CHECK(r, < 0, r);
 
-    r = sol_flow_send_boolean_packet(node,
+    r = sol_flow_send_bool_packet(node,
         SOL_FLOW_NODE_TYPE_ROBOTICS_HBRIDGE_L293D__OUT__OUT_0 + 1,
         switches & SW_S2);
     SOL_INT_CHECK(r, < 0, r);
 
-    r = sol_flow_send_boolean_packet(node,
+    r = sol_flow_send_bool_packet(node,
         SOL_FLOW_NODE_TYPE_ROBOTICS_HBRIDGE_L293D__OUT__OUT_0 + 2,
         switches & SW_S3);
     SOL_INT_CHECK(r, < 0, r);
 
-    r = sol_flow_send_boolean_packet(node,
+    r = sol_flow_send_bool_packet(node,
         SOL_FLOW_NODE_TYPE_ROBOTICS_HBRIDGE_L293D__OUT__OUT_0 + 3,
         switches & SW_S4);
     SOL_INT_CHECK(r, < 0, r);
@@ -149,7 +149,7 @@ quadrature_encoder_process_port(struct sol_flow_node *node, void *data,
     bool value;
     int r;
 
-    r = sol_flow_packet_get_boolean(packet, &value);
+    r = sol_flow_packet_get_bool(packet, &value);
     SOL_INT_CHECK(r, < 0, r);
 
     if (port == SOL_FLOW_NODE_TYPE_ROBOTICS_QUADRATURE_ENCODER__IN__A)

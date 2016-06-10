@@ -140,7 +140,7 @@ fill_info(const struct sol_oic_map_reader *map_reader, bool *state, int32_t *pow
 
     SOL_OIC_MAP_LOOP(map_reader, &field, &iterator, end_reason) {
         if (state && streq(field.key, "state") &&
-            field.type == SOL_OIC_REPR_TYPE_BOOLEAN) {
+            field.type == SOL_OIC_REPR_TYPE_BOOL) {
             *state = field.v_boolean;
             continue;
         }
@@ -368,7 +368,7 @@ print_response(void *data, enum sol_coap_response_code response_code, struct sol
                 printf("\tkey: '%s', value: float(%g)\n", field.key,
                     field.v_double);
                 break;
-            case SOL_OIC_REPR_TYPE_BOOLEAN:
+            case SOL_OIC_REPR_TYPE_BOOL:
                 printf("\tkey: '%s', value: boolean(%s)\n", field.key,
                     field.v_boolean ? "true" : "false");
                 break;
@@ -458,7 +458,7 @@ put_fill_repr_map(struct sol_oic_map_writer *repr_map)
     int r;
 
     r = sol_oic_map_append(repr_map,
-        &SOL_OIC_REPR_BOOLEAN("state", true));
+        &SOL_OIC_REPR_BOOL("state", true));
     SOL_INT_CHECK(r, < 0, r);
 
     return sol_oic_map_append(repr_map,

@@ -129,7 +129,7 @@ getenv_send_value(struct sol_flow_node *node, const char *var_name)
 
     var_value = getenv(var_name);
 
-    r = sol_flow_send_boolean_packet(node,
+    r = sol_flow_send_bool_packet(node,
         SOL_FLOW_NODE_TYPE_APP_GETENV__OUT__FOUND,
         (!!var_value));
     SOL_INT_CHECK(r, < 0, r);

@@ -274,7 +274,7 @@ inrange_process(struct sol_flow_node *node, void *data, uint16_t port, uint16_t 
     r = sol_flow_packet_get_irange_value(packet, &value);
     SOL_INT_CHECK(r, < 0, r);
 
-    return sol_flow_send_boolean_packet(node,
+    return sol_flow_send_bool_packet(node,
         SOL_FLOW_NODE_TYPE_INT_INRANGE__OUT__OUT,
         value >= mdata->min && value <= mdata->max);
 }
@@ -965,7 +965,7 @@ comparison_process(struct sol_flow_node *node, void *data, uint16_t port, uint16
     if (!comparison_func(mdata, node, port, packet, &output))
         return 0;
 
-    return sol_flow_send_boolean_packet(node, 0, output);
+    return sol_flow_send_bool_packet(node, 0, output);
 }
 
 // =============================================================================

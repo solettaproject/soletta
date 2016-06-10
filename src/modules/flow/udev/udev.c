@@ -70,7 +70,7 @@ _on_event(void *data, int fd, uint32_t cond)
         inform = false;
 
     if (inform)
-        sol_flow_send_boolean_packet(mdata->node,
+        sol_flow_send_bool_packet(mdata->node,
             SOL_FLOW_NODE_TYPE_UDEV_BOOLEAN__OUT__OUT,
             event);
 
@@ -120,7 +120,7 @@ udev_open(struct sol_flow_node *node, void *data, const struct sol_flow_node_opt
         value = false;
     }
 
-    return sol_flow_send_boolean_packet(node,
+    return sol_flow_send_bool_packet(node,
         SOL_FLOW_NODE_TYPE_UDEV_BOOLEAN__OUT__OUT, value);
 
 receive_error:

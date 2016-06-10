@@ -379,7 +379,7 @@ persist_boolean_get_packet_data(size_t packet_data_size,
     const struct sol_flow_packet *packet,
     void *value_ptr)
 {
-    int r = sol_flow_packet_get_boolean(packet, value_ptr);
+    int r = sol_flow_packet_get_bool(packet, value_ptr);
 
     SOL_INT_CHECK(r, < 0, r);
 
@@ -391,7 +391,7 @@ persist_boolean_send_packet(struct sol_flow_node *node)
 {
     struct persist_data *mdata = sol_flow_node_get_private_data(node);
 
-    return sol_flow_send_boolean_packet
+    return sol_flow_send_bool_packet
                (node, SOL_FLOW_NODE_TYPE_PERSISTENCE_BOOLEAN__OUT__OUT,
                *(bool *)mdata->value_ptr);
 }

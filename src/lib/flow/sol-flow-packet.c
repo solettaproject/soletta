@@ -228,17 +228,17 @@ sol_flow_packet_new_empty(void)
     return sol_flow_packet_new(SOL_FLOW_PACKET_TYPE_EMPTY, NULL);
 }
 
-static const struct sol_flow_packet_type _SOL_FLOW_PACKET_TYPE_BOOLEAN;
+static const struct sol_flow_packet_type _SOL_FLOW_PACKET_TYPE_BOOL;
 
 static struct sol_flow_packet *
 packet_boolean_get_constant(const struct sol_flow_packet_type *packet_type, const void *value)
 {
     static struct sol_flow_packet true_packet = {
-        .type = &_SOL_FLOW_PACKET_TYPE_BOOLEAN,
+        .type = &_SOL_FLOW_PACKET_TYPE_BOOL,
         .data = (void *)true,
     };
     static struct sol_flow_packet false_packet = {
-        .type = &_SOL_FLOW_PACKET_TYPE_BOOLEAN,
+        .type = &_SOL_FLOW_PACKET_TYPE_BOOL,
         .data = (void *)false,
     };
 
@@ -252,24 +252,24 @@ packet_boolean_get_constant(const struct sol_flow_packet_type *packet_type, cons
     return *boolean ? &true_packet : &false_packet;
 }
 
-static const struct sol_flow_packet_type _SOL_FLOW_PACKET_TYPE_BOOLEAN = {
+static const struct sol_flow_packet_type _SOL_FLOW_PACKET_TYPE_BOOL = {
     SOL_SET_API_VERSION(.api_version = SOL_FLOW_PACKET_TYPE_API_VERSION, )
     .name = "boolean",
     .data_size = sizeof(bool),
     .get_constant = packet_boolean_get_constant,
 };
-SOL_API const struct sol_flow_packet_type *SOL_FLOW_PACKET_TYPE_BOOLEAN = &_SOL_FLOW_PACKET_TYPE_BOOLEAN;
+SOL_API const struct sol_flow_packet_type *SOL_FLOW_PACKET_TYPE_BOOL = &_SOL_FLOW_PACKET_TYPE_BOOL;
 
 SOL_API struct sol_flow_packet *
-sol_flow_packet_new_boolean(bool boolean)
+sol_flow_packet_new_bool(bool boolean)
 {
-    return sol_flow_packet_new(SOL_FLOW_PACKET_TYPE_BOOLEAN, &boolean);
+    return sol_flow_packet_new(SOL_FLOW_PACKET_TYPE_BOOL, &boolean);
 }
 
 SOL_API int
-sol_flow_packet_get_boolean(const struct sol_flow_packet *packet, bool *boolean)
+sol_flow_packet_get_bool(const struct sol_flow_packet *packet, bool *boolean)
 {
-    SOL_FLOW_PACKET_CHECK(packet, SOL_FLOW_PACKET_TYPE_BOOLEAN, -EINVAL);
+    SOL_FLOW_PACKET_CHECK(packet, SOL_FLOW_PACKET_TYPE_BOOL, -EINVAL);
     return sol_flow_packet_get(packet, boolean);
 }
 
@@ -1167,7 +1167,7 @@ sol_flow_get_packet_type_name(const struct sol_str_slice type)
         SOL_STR_TABLE_PTR_ITEM("int", "SOL_FLOW_PACKET_TYPE_IRANGE"),
         SOL_STR_TABLE_PTR_ITEM("float", "SOL_FLOW_PACKET_TYPE_DRANGE"),
         SOL_STR_TABLE_PTR_ITEM("string", "SOL_FLOW_PACKET_TYPE_STRING"),
-        SOL_STR_TABLE_PTR_ITEM("boolean", "SOL_FLOW_PACKET_TYPE_BOOLEAN"),
+        SOL_STR_TABLE_PTR_ITEM("boolean", "SOL_FLOW_PACKET_TYPE_BOOL"),
         SOL_STR_TABLE_PTR_ITEM("byte", "SOL_FLOW_PACKET_TYPE_BYTE"),
         SOL_STR_TABLE_PTR_ITEM("blob", "SOL_FLOW_PACKET_TYPE_BLOB"),
         SOL_STR_TABLE_PTR_ITEM("rgb", "SOL_FLOW_PACKET_TYPE_RGB"),
@@ -1243,7 +1243,7 @@ sol_flow_packet_type_from_string(const struct sol_str_slice type)
         SOL_STR_TABLE_PTR_ITEM("int", &_SOL_FLOW_PACKET_TYPE_IRANGE),
         SOL_STR_TABLE_PTR_ITEM("float", &_SOL_FLOW_PACKET_TYPE_DRANGE),
         SOL_STR_TABLE_PTR_ITEM("string", &_SOL_FLOW_PACKET_TYPE_STRING),
-        SOL_STR_TABLE_PTR_ITEM("boolean", &_SOL_FLOW_PACKET_TYPE_BOOLEAN),
+        SOL_STR_TABLE_PTR_ITEM("boolean", &_SOL_FLOW_PACKET_TYPE_BOOL),
         SOL_STR_TABLE_PTR_ITEM("byte", &_SOL_FLOW_PACKET_TYPE_BYTE),
         SOL_STR_TABLE_PTR_ITEM("blob", &_SOL_FLOW_PACKET_TYPE_BLOB),
         SOL_STR_TABLE_PTR_ITEM("rgb", &_SOL_FLOW_PACKET_TYPE_RGB),

@@ -66,9 +66,9 @@ gtk_label_in_process(struct sol_flow_node *node,
         int r = sol_flow_packet_get_string(packet, &in_value);
         SOL_INT_CHECK(r, < 0, r);
         gtk_label_set_text(GTK_LABEL(mdata->widget), in_value);
-    } else if (sol_flow_packet_get_type(packet) == SOL_FLOW_PACKET_TYPE_BOOLEAN) {
+    } else if (sol_flow_packet_get_type(packet) == SOL_FLOW_PACKET_TYPE_BOOL) {
         bool value;
-        int r = sol_flow_packet_get_boolean(packet, &value);
+        int r = sol_flow_packet_get_bool(packet, &value);
         SOL_INT_CHECK(r, < 0, r);
         gtk_label_set_text(GTK_LABEL(mdata->widget), value ? "ON" : "OFF");
     } else if (sol_flow_packet_get_type(packet) == SOL_FLOW_PACKET_TYPE_BYTE) {

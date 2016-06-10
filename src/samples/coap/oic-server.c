@@ -88,7 +88,7 @@ user_handle_get(void *data, struct sol_oic_request *request)
     response = sol_oic_server_response_new(request);
     SOL_NULL_CHECK_GOTO(response, error);
     output = sol_oic_server_response_get_writer(response);
-    field = SOL_OIC_REPR_BOOLEAN("state", get_scrolllock_led());
+    field = SOL_OIC_REPR_BOOL("state", get_scrolllock_led());
     r = sol_oic_map_append(output, &field);
     SOL_INT_CHECK_GOTO(r, < 0, error);
 
@@ -117,7 +117,7 @@ user_handle_put(void *data, struct sol_oic_request *request)
 
     input = sol_oic_server_request_get_reader(request);
     SOL_OIC_MAP_LOOP(input, &field, &iter, reason) {
-        if (!strcmp(field.key, "state") && field.type == SOL_OIC_REPR_TYPE_BOOLEAN) {
+        if (!strcmp(field.key, "state") && field.type == SOL_OIC_REPR_TYPE_BOOL) {
             if (set_scrolllock_led(field.v_boolean))
                 code = SOL_COAP_RESPONSE_CODE_OK;
             else

@@ -151,7 +151,7 @@ const struct sol_flow_node *sol_flow_node_get_parent(const struct sol_flow_node 
  * responsible to release its memory.
  *
  * @note There are helper functions that already create a packet of a given
- *       type and send it, e. g. sol_flow_send_boolean_packet().
+ *       type and send it, e. g. sol_flow_send_bool_packet().
  *
  * @param src The node that is to output a packet
  * @param src_port The port where the packet will be output
@@ -217,7 +217,7 @@ int sol_flow_send_error_packet_str(struct sol_flow_node *src, int code, const ch
  *
  * @return @c 0 on success, a negative error code on errors.
  */
-int sol_flow_send_boolean_packet(struct sol_flow_node *src, uint16_t src_port, unsigned char value);
+int sol_flow_send_bool_packet(struct sol_flow_node *src, uint16_t src_port, unsigned char value);
 
 /**
  * @brief Convenience function to create and send a Blob packet.
@@ -571,7 +571,7 @@ struct sol_flow_node_options {
  */
 enum sol_flow_node_options_member_type {
     SOL_FLOW_NODE_OPTIONS_MEMBER_UNKNOWN,
-    SOL_FLOW_NODE_OPTIONS_MEMBER_BOOLEAN,
+    SOL_FLOW_NODE_OPTIONS_MEMBER_BOOL,
     SOL_FLOW_NODE_OPTIONS_MEMBER_BYTE,
     SOL_FLOW_NODE_OPTIONS_MEMBER_DIRECTION_VECTOR,
     SOL_FLOW_NODE_OPTIONS_MEMBER_DRANGE_SPEC,

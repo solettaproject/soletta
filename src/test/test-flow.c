@@ -218,8 +218,8 @@ test_node_init_type(void)
     if (!test_port_in.packet_type) {
         test_port_in.packet_type = SOL_FLOW_PACKET_TYPE_EMPTY;
         test_port_out.packet_type = SOL_FLOW_PACKET_TYPE_EMPTY;
-        test_port_match_in.packet_type = SOL_FLOW_PACKET_TYPE_BOOLEAN;
-        test_port_match_out.packet_type = SOL_FLOW_PACKET_TYPE_BOOLEAN;
+        test_port_match_in.packet_type = SOL_FLOW_PACKET_TYPE_BOOL;
+        test_port_match_out.packet_type = SOL_FLOW_PACKET_TYPE_BOOL;
         test_port_any_in.packet_type = SOL_FLOW_PACKET_TYPE_ANY;
         test_port_any_out.packet_type = SOL_FLOW_PACKET_TYPE_ANY;
     }
@@ -1119,7 +1119,7 @@ send_packets_match_packet_types(void)
     /* Sending BOOLEAN packet to EMPTY port */
     flow = sol_flow_static_new(NULL, nodes, conns1);
     node_out = sol_flow_static_get_node(flow, 0);
-    r = sol_flow_send_boolean_packet(node_out, 0, true);
+    r = sol_flow_send_bool_packet(node_out, 0, true);
     ASSERT(r < 0);
     sol_flow_node_del(flow);
 
@@ -1228,12 +1228,12 @@ named_options_init_from_strv(void)
 
         m++;
         ASSERT_STR_EQ(m->name, "raw");
-        ASSERT(m->type == SOL_FLOW_NODE_OPTIONS_MEMBER_BOOLEAN);
+        ASSERT(m->type == SOL_FLOW_NODE_OPTIONS_MEMBER_BOOL);
         ASSERT(m->boolean);
 
         m++;
         ASSERT_STR_EQ(m->name, "enabled");
-        ASSERT(m->type == SOL_FLOW_NODE_OPTIONS_MEMBER_BOOLEAN);
+        ASSERT(m->type == SOL_FLOW_NODE_OPTIONS_MEMBER_BOOL);
         ASSERT(m->boolean);
 
         m++;
@@ -1270,7 +1270,7 @@ named_options_init_from_strv(void)
 
         m++;
         ASSERT_STR_EQ(m->name, "output_on_stdout");
-        ASSERT(m->type == SOL_FLOW_NODE_OPTIONS_MEMBER_BOOLEAN);
+        ASSERT(m->type == SOL_FLOW_NODE_OPTIONS_MEMBER_BOOL);
         ASSERT(m->boolean);
 
         sol_flow_node_named_options_fini(&named_opts);
@@ -1291,8 +1291,8 @@ node_options_new(void)
 
     struct sol_flow_node_named_options_member multiple_options[] = {
         { .name = "pin", .type = SOL_FLOW_NODE_OPTIONS_MEMBER_STRING, .string = "2 7" },
-        { .name = "raw", .type = SOL_FLOW_NODE_OPTIONS_MEMBER_BOOLEAN, .boolean = true },
-        { .name = "enabled", .type = SOL_FLOW_NODE_OPTIONS_MEMBER_BOOLEAN, .boolean = true },
+        { .name = "raw", .type = SOL_FLOW_NODE_OPTIONS_MEMBER_BOOL, .boolean = true },
+        { .name = "enabled", .type = SOL_FLOW_NODE_OPTIONS_MEMBER_BOOL, .boolean = true },
         { .name = "period", .type = SOL_FLOW_NODE_OPTIONS_MEMBER_INT, .i = 42 },
         { .name = "duty_cycle", .type = SOL_FLOW_NODE_OPTIONS_MEMBER_INT, .i = 88 },
     };
@@ -1300,15 +1300,15 @@ node_options_new(void)
     struct sol_flow_node_named_options_member string_options[] = {
         { .name = "prefix", .type = SOL_FLOW_NODE_OPTIONS_MEMBER_STRING, .string = "console prefix:" },
         { .name = "suffix", .type = SOL_FLOW_NODE_OPTIONS_MEMBER_STRING, .string = ". suffix!" },
-        { .name = "output_on_stdout", .type = SOL_FLOW_NODE_OPTIONS_MEMBER_BOOLEAN, .boolean = true },
+        { .name = "output_on_stdout", .type = SOL_FLOW_NODE_OPTIONS_MEMBER_BOOL, .boolean = true },
     };
 
     struct sol_flow_node_named_options_member unknown_option[] = {
-        { .name = "this_is_not_a_valid_field", .type = SOL_FLOW_NODE_OPTIONS_MEMBER_BOOLEAN, .boolean = true },
+        { .name = "this_is_not_a_valid_field", .type = SOL_FLOW_NODE_OPTIONS_MEMBER_BOOL, .boolean = true },
     };
 
     struct sol_flow_node_named_options_member wrong_type[] = {
-        { .name = "interval", .type = SOL_FLOW_NODE_OPTIONS_MEMBER_BOOLEAN, .boolean = true },
+        { .name = "interval", .type = SOL_FLOW_NODE_OPTIONS_MEMBER_BOOL, .boolean = true },
     };
 
     struct sol_flow_node_type_timer_options *timer_opts;

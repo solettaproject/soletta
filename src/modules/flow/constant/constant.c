@@ -80,7 +80,7 @@ constant_boolean_open(struct sol_flow_node *node, void *data, const struct sol_f
         SOL_FLOW_NODE_TYPE_CONSTANT_BOOLEAN_OPTIONS_API_VERSION, -EINVAL);
     opts = (const struct sol_flow_node_type_constant_boolean_options *)options;
 
-    return sol_flow_send_boolean_packet(node,
+    return sol_flow_send_bool_packet(node,
         SOL_FLOW_NODE_TYPE_CONSTANT_BOOLEAN__OUT__OUT, opts->value);
 }
 

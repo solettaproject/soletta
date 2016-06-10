@@ -598,7 +598,7 @@ test_json_serialize_memdesc(void)
         {
             .desc = {
                 SOL_SET_API_VERSION(.api_version = SOL_MEMDESC_API_VERSION, )
-                .type = SOL_MEMDESC_TYPE_BOOLEAN,
+                .type = SOL_MEMDESC_TYPE_BOOL,
                 .defcontent.b = true,
             },
             .expected_essential = "true",
@@ -606,7 +606,7 @@ test_json_serialize_memdesc(void)
         {
             .desc = {
                 SOL_SET_API_VERSION(.api_version = SOL_MEMDESC_API_VERSION, )
-                .type = SOL_MEMDESC_TYPE_BOOLEAN,
+                .type = SOL_MEMDESC_TYPE_BOOL,
                 .defcontent.b = false,
             },
             .expected_essential = "false",
@@ -941,12 +941,12 @@ test_json_load_memdesc(void)
             .input = "true",
             .desc = {
                 SOL_SET_API_VERSION(.api_version = SOL_MEMDESC_API_VERSION, )
-                .type = SOL_MEMDESC_TYPE_BOOLEAN,
+                .type = SOL_MEMDESC_TYPE_BOOL,
                 .defcontent.b = false,
             },
             .desc_expected = {
                 SOL_SET_API_VERSION(.api_version = SOL_MEMDESC_API_VERSION, )
-                .type = SOL_MEMDESC_TYPE_BOOLEAN,
+                .type = SOL_MEMDESC_TYPE_BOOL,
                 .defcontent.b = true,
             },
         },
@@ -954,12 +954,12 @@ test_json_load_memdesc(void)
             .input = "false",
             .desc = {
                 SOL_SET_API_VERSION(.api_version = SOL_MEMDESC_API_VERSION, )
-                .type = SOL_MEMDESC_TYPE_BOOLEAN,
+                .type = SOL_MEMDESC_TYPE_BOOL,
                 .defcontent.b = true,
             },
             .desc_expected = {
                 SOL_SET_API_VERSION(.api_version = SOL_MEMDESC_API_VERSION, )
-                .type = SOL_MEMDESC_TYPE_BOOLEAN,
+                .type = SOL_MEMDESC_TYPE_BOOL,
                 .defcontent.b = false,
             },
         },
