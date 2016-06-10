@@ -1,4 +1,4 @@
-Web API specifications for Soletta
+Web API specifications for Soletta™ Framework
 ==================================
 
 Introduction

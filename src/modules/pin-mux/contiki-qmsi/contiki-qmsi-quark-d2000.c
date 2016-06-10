@@ -1,5 +1,5 @@
 /*
- * This file is part of the Soletta Project
+ * This file is part of the Soletta™ Project
  *
  * Copyright (C) 2016 Intel Corporation. All rights reserved.
  *
