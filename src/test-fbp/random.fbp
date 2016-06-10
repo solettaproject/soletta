@@ -1,0 +1,39 @@
+# This file is part of the Soletta Project
+#
+# Copyright (C) 2016 Intel Corporation. All rights reserved.
+#
+# Licensed under the Apache License, Version 2.0 (the "License");
+# you may not use this file except in compliance with the License.
+# You may obtain a copy of the License at
+#
+#     http://www.apache.org/licenses/LICENSE-2.0
+#
+# Unless required by applicable law or agreed to in writing, software
+# distributed under the License is distributed on an "AS IS" BASIS,
+# WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+# See the License for the specific language governing permissions and
+# limitations under the License.
+
+rand_bool(random/boolean:seed=5)
+rand_byte(random/byte:seed=10)
+rand_float(random/float:seed=42)
+rand_int(random/int:seed=3000)
+
+seed3(constant/int:value=3)
+seed10(constant/int:value=10)
+pulse(constant/empty)
+
+seed3 OUT -> SEED rand_bool
+seed3 OUT -> SEED rand_byte
+seed10 OUT -> SEED rand_float
+seed10 OUT -> SEED rand_int
+
+pulse OUT -> IN rand_bool
+pulse OUT -> IN rand_byte
+pulse OUT -> IN rand_float
+pulse OUT -> IN rand_int
+
+rand_bool OUT -> PASS t_bool(test/result)
+rand_byte OUT -> PASS t_byte(test/result)
+rand_float OUT -> PASS t_float(test/result)
+rand_int OUT -> PASS t_int(test/result)
