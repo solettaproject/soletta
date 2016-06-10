@@ -697,7 +697,7 @@ set_headers_from_params(CURL *curl, const struct sol_http_params *params,
         if (iter->type != SOL_HTTP_PARAM_HEADER)
             continue;
 
-        if (sol_str_slice_str_caseeq(key, "Content-Length")) {
+        if (sol_str_slice_str_case_eq(key, "Content-Length")) {
             curl_off_t len;
             len = sol_util_strtol_n(iter->value.key_value.value.data, NULL,
                 iter->value.key_value.value.len, 0);

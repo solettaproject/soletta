@@ -478,9 +478,9 @@ check_suboption(const struct sol_str_slice option,
 static struct sol_str_slice
 get_irange_drange_option_value(const struct sol_str_slice option)
 {
-    if (sol_str_slice_str_caseeq(option, "nan"))
+    if (sol_str_slice_str_case_eq(option, "nan"))
         return sol_str_slice_from_str("NAN");
-    if (sol_str_slice_str_caseeq(option, "inf"))
+    if (sol_str_slice_str_case_eq(option, "inf"))
         return sol_str_slice_from_str("INFINITY");
     return option;
 }

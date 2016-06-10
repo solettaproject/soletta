@@ -89,7 +89,8 @@ test_str_slice_to_int(void)
     };
 
     for (i = 0; i < sol_util_array_size(table); i++) {
-        int error, value = 0;
+        int error;
+        long int value = 0;
         error = sol_str_slice_to_int(table[i].input, &value);
         ASSERT_INT_EQ(error, table[i].output_error);
         ASSERT_INT_EQ(value, table[i].output_value);
