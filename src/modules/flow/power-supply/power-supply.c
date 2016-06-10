@@ -135,7 +135,7 @@ set_name(struct sol_flow_node *node, struct get_props_data *mdata, const char *n
     mdata->name = strdup(name);
     SOL_NULL_CHECK(mdata->name, -ENOMEM);
 
-    r = sol_power_supply_exist(mdata->name, &exist);
+    r = sol_power_supply_exists(mdata->name, &exist);
     SOL_INT_CHECK(r, < 0, r);
 
     if (!exist)
@@ -207,7 +207,7 @@ get_capacity(struct sol_flow_node *node, void *data, uint16_t port, uint16_t con
         return sol_flow_send_error_packet(node, EINVAL,
             "Missing power supply name.");
 
-    r = sol_power_supply_exist(mdata->name, &exist);
+    r = sol_power_supply_exists(mdata->name, &exist);
     SOL_INT_CHECK(r, < 0, r);
     if (!exist)
         return sol_flow_send_error_packet(node, EINVAL,
@@ -270,7 +270,7 @@ get_info(struct sol_flow_node *node, void *data, uint16_t port, uint16_t conn_id
         return sol_flow_send_error_packet(node, EINVAL,
             "Missing power supply name.");
 
-    r = sol_power_supply_exist(mdata->name, &exist);
+    r = sol_power_supply_exists(mdata->name, &exist);
     SOL_INT_CHECK(r, < 0, r);
     if (!exist)
         return sol_flow_send_error_packet(node, ENOENT,

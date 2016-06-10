@@ -152,7 +152,7 @@ int sol_power_supply_get_type(const char *name, enum sol_power_supply_type *type
  * @return On success, it returns @c 0. On error, a negative value is returned
  * and properties won't be set (pointers won't be valid).
  */
-int sol_power_supply_exist(const char *name, bool *exist);
+int sol_power_supply_exists(const char *name, bool *exist);
 
 /**
  * Check if a power supply is online.
@@ -290,12 +290,12 @@ int sol_power_supply_get_serial_number(const char *name, struct sol_buffer *seri
  *
  * Minimal and maximal voltages defined by design means expected voltage
  * at normal conditions for supply when it's empty and full. Such
- * values are provided by sol_power_supply_get_voltage_min_design()
- * and sol_power_supply_get_voltage_max_design().
+ * values are provided by sol_power_supply_get_min_voltage_design()
+ * and sol_power_supply_get_max_voltage_design().
  *
  * If hardware is able to measure and retain voltage information, these
- * thresholds may be provided by sol_power_supply_get_voltage_min()
- * and sol_power_supply_get_voltage_max().
+ * thresholds may be provided by sol_power_supply_get_min_voltage()
+ * and sol_power_supply_get_max_voltage().
  *
  * @param name Name of power supply. A list of all board supplies names may be
  * fetched with sol_power_supply_get_list().
@@ -321,7 +321,7 @@ int sol_power_supply_get_voltage(const char *name, int *voltage);
  * @return On success, it returns @c 0. On error, a negative value is returned
  * and properties won't be set (pointers won't be valid).
  */
-int sol_power_supply_get_voltage_min(const char *name, int *voltage);
+int sol_power_supply_get_min_voltage(const char *name, int *voltage);
 
 /**
  * Get maximum voltage measured by hardware.
@@ -337,7 +337,7 @@ int sol_power_supply_get_voltage_min(const char *name, int *voltage);
  * @return On success, it returns @c 0. On error, a negative value is returned
  * and properties won't be set (pointers won't be valid).
  */
-int sol_power_supply_get_voltage_max(const char *name, int *voltage);
+int sol_power_supply_get_max_voltage(const char *name, int *voltage);
 
 /**
  * Get value of voltage when supply is empty as defined by design.
@@ -353,7 +353,7 @@ int sol_power_supply_get_voltage_max(const char *name, int *voltage);
  * @return On success, it returns @c 0. On error, a negative value is returned
  * and properties won't be set (pointers won't be valid).
  */
-int sol_power_supply_get_voltage_min_design(const char *name, int *voltage);
+int sol_power_supply_get_min_voltage_design(const char *name, int *voltage);
 
 /**
  * Get value of voltage when supply is full as defined by design.
@@ -369,7 +369,7 @@ int sol_power_supply_get_voltage_min_design(const char *name, int *voltage);
  * @return On success, it returns @c 0. On error, a negative value is returned
  * and properties won't be set (pointers won't be valid).
  */
-int sol_power_supply_get_voltage_max_design(const char *name, int *voltage);
+int sol_power_supply_get_max_voltage_design(const char *name, int *voltage);
 
 /**
  * @}

@@ -278,7 +278,7 @@ sol_power_supply_get_type(const char *name, enum sol_power_supply_type *type)
 }
 
 SOL_API int
-sol_power_supply_exist(const char *name, bool *exist)
+sol_power_supply_exists(const char *name, bool *exist)
 {
     char file_path[PATH_MAX];
     struct stat st;
@@ -397,26 +397,26 @@ sol_power_supply_get_voltage(const char *name, int *voltage)
 }
 
 SOL_API int
-sol_power_supply_get_voltage_min(const char *name, int *voltage)
+sol_power_supply_get_min_voltage(const char *name, int *voltage)
 {
     return _get_int_prop(name, SOL_POWER_SUPPLY_PROP_VOLTAGE_MIN, voltage);
 }
 
 SOL_API int
-sol_power_supply_get_voltage_max(const char *name, int *voltage)
+sol_power_supply_get_max_voltage(const char *name, int *voltage)
 {
     return _get_int_prop(name, SOL_POWER_SUPPLY_PROP_VOLTAGE_MAX, voltage);
 }
 
 SOL_API int
-sol_power_supply_get_voltage_min_design(const char *name, int *voltage)
+sol_power_supply_get_min_voltage_design(const char *name, int *voltage)
 {
     return _get_int_prop(name,
         SOL_POWER_SUPPLY_PROP_VOLTAGE_MIN_DESIGN, voltage);
 }
 
 SOL_API int
-sol_power_supply_get_voltage_max_design(const char *name, int *voltage)
+sol_power_supply_get_max_voltage_design(const char *name, int *voltage)
 {
     return _get_int_prop(name,
         SOL_POWER_SUPPLY_PROP_VOLTAGE_MAX_DESIGN, voltage);
