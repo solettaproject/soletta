@@ -1461,25 +1461,6 @@ drange_to_rgb_open(struct sol_flow_node *node, void *data, const struct sol_flow
 }
 
 static int
-direction_vector_to_rgb_open(struct sol_flow_node *node, void *data, const struct sol_flow_node_options *options)
-{
-    struct sol_converter_rgb *mdata = data;
-    const struct sol_flow_node_type_converter_float_to_rgb_options *opts;
-
-    SOL_FLOW_NODE_OPTIONS_SUB_API_CHECK(options,
-        SOL_FLOW_NODE_TYPE_CONVERTER_FLOAT_TO_RGB_OPTIONS_API_VERSION,
-        -EINVAL);
-
-    opts = (const struct sol_flow_node_type_converter_float_to_rgb_options *)options;
-
-    mdata->output_value.red_max = opts->red_max;
-    mdata->output_value.green_max = opts->green_max;
-    mdata->output_value.blue_max = opts->blue_max;
-
-    return 0;
-}
-
-static int
 rgb_convert(struct sol_flow_node *node, void *data, uint16_t port, uint32_t val)
 {
     struct sol_converter_rgb *mdata = data;
@@ -1579,61 +1560,6 @@ drange_to_rgb_convert(struct sol_flow_node *node, void *data, uint16_t port, uin
 }
 
 static int
-direction_vector_to_rgb_convert(struct sol_flow_node *node, void *data, uint16_t port, uint16_t conn_id, const struct sol_flow_packet *packet)
-{
-    struct sol_converter_rgb *mdata = data;
-    struct sol_direction_vector in_val;
-    uint32_t val_red, val_green, val_blue;
-    int r;
-
-    r = sol_flow_packet_get_direction_vector(packet, &in_val);
-    SOL_INT_CHECK(r, < 0, r);
-
-#define AXIS_CHECK(_axis) \
-    do { \
-        if (isless(in_val._axis, 0)) { \
-            SOL_WRN("Color component must to be a not negative value"); \
-            return -EINVAL; \
-        } \
-    } while (0)
-
-    AXIS_CHECK(x);
-    AXIS_CHECK(y);
-    AXIS_CHECK(z);
-#undef AXIS_CHECK
-
-    if (islessequal(in_val.max, 0)) {
-        SOL_WRN("Max value for color component must be a positive value"
-            " (got %lf)", in_val.max);
-        return -EINVAL;
-    }
-
-    if (isless(in_val.min, 0)) {
-        SOL_WRN("min value for color component must be a nonnegative value"
-            " (got %lf)", in_val.min);
-        return -EINVAL;
-    }
-
-    val_red = in_val.x *
-        rgb_get_port_max(data, port) / (in_val.max - in_val.min);
-
-    val_green = in_val.y *
-        rgb_get_port_max(data, port) / (in_val.max - in_val.min);
-
-    val_blue = in_val.z *
-        rgb_get_port_max(data, port) / (in_val.max - in_val.min);
-
-    mdata->output_value.red = val_red > mdata->output_value.red_max ?
-        mdata->output_value.red_max : val_red;
-    mdata->output_value.green = val_green > mdata->output_value.green_max ?
-        mdata->output_value.green_max : val_green;
-    mdata->output_value.blue = val_blue > mdata->output_value.blue_max ?
-        mdata->output_value.blue_max : val_blue;
-
-    return sol_flow_send_rgb_packet(node, 0, &mdata->output_value);
-}
-
-static int
 rgb_to_byte_convert(struct sol_flow_node *node, void *data, uint16_t port, uint16_t conn_id, const struct sol_flow_packet *packet)
 {
     struct sol_rgb rgb;
@@ -1704,41 +1630,7 @@ rgb_to_drange_convert(struct sol_flow_node *node, void *data, uint16_t port, uin
     return r;
 }
 
-static int
-rgb_to_direction_vector_convert(struct sol_flow_node *node, void *data, uint16_t port, uint16_t conn_id, const struct sol_flow_packet *packet)
-{
-    struct sol_rgb rgb;
-    struct sol_direction_vector out;
-    double max;
-    int r;
-
-    r = sol_flow_packet_get_rgb(packet, &rgb);
-    SOL_INT_CHECK(r, < 0, r);
-
-    /* we stick to the bigger max, since the vector components share a
-     * range */
-    if (rgb.red_max > rgb.green_max)
-        max = rgb.red_max;
-    else
-        max = rgb.green_max;
-    if (max < rgb.blue_max)
-        max = rgb.blue_max;
-
-    out.min = 0;
-    out.max = max;
-    out.x = rgb.red;
-    out.y = rgb.green;
-    out.z = rgb.blue;
-
-    r = sol_flow_send_direction_vector_packet
-            (node, SOL_FLOW_NODE_TYPE_CONVERTER_RGB_TO_DIRECTION_VECTOR__OUT__OUT, &out);
-    SOL_INT_CHECK(r, < 0, r);
-
-    return r;
-}
-
 #undef RGB_SEND
-
 
 static int
 byte_to_direction_vector_open(struct sol_flow_node *node, void *data, const struct sol_flow_node_options *options)

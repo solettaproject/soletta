@@ -1479,56 +1479,6 @@
     },
     {
       "category": "converter",
-      "description": "Receives direction vector packets and converts to RGB ones.",
-      "in_ports": [
-        {
-          "data_type": "direction-vector",
-          "description": "Input for direction vector packets to be converted.",
-          "methods": {
-            "process": "direction_vector_to_rgb_convert"
-          },
-          "name": "IN"
-        }
-      ],
-      "methods": {
-        "open": "direction_vector_to_rgb_open"
-      },
-      "name": "converter/direction-vector-to-rgb",
-      "options": {
-        "members": [
-          {
-            "data_type": "int",
-            "default": 255,
-            "description": "Max value of red component. Minimum is set to zero.",
-            "name": "red_max"
-          },
-          {
-            "data_type": "int",
-            "default": 255,
-            "description": "Max value of green component. Minimum is set to zero.",
-            "name": "green_max"
-          },
-          {
-            "data_type": "int",
-            "default": 255,
-            "description": "Max value of blue component. Minimum is set to zero.",
-            "name": "blue_max"
-          }
-        ],
-        "version": 1
-      },
-      "out_ports": [
-        {
-          "data_type": "rgb",
-          "description": "Direction vector values converted to RGB.",
-          "name": "OUT"
-        }
-      ],
-      "private_data_type": "sol_converter_rgb",
-      "url": "http://solettaproject.org/doc/latest/node_types/converter/int-to-rgb.html"
-    },
-    {
-      "category": "converter",
       "description": "Receives int packets and converts a to direction vector one.",
       "in_ports": [
         {
@@ -1751,29 +1701,6 @@
         }
       ],
       "url": "http://solettaproject.org/doc/latest/node_types/converter/rgb-to-int.html"
-    },
-    {
-      "category": "converter",
-      "description": "Receives RGB packets and convert to direction vector ones.",
-      "in_ports": [
-        {
-          "data_type": "rgb",
-          "description": "RGB to be converted.",
-          "methods": {
-            "process": "rgb_to_direction_vector_convert"
-          },
-          "name": "IN"
-        }
-      ],
-      "name": "converter/rgb-to-direction-vector",
-      "out_ports": [
-        {
-          "data_type": "direction-vector",
-          "description": "Dimensional vector packet",
-          "name": "OUT"
-        }
-      ],
-      "url": "http://solettaproject.org/doc/latest/node_types/converter/rgb-to-direction-vector.html"
     },
     {
       "category": "converter",
