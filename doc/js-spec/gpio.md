@@ -1,4 +1,4 @@
-GPIO Web API for Soletta
+GPIO Web API for Soletta™ Framework
 ========================
 
 Introduction

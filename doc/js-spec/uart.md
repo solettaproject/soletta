@@ -1,4 +1,4 @@
-UART Web API for Soletta
+UART Web API for Soletta™ Framework
 ========================
 
 Introduction
