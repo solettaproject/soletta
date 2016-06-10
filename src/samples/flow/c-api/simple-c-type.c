@@ -23,17 +23,17 @@
 
 #include "soletta.h"
 #include "sol-flow-builder.h"
-#include "sol-flow-simplectype.h"
+#include "sol-flow-simple-c-type.h"
 
 /**
- * @file simplectype.c
+ * @file simple-c-type.c
  *
  * Example how to create and use a simple C node type and the
  * high-level API. To understand how to use the high-level C API with
  * existing or custom C types using the generator from JSON
  * (recommended), take a look at @ref highlevel.c
  *
- * Note that this sample's 'mytype*' uses all features of simplectype,
+ * Note that this sample's 'mytype*' uses all features of simple_c_type,
  * usually some options will not be used in most applications, such as
  * port connections and disconnection events or context. One example
  * of the simplistic version is the 'isodd' that checks if if the
@@ -52,13 +52,13 @@ static struct sol_flow_node_type *mytype;
  * boolean true if that number is odd, sending false if it's even.
  */
 static int
-isodd(struct sol_flow_node *node, const struct sol_flow_simplectype_event *ev, void *data)
+isodd(struct sol_flow_node *node, const struct sol_flow_simple_c_type_event *ev, void *data)
 {
     int32_t val;
     int r;
 
     /* we only handle events for port input. */
-    if (ev->type != SOL_FLOW_SIMPLECTYPE_EVENT_TYPE_PORT_IN_PROCESS)
+    if (ev->type != SOL_FLOW_SIMPLE_C_TYPE_EVENT_TYPE_PROCESS_PORT_IN)
         return 0;
 
     /* get the integer value from irange and check if it worked */
@@ -71,7 +71,7 @@ isodd(struct sol_flow_node *node, const struct sol_flow_simplectype_event *ev, v
 }
 
 /*
- * mytype is an extensive example of simplectype capabilities.
+ * mytype is an extensive example of simple_c_type capabilities.
  *
  * It will take options at node open, keep context and handle all
  * events.
@@ -113,19 +113,19 @@ on_timeout(void *data)
     /* this is to demo the discovery from name, but one could/should use the
      * port index for efficiency matters.
      */
-    port_idx = sol_flow_simplectype_get_port_out_index(mytype, "STRING");
+    port_idx = sol_flow_simple_c_type_get_port_out_index(mytype, "STRING");
     sol_flow_send_string_packet(node, port_idx, buf);
 
     return true;
 }
 
 static int
-mytype_func(struct sol_flow_node *node, const struct sol_flow_simplectype_event *ev, void *data)
+mytype_func(struct sol_flow_node *node, const struct sol_flow_simple_c_type_event *ev, void *data)
 {
     struct mytype_context *ctx = data;
 
     switch (ev->type) {
-    case SOL_FLOW_SIMPLECTYPE_EVENT_TYPE_OPEN: {
+    case SOL_FLOW_SIMPLE_C_TYPE_EVENT_TYPE_OPEN: {
         if (ev->options
 #ifndef SOL_NO_API_VERSION
             && ev->options->sub_api == MYTYPE_OPTIONS_SUB_API
@@ -139,16 +139,16 @@ mytype_func(struct sol_flow_node *node, const struct sol_flow_simplectype_event 
         ctx->timer = sol_timeout_add(500, on_timeout, node);
         if (!ctx->timer)
             return -ENOMEM;
-        printf("simplectype opened ctx=%p, someint=%d, somebool=%d\n",
+        printf("simple_c_type opened ctx=%p, someint=%d, somebool=%d\n",
             ctx, ctx->someint, ctx->somebool);
         return 0;
     }
-    case SOL_FLOW_SIMPLECTYPE_EVENT_TYPE_CLOSE: {
-        printf("simplectype closed ctx=%p\n", ctx);
+    case SOL_FLOW_SIMPLE_C_TYPE_EVENT_TYPE_CLOSE: {
+        printf("simple_c_type closed ctx=%p\n", ctx);
         sol_timeout_del(ctx->timer);
         return 0;
     }
-    case SOL_FLOW_SIMPLECTYPE_EVENT_TYPE_PORT_IN_PROCESS: {
+    case SOL_FLOW_SIMPLE_C_TYPE_EVENT_TYPE_PROCESS_PORT_IN: {
         /* this is to show the port names, ideally one would keep the
          * indexes and use them here, doing integer comparisons
          * instead of strcmp()
@@ -156,7 +156,7 @@ mytype_func(struct sol_flow_node *node, const struct sol_flow_simplectype_event 
         if (strcmp(ev->port_name, "IRANGE") == 0) {
             int32_t val;
             if (sol_flow_packet_get_irange_value(ev->packet, &val) == 0) {
-                printf("simplectype updated integer from %d to %d\n",
+                printf("simple_c_type updated integer from %d to %d\n",
                     ctx->someint, val);
                 ctx->someint = val;
                 return 0;
@@ -164,29 +164,29 @@ mytype_func(struct sol_flow_node *node, const struct sol_flow_simplectype_event 
         } else if (strcmp(ev->port_name, "BOOLEAN") == 0) {
             bool val;
             if (sol_flow_packet_get_boolean(ev->packet, &val) == 0) {
-                printf("simplectype updated boolean from %d to %d\n",
+                printf("simple_c_type updated boolean from %d to %d\n",
                     ctx->somebool, val);
                 ctx->somebool = val;
                 return 0;
             }
         }
-        printf("simplectype port '%s' got unexpected data!\n", ev->port_name);
+        printf("simple_c_type port '%s' got unexpected data!\n", ev->port_name);
         return -EINVAL;
     }
-    case SOL_FLOW_SIMPLECTYPE_EVENT_TYPE_PORT_IN_CONNECT:
-        printf("simplectype port IN '%s' id=%d conn=%d connected ctx=%p\n",
+    case SOL_FLOW_SIMPLE_C_TYPE_EVENT_TYPE_CONNECT_PORT_IN:
+        printf("simple_c_type port IN '%s' id=%d conn=%d connected ctx=%p\n",
             ev->port_name, ev->port, ev->conn_id, ctx);
         return 0;
-    case SOL_FLOW_SIMPLECTYPE_EVENT_TYPE_PORT_IN_DISCONNECT:
-        printf("simplectype port IN '%s' id=%d conn=%d disconnected ctx=%p\n",
+    case SOL_FLOW_SIMPLE_C_TYPE_EVENT_TYPE_DISCONNECT_PORT_IN:
+        printf("simple_c_type port IN '%s' id=%d conn=%d disconnected ctx=%p\n",
             ev->port_name, ev->port, ev->conn_id, ctx);
         return 0;
-    case SOL_FLOW_SIMPLECTYPE_EVENT_TYPE_PORT_OUT_CONNECT:
-        printf("simplectype port OUT '%s' id=%d conn=%d connected ctx=%p\n",
+    case SOL_FLOW_SIMPLE_C_TYPE_EVENT_TYPE_CONNECT_PORT_OUT:
+        printf("simple_c_type port OUT '%s' id=%d conn=%d connected ctx=%p\n",
             ev->port_name, ev->port, ev->conn_id, ctx);
         return 0;
-    case SOL_FLOW_SIMPLECTYPE_EVENT_TYPE_PORT_OUT_DISCONNECT:
-        printf("simplectype port OUT '%s' id=%d conn=%d disconnected ctx=%p\n",
+    case SOL_FLOW_SIMPLE_C_TYPE_EVENT_TYPE_DISCONNECT_PORT_OUT:
+        printf("simple_c_type port OUT '%s' id=%d conn=%d disconnected ctx=%p\n",
             ev->port_name, ev->port, ev->conn_id, ctx);
         return 0;
     }
@@ -197,11 +197,11 @@ mytype_func(struct sol_flow_node *node, const struct sol_flow_simplectype_event 
 static void
 startup(void)
 {
-    /* you can give your simplectype custom arguments, just give it
+    /* you can give your simple_c_type custom arguments, just give it
      * the struct and remember to fill its "base" with the API fields.
      * the 'api_version' is checked by sol-flow calls, while sub_api
      * is checked at mytype_func when handling the
-     * SOL_FLOW_SIMPLECTYPE_EVENT_TYPE_OPEN.
+     * SOL_FLOW_SIMPLE_C_TYPE_EVENT_TYPE_OPEN.
      */
     struct mytype_options mystuff_opts = {
         .base = {
@@ -220,22 +220,22 @@ startup(void)
      * input: IN (index: 0)
      * output: OUT (index: 0)
      */
-    isoddtype = sol_flow_simplectype_new_nocontext(
+    isoddtype = sol_flow_simple_c_type_new_nocontext(
         isodd,
-        SOL_FLOW_SIMPLECTYPE_PORT_IN("IN", SOL_FLOW_PACKET_TYPE_IRANGE),
-        SOL_FLOW_SIMPLECTYPE_PORT_OUT("OUT", SOL_FLOW_PACKET_TYPE_BOOLEAN),
+        SOL_FLOW_SIMPLE_C_TYPE_PORT_IN("IN", SOL_FLOW_PACKET_TYPE_IRANGE),
+        SOL_FLOW_SIMPLE_C_TYPE_PORT_OUT("OUT", SOL_FLOW_PACKET_TYPE_BOOLEAN),
         NULL);
 
     /* declare mytype with 'struct mytype_context' private data and with ports:
      * input: IRANGE (index: 0), BOOLEAN (index: 1)
      * output: STRING (index: 0, as input and output have separate arrays)
      */
-    mytype = sol_flow_simplectype_new_full(
+    mytype = sol_flow_simple_c_type_new_full(
         "mytype", sizeof(struct mytype_context), sizeof(struct mytype_options),
         mytype_func,
-        SOL_FLOW_SIMPLECTYPE_PORT_IN("IRANGE", SOL_FLOW_PACKET_TYPE_IRANGE),
-        SOL_FLOW_SIMPLECTYPE_PORT_IN("BOOLEAN", SOL_FLOW_PACKET_TYPE_BOOLEAN),
-        SOL_FLOW_SIMPLECTYPE_PORT_OUT("STRING", SOL_FLOW_PACKET_TYPE_STRING),
+        SOL_FLOW_SIMPLE_C_TYPE_PORT_IN("IRANGE", SOL_FLOW_PACKET_TYPE_IRANGE),
+        SOL_FLOW_SIMPLE_C_TYPE_PORT_IN("BOOLEAN", SOL_FLOW_PACKET_TYPE_BOOLEAN),
+        SOL_FLOW_SIMPLE_C_TYPE_PORT_OUT("STRING", SOL_FLOW_PACKET_TYPE_STRING),
         NULL);
 
     /* for types declared as builtin or external modules, add by type name */
@@ -294,7 +294,7 @@ startup(void)
     flow_node_type = sol_flow_builder_get_node_type(builder);
 
     /* create and run the flow */
-    flow = sol_flow_node_new(NULL, "simplectype", flow_node_type, NULL);
+    flow = sol_flow_node_new(NULL, "simple_c_type", flow_node_type, NULL);
 }
 
 static void

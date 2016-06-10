@@ -348,6 +348,17 @@ sol_flow_send_location_packet(struct sol_flow_node *src, uint16_t src_port, cons
 }
 
 SOL_API int
+sol_flow_send_location_components_packet(struct sol_flow_node *src, uint16_t src_port, double lat, double lon, double alt)
+{
+    struct sol_flow_packet *out_packet;
+
+    out_packet = sol_flow_packet_new_location_components(lat, lon, alt);
+    SOL_NULL_CHECK(out_packet, -ENOMEM);
+
+    return sol_flow_send_packet(src, src_port, out_packet);
+}
+
+SOL_API int
 sol_flow_send_timestamp_packet(struct sol_flow_node *src, uint16_t src_port, const struct timespec *value)
 {
     SOL_FLOW_SEND_PACKET(timestamp);
@@ -645,7 +656,7 @@ sol_flow_node_type_get_port_description(const struct sol_flow_port_description *
 }
 
 SOL_API const struct sol_flow_port_description *
-sol_flow_node_get_port_in_description(const struct sol_flow_node_type *type, uint16_t port)
+sol_flow_node_get_description_port_in(const struct sol_flow_node_type *type, uint16_t port)
 {
     SOL_NULL_CHECK(type, NULL);
 
@@ -664,7 +675,7 @@ static const struct sol_flow_port_description port_error_desc = {
 };
 
 SOL_API const struct sol_flow_port_description *
-sol_flow_node_get_port_out_description(const struct sol_flow_node_type *type, uint16_t port)
+sol_flow_node_get_description_port_out(const struct sol_flow_node_type *type, uint16_t port)
 {
     SOL_NULL_CHECK(type, NULL);
 
