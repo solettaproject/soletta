@@ -29,9 +29,8 @@
 SOL_LOG_INTERNAL_DECLARE(_sol_certificate_log_domain, "certificate");
 
 struct sol_cert {
-    int refcnt;
-
     char *filename;
+    uint16_t refcnt;
 };
 
 static struct sol_ptr_vector storage = SOL_PTR_VECTOR_INIT;
