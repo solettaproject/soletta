@@ -92,7 +92,7 @@ boolean_writer_process(struct sol_flow_node *node, void *data, uint16_t port, ui
     bool in_value;
     int r;
 
-    r = sol_flow_packet_get_boolean(packet, &in_value);
+    r = sol_flow_packet_get_bool(packet, &in_value);
     SOL_INT_CHECK(r, < 0, r);
 
     blob = SOL_BLOB_NEW_DUP(in_value);
@@ -108,7 +108,7 @@ boolean_receiver(void *data, uint32_t id, struct sol_blob *message)
 {
     struct sol_flow_node *node = data;
 
-    sol_flow_send_boolean_packet(node,
+    sol_flow_send_bool_packet(node,
         SOL_FLOW_NODE_TYPE_IPM_BOOLEAN_READER__OUT__OUT, *(bool *)message->mem);
     sol_blob_unref(message);
 }

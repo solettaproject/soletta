@@ -63,25 +63,25 @@ struct segments_ctl_data {
 static void
 _clear(struct sol_flow_node *node)
 {
-    sol_flow_send_boolean_packet(node, SOL_FLOW_NODE_TYPE_CALAMARI_SEGMENTS_CTL__OUT__CLEAR, true);
-    sol_flow_send_boolean_packet(node, SOL_FLOW_NODE_TYPE_CALAMARI_SEGMENTS_CTL__OUT__CLEAR, false);
-    sol_flow_send_boolean_packet(node, SOL_FLOW_NODE_TYPE_CALAMARI_SEGMENTS_CTL__OUT__CLEAR, true);
+    sol_flow_send_bool_packet(node, SOL_FLOW_NODE_TYPE_CALAMARI_SEGMENTS_CTL__OUT__CLEAR, true);
+    sol_flow_send_bool_packet(node, SOL_FLOW_NODE_TYPE_CALAMARI_SEGMENTS_CTL__OUT__CLEAR, false);
+    sol_flow_send_bool_packet(node, SOL_FLOW_NODE_TYPE_CALAMARI_SEGMENTS_CTL__OUT__CLEAR, true);
 }
 
 
 static void
 _tick(struct sol_flow_node *node)
 {
-    sol_flow_send_boolean_packet(node, SOL_FLOW_NODE_TYPE_CALAMARI_SEGMENTS_CTL__OUT__CLOCK, true);
-    sol_flow_send_boolean_packet(node, SOL_FLOW_NODE_TYPE_CALAMARI_SEGMENTS_CTL__OUT__CLOCK, false);
+    sol_flow_send_bool_packet(node, SOL_FLOW_NODE_TYPE_CALAMARI_SEGMENTS_CTL__OUT__CLOCK, true);
+    sol_flow_send_bool_packet(node, SOL_FLOW_NODE_TYPE_CALAMARI_SEGMENTS_CTL__OUT__CLOCK, false);
 }
 
 static void
 _latch(struct sol_flow_node *node)
 {
-    sol_flow_send_boolean_packet(node, SOL_FLOW_NODE_TYPE_CALAMARI_SEGMENTS_CTL__OUT__LATCH, false);
-    sol_flow_send_boolean_packet(node, SOL_FLOW_NODE_TYPE_CALAMARI_SEGMENTS_CTL__OUT__LATCH, true);
-    sol_flow_send_boolean_packet(node, SOL_FLOW_NODE_TYPE_CALAMARI_SEGMENTS_CTL__OUT__LATCH, false);
+    sol_flow_send_bool_packet(node, SOL_FLOW_NODE_TYPE_CALAMARI_SEGMENTS_CTL__OUT__LATCH, false);
+    sol_flow_send_bool_packet(node, SOL_FLOW_NODE_TYPE_CALAMARI_SEGMENTS_CTL__OUT__LATCH, true);
+    sol_flow_send_bool_packet(node, SOL_FLOW_NODE_TYPE_CALAMARI_SEGMENTS_CTL__OUT__LATCH, false);
 }
 
 static void
@@ -100,7 +100,7 @@ _write_byte(struct sol_flow_node *node, unsigned char byte)
     byte = ~byte;
     for (i = 0; i < 8; i++) {
         int val = (byte >> i) & 1;
-        sol_flow_send_boolean_packet(node, SOL_FLOW_NODE_TYPE_CALAMARI_SEGMENTS_CTL__OUT__DATA, val);
+        sol_flow_send_bool_packet(node, SOL_FLOW_NODE_TYPE_CALAMARI_SEGMENTS_CTL__OUT__DATA, val);
         _tick(node);
     }
     _latch(node);
@@ -513,10 +513,10 @@ calamari_rgb_led_process_red(struct sol_flow_node *node, void *data, uint16_t po
 {
     bool val;
 
-    int r = sol_flow_packet_get_boolean(packet, &val);
+    int r = sol_flow_packet_get_bool(packet, &val);
 
     SOL_INT_CHECK(r, < 0, r);
-    sol_flow_send_boolean_packet(node, SOL_FLOW_NODE_TYPE_CALAMARI_RGB_CTL__OUT__RED, val);
+    sol_flow_send_bool_packet(node, SOL_FLOW_NODE_TYPE_CALAMARI_RGB_CTL__OUT__RED, val);
 
     return 0;
 }
@@ -526,10 +526,10 @@ calamari_rgb_led_process_green(struct sol_flow_node *node, void *data, uint16_t 
 {
     bool val;
 
-    int r = sol_flow_packet_get_boolean(packet, &val);
+    int r = sol_flow_packet_get_bool(packet, &val);
 
     SOL_INT_CHECK(r, < 0, r);
-    sol_flow_send_boolean_packet(node, SOL_FLOW_NODE_TYPE_CALAMARI_RGB_CTL__OUT__GREEN, val);
+    sol_flow_send_bool_packet(node, SOL_FLOW_NODE_TYPE_CALAMARI_RGB_CTL__OUT__GREEN, val);
 
     return 0;
 }
@@ -539,10 +539,10 @@ calamari_rgb_led_process_blue(struct sol_flow_node *node, void *data, uint16_t p
 {
     bool val;
 
-    int r = sol_flow_packet_get_boolean(packet, &val);
+    int r = sol_flow_packet_get_bool(packet, &val);
 
     SOL_INT_CHECK(r, < 0, r);
-    sol_flow_send_boolean_packet(node, SOL_FLOW_NODE_TYPE_CALAMARI_RGB_CTL__OUT__BLUE, val);
+    sol_flow_send_bool_packet(node, SOL_FLOW_NODE_TYPE_CALAMARI_RGB_CTL__OUT__BLUE, val);
 
     return 0;
 }

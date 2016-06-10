@@ -97,9 +97,9 @@ print_packet_content(const struct sol_flow_packet *packet, struct sol_flow_node 
 
     if (packet_type == SOL_FLOW_PACKET_TYPE_EMPTY) {
         console_output(mdata, prefix, suffix, separator, "(empty)");
-    } else if (packet_type == SOL_FLOW_PACKET_TYPE_BOOLEAN) {
+    } else if (packet_type == SOL_FLOW_PACKET_TYPE_BOOL) {
         bool value;
-        int r = sol_flow_packet_get_boolean(packet, &value);
+        int r = sol_flow_packet_get_bool(packet, &value);
         SOL_INT_CHECK(r, < 0, r);
         console_output(mdata, prefix, suffix, separator, "%s (boolean)", value ? "true" : "false");
     } else if (packet_type == SOL_FLOW_PACKET_TYPE_BYTE) {

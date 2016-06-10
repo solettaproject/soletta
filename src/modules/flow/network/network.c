@@ -135,7 +135,7 @@ _on_network_event(void *data, const struct sol_network_link *link, enum sol_netw
     connected = _check_connected(&mdata->links);
     if (connected != mdata->connected) {
         mdata->connected = connected;
-        sol_flow_send_boolean_packet(mdata->node,
+        sol_flow_send_bool_packet(mdata->node,
             SOL_FLOW_NODE_TYPE_NETWORK_BOOLEAN__OUT__OUT,
             mdata->connected);
     }
@@ -202,7 +202,7 @@ network_open(struct sol_flow_node *node, void *data, const struct sol_flow_node_
     r = _setup_links(mdata, opts->address);
     SOL_INT_CHECK_GOTO(r, < 0, err_exit);
 
-    return sol_flow_send_boolean_packet(node,
+    return sol_flow_send_bool_packet(node,
         SOL_FLOW_NODE_TYPE_NETWORK_BOOLEAN__OUT__OUT,
         _check_connected(&mdata->links));
 

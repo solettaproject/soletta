@@ -27,7 +27,7 @@ on_toggle_changed(GtkRange *range, gpointer data)
 
     value =  gtk_toggle_button_get_active(GTK_TOGGLE_BUTTON(mdata->widget));
 
-    sol_flow_send_boolean_packet(mdata->node,
+    sol_flow_send_bool_packet(mdata->node,
         SOL_FLOW_NODE_TYPE_GTK_TOGGLE__OUT__OUT,
         value);
 }

@@ -249,7 +249,7 @@ sol_oic_packet_cbor_append(struct sol_oic_map_writer *writer,
             next_buf_sz = sizeof(uint64_t);
             err = cbor_encode_double(&writer->rep_map, repr->v_double);
             break;
-        case SOL_OIC_REPR_TYPE_BOOLEAN:
+        case SOL_OIC_REPR_TYPE_BOOL:
             next_buf_sz = sizeof(uint64_t);
             err = cbor_encode_boolean(&writer->rep_map, repr->v_boolean);
             break;
@@ -317,7 +317,7 @@ sol_oic_cbor_repr_map_get_next_field(CborValue *value, struct sol_oic_repr_field
         break;
     case CborBooleanType:
         err |= cbor_value_get_boolean(value, &repr->v_boolean);
-        repr->type = SOL_OIC_REPR_TYPE_BOOLEAN;
+        repr->type = SOL_OIC_REPR_TYPE_BOOL;
         break;
     default:
         SOL_ERR("While parsing representation map, got unexpected type %d",
@@ -328,7 +328,7 @@ sol_oic_cbor_repr_map_get_next_field(CborValue *value, struct sol_oic_repr_field
 harmless:
         /* Initialize repr with harmless data so cleanup works. */
         repr->v_boolean = false;
-        repr->type = SOL_OIC_REPR_TYPE_BOOLEAN;
+        repr->type = SOL_OIC_REPR_TYPE_BOOL;
     }
     err |= cbor_value_advance(value);
 

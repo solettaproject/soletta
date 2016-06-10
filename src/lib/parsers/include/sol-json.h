@@ -802,7 +802,7 @@ int sol_json_serialize_uint64(struct sol_buffer *buffer, uint64_t val) SOL_ATTR_
  *
  * @return @c 0 on success, error code (always negative) otherwise
  */
-int sol_json_serialize_boolean(struct sol_buffer *buffer, bool val) SOL_ATTR_NON_NULL(1);
+int sol_json_serialize_bool(struct sol_buffer *buffer, bool val) SOL_ATTR_NON_NULL(1);
 
 /**
  * @brief Inserts the string "null" in the end of the JSON document contained in @c buffer.

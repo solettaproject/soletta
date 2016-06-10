@@ -298,7 +298,7 @@ comparison_process(struct sol_flow_node *node, void *data, uint16_t port, uint16
         sol_flow_node_get_type(node);
 
     output = type->func(mdata->val[0], mdata->val[1]);
-    return sol_flow_send_boolean_packet(node, 0, output);
+    return sol_flow_send_bool_packet(node, 0, output);
 }
 
 #include "byte-gen.c"

@@ -107,7 +107,7 @@ security_object_read(void *instance_data, void *user_data,
         break;
     case SECURITY_SERVER_IS_BOOTSTRAP:
         SOL_LWM2M_RESOURCE_INIT(r, res, 1, 1,
-            SOL_LWM2M_RESOURCE_DATA_TYPE_BOOLEAN, false);
+            SOL_LWM2M_RESOURCE_DATA_TYPE_BOOL, false);
         break;
     case SECURITY_SERVER_ID:
         SOL_LWM2M_RESOURCE_INT_INIT(r, res, 10, 101);
@@ -318,11 +318,11 @@ read_dummy_resource(void *instance_data, void *user_data,
         break;
     case DUMMY_OBJECT_BOOLEAN_FALSE_ID:
         SOL_LWM2M_RESOURCE_INIT(r, res, res_id, 1,
-            SOL_LWM2M_RESOURCE_DATA_TYPE_BOOLEAN, ctx->f);
+            SOL_LWM2M_RESOURCE_DATA_TYPE_BOOL, ctx->f);
         break;
     case DUMMY_OBJECT_BOOLEAN_TRUE_ID:
         SOL_LWM2M_RESOURCE_INIT(r, res, res_id, 1,
-            SOL_LWM2M_RESOURCE_DATA_TYPE_BOOLEAN, ctx->t);
+            SOL_LWM2M_RESOURCE_DATA_TYPE_BOOL, ctx->t);
         break;
     case DUMMY_OBJECT_FLOAT_ID:
         SOL_LWM2M_RESOURCE_INIT(r, res, res_id, 1,
@@ -532,10 +532,10 @@ create_obj(struct sol_lwm2m_server *server, struct sol_lwm2m_client_info *cinfo)
     SOL_LWM2M_RESOURCE_INT_INIT(r, &res[2], DUMMY_OBJECT_INT_ID, INT_VALUE);
     ASSERT(r == 0);
     SOL_LWM2M_RESOURCE_INIT(r, &res[3], DUMMY_OBJECT_BOOLEAN_FALSE_ID, 1,
-        SOL_LWM2M_RESOURCE_DATA_TYPE_BOOLEAN, false);
+        SOL_LWM2M_RESOURCE_DATA_TYPE_BOOL, false);
     ASSERT(r == 0);
     SOL_LWM2M_RESOURCE_INIT(r, &res[4], DUMMY_OBJECT_BOOLEAN_TRUE_ID, 1,
-        SOL_LWM2M_RESOURCE_DATA_TYPE_BOOLEAN, true);
+        SOL_LWM2M_RESOURCE_DATA_TYPE_BOOL, true);
     ASSERT(r == 0);
     SOL_LWM2M_RESOURCE_INIT(r, &res[5], DUMMY_OBJECT_FLOAT_ID, 1,
         SOL_LWM2M_RESOURCE_DATA_TYPE_FLOAT, FLOAT_VALUE);

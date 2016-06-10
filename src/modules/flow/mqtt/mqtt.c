@@ -249,7 +249,7 @@ clean_process(struct sol_flow_node *node, void *data, uint16_t port, uint16_t co
     int r;
     bool in_value;
 
-    r = sol_flow_packet_get_boolean(packet, &in_value);
+    r = sol_flow_packet_get_bool(packet, &in_value);
     SOL_INT_CHECK(r, < 0, r);
 
     mdata->clean_session = in_value;

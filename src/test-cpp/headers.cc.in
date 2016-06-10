@@ -170,7 +170,7 @@ startup()
     struct sol_oic_map_reader iterator = { 0, 0, 0, 0, 0, 0 };
     struct sol_oic_repr_field rep_field1 = SOL_OIC_REPR_UINT("1", 2);
     struct sol_oic_repr_field rep_field2 = SOL_OIC_REPR_INT("2", -2);
-    struct sol_oic_repr_field rep_field4 = SOL_OIC_REPR_BOOLEAN("4", true);
+    struct sol_oic_repr_field rep_field4 = SOL_OIC_REPR_BOOL("4", true);
     struct sol_oic_repr_field rep_field5 = SOL_OIC_REPR_SIMPLE("5", 3);
     struct sol_oic_repr_field rep_field6 = SOL_OIC_REPR_TEXT_STRING("6", "123", 3);
     struct sol_oic_repr_field rep_field7 = SOL_OIC_REPR_BYTE_STRING("7", "333", 3);
@@ -186,7 +186,7 @@ startup()
     struct sol_http_params params = SOL_HTTP_REQUEST_PARAMS_INIT;
     struct sol_http_param_value *p_itr;
     struct sol_http_param_value param_value_str = SOL_HTTP_REQUEST_PARAM_KEY_VALUE(SOL_HTTP_PARAM_QUERY_PARAM, "123", "123");
-    struct sol_http_param_value pbool = SOL_HTTP_REQUEST_PARAM_BOOLEAN(SOL_HTTP_PARAM_QUERY_PARAM, false);
+    struct sol_http_param_value pbool = SOL_HTTP_REQUEST_PARAM_BOOL(SOL_HTTP_PARAM_QUERY_PARAM, false);
     struct sol_http_param_value cookie = SOL_HTTP_REQUEST_PARAM_COOKIE("123", "123");
     struct sol_http_param_value post = SOL_HTTP_REQUEST_PARAM_POST_FIELD("123", "123");
     struct sol_http_param_value header = SOL_HTTP_REQUEST_PARAM_HEADER("123", "123");

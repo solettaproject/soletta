@@ -36,7 +36,7 @@ pwm_process_enable(struct sol_flow_node *node, void *data, uint16_t port, uint16
 {
     bool enabled;
     struct pwm_data *mdata = data;
-    int r = sol_flow_packet_get_boolean(packet, &enabled);
+    int r = sol_flow_packet_get_bool(packet, &enabled);
 
     SOL_INT_CHECK(r, < 0, r);
 

@@ -465,7 +465,7 @@ selector_enabled_set(struct sol_flow_node *node,
     bool value;
     int r;
 
-    r = sol_flow_packet_get_boolean(packet, &value);
+    r = sol_flow_packet_get_bool(packet, &value);
     SOL_INT_CHECK(r, < 0, r);
 
     mdata->enabled = value;
@@ -607,7 +607,7 @@ boolean_selected_set(struct sol_flow_node *node,
     bool value;
     int r;
 
-    r = sol_flow_packet_get_boolean(packet, &value);
+    r = sol_flow_packet_get_bool(packet, &value);
     SOL_INT_CHECK(r, < 0, r);
 
     mdata->selection = value;
@@ -634,7 +634,7 @@ boolean_select_set(struct sol_flow_node *node,
     r = boolean_format_do(node);
     SOL_INT_CHECK(r, < 0, r);
 
-    return sol_flow_send_boolean_packet(node,
+    return sol_flow_send_bool_packet(node,
         SOL_FLOW_NODE_TYPE_FORM_BOOLEAN__OUT__SELECTED,
         mdata->selection);
 }
@@ -650,7 +650,7 @@ boolean_enabled_set(struct sol_flow_node *node,
     bool value;
     int r;
 
-    r = sol_flow_packet_get_boolean(packet, &value);
+    r = sol_flow_packet_get_bool(packet, &value);
     SOL_INT_CHECK(r, < 0, r);
 
     mdata->enabled = value;
@@ -942,7 +942,7 @@ integer_enabled_set(struct sol_flow_node *node,
     bool value;
     int r;
 
-    r = sol_flow_packet_get_boolean(packet, &value);
+    r = sol_flow_packet_get_bool(packet, &value);
     SOL_INT_CHECK(r, < 0, r);
 
     mdata->enabled = value;
@@ -1513,7 +1513,7 @@ integer_custom_enabled_set(struct sol_flow_node *node,
     bool value;
     int r;
 
-    r = sol_flow_packet_get_boolean(packet, &value);
+    r = sol_flow_packet_get_bool(packet, &value);
     SOL_INT_CHECK(r, < 0, r);
 
     mdata->base.enabled = value;
@@ -2095,7 +2095,7 @@ string_enabled_set(struct sol_flow_node *node,
     bool value;
     int r;
 
-    r = sol_flow_packet_get_boolean(packet, &value);
+    r = sol_flow_packet_get_bool(packet, &value);
     SOL_INT_CHECK(r, < 0, r);
 
     mdata->enabled = value;

@@ -79,7 +79,7 @@ check_cb(void *data, int status, const struct sol_update_info *response)
         SOL_FLOW_NODE_TYPE_UPDATE_CHECK__OUT__VERSION, response->version);
     sol_flow_send_irange_value_packet(node,
         SOL_FLOW_NODE_TYPE_UPDATE_CHECK__OUT__SIZE, response->size);
-    sol_flow_send_boolean_packet(node,
+    sol_flow_send_bool_packet(node,
         SOL_FLOW_NODE_TYPE_UPDATE_CHECK__OUT__NEED_UPDATE, response->need_update);
 
 end:
@@ -147,7 +147,7 @@ fetch_cb(void *data, int status)
             sol_util_strerrora(-status));
     }
 
-    sol_flow_send_boolean_packet(node,
+    sol_flow_send_bool_packet(node,
         SOL_FLOW_NODE_TYPE_UPDATE_FETCH__OUT__SUCCESS, status == 0);
 
     mdata->handle = NULL;
@@ -201,7 +201,7 @@ install_cb(void *data, int status)
             "Error while installing update: %s", sol_util_strerrora(-status));
     }
 
-    sol_flow_send_boolean_packet(node,
+    sol_flow_send_bool_packet(node,
         SOL_FLOW_NODE_TYPE_UPDATE_INSTALL__OUT__SUCCESS, status == 0);
 
     mdata->handle = NULL;

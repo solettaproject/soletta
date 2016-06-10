@@ -41,7 +41,7 @@ sol_oic_map_loop_init(const struct sol_oic_map_reader *map, struct sol_oic_map_r
         return SOL_OIC_MAP_LOOP_ERROR;
 
     /* Initialize repr with harmless data so cleanup works. */
-    repr->type = SOL_OIC_REPR_TYPE_BOOLEAN;
+    repr->type = SOL_OIC_REPR_TYPE_BOOL;
     repr->key = NULL;
     return SOL_OIC_MAP_LOOP_OK;
 }

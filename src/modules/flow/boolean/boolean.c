@@ -49,7 +49,7 @@ two_ports_process(struct sol_flow_node *node, void *data, uint16_t port_in, uint
     bool b;
     struct boolean_data *mdata = data;
 
-    r = sol_flow_packet_get_boolean(packet, &b);
+    r = sol_flow_packet_get_bool(packet, &b);
     SOL_INT_CHECK(r, < 0, r);
 
     if (port_in) {
@@ -62,7 +62,7 @@ two_ports_process(struct sol_flow_node *node, void *data, uint16_t port_in, uint
 
     if (mdata->init_in0 && mdata->init_in1) {
         b = func(mdata->in0, mdata->in1);
-        return sol_flow_send_boolean_packet(node, port_out, b);
+        return sol_flow_send_bool_packet(node, port_out, b);
     }
 
     return 0;
@@ -86,7 +86,7 @@ multi_ports_process(struct sol_flow_node *node, void *data, uint16_t port_in, ui
     uint8_t i;
     bool result;
 
-    r = sol_flow_packet_get_boolean(packet, &mdata->vals[port_in]);
+    r = sol_flow_packet_get_bool(packet, &mdata->vals[port_in]);
     SOL_INT_CHECK(r, < 0, r);
 
     mdata->initialized |= 1u << port_in;
@@ -107,7 +107,7 @@ multi_ports_process(struct sol_flow_node *node, void *data, uint16_t port_in, ui
         i++;
     }
 
-    return sol_flow_send_boolean_packet(node, port_out, result);
+    return sol_flow_send_bool_packet(node, port_out, result);
 }
 
 /* AND *****************************************************************/
@@ -166,10 +166,10 @@ not_process(struct sol_flow_node *node, void *data, uint16_t port, uint16_t conn
     int r;
     bool in;
 
-    r = sol_flow_packet_get_boolean(packet, &in);
+    r = sol_flow_packet_get_bool(packet, &in);
     SOL_INT_CHECK(r, < 0, r);
 
-    return sol_flow_send_boolean_packet(node, SOL_FLOW_NODE_TYPE_BOOLEAN_NOT__OUT__OUT, !in);
+    return sol_flow_send_bool_packet(node, SOL_FLOW_NODE_TYPE_BOOLEAN_NOT__OUT__OUT, !in);
 }
 
 /* TOGGLE *****************************************************************/
@@ -188,7 +188,7 @@ set_process(struct sol_flow_node *node,
     bool value;
     int r;
 
-    r = sol_flow_packet_get_boolean(packet, &value);
+    r = sol_flow_packet_get_bool(packet, &value);
     SOL_INT_CHECK(r, < 0, r);
 
     /* no infinite loops on flows */
@@ -197,7 +197,7 @@ set_process(struct sol_flow_node *node,
 
     mdata->state = value;
 
-    return sol_flow_send_boolean_packet(node,
+    return sol_flow_send_bool_packet(node,
         SOL_FLOW_NODE_TYPE_BOOLEAN_TOGGLE__OUT__OUT, mdata->state);
 }
 
@@ -209,7 +209,7 @@ toggle_process(struct sol_flow_node *node, void *data, uint16_t port, uint16_t c
 
     mdata->state = !mdata->state;
 
-    return sol_flow_send_boolean_packet(node, SOL_FLOW_NODE_TYPE_BOOLEAN_TOGGLE__OUT__OUT,
+    return sol_flow_send_bool_packet(node, SOL_FLOW_NODE_TYPE_BOOLEAN_TOGGLE__OUT__OUT,
         mdata->state);
 }
 
@@ -278,7 +278,7 @@ counter_process(struct sol_flow_node *node, void *data, uint16_t port, uint16_t 
     bool packet_val;
     int r;
 
-    r = sol_flow_packet_get_boolean(packet, &packet_val);
+    r = sol_flow_packet_get_bool(packet, &packet_val);
     SOL_INT_CHECK(r, < 0, r);
     s = sol_vector_get(&mdata->map, conn_id);
 
@@ -331,13 +331,13 @@ filter_process(struct sol_flow_node *node, void *data, uint16_t port, uint16_t c
     uint16_t out_port;
     int r;
 
-    r = sol_flow_packet_get_boolean(packet, &packet_val);
+    r = sol_flow_packet_get_bool(packet, &packet_val);
     SOL_INT_CHECK(r, < 0, r);
     if (packet_val)
         out_port = SOL_FLOW_NODE_TYPE_BOOLEAN_FILTER__OUT__TRUE;
     else
         out_port = SOL_FLOW_NODE_TYPE_BOOLEAN_FILTER__OUT__FALSE;
-    return sol_flow_send_boolean_packet(node, out_port, packet_val);
+    return sol_flow_send_bool_packet(node, out_port, packet_val);
 }
 
 
@@ -424,7 +424,7 @@ _boolean_buffer_do(struct boolean_buffer_data *mdata)
 
     mdata->changed = false;
 
-    return sol_flow_send_boolean_packet(mdata->node,
+    return sol_flow_send_bool_packet(mdata->node,
         SOL_FLOW_NODE_TYPE_BOOLEAN_BUFFER__OUT__OUT, result);
 }
 
@@ -509,7 +509,7 @@ boolean_buffer_process(struct sol_flow_node *node, void *data, uint16_t port, ui
     int r;
     struct boolean_buffer_data *mdata = data;
 
-    r = sol_flow_packet_get_boolean(packet,
+    r = sol_flow_packet_get_bool(packet,
         &mdata->input_queue[mdata->cur_len]);
     SOL_INT_CHECK(r, < 0, r);
 

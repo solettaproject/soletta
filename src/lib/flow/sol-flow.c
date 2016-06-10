@@ -266,9 +266,9 @@ err:
     } while (0)
 
 SOL_API int
-sol_flow_send_boolean_packet(struct sol_flow_node *src, uint16_t src_port, unsigned char value)
+sol_flow_send_bool_packet(struct sol_flow_node *src, uint16_t src_port, unsigned char value)
 {
-    SOL_FLOW_SEND_PACKET(boolean);
+    SOL_FLOW_SEND_PACKET(bool);
 }
 
 SOL_API int

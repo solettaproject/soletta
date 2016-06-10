@@ -513,7 +513,7 @@ int_parse(const char *value, struct sol_flow_node_named_options_member *m)
 
 static int(*const options_parse_functions[]) (const char *, struct sol_flow_node_named_options_member *) = {
     [SOL_FLOW_NODE_OPTIONS_MEMBER_UNKNOWN] = NULL,
-    [SOL_FLOW_NODE_OPTIONS_MEMBER_BOOLEAN] = boolean_parse,
+    [SOL_FLOW_NODE_OPTIONS_MEMBER_BOOL] = boolean_parse,
     [SOL_FLOW_NODE_OPTIONS_MEMBER_BYTE] = byte_parse,
     [SOL_FLOW_NODE_OPTIONS_MEMBER_DIRECTION_VECTOR] = direction_vector_parse,
     [SOL_FLOW_NODE_OPTIONS_MEMBER_DRANGE_SPEC] = drange_spec_parse,
@@ -621,7 +621,7 @@ set_member(
     void *mem = get_member_memory(mdesc, opts);
 
     switch (mdesc_type) {
-    case SOL_FLOW_NODE_OPTIONS_MEMBER_BOOLEAN:
+    case SOL_FLOW_NODE_OPTIONS_MEMBER_BOOL:
         *(bool *)mem = m->boolean;
         break;
     case SOL_FLOW_NODE_OPTIONS_MEMBER_BYTE:
@@ -657,7 +657,7 @@ set_member(
 }
 
 static const struct sol_str_table member_str_to_type[] = {
-    SOL_STR_TABLE_ITEM("boolean", SOL_FLOW_NODE_OPTIONS_MEMBER_BOOLEAN),
+    SOL_STR_TABLE_ITEM("boolean", SOL_FLOW_NODE_OPTIONS_MEMBER_BOOL),
     SOL_STR_TABLE_ITEM("byte", SOL_FLOW_NODE_OPTIONS_MEMBER_BYTE),
     SOL_STR_TABLE_ITEM("direction-vector", SOL_FLOW_NODE_OPTIONS_MEMBER_DIRECTION_VECTOR),
     SOL_STR_TABLE_ITEM("drange-spec", SOL_FLOW_NODE_OPTIONS_MEMBER_DRANGE_SPEC),

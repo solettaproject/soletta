@@ -114,7 +114,7 @@ stdin_watch_cb(void *data, int fd, uint32_t active_flags)
             sol_flow_send_error_packet(m->node, -err, "%s", sol_util_strerrora(-err));
 
         if (m->closeds && (err < 0 || eof))
-            sol_flow_send_boolean_packet(m->node, SOL_FLOW_NODE_TYPE_PROCESS_STDIN__OUT__CLOSED, true);
+            sol_flow_send_bool_packet(m->node, SOL_FLOW_NODE_TYPE_PROCESS_STDIN__OUT__CLOSED, true);
     }
 
     if (blob)
@@ -243,7 +243,7 @@ process_stdin_closed_connect(struct sol_flow_node *node, void *data, uint16_t po
         return ret;
 
     flags = fcntl(STDIN_FILENO, F_GETFL);
-    sol_flow_send_boolean_packet(node, SOL_FLOW_NODE_TYPE_PROCESS_STDIN__OUT__CLOSED, (flags < 0));
+    sol_flow_send_bool_packet(node, SOL_FLOW_NODE_TYPE_PROCESS_STDIN__OUT__CLOSED, (flags < 0));
 
     m->closeds++;
     return 0;

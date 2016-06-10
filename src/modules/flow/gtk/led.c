@@ -95,9 +95,9 @@ gtk_led_in_process(struct sol_flow_node *node,
 {
     struct gtk_led_data *mdata = data;
 
-    if (sol_flow_packet_get_type(packet) == SOL_FLOW_PACKET_TYPE_BOOLEAN) {
+    if (sol_flow_packet_get_type(packet) == SOL_FLOW_PACKET_TYPE_BOOL) {
         bool value;
-        int r = sol_flow_packet_get_boolean(packet, &value);
+        int r = sol_flow_packet_get_bool(packet, &value);
         SOL_INT_CHECK(r, < 0, r);
 
         mdata->on = value;

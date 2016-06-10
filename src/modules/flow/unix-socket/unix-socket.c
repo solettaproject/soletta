@@ -73,7 +73,7 @@ boolean_read_data(void *data, int fd)
     if (FILL_BUFFER(fd, val) < 0)
         return;
 
-    sol_flow_send_boolean_packet(mdata->node,
+    sol_flow_send_bool_packet(mdata->node,
         SOL_FLOW_NODE_TYPE_UNIX_SOCKET_BOOLEAN_READER__OUT__OUT, val);
 }
 
@@ -106,7 +106,7 @@ boolean_writer_process(struct sol_flow_node *node, void *data, uint16_t port, ui
     bool val;
     int r;
 
-    r = sol_flow_packet_get_boolean(packet, &val);
+    r = sol_flow_packet_get_bool(packet, &val);
     SOL_INT_CHECK(r, < 0, r);
 
     return unix_socket_write(mdata->un_socket, &val, sizeof(val));

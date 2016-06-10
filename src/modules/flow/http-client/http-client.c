@@ -669,7 +669,7 @@ boolean_process_json(struct sol_flow_node *node, const struct sol_str_slice slic
     else
         return -EINVAL;
 
-    return sol_flow_send_boolean_packet(node,
+    return sol_flow_send_bool_packet(node,
         SOL_FLOW_NODE_TYPE_HTTP_CLIENT_BOOLEAN__OUT__OUT, result);
 }
 
@@ -685,7 +685,7 @@ boolean_process_data(struct sol_flow_node *node, struct sol_buffer *buf)
     else
         return -EINVAL;
 
-    return sol_flow_send_boolean_packet(node,
+    return sol_flow_send_bool_packet(node,
         SOL_FLOW_NODE_TYPE_HTTP_CLIENT_BOOLEAN__OUT__OUT, result);
 }
 
@@ -696,7 +696,7 @@ boolean_post_process(struct sol_flow_node *node, void *data, uint16_t port, uint
     int r;
     bool b;
 
-    r = sol_flow_packet_get_boolean(packet, &b);
+    r = sol_flow_packet_get_bool(packet, &b);
     SOL_INT_CHECK(r, < 0, r);
 
     return common_post_process(node, data, NULL, "value", b ? "true" : "false",
@@ -1392,10 +1392,10 @@ get_json_process(struct sol_flow_node *node, struct sol_buffer *buf)
             SOL_FLOW_NODE_TYPE_HTTP_CLIENT_JSON__OUT__ARRAY, blob);
         sol_blob_unref(blob);
     } else if (type == SOL_JSON_TYPE_TRUE) {
-        r = sol_flow_send_boolean_packet(node,
+        r = sol_flow_send_bool_packet(node,
             SOL_FLOW_NODE_TYPE_HTTP_CLIENT_JSON__OUT__BOOLEAN, true);
     } else if (type == SOL_JSON_TYPE_FALSE) {
-        r = sol_flow_send_boolean_packet(node,
+        r = sol_flow_send_bool_packet(node,
             SOL_FLOW_NODE_TYPE_HTTP_CLIENT_JSON__OUT__BOOLEAN, false);
     } else if (type == SOL_JSON_TYPE_STRING) {
         char *str;
