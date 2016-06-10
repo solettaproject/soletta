@@ -37,6 +37,3 @@ constant_50 OUT -> IN map_test_50 OUT -> IN[0] equal_50 OUT -> RESULT test_50(te
 result_10 OUT -> IN[1] equal_10
 result_30 OUT -> IN[1] equal_30
 result_50 OUT -> IN[1] equal_50
-
-
-

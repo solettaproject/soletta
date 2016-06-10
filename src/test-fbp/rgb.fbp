@@ -59,4 +59,3 @@ _(constant/int:value=32) OUT -> IN[1] cmpGreenInts
 invalid_min_max(constant/int:value_spec=min:10|max:5,value=10) OUT -> IN _(color/luminance-rgb:color=255|100|0|255|255|255) ERROR -> IN _(converter/empty-to-boolean) OUT -> PASS invalid_test_result(test/result)
 
 invalid_value(constant/int:value_spec=min:5|max:10,value=11) OUT -> IN _(color/luminance-rgb:color=255|100|0|255|255|255) ERROR -> IN _(converter/empty-to-boolean) OUT -> PASS invalid_test_result2(test/result)
-

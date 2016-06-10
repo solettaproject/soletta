@@ -49,4 +49,3 @@ less_or_equal_less OUT -> RESULT r_less_or_equal_less(test/result)
 seventeen OUT -> IN[0] less_or_equal_equal(float/less-or-equal)
 seventeen OUT -> IN[1] less_or_equal_equal
 less_or_equal_equal OUT -> RESULT r_less_or_equal_equal(test/result)
-

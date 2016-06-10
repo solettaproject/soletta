@@ -63,4 +63,3 @@ equal_mod OUT -> RESULT r_mod(test/result)
 
 ln_constant(constant/float:value=2) OUT -> IN ln(float/ln) OUT -> IN[0] ln_equals(float/equal) OUT -> RESULT ln_test(test/result)
 ln_result_const(constant/float:value=0.69314718055994529) OUT -> IN[1] ln_equals
-

@@ -53,4 +53,3 @@ result_tan_angle_90(constant/float:value=-1.99520041220824207) OUT -> IN[1] comp
 angle_90 OUT -> IN cos_90(trigonometry/cosine) OUT -> IN[0] compare_cos_angle_90
 angle_90 OUT -> IN sin_90(trigonometry/sine) OUT -> IN[0] compare_sin_angle_90
 angle_90 OUT -> IN tan_90(trigonometry/tangent) OUT -> IN[0] compare_tan_angle_90
-

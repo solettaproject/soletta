@@ -31,5 +31,3 @@ hello_world OUT -> IN _(converter/string-to-blob) OUT -> BLOB b16enc_blob(string
 b16enc_blob OUT -> IN[0] hello_world_as_b16_blob_cmp(string/compare)
 hello_world_as_b16_blob OUT -> IN[1] hello_world_as_b16_blob_cmp
 hello_world_as_b16_blob_cmp EQUAL -> RESULT blob_encoded(test/result)
-
-

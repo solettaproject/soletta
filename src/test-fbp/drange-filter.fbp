@@ -28,4 +28,3 @@ compare_with_seven OUT ->  RESULT only_output_seven(test/result)
 smaller OUT -> IN filter
 passed OUT -> IN filter
 bigger OUT -> IN filter
-

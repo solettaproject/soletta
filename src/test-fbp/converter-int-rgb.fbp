@@ -37,6 +37,3 @@ eighty OUT -> IN[1] eq_eighty OUT -> RESULT green(test/result)
 
 rgb_to_int BLUE -> IN[0] eq_thirty_five(int/equal)
 thirty_five OUT -> IN[1] eq_thirty_five OUT -> RESULT blue(test/result)
-
-
-

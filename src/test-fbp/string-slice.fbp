@@ -55,5 +55,3 @@ str OUT -> IN slice_08(string/slice:start=0,end=666)
 slice_08 OUT -> IN[0] cmp_08(string/compare)
 str OUT -> IN[1] cmp_08
 cmp_08 EQUAL -> RESULT result_08(test/result)
-
-

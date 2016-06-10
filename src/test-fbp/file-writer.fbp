@@ -23,4 +23,3 @@ file_reader(file/reader:path="file-writer-data.txt") OUT -> IN file_writer
 file_writer DONE -> IN FilterNoise(int/filter:min=29,max=29)
 FilterNoise OUT -> IN ResultToTrue(converter/int-to-boolean:true_range=min:29|max:29)
 ResultToTrue OUT -> RESULT FileWriterResult(test/result)
-

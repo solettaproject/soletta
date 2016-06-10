@@ -37,6 +37,3 @@ eighty OUT -> IN[1] eq_eighty OUT -> RESULT y(test/result)
 
 direction_vector_to_int Z -> IN[0] eq_one_hundred_and_fourty(int/equal)
 one_hundred_and_fourty OUT -> IN[1] eq_one_hundred_and_fourty OUT -> RESULT z(test/result)
-
-
-

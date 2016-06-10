@@ -67,4 +67,3 @@ out_range_custom_max OUT -> IN not3(boolean/not) OUT -> RESULT r_out_custom_max(
 
 inferior_overflow_custom OUT -> IN out_range_custom_min(int/inrange:range=min:-1024|max:1024)
 out_range_custom_min OUT -> IN not4(boolean/not) OUT -> RESULT r_out_custom_min(test/result)
-
