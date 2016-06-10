@@ -35,11 +35,9 @@ extern "C" {
  * @defgroup Str_Table String table
  * @ingroup Datatypes
  *
- * @brief String table is a data type to store <string, 16-bit integer> pairs.
- * To store more complex data as value, please see @ref Str_Table_Ptr.
- *
- * @see Str_Table_Ptr
- * @see Str_Table_INT64
+ * @brief String table is a data type to store integers or
+ * pointers to more complex data in pairs. It could be a table of
+ * <string, 16-bit integer>, <string, int64_t> or <string, pointer> pairs.
  *
  * @{
  */
@@ -140,23 +138,6 @@ int16_t sol_str_table_lookup_fallback(const struct sol_str_table *table,
     })
 
 /**
- * @}
- */
-
-/**
- * @defgroup Str_Table_Ptr String/Pointer table
- * @ingroup Datatypes
- *
- * @brief String table is a data type to store <string, pointer> pairs. To store simple integers,
- * please check @ref Str_Table.
- *
- * @see Str_Table
- * @see Str_Table_INT64
- *
- * @{
- */
-
-/**
  * @struct sol_str_table_ptr
  *
  * @brief String/Pointer table type
@@ -240,28 +221,6 @@ const struct sol_str_table_ptr *sol_str_table_ptr_entry_lookup(const struct sol_
             *_pval = _v; \
         _v != NULL; \
     })
-
-/**
- * @}
- */
-
-/**
- * @}
- */
-
-/**
- * @defgroup Str_Table_INT64 String/int64_t table
- * @ingroup Datatypes
- *
- * @brief String table is a data type to store <string, int64_t>
- * pairs. To store simple integers (16-bit signed), please check @ref
- * Str_Table.
- *
- * @see Str_Table
- * @see Str_Table_Ptr
- *
- * @{
- */
 
 /**
  * @struct sol_str_table_int64
