@@ -1,4 +1,4 @@
-SPI Web API for Soletta
+SPI Web API for Soletta™ Framework
 =======================
 
 Introduction
