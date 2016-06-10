@@ -141,9 +141,9 @@ inspector_show_packet_value(const struct sol_flow_packet *packet)
             fprintf(stdout, "<error:%d \"%s\">", code, msg ? msg : "");
             return;
         }
-    } else if (type == SOL_FLOW_PACKET_TYPE_BOOLEAN) {
+    } else if (type == SOL_FLOW_PACKET_TYPE_BOOL) {
         bool v;
-        if (sol_flow_packet_get_boolean(packet, &v) == 0) {
+        if (sol_flow_packet_get_bool(packet, &v) == 0) {
             fprintf(stdout, "<%s>", v ? "true" : "false");
             return;
         }

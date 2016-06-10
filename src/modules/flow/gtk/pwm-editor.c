@@ -28,7 +28,7 @@ on_pwm_editor_toggle_changed(GtkToggleButton *toggle, gpointer data)
 
     value = gtk_toggle_button_get_active(toggle);
 
-    sol_flow_send_boolean_packet(mdata->node,
+    sol_flow_send_bool_packet(mdata->node,
         SOL_FLOW_NODE_TYPE_GTK_PWM_EDITOR__OUT__ENABLED,
         value);
 }

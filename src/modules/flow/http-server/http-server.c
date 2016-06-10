@@ -725,7 +725,7 @@ boolean_response_cb(struct http_data *mdata, struct sol_buffer *content, bool js
 static void
 boolean_send_packet_cb(struct http_data *mdata, struct sol_flow_node *node)
 {
-    sol_flow_send_boolean_packet(node,
+    sol_flow_send_bool_packet(node,
         SOL_FLOW_NODE_TYPE_HTTP_SERVER_BOOLEAN__OUT__OUT,
         mdata->value.b);
 }
@@ -736,7 +736,7 @@ boolean_process_cb(struct http_data *mdata, const struct sol_flow_packet *packet
     bool b;
     int r;
 
-    r = sol_flow_packet_get_boolean(packet, &b);
+    r = sol_flow_packet_get_bool(packet, &b);
     SOL_INT_CHECK(r, < 0, r);
 
     if (mdata->value.b == b)
@@ -1466,7 +1466,7 @@ packet_type_to_json_type(const struct sol_flow_packet_type *type,
         return SOL_JSON_TYPE_OBJECT_START;
     if (type == SOL_FLOW_PACKET_TYPE_JSON_ARRAY)
         return SOL_JSON_TYPE_ARRAY_START;
-    if (type == SOL_FLOW_PACKET_TYPE_BOOLEAN)
+    if (type == SOL_FLOW_PACKET_TYPE_BOOL)
         return SOL_JSON_TYPE_TRUE;
     if (type == SOL_FLOW_PACKET_TYPE_STRING)
         return SOL_JSON_TYPE_STRING;
@@ -1559,7 +1559,7 @@ json_send_packet_cb(struct http_data *mdata,
         break;
     case SOL_JSON_TYPE_TRUE:
     case SOL_JSON_TYPE_FALSE:
-        sol_flow_send_boolean_packet(node,
+        sol_flow_send_bool_packet(node,
             SOL_FLOW_NODE_TYPE_HTTP_SERVER_JSON__OUT__BOOLEAN, mdata->value.b);
         break;
     case SOL_JSON_TYPE_STRING:
@@ -1648,7 +1648,7 @@ static_process(struct sol_flow_node *node, void *data, uint16_t port, uint16_t c
     bool val;
     struct http_data *mdata = data;
 
-    r = sol_flow_packet_get_boolean(packet, &val);
+    r = sol_flow_packet_get_bool(packet, &val);
     SOL_INT_CHECK(r, < 0, r);
 
     if (mdata->value.b == val)

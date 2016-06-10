@@ -113,7 +113,7 @@ JSON_TO_C_TMP['number'] = "double"
 JSON_TO_FLOW_GET_PKT = {
     "string": "sol_flow_packet_get_string",
     "integer": "sol_flow_packet_get_irange_value",
-    "boolean": "sol_flow_packet_get_boolean",
+    "boolean": "sol_flow_packet_get_bool",
     "number": "sol_flow_packet_get_drange_value"
 }
 
@@ -127,7 +127,7 @@ JSON_TO_FLOW_CHECK_UPDATED = {
 JSON_TO_FLOW_SEND_PKT = {
     "string": "send_string_packet",
     "integer": "sol_flow_send_irange_value_packet",
-    "boolean": "sol_flow_send_boolean_packet",
+    "boolean": "sol_flow_send_bool_packet",
     "number": "sol_flow_send_drange_value_packet"
 }
 
@@ -180,7 +180,7 @@ def generate_object_to_repr_vec_fn_common_c(state_struct_name, name, props, clie
         elif prop_descr['type'] == 'boolean':
             val = 'state->state.%s' % prop_name
 
-            ftype = 'SOL_OIC_REPR_BOOLEAN'
+            ftype = 'SOL_OIC_REPR_BOOL'
             fargs = (val, )
         elif prop_descr['type'] == 'string':
             val = 'state->state.%s' % prop_name
@@ -327,7 +327,7 @@ def get_field_string_client_c(id, name, prop):
 def get_field_boolean_client_c(id, name, prop):
     return '''
         if (decode_mask & (1<<%(id)d) && streq(field.key, "%(field_name)s")) {
-            if (field.type != SOL_OIC_REPR_TYPE_BOOLEAN)
+            if (field.type != SOL_OIC_REPR_TYPE_BOOL)
                 RETURN_ERROR(-EINVAL);
             fields.%(field_name)s = field.v_boolean;
             decode_mask &= ~(1<<%(id)d);
@@ -1227,7 +1227,7 @@ found_resource(void *data, struct sol_oic_client *oic_cli, struct sol_oic_resour
         SOL_WRN("Could not observe resource as requested, will try again");
     }
 
-    r = sol_flow_send_boolean_packet(resource->node,
+    r = sol_flow_send_bool_packet(resource->node,
         resource->funcs->found_port, true);
     if (r < 0)
         SOL_WRN("Could not send flow packet, will try again");
@@ -1276,7 +1276,7 @@ send_discovery_packets(struct client_resource *resource)
     if (resource->resource)
         return;
 
-    sol_flow_send_boolean_packet(resource->node, resource->funcs->found_port, false);
+    sol_flow_send_bool_packet(resource->node, resource->funcs->found_port, false);
 
     find_resources(resource, found_resource, false);
 }

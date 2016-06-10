@@ -128,7 +128,7 @@ random_boolean_generate(struct sol_flow_node *node, void *data, uint16_t port, u
     if (r < 0)
         return r;
 
-    return sol_flow_send_boolean_packet(node,
+    return sol_flow_send_bool_packet(node,
         SOL_FLOW_NODE_TYPE_RANDOM_BOOLEAN__OUT__OUT,
         value);
 }

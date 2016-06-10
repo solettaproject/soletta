@@ -113,11 +113,11 @@ on_minutes_packet(void *data, struct sol_flow_node *n, uint16_t port, const stru
     if (i % 2 == 0) {
         puts("stop seconds and disconnect output port, will change in 1 minute");
         sol_flow_single_port_out_disconnect(seconds, seconds_port_out);
-        sol_flow_send_boolean_packet(seconds, seconds_port_enabled, false);
+        sol_flow_send_bool_packet(seconds, seconds_port_enabled, false);
     } else {
         puts("start seconds and connect output port, will change in 1 minute");
         sol_flow_single_port_out_connect(seconds, seconds_port_out);
-        sol_flow_send_boolean_packet(seconds, seconds_port_enabled, true);
+        sol_flow_send_bool_packet(seconds, seconds_port_enabled, true);
     }
 }
 

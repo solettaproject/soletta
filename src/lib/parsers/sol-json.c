@@ -776,7 +776,7 @@ sol_json_serialize_uint64(struct sol_buffer *buffer, uint64_t val)
 }
 
 SOL_API int
-sol_json_serialize_boolean(struct sol_buffer *buffer, bool val)
+sol_json_serialize_bool(struct sol_buffer *buffer, bool val)
 {
     int r;
     static const struct sol_str_slice t_str = SOL_STR_SLICE_LITERAL("true");
@@ -809,9 +809,9 @@ memdesc_serialize_double(const struct sol_memdesc *desc, double value, struct so
 }
 
 static int
-memdesc_serialize_boolean(const struct sol_memdesc *desc, bool value, struct sol_buffer *buffer)
+memdesc_serialize_bool(const struct sol_memdesc *desc, bool value, struct sol_buffer *buffer)
 {
-    return sol_json_serialize_boolean(buffer, value);
+    return sol_json_serialize_bool(buffer, value);
 }
 
 static int
@@ -892,7 +892,7 @@ sol_json_serialize_memdesc(struct sol_buffer *buffer, const struct sol_memdesc *
         .serialize_int64 = memdesc_serialize_int64,
         .serialize_uint64 = memdesc_serialize_uint64,
         .serialize_double = memdesc_serialize_double,
-        .serialize_boolean = memdesc_serialize_boolean,
+        .serialize_bool = memdesc_serialize_bool,
         .serialize_pointer = memdesc_serialize_pointer,
         .serialize_string = memdesc_serialize_string,
         .serialize_enumeration = memdesc_serialize_enumeration,
@@ -982,7 +982,7 @@ sol_json_load_memdesc(const struct sol_json_token *token, const struct sol_memde
 
         return sol_memdesc_set_as_int64(desc, memory, v);
     }
-    case SOL_MEMDESC_TYPE_BOOLEAN: {
+    case SOL_MEMDESC_TYPE_BOOL: {
         enum sol_json_type tt;
         bool *m = memory;
 

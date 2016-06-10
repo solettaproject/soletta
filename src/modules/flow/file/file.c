@@ -193,7 +193,7 @@ file_writer_send(struct file_writer_data *mdata)
     struct sol_irange val = { 0, 0, INT32_MAX, 1 };
     int r;
 
-    r = sol_flow_send_boolean_packet(mdata->node,
+    r = sol_flow_send_bool_packet(mdata->node,
         SOL_FLOW_NODE_TYPE_FILE_WRITER__OUT__BUSY,
         !!mdata->worker);
     SOL_INT_CHECK(r, < 0, r);

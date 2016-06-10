@@ -76,7 +76,7 @@ got_get_response(void *data, enum sol_coap_response_code response_code, struct s
         case SOL_OIC_REPR_TYPE_DOUBLE:
             printf("float(%g)\n", field.v_double);
             break;
-        case SOL_OIC_REPR_TYPE_BOOLEAN:
+        case SOL_OIC_REPR_TYPE_BOOL:
             printf("boolean(%s)\n", field.v_boolean ? "true" : "false");
             break;
         default:

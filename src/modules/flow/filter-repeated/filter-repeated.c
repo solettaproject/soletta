@@ -70,7 +70,7 @@ boolean_filter(struct sol_flow_node *node, void *data, uint16_t port, uint16_t c
     int r;
     bool in_value;
 
-    r = sol_flow_packet_get_boolean(packet, &in_value);
+    r = sol_flow_packet_get_bool(packet, &in_value);
     SOL_INT_CHECK(r, < 0, r);
 
     if (mdata->initialized && in_value == mdata->value)
@@ -79,7 +79,7 @@ boolean_filter(struct sol_flow_node *node, void *data, uint16_t port, uint16_t c
     mdata->initialized = true;
     mdata->value = in_value;
 
-    return sol_flow_send_boolean_packet(node,
+    return sol_flow_send_bool_packet(node,
         SOL_FLOW_NODE_TYPE_FILTER_REPEATED_BOOLEAN__OUT__OUT, in_value);
 }
 

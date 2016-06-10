@@ -236,7 +236,7 @@ string_compare(struct sol_flow_node *node,
             result = strcmp(mdata->base.string[0], mdata->base.string[1]);
     }
 
-    r = sol_flow_send_boolean_packet(node,
+    r = sol_flow_send_bool_packet(node,
         SOL_FLOW_NODE_TYPE_STRING_COMPARE__OUT__EQUAL, result == 0);
     if (r < 0)
         return r;
@@ -963,7 +963,7 @@ starts_with:
     ret = memcmp(mdata->in_str + off, mdata->sub_str, sub_str_len) == 0;
 
 end:
-    return sol_flow_send_boolean_packet(mdata->node,
+    return sol_flow_send_bool_packet(mdata->node,
         start ? SOL_FLOW_NODE_TYPE_STRING_STARTS_WITH__OUT__OUT :
         SOL_FLOW_NODE_TYPE_STRING_ENDS_WITH__OUT__OUT, ret);
 }

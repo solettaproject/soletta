@@ -309,7 +309,7 @@ struct sol_flow_node *sol_flow_single_get_child(const struct sol_flow_node *node
  * To make it easy this function returns a wrapper node type that can
  * be instantiated with sol_flow_node_new() and when
  * sol_flow_send_packet() (or variants such as
- * sol_flow_send_boolean_packet()) will feed the base type's instance
+ * sol_flow_send_bool_packet()) will feed the base type's instance
  * with such packets, as well as outgoing packets produced by that
  * instance can be processed by the external user.
  *

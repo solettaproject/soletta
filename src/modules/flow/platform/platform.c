@@ -48,7 +48,7 @@ static int locale_monitor_unregister(struct sol_flow_node *node);
 static int
 state_dispatch_ready(struct platform_data *mdata)
 {
-    return sol_flow_send_boolean_packet(mdata->node,
+    return sol_flow_send_bool_packet(mdata->node,
         SOL_FLOW_NODE_TYPE_PLATFORM__OUT__READY,
         mdata->state == SOL_PLATFORM_STATE_RUNNING);
 }
@@ -111,7 +111,7 @@ struct platform_service_data {
 static void
 service_state_dispatch_active(struct platform_service_data *mdata)
 {
-    sol_flow_send_boolean_packet(mdata->node,
+    sol_flow_send_bool_packet(mdata->node,
         SOL_FLOW_NODE_TYPE_PLATFORM_SERVICE__OUT__ACTIVE,
         mdata->state == SOL_PLATFORM_SERVICE_STATE_ACTIVE);
 }
@@ -195,7 +195,7 @@ platform_service_name_process(struct sol_flow_node *node, void *data,
         mdata->service_name, mdata);
     mdata->state = sol_platform_get_service_state(mdata->service_name);
 
-    return sol_flow_send_boolean_packet(node,
+    return sol_flow_send_bool_packet(node,
         SOL_FLOW_NODE_TYPE_PLATFORM_SERVICE__OUT__ACTIVE,
         (mdata->state == SOL_PLATFORM_SERVICE_STATE_ACTIVE));
 }
@@ -221,7 +221,7 @@ platform_service_open(struct sol_flow_node *node, void *data, const struct sol_f
         mdata->service_name, mdata);
     mdata->state = sol_platform_get_service_state(mdata->service_name);
 
-    return sol_flow_send_boolean_packet(node,
+    return sol_flow_send_bool_packet(node,
         SOL_FLOW_NODE_TYPE_PLATFORM_SERVICE__OUT__ACTIVE,
         (mdata->state == SOL_PLATFORM_SERVICE_STATE_ACTIVE));
 }

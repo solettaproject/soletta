@@ -111,9 +111,9 @@ gtk_pwm_viewer_enable_process(struct sol_flow_node *node, void *data, uint16_t p
 {
     struct gtk_pwm_viewer_data *mdata = data;
 
-    if (sol_flow_packet_get_type(packet) == SOL_FLOW_PACKET_TYPE_BOOLEAN) {
+    if (sol_flow_packet_get_type(packet) == SOL_FLOW_PACKET_TYPE_BOOL) {
         bool value;
-        int r = sol_flow_packet_get_boolean(packet, &value);
+        int r = sol_flow_packet_get_bool(packet, &value);
         SOL_INT_CHECK(r, < 0, r);
         mdata->enabled = value;
         gtk_widget_queue_draw(mdata->base.widget);

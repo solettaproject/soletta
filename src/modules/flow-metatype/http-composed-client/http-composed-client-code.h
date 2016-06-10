@@ -115,9 +115,9 @@
     "    enum sol_json_type json_type;\n" \
     "    json_type = sol_json_token_get_type(token);\n" \
     "    if (json_type == SOL_JSON_TYPE_FALSE) {\n" \
-    "        return sol_flow_packet_new_boolean(false);\n" \
+    "        return sol_flow_packet_new_bool(false);\n" \
     "    } else if (json_type == SOL_JSON_TYPE_TRUE) {\n" \
-    "        return sol_flow_packet_new_boolean(true);\n" \
+    "        return sol_flow_packet_new_bool(true);\n" \
     "    } else if (json_type == SOL_JSON_TYPE_NUMBER) {\n" \
     "        return http_composed_client_create_packet_number(type, token);\n" \
     "    } else if (json_type == SOL_JSON_TYPE_STRING) {\n" \
@@ -254,11 +254,11 @@
     "            SOL_INT_CHECK_GOTO(r, < 0, end);\n" \
     "            r = sol_json_serialize_double(&buffer, value.val);\n" \
     "            SOL_INT_CHECK_GOTO(r, < 0, end);\n" \
-    "        } else if (sol_flow_packet_get_type(cdata->inputs[i]) == SOL_FLOW_PACKET_TYPE_BOOLEAN) {\n" \
+    "        } else if (sol_flow_packet_get_type(cdata->inputs[i]) == SOL_FLOW_PACKET_TYPE_BOOL) {\n" \
     "            bool value;\n" \
-    "            r = sol_flow_packet_get_boolean(cdata->inputs[i], &value);\n" \
+    "            r = sol_flow_packet_get_bool(cdata->inputs[i], &value);\n" \
     "            SOL_INT_CHECK_GOTO(r, < 0, end);\n" \
-    "            r = sol_json_serialize_boolean(&buffer, value);\n" \
+    "            r = sol_json_serialize_bool(&buffer, value);\n" \
     "            SOL_INT_CHECK_GOTO(r, < 0, end);\n" \
     "        } else if (sol_flow_packet_get_type(cdata->inputs[i]) == SOL_FLOW_PACKET_TYPE_STRING) {\n" \
     "            const char *value;\n" \

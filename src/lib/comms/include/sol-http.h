@@ -348,7 +348,7 @@ struct sol_http_url {
  * @brief Macro to set a struct @ref sol_http_param_value with
  * a boolean and type passed as argument.
  */
-#define SOL_HTTP_REQUEST_PARAM_BOOLEAN(type_, setting_) \
+#define SOL_HTTP_REQUEST_PARAM_BOOL(type_, setting_) \
     (struct sol_http_param_value) { \
         .type = type_, \
         .value = { .boolean = { .value = (setting_) } } \
@@ -402,14 +402,14 @@ struct sol_http_url {
  * type SOL_HTTP_PARAM_ALLOW_REDIR and @c true or @c false as value.
  */
 #define SOL_HTTP_REQUEST_PARAM_ALLOW_REDIR(setting_) \
-    SOL_HTTP_REQUEST_PARAM_BOOLEAN(SOL_HTTP_PARAM_ALLOW_REDIR, setting_)
+    SOL_HTTP_REQUEST_PARAM_BOOL(SOL_HTTP_PARAM_ALLOW_REDIR, setting_)
 
 /**
  * @brief Macro to set a struct @ref sol_http_param_value with
  * type SOL_HTTP_PARAM_VERBOSE and @c true or @c false as value.
  */
 #define SOL_HTTP_REQUEST_PARAM_VERBOSE(setting_) \
-    SOL_HTTP_REQUEST_PARAM_BOOLEAN(SOL_HTTP_PARAM_VERBOSE, setting_)
+    SOL_HTTP_REQUEST_PARAM_BOOL(SOL_HTTP_PARAM_VERBOSE, setting_)
 
 /**
  * @brief Macro to set a struct @ref sol_http_param_value with

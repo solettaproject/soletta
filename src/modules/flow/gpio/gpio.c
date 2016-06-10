@@ -44,7 +44,7 @@ gpio_reader_event(void *data, struct sol_gpio *gpio, bool value)
 {
     struct sol_flow_node *node = data;
 
-    sol_flow_send_boolean_packet(node,
+    sol_flow_send_bool_packet(node,
         SOL_FLOW_NODE_TYPE_GPIO_READER__OUT__OUT, value);
 }
 
@@ -116,7 +116,7 @@ gpio_writer_process(struct sol_flow_node *node, void *data, uint16_t port, uint1
 {
     bool value;
     struct gpio_data *mdata = data;
-    int r = sol_flow_packet_get_boolean(packet, &value);
+    int r = sol_flow_packet_get_bool(packet, &value);
 
     SOL_INT_CHECK(r, < 0, r);
     if (!sol_gpio_write(mdata->gpio, value)) {
