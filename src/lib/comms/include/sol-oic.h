@@ -200,15 +200,15 @@ struct sol_oic_device_info {
  * @brief field type of sol_oic_repr_field structure.
  */
 enum sol_oic_repr_type {
-    SOL_OIC_REPR_TYPE_UINT, /** Unsigned int type. */
-    SOL_OIC_REPR_TYPE_INT, /** Signed int type. */
-    SOL_OIC_REPR_TYPE_SIMPLE, /** Unsigned 8-bit integer type. */
-    SOL_OIC_REPR_TYPE_TEXT_STRING, /** String with text type. */
-    SOL_OIC_REPR_TYPE_BYTE_STRING, /** String with bytes type. */
-    SOL_OIC_REPR_TYPE_HALF_FLOAT, /** Half-precision float number type. */
-    SOL_OIC_REPR_TYPE_FLOAT, /** Single-precision float number type. */
-    SOL_OIC_REPR_TYPE_DOUBLE, /** Double-precision float number type. */
-    SOL_OIC_REPR_TYPE_BOOLEAN /** Boolean precision type. */
+    SOL_OIC_REPR_TYPE_UINT, /**< Unsigned int type. */
+    SOL_OIC_REPR_TYPE_INT, /**< Signed int type. */
+    SOL_OIC_REPR_TYPE_SIMPLE, /**< Unsigned 8-bit integer type. */
+    SOL_OIC_REPR_TYPE_TEXT_STRING, /**< String with text type. */
+    SOL_OIC_REPR_TYPE_BYTE_STRING, /**< String with bytes type. */
+    SOL_OIC_REPR_TYPE_HALF_FLOAT, /**< Half-precision float number type. */
+    SOL_OIC_REPR_TYPE_FLOAT, /**< Single-precision float number type. */
+    SOL_OIC_REPR_TYPE_DOUBLE, /**< Double-precision float number type. */
+    SOL_OIC_REPR_TYPE_BOOLEAN /**< Boolean type. */
 };
 
 /**
