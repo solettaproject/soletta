@@ -155,5 +155,4 @@ NAN_METHOD(bind_sol_aio_pending_cancel)
     sol_aio_pending *aio_pending = (sol_aio_pending *)SolAio::Resolve(jsAioPending);
 
     sol_aio_pending_cancel(aio, aio_pending);
-    hijack_unref();
 }

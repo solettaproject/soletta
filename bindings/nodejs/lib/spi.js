@@ -64,10 +64,12 @@ _.extend( SPIBus.prototype, {
                function( txData, rxData, count ) {
                    if ( rxData !== null ) {
                        fulfill( rxData );
+                   } else {
+                       reject( new Error( "SPI transmission failed" ) );
                    }
            });
 
-           if ( ( typeof returnStatus === 'undefined' ) || !returnStatus ) {
+           if ( ( typeof returnStatus === 'undefined' ) || returnStatus < 0) {
                reject( new Error( "SPI transmission failed" ) );
            }
        }, this ) );
