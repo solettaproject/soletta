@@ -486,18 +486,19 @@ create_fbp_type(
         (struct metatype_context_internal *)ctx;
 
     struct sol_flow_node_type *result;
-    const char *buf, *filename;
-    size_t size;
+    struct sol_buffer buf;
+    const char *filename;
     int err;
 
     filename = strndupa(ctx->contents.data, ctx->contents.len);
-    err = ctx->read_file(ctx, filename, &buf, &size);
+    err = ctx->read_file(ctx, filename, &buf);
     if (err < 0)
         return -EINVAL;
 
     /* Because its reusing the same parser, there's no need to pass
      * ownership using store_type(), the parser already have it. */
-    result = sol_flow_parse_buffer(internal_ctx->parser, buf, size, filename);
+    result = sol_flow_parse_buffer(internal_ctx->parser, buf.data, buf.used, filename);
+    sol_buffer_fini(&buf);
     if (!result)
         return -EINVAL;
 
@@ -508,15 +509,26 @@ create_fbp_type(
 static int
 metatype_read_file(
     const struct sol_flow_metatype_context *ctx,
-    const char *name, const char **buf, size_t *size)
+    const char *name, struct sol_buffer *buf)
 {
+    int err;
+    const char *buffer;
+    size_t len;
     const struct metatype_context_internal *internal_ctx =
         (const struct metatype_context_internal *)ctx;
     const struct sol_flow_parser_client *client = internal_ctx->parser->client;
 
     if (!client || !client->read_file)
         return -ENOSYS;
-    return client->read_file(client->data, name, buf, size);
+
+    err = client->read_file(client->data, name, &buffer, &len);
+    if (err < 0)
+        return err;
+
+    sol_buffer_init_flags(buf, (void *)buffer, len, SOL_BUFFER_FLAGS_MEMORY_NOT_OWNED);
+    buf->used = len;
+
+    return 0;
 }
 
 static int
@@ -992,15 +1004,17 @@ struct metatype_context_with_buf {
 static int
 metatype_with_buf_read_file(
     const struct sol_flow_metatype_context *ctx,
-    const char *name, const char **buf, size_t *size)
+    const char *name, struct sol_buffer *buf)
 {
     const struct metatype_context_with_buf *ctx_with_buf =
         (const struct metatype_context_with_buf *)ctx;
 
     if (!streq(name, ctx_with_buf->filename))
         return -ENOENT;
-    *buf = ctx_with_buf->buf;
-    *size = ctx_with_buf->len;
+    sol_buffer_init_flags(buf, (void *)ctx_with_buf->buf, ctx_with_buf->len,
+        SOL_BUFFER_FLAGS_MEMORY_NOT_OWNED);
+    buf->used = ctx_with_buf->len;
+
     return 0;
 }
 
