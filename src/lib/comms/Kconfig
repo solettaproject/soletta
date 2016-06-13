@@ -43,6 +43,18 @@ config BLUETOOTH_NONE
 
 endchoice
 
+config NETCTL
+        bool "connection manager interfaces"
+        default y
+        depends on FEATURE_NETCTL && NETWORK
+        help
+           This provides the connection manager interfaces API.
+           The user can use the connection manager APIs to control
+           network and get the network info from connection manager.
+           It includes to get the network state, get the name of services
+           (wireless AP/Bluetooth Devices/...), get the ip address of
+           services, connect/disconnect services and so on.
+
 config COAP
 	bool "CoAP"
 	default y

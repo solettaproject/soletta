@@ -1,6 +1,7 @@
 config LINUX
     def_bool y
     select FEATURE_BLUETOOTH if HAVE_SYSTEMD
+    select FEATURE_NETCTL if HAVE_SYSTEMD
     select FEATURE_CC_SANITIZE
     select FEATURE_COAP
     select FEATURE_CRYPTO_MESSAGE_DIGEST
