@@ -957,9 +957,15 @@ sol_platform_impl_load_locales(char **locale_cache)
 
     line = NULL;
     while (fscanf(f, "%m[^\n]\n", &line) != EOF) {
+        unsigned int i, len = strlen(line);
+
         /* It is possible to have comments in locale.conf, ignore them */
-        if (line[0] == '#')
-            goto ignore;
+        for (i = 0; i < len; i++) {
+            if (line[i] == '#')
+                goto ignore;
+            if (line[i] != ' ')
+                break;
+        }
 
         sep = strchr(line, '=');
         if (!sep) {
@@ -972,7 +978,7 @@ sol_platform_impl_load_locales(char **locale_cache)
         key.data = line;
         value.data = sep + 1;
         key.len = sep - key.data;
-        value.len = strlen(line) - key.len - 1;
+        value.len = len - key.len - 1;
         if (!value.len)
             goto ignore;
 
