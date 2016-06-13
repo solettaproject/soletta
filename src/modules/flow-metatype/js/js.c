@@ -1620,7 +1620,7 @@ setup_port_properties(duk_context *duk_ctx, const char *prop_name,
 }
 
 static int
-setup_ports(const char *buf, size_t len, js_add_port add_port,
+setup_ports(struct sol_buffer *buf, js_add_port add_port,
     void *add_port_data)
 {
     duk_context *duk_ctx;
@@ -1632,7 +1632,7 @@ setup_ports(const char *buf, size_t len, js_add_port add_port,
         return -ENOMEM;
     }
 
-    if (duk_peval_lstring(duk_ctx, buf, len) != 0) {
+    if (duk_peval_lstring(duk_ctx, buf->data, buf->used) != 0) {
         SOL_ERR("Failed to parse javascript content: %s", duk_safe_to_string(duk_ctx, -1));
         duk_destroy_heap(duk_ctx);
         return -EINVAL;
@@ -1686,7 +1686,7 @@ flow_dispose_type(struct sol_flow_node_type *type)
 }
 
 static int
-flow_js_type_init(struct flow_js_type *type, const char *buf, size_t len)
+flow_js_type_init(struct flow_js_type *type, struct sol_buffer *buf)
 {
     char *js_content_buf;
     int r;
@@ -1710,17 +1710,17 @@ flow_js_type_init(struct flow_js_type *type, const char *buf, size_t len)
     sol_vector_init(&type->ports_out, sizeof(struct flow_js_port_out));
     sol_vector_init(&type->ports_in, sizeof(struct flow_js_port_in));
 
-    r = setup_ports(buf, len, add_port_for_meta_type_description, type);
+    r = setup_ports(buf, add_port_for_meta_type_description, type);
     SOL_INT_CHECK(r, < 0, r);
 
     type->base.ports_in_count = type->ports_in.len;
     type->base.ports_out_count = type->ports_out.len;
 
-    js_content_buf = strndup(buf, len);
+    js_content_buf = strndup(buf->data, buf->used);
     SOL_NULL_CHECK(js_content_buf, -ENOMEM);
 
     type->js_content_buf = js_content_buf;
-    type->js_content_buf_len = len;
+    type->js_content_buf_len = buf->used;
 
 #ifdef SOL_FLOW_NODE_TYPE_DESCRIPTION_ENABLED
     if (setup_description(type) < 0)
@@ -1731,7 +1731,7 @@ flow_js_type_init(struct flow_js_type *type, const char *buf, size_t len)
 }
 
 static struct sol_flow_node_type *
-sol_flow_js_new_type(const char *buf, size_t len)
+sol_flow_js_new_type(struct sol_buffer *buf)
 {
     struct flow_js_type *type;
     int r;
@@ -1741,7 +1741,7 @@ sol_flow_js_new_type(const char *buf, size_t len)
     type = calloc(1, sizeof(struct flow_js_type));
     SOL_NULL_CHECK(type, NULL);
 
-    r = flow_js_type_init(type, buf, len);
+    r = flow_js_type_init(type, buf);
     SOL_INT_CHECK_GOTO(r, < 0, err_exit);
 
     return &type->base;
@@ -1754,12 +1754,12 @@ err_exit:
 
 static int
 read_file_contents(const struct sol_flow_metatype_context *ctx,
-    const char **buf, size_t *size)
+    struct sol_buffer *buf)
 {
     const char *filename;
 
     filename = strndupa(ctx->contents.data, ctx->contents.len);
-    return ctx->read_file(ctx, filename, buf, size);
+    return ctx->read_file(ctx, filename, buf);
 }
 
 static int
@@ -1767,15 +1767,15 @@ js_create_type(
     const struct sol_flow_metatype_context *ctx,
     struct sol_flow_node_type **type)
 {
-    const char *buf;
+    struct sol_buffer buf;
     struct sol_flow_node_type *result;
-    size_t size;
     int err;
 
-    if (read_file_contents(ctx, &buf, &size) < 0)
+    if (read_file_contents(ctx, &buf) < 0)
         return -EINVAL;
 
-    result = sol_flow_js_new_type(buf, size);
+    result = sol_flow_js_new_type(&buf);
+    sol_buffer_fini(&buf);
     if (!result)
         return -EINVAL;
 
@@ -1790,7 +1790,7 @@ js_create_type(
 }
 
 static int
-setup_js_ports_description(const char *buf, size_t buf_len,
+setup_js_ports_description(struct sol_buffer *buf,
     struct sol_vector *in, struct sol_vector *out, struct sol_buffer *out_buf,
     const struct sol_str_slice name_prefix)
 {
@@ -1803,7 +1803,7 @@ setup_js_ports_description(const char *buf, size_t buf_len,
     port_ctx.buf = out_buf;
     port_ctx.name_prefix = name_prefix;
 
-    return setup_ports(buf, buf_len, add_port_for_generated_code, &port_ctx);
+    return setup_ports(buf, add_port_for_generated_code, &port_ctx);
 }
 
 static int
@@ -1811,19 +1811,20 @@ js_ports_description(const struct sol_flow_metatype_context *ctx,
     struct sol_vector *in, struct sol_vector *out)
 {
     int err;
-    size_t size;
-    const char *buf;
+    struct sol_buffer buf;
     struct sol_str_slice empty = SOL_STR_SLICE_EMPTY;
 
     SOL_NULL_CHECK(ctx, -EINVAL);
     SOL_NULL_CHECK(out, -EINVAL);
     SOL_NULL_CHECK(in, -EINVAL);
 
-    err = read_file_contents(ctx, &buf, &size);
+    err = read_file_contents(ctx, &buf);
     SOL_INT_CHECK(err, < 0, err);
 
-    return setup_js_ports_description(buf, size, in, out, NULL,
-        empty);
+    err = setup_js_ports_description(&buf, in, out, NULL, empty);
+    sol_buffer_fini(&buf);
+
+    return err;
 }
 
 static int
@@ -1966,23 +1967,23 @@ static int
 js_generate_body(const struct sol_flow_metatype_context *ctx,
     struct sol_buffer *out)
 {
-    const char *buf;
-    size_t len, i;
+    struct sol_buffer buf;
+    size_t i;
     struct sol_vector in_ports, out_ports;
     int r;
 
-    r = read_file_contents(ctx, &buf, &len);
+    r = read_file_contents(ctx, &buf);
     SOL_INT_CHECK(r, < 0, r);
 
-    r = setup_js_ports_description(buf, len, &in_ports, &out_ports, out, ctx->name);
+    r = setup_js_ports_description(&buf, &in_ports, &out_ports, out, ctx->name);
     SOL_INT_CHECK_GOTO(r, < 0, exit);
 
     r = sol_buffer_append_printf(out, "static const char %.*s_JS_CODE[] = {\n",
         SOL_STR_SLICE_PRINT(ctx->name));
     SOL_INT_CHECK_GOTO(r, < 0, exit);
 
-    for (i = 0; i < len; i++) {
-        r = sol_buffer_append_printf(out, "%d,", buf[i]);
+    for (i = 0; i < buf.used; i++) {
+        r = sol_buffer_append_printf(out, "%d,", ((char *)buf.data)[i]);
         SOL_INT_CHECK_GOTO(r, < 0, exit);
     }
 
@@ -2031,6 +2032,7 @@ js_generate_body(const struct sol_flow_metatype_context *ctx,
         SOL_STR_SLICE_PRINT(ctx->name));
 
 exit:
+    sol_buffer_fini(&buf);
     metatype_port_description_clear(&in_ports);
     metatype_port_description_clear(&out_ports);
     return r;
