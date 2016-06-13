@@ -16,7 +16,7 @@
  * limitations under the License.
  */
 
-var soletta = require( 'bindings' )( 'soletta' ),
+var soletta = require( './lowlevel'),
     _ = require( 'lodash' );
 
 exports.open = function( init ) {
