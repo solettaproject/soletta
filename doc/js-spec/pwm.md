@@ -1,4 +1,4 @@
-PWM Web API for Soletta
+PWM Web API for Soletta™ Framework
 =======================
 
 Introduction

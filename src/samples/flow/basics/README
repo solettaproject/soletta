@@ -1,4 +1,4 @@
-This directory contains examples covering the basics of Soletta flows.
+This directory contains examples covering the basics of Soletta™ flows.
 
 The scripts should be executable given that sol-fbp-runner is in your
 $PATH, otherwise call manually sol-fbp-runner <script>

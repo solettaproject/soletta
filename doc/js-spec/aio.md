@@ -1,4 +1,4 @@
-AIO Web API for Soletta
+AIO Web API for Soletta™ Framework
 =======================
 
 Introduction
