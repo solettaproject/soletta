@@ -16,13 +16,23 @@
           "description": "Packets sent in here will trigger a gyroscope reading and produce packets on each of the the output ports. If buffer is enabled, current trigger must accept manual activation (default one, sysfs trigger, does).",
           "name": "TICK",
           "methods": {
-            "process": "gyroscope_tick"
+            "process": "iio_common_tick"
           }
         }
       ],
       "methods": {
-        "close": "gyroscope_close",
+        "close": "iio_common_close",
         "open": "gyroscope_open"
+      },
+      "node_type": {
+        "access": [
+            "base"
+        ],
+        "data_type": "struct iio_node_type",
+        "extra_methods": {
+            "out_port": "SOL_FLOW_NODE_TYPE_IIO_GYROSCOPE__OUT__OUT",
+            "reader_cb": "iio_direction_vector_reader_cb"
+       }
       },
       "name": "iio/gyroscope",
       "aliases": [
@@ -96,7 +106,7 @@
          "name": "OUT"
         }
       ],
-      "private_data_type": "gyroscope_data"
+      "private_data_type": "iio_direction_vector_data"
     },
     {
       "category": "input/hw",
@@ -107,13 +117,23 @@
           "description": "Packets sent in here will trigger a magnet reading and produce packets on each of the the output ports. If buffer is enabled, current trigger must accept manual activation (default one, sysfs trigger, does).",
           "name": "TICK",
           "methods": {
-            "process": "magnet_tick"
+            "process": "iio_common_tick"
           }
         }
       ],
       "methods": {
-        "close": "magnet_close",
+        "close": "iio_common_close",
         "open": "magnet_open"
+      },
+      "node_type": {
+        "access": [
+            "base"
+        ],
+        "data_type": "struct iio_node_type",
+        "extra_methods": {
+            "out_port": "SOL_FLOW_NODE_TYPE_IIO_MAGNETOMETER__OUT__OUT",
+            "reader_cb": "iio_direction_vector_reader_cb"
+       }
       },
       "name": "iio/magnetometer",
       "aliases": [
@@ -188,7 +208,7 @@
          "name": "OUT"
         }
       ],
-      "private_data_type": "magnet_data"
+      "private_data_type": "iio_direction_vector_data"
     },
     {
       "category": "input/hw",
@@ -199,13 +219,23 @@
           "description": "Packets sent in here will trigger a temperature reading and produce packets on each of the the output ports. If buffer is enabled, current trigger must accept manual activation (default one, sysfs trigger, does).",
           "name": "TICK",
           "methods": {
-            "process": "temperature_tick"
+            "process": "iio_common_tick"
           }
         }
       ],
       "methods": {
-        "close": "temperature_close",
+        "close": "iio_common_close",
         "open": "temperature_open"
+      },
+      "node_type": {
+        "access": [
+            "base"
+        ],
+        "data_type": "struct iio_node_type",
+        "extra_methods": {
+            "out_port": "SOL_FLOW_NODE_TYPE_IIO_THERMOMETER__OUT__OUT",
+            "reader_cb": "iio_double_reader_cb"
+       }
       },
       "name": "iio/thermometer",
       "aliases": [
@@ -280,7 +310,7 @@
          "name": "OUT"
         }
       ],
-      "private_data_type": "temperature_data"
+      "private_data_type": "iio_double_data"
     },
     {
       "category": "input/hw",
@@ -291,13 +321,23 @@
           "description": "Packets sent in here will trigger a pressure reading and produce packets on each of the the output ports. If buffer is enabled, current trigger must accept manual activation (default one, sysfs trigger, does).",
           "name": "TICK",
           "methods": {
-            "process": "pressure_tick"
+            "process": "iio_common_tick"
           }
         }
       ],
       "methods": {
-        "close": "pressure_close",
+        "close": "iio_common_close",
         "open": "pressure_open"
+      },
+      "node_type": {
+        "access": [
+            "base"
+        ],
+        "data_type": "struct iio_node_type",
+        "extra_methods": {
+            "out_port": "SOL_FLOW_NODE_TYPE_IIO_PRESSURE_SENSOR__OUT__OUT",
+            "reader_cb": "iio_double_reader_cb"
+       }
       },
       "name": "iio/pressure-sensor",
       "aliases": [
@@ -372,7 +412,7 @@
          "name": "OUT"
         }
       ],
-      "private_data_type": "pressure_data"
+      "private_data_type": "iio_double_data"
     },
     {
       "category": "input/hw",
@@ -383,13 +423,23 @@
           "description": "Packets sent in here will trigger a color reading and produce packets on each of the the output ports. If buffer is enabled, current trigger must accept manual activation (default one, sysfs trigger, does).",
           "name": "TICK",
           "methods": {
-            "process": "color_tick"
+            "process": "iio_common_tick"
           }
         }
       ],
       "methods": {
-        "close": "color_close",
+        "close": "iio_common_close",
         "open": "color_open"
+      },
+      "node_type": {
+        "access": [
+            "base"
+        ],
+        "data_type": "struct iio_node_type",
+        "extra_methods": {
+            "out_port": "SOL_FLOW_NODE_TYPE_IIO_COLOR_SENSOR__OUT__OUT",
+            "reader_cb": "iio_color_reader_cb"
+       }
       },
       "name": "iio/color-sensor",
       "aliases": [
@@ -423,8 +473,20 @@
          {
              "data_type": "float",
              "default": 0,
-             "description": "Scale to applied to device raw readings",
-             "name": "scale"
+             "description": "Scale to applied to device Red raw readings",
+             "name": "scale_red"
+         },
+         {
+             "data_type": "float",
+             "default": 0,
+             "description": "Scale to applied to device Green raw readings",
+             "name": "scale_green"
+         },
+         {
+             "data_type": "float",
+             "default": 0,
+             "description": "Scale to applied to device Blue raw readings",
+             "name": "scale_blue"
          },
          {
            "data_type": "boolean",
@@ -435,8 +497,20 @@
          {
              "data_type": "float",
              "default": 0,
-             "description": "Offset to be added to device raw readings",
-             "name": "offset"
+             "description": "Offset to be added to device Red raw readings",
+             "name": "offset_red"
+         },
+         {
+             "data_type": "float",
+             "default": 0,
+             "description": "Offset to be added to device Green raw readings",
+             "name": "offset_green"
+         },
+         {
+             "data_type": "float",
+             "default": 0,
+             "description": "Offset to be added to device Blue raw readings",
+             "name": "offset_blue"
          },
          {
              "data_type": "int",
@@ -462,7 +536,7 @@
          "name": "OUT"
         }
       ],
-      "private_data_type": "color_data"
+      "private_data_type": "iio_color_data"
     },
     {
       "category": "input/hw",
@@ -473,13 +547,23 @@
           "description": "Packets sent in here will trigger a accelerate reading and produce packets on each of the the output ports. If buffer is enabled, current trigger must accept manual activation (default one, sysfs trigger, does).",
           "name": "TICK",
           "methods": {
-            "process": "accelerate_tick"
+            "process": "iio_common_tick"
           }
         }
       ],
       "methods": {
-        "close": "accelerate_close",
+        "close": "iio_common_close",
         "open": "accelerate_open"
+      },
+      "node_type": {
+        "access": [
+            "base"
+        ],
+        "data_type": "struct iio_node_type",
+        "extra_methods": {
+            "out_port": "SOL_FLOW_NODE_TYPE_IIO_ACCELEROMETER__OUT__OUT",
+            "reader_cb": "iio_direction_vector_reader_cb"
+       }
       },
       "name": "iio/accelerometer",
       "aliases": [
@@ -553,7 +637,7 @@
          "name": "OUT"
         }
       ],
-      "private_data_type": "accelerate_data"
+      "private_data_type": "iio_direction_vector_data"
     },
     {
       "category": "input/hw",
@@ -564,13 +648,23 @@
           "description": "Packets sent in here will trigger a humidity reading and produce packets on each of the the output ports. If buffer is enabled, current trigger must accept manual activation (default one, sysfs trigger, does).",
           "name": "TICK",
           "methods": {
-            "process": "humidity_tick"
+            "process": "iio_common_tick"
           }
         }
       ],
       "methods": {
-        "close": "humidity_close",
+        "close": "iio_common_close",
         "open": "humidity_open"
+      },
+      "node_type": {
+        "access": [
+            "base"
+        ],
+        "data_type": "struct iio_node_type",
+        "extra_methods": {
+            "out_port": "SOL_FLOW_NODE_TYPE_IIO_HUMIDITY_SENSOR__OUT__OUT",
+            "reader_cb": "iio_double_reader_cb"
+       }
       },
       "name": "iio/humidity-sensor",
       "aliases": [
@@ -645,7 +739,7 @@
          "name": "OUT"
         }
       ],
-      "private_data_type": "humidity_data"
+      "private_data_type": "iio_double_data"
     },
     {
       "category": "input/hw",
@@ -656,13 +750,23 @@
           "description": "Packets sent in here will trigger a adc reading and produce packets on each of the the output ports. If buffer is enabled, current trigger must accept manual activation (default one, sysfs trigger, does).",
           "name": "TICK",
           "methods": {
-            "process": "adc_tick"
+            "process": "iio_common_tick"
           }
         }
       ],
       "methods": {
-        "close": "adc_close",
+        "close": "iio_common_close",
         "open": "adc_open"
+      },
+      "node_type": {
+        "access": [
+            "base"
+        ],
+        "data_type": "struct iio_node_type",
+        "extra_methods": {
+            "out_port": "SOL_FLOW_NODE_TYPE_IIO_ADC__OUT__OUT",
+            "reader_cb": "iio_double_reader_cb"
+       }
       },
       "name": "iio/adc",
       "aliases": [
@@ -737,7 +841,7 @@
          "name": "OUT"
         }
       ],
-      "private_data_type": "adc_data"
+      "private_data_type": "iio_double_data"
     },
     {
       "category": "input/hw",
@@ -748,13 +852,23 @@
           "description": "Packets sent in here will trigger a light reading and produce packets on each of the the output ports. If buffer is enabled, current trigger must accept manual activation (default one, sysfs trigger, does).",
           "name": "TICK",
           "methods": {
-            "process": "light_tick"
+            "process": "iio_common_tick"
           }
         }
       ],
       "methods": {
-        "close": "light_close",
+        "close": "iio_common_close",
         "open": "light_open"
+      },
+      "node_type": {
+        "access": [
+            "base"
+        ],
+        "data_type": "struct iio_node_type",
+        "extra_methods": {
+            "out_port": "SOL_FLOW_NODE_TYPE_IIO_LIGHT_SENSOR__OUT__OUT",
+            "reader_cb": "iio_double_reader_cb"
+       }
       },
       "name": "iio/light-sensor",
       "aliases": [
@@ -829,7 +943,7 @@
          "name": "OUT"
         }
       ],
-      "private_data_type": "light_data"
+      "private_data_type": "iio_double_data"
      },
      {
       "category": "input/hw",
@@ -840,13 +954,23 @@
           "description": "Packets sent in here will trigger a proximity reading and produce packets on each of the the output ports. If buffer is enabled, current trigger must accept manual activation (default one, sysfs trigger, does).",
           "name": "TICK",
           "methods": {
-            "process": "proximity_tick"
+            "process": "iio_common_tick"
           }
         }
       ],
       "methods": {
-        "close": "proximity_close",
+        "close": "iio_common_close",
         "open": "proximity_open"
+      },
+      "node_type": {
+        "access": [
+            "base"
+        ],
+        "data_type": "struct iio_node_type",
+        "extra_methods": {
+            "out_port": "SOL_FLOW_NODE_TYPE_IIO_PROXIMITY_SENSOR__OUT__OUT",
+            "reader_cb": "iio_double_reader_cb"
+       }
       },
       "name": "iio/proximity-sensor",
       "options": {
@@ -918,7 +1042,7 @@
          "name": "OUT"
         }
       ],
-      "private_data_type": "proximity_data"
+      "private_data_type": "iio_double_data"
      }
  ]
 }
