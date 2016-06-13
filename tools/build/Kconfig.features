@@ -1,6 +1,9 @@
 config FEATURE_BLUETOOTH
     bool
 
+config FEATURE_NETCTL
+    bool
+
 config FEATURE_CC_SANITIZE
     bool
 
