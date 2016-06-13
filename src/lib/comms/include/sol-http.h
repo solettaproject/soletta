@@ -45,15 +45,49 @@ extern "C" {
  * sol_http_client_request() or sol_http_client_request_with_interface()
  */
 enum sol_http_method {
+    /**
+     * Requests data from a specified resource
+     */
     SOL_HTTP_METHOD_GET,
+    /**
+     * Submits data to be processed to a specified resource
+     */    
     SOL_HTTP_METHOD_POST,
+    /**
+     * Same as GET, but transfers the status line and 
+     * header section only
+     */    
     SOL_HTTP_METHOD_HEAD,
+    /**
+     * Removes all current representations of the target
+     * resource given by a URI
+    */
     SOL_HTTP_METHOD_DELETE,
+    /**
+     * Replaces all current representations of the target
+     * resource with the uploaded content
+     */
     SOL_HTTP_METHOD_PUT,
+    /**
+     * Establishes a tunnel to the server identified by a given URI
+     */
     SOL_HTTP_METHOD_CONNECT,
+    /**
+     *Describes the communication options for the target resource
+     */
     SOL_HTTP_METHOD_OPTIONS,
+    /**
+     *Performs a message loop-back test along the path to the 
+     *target resource.    
+     */
     SOL_HTTP_METHOD_TRACE,
+    /**
+     * Used to update partial resources
+     */
     SOL_HTTP_METHOD_PATCH,
+    /**
+     * Invalid input method
+     */
     SOL_HTTP_METHOD_INVALID
 };
 
@@ -86,15 +120,50 @@ enum sol_http_param_type {
  * Most frequently used status are supported.
  */
 enum sol_http_status_code {
+    /**
+     * The request has been accepted for processing
+     */
     SOL_HTTP_STATUS_OK = 200,
+     /**
+     * Provides an URL in the location header field
+     */   
     SOL_HTTP_STATUS_FOUND = 302,
+    /**
+     * The response to the request can be found 
+     * under another URI using a GET method
+     */
     SOL_HTTP_STATUS_SEE_OTHER = 303,
+    /**
+     * Indicates that the resource has not been 
+     * modified since the version specified by the request headers
+     */    
     SOL_HTTP_STATUS_NOT_MODIFIED = 304,
+    /**
+     * The server cannot or will not process the request 
+     * due to an apparent client error
+     */
     SOL_HTTP_STATUS_BAD_REQUEST = 400,
+    /**
+     * The request was a valid request, but the server
+     * is refusing to respond to it
+     */
     SOL_HTTP_STATUS_FORBIDDEN = 403,
+    /**
+     * The requested resource could not be found
+     */
     SOL_HTTP_STATUS_NOT_FOUND = 404,
+    /**
+     * A request method is not supported for the requested resource
+     */
     SOL_HTTP_STATUS_METHOD_NOT_ALLOWED = 405,
+    /**
+     * A generic error message
+     */
     SOL_HTTP_STATUS_INTERNAL_SERVER_ERROR = 500,
+    /**
+     * The server either does not recognize the request method,
+     * or it lacks the ability to fulfill the request
+     */
     SOL_HTTP_STATUS_NOT_IMPLEMENTED = 501
 };
 
