@@ -672,7 +672,6 @@ SOL_API int
 sol_util_get_user_config_dir(struct sol_buffer *buffer)
 {
     const char *dir;
-    int r;
 
     dir = getenv("XDG_CONFIG_HOME");
     if (dir)
