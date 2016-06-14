@@ -365,17 +365,25 @@ exported_ports(void)
 DEFINE_TEST(declare_fbp);
 
 static int
-declare_fbp_read_file(void *data, const char *name, const char **buf, size_t *size)
+declare_fbp_read_file(void *data, const char *name, struct sol_buffer *buf)
 {
     if (streq(name, "add.fbp")) {
-        *buf = "INPORT=add.OPERAND[1]:IN, OUTPORT=add.OUT:OUT, _(constant/int:value=1) OUT -> OPERAND[0] add(int/addition)";
-        *size = strlen(*buf);
+        sol_buffer_init_flags(buf,
+            (void *)"INPORT=add.OPERAND[1]:IN, OUTPORT=add.OUT:OUT, _(constant/int:value=1) OUT "
+            "-> OPERAND[0] add(int/addition)",
+            sizeof("INPORT=add.OPERAND[1]:IN, OUTPORT=add.OUT:OUT, _(constant/int:value=1) OUT "
+                "-> OPERAND[0] add(int/addition)") - 1, SOL_BUFFER_FLAGS_MEMORY_NOT_OWNED);
+        buf->used = buf->capacity;
         return 0;
     }
 
     if (streq(name, "sub.fbp")) {
-        *buf = "INPORT=sub.SUBTRAHEND:IN, OUTPORT=sub.OUT:OUT, _(constant/int:value=1) OUT -> MINUEND sub(int/subtraction)";
-        *size = strlen(*buf);
+        sol_buffer_init_flags(buf,
+            (void *)"INPORT=sub.SUBTRAHEND:IN, OUTPORT=sub.OUT:OUT, _(constant/int:value=1) OUT -> "
+            "MINUEND sub(int/subtraction)",
+            sizeof("INPORT=sub.SUBTRAHEND:IN, OUTPORT=sub.OUT:OUT, _(constant/int:value=1) OUT -> "
+            "MINUEND sub(int/subtraction)") - 1, SOL_BUFFER_FLAGS_MEMORY_NOT_OWNED);
+        buf->used = buf->capacity;
         return 0;
     }
 
