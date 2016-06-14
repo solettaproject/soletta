@@ -148,6 +148,66 @@ struct sol_http_request_interface {
  * @note It should never be called from response callback given in
  *       sol_http_client_request().
  *
+ * @code{.c}
+ *
+ * static void
+ * response_cb(void *userdata, struct sol_http_client_connection *connection,
+ *     struct sol_http_response *response)
+ * {
+ *     uint16_t idx;
+ *     struct sol_http_param_value *value;
+ *
+ *     // Check if the response is correct
+ *     if (response->response_code != SOL_HTTP_STATUS_OK) {
+ *         fprintf(stderr, "Finished with error, response code: %d\n",
+ *             response->response_code);
+ *         return;
+ *     }
+ *
+ *     // Printing the response paramters ...
+ *     SOL_HTTP_PARAMS_FOREACH_IDX (&response->param, value, idx) {
+ *         switch (value->type) {
+ *         case SOL_HTTP_PARAM_COOKIE:
+ *             printf("[COOKIE] %.*s : %.*s\n",
+ *                 SOL_STR_SLICE_PRINT(value->value.key_value.key),
+ *                 SOL_STR_SLICE_PRINT(value->value.key_value.value));
+ *             break;
+ *         case SOL_HTTP_PARAM_HEADER:
+ *             printf("[HEADER] %.*s : %.*s\n",
+ *                 SOL_STR_SLICE_PRINT(value->value.key_value.key),
+ *                 SOL_STR_SLICE_PRINT(value->value.key_value.value));
+ *         default:
+ *             break;
+ *         }
+ *     }
+ *
+ *     // Now let's show the response contents
+ *     printf("%.*s\n", (int)response->content.used, (char *)response->content.data);
+ * }
+ *
+ * int main(int argc, char *argv[]) {
+ *     int r;
+ *     struct sol_http_params params = SOL_HTTP_REQUEST_PARAMS_INIT;
+ *     struct sol_http_client_connection *pending;
+ *
+ *     // Some code .....
+ *
+ *     // Allows redirect
+ *     r = sol_http_params_add(&params,
+ *         SOL_HTTP_REQUEST_PARAM_ALLOW_REDIR(true));
+ *     SOL_INT_CHECK(r, < 0, r);
+ *     pending = sol_http_client_request(SOL_HTTP_METHOD_GET,
+ *          "http://www.github.com/solettaproject/soletta", &params, response_cb, NULL);
+ *     if (!pending)
+ *         fprintf(stderr, "ERROR: Failed to create the request\n");
+ *    sol_http_params_clear(&params);
+ *
+ *    // more code.....
+ *
+ *    return 0;
+ * }
+ * @endcode
+ *
  * @param method a valid HTTP method, e. g. SOL_HTTP_METHOD_GET or SOL_HTTP_METHOD_POST
  * @param url a string containing a valid URL.
  * @param params the parameters used on this request, e. g. headers,
