@@ -16,6 +16,7 @@
  * limitations under the License.
  */
 
+#include <errno.h>
 #include <v8.h>
 #include <node.h>
 #include <nan.h>
@@ -26,6 +27,7 @@
 #include "../data.h"
 #include "../hijack.h"
 #include "../structures/js-handle.h"
+#include "../sys-constants.h"
 
 using namespace v8;
 
@@ -75,7 +77,11 @@ NAN_METHOD(bind_sol_i2c_set_slave_address)
     sol_i2c *i2c = (sol_i2c *)SolI2c::Resolve(jsI2c);
 
     int returnValue = sol_i2c_set_slave_address(i2c, info[1]->Uint32Value());
-    info.GetReturnValue().Set(Nan::New(returnValue));
+    if (returnValue < 0) {
+        info.GetReturnValue().Set(ReverseLookupConstant("E", abs(returnValue)));
+    } else {
+        info.GetReturnValue().Set(Nan::New(returnValue));
+    }
 }
 
 NAN_METHOD(bind_sol_i2c_close)
@@ -104,7 +110,6 @@ NAN_METHOD(bind_sol_i2c_pending_cancel)
 
     sol_i2c_pending_cancel(i2c, i2c_pending);
     Nan::SetInternalFieldPointer(jsI2cPending, 0, 0);
-    hijack_unref();
 }
 
 static void sol_i2c_write_cb(void *cb_data, struct sol_i2c *i2c,
@@ -174,6 +179,7 @@ NAN_METHOD(bind_sol_i2c_write)
         free(inputBuffer);
         delete callback;
         hijack_unref();
+        info.GetReturnValue().Set(ReverseLookupConstant("E", errno));
         return;
     }
 
@@ -252,6 +258,7 @@ NAN_METHOD(bind_sol_i2c_write_register)
         free(inputBuffer);
         delete callback;
         hijack_unref();
+        info.GetReturnValue().Set(ReverseLookupConstant("E", errno));
         return;
     }
 
@@ -297,6 +304,7 @@ NAN_METHOD(bind_sol_i2c_write_quick)
     if (!i2c_pending) {
         delete callback;
         hijack_unref();
+        info.GetReturnValue().Set(ReverseLookupConstant("E", errno));
         return;
     }
 
@@ -361,6 +369,7 @@ NAN_METHOD(bind_sol_i2c_read)
         free(outputBuffer);
         delete callback;
         hijack_unref();
+        info.GetReturnValue().Set(ReverseLookupConstant("E", errno));
         return;
     }
 
@@ -429,6 +438,7 @@ NAN_METHOD(bind_sol_i2c_read_register)
         free(outputBuffer);
         delete callback;
         hijack_unref();
+        info.GetReturnValue().Set(ReverseLookupConstant("E", errno));
         return;
     }
 
@@ -475,6 +485,7 @@ NAN_METHOD(bind_sol_i2c_read_register_multiple)
         free(outputBuffer);
         delete callback;
         hijack_unref();
+        info.GetReturnValue().Set(ReverseLookupConstant("E", errno));
         return;
     }
 

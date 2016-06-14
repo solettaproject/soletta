@@ -16,7 +16,7 @@
  * limitations under the License.
  */
 
-var soletta = require( 'bindings' )( 'soletta' ),
+var soletta = require( './lowlevel'),
     _ = require( 'lodash' );
 
 exports.open = function( init ) {
@@ -64,10 +64,12 @@ _.extend( SPIBus.prototype, {
                function( txData, rxData, count ) {
                    if ( rxData !== null ) {
                        fulfill( rxData );
+                   } else {
+                       reject( new Error( "SPI transmission failed" ) );
                    }
            });
 
-           if ( ( typeof returnStatus === 'undefined' ) || !returnStatus ) {
+           if ( returnStatus < 0 ) {
                reject( new Error( "SPI transmission failed" ) );
            }
        }, this ) );

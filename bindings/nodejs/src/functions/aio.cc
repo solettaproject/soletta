@@ -98,6 +98,8 @@ NAN_METHOD(bind_sol_aio_close) {
     VALIDATE_ARGUMENT_TYPE(info, 0, IsObject);
     Local<Object> jsAio = Nan::To<Object>(info[0]).ToLocalChecked();
     sol_aio *aio = (sol_aio *)SolAio::Resolve(jsAio);
+    if (!aio)
+        return;
 
     sol_aio_close(aio);
     Nan::SetInternalFieldPointer(jsAio, 0, 0);
@@ -124,6 +126,8 @@ NAN_METHOD(bind_sol_aio_get_value) {
     VALIDATE_ARGUMENT_TYPE(info, 1, IsFunction);
     Local<Object> jsAio = Nan::To<Object>(info[0]).ToLocalChecked();
     sol_aio *aio = (sol_aio *)SolAio::Resolve(jsAio);
+    if (!aio)
+        return;
 
     Nan::Callback *callback =
         new Nan::Callback(Local<Function>::Cast(info[1]));
@@ -150,10 +154,13 @@ NAN_METHOD(bind_sol_aio_pending_cancel)
     VALIDATE_ARGUMENT_TYPE(info, 1, IsObject);
     Local<Object> jsAio = Nan::To<Object>(info[0]).ToLocalChecked();
     sol_aio *aio = (sol_aio *)SolAio::Resolve(jsAio);
+    if (!aio)
+        return;
 
     Local<Object> jsAioPending = Nan::To<Object>(info[1]).ToLocalChecked();
     sol_aio_pending *aio_pending = (sol_aio_pending *)SolAio::Resolve(jsAioPending);
+    if (!aio_pending)
+        return;
 
     sol_aio_pending_cancel(aio, aio_pending);
-    hijack_unref();
 }
