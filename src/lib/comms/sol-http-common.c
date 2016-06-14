@@ -40,7 +40,7 @@ sol_http_params_add(struct sol_http_params *params,
     ptr = sol_vector_append(&params->params);
     if (!ptr) {
         SOL_WRN("Could not append option to parameter vector");
-        return -EINVAL;
+        return -ENOMEM;
     }
 
     memcpy(ptr, &value, sizeof(value));
@@ -110,7 +110,7 @@ sol_http_params_add_copy(struct sol_http_params *params,
     ptr = sol_vector_append(&params->params);
     if (!ptr) {
         SOL_WRN("Could not append option to parameter vector");
-        return -EINVAL;
+        return -ENOMEM;
     }
 
     memcpy(ptr, &value, sizeof(value));
