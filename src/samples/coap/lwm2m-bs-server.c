@@ -114,6 +114,9 @@ bootstrap_cb(void *data,
     sol_lwm2m_bootstrap_server_write(server, bs_cinfo, "/0/1",
         sec_server_one, sol_util_array_size(sec_server_one), write_cb, NULL);
 
+    sol_lwm2m_bootstrap_server_write(server, bs_cinfo, "/0/1/10",
+        &sec_server_one[2], 1, write_cb, NULL);
+
     for (i = 0; i < sol_util_array_size(sec_server_one); i++)
         sol_lwm2m_resource_clear(&sec_server_one[i]);
 

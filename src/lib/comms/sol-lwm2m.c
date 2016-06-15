@@ -4733,11 +4733,6 @@ exit:
     sol_coap_header_set_code(resp, header_code);
     r = sol_coap_send_packet(server, resp, cliaddr);
 
-    if (header_code == SOL_COAP_RESPONSE_CODE_DELETED) {
-        obj_instance_clear(client, obj_ctx, obj_instance);
-        (void)sol_vector_del_element(&obj_ctx->instances, obj_instance);
-    }
-
     return r;
 }
 
