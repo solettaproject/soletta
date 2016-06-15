@@ -106,6 +106,14 @@ int sol_fs_read_raw(const char *name, struct sol_buffer *buffer);
         return -EINVAL; \
     }
 
+/**
+ * @brief Read an uint8_t from storage
+ *
+ * @param name name of property. It will look for a file on filesystem with
+ * this name
+ * @param value value the uint8_t read from the storage
+ * return @c 0 on success, a negative number on failure
+ */
 static inline int
 sol_fs_read_uint8(const char *name, uint8_t *value)
 {
@@ -114,6 +122,19 @@ sol_fs_read_uint8(const char *name, uint8_t *value)
     return sol_fs_read_raw(name, &buf);
 }
 
+/**
+ * @brief Writes uint8_t in storage
+ *
+ * @param name name of property. It will create a file on filesystem with
+ * this name.
+ * @param value value that will be written
+ * @param blob blob that will be written
+ * @param cb callback to be called when writing finishes. It contains status
+ * of writing: if failed, is lesser than zero.
+ * @param data user data to be sent to callback @c cb
+ *
+ * return @c 0 on success, a negative number on failure
+ */
 static inline int
 sol_fs_write_uint8(const char *name, uint8_t value,
     void (*cb)(void *data, const char *name, struct sol_blob *blob, int status),
@@ -128,6 +149,15 @@ sol_fs_write_uint8(const char *name, uint8_t value,
     return r;
 }
 
+/**
+ * @brief Read a boolean from storage
+ *
+ * @param name name of property. It will look for a file on filesystem with
+ * this name
+ * @param value value the boolean read from the storage
+ *
+ * return @c 0 on success, a negative number on failure
+ */
 static inline int
 sol_fs_read_bool(const char *name, bool *value)
 {
@@ -136,6 +166,19 @@ sol_fs_read_bool(const char *name, bool *value)
     return sol_fs_read_raw(name, &buf);
 }
 
+/**
+ * @brief Writes boolean in storage
+ *
+ * @param name name of property. It will create a file on filesystem with
+ * this name.
+ * @param value value that will be written
+ * @param blob blob that will be written
+ * @param cb callback to be called when writing finishes. It contains status
+ * of writing: if failed, is lesser than zero.
+ * @param data user data to be sent to callback @c cb
+ *
+ * return @c 0 on success, a negative number on failure
+ */
 static inline int
 sol_fs_write_bool(const char *name, bool value,
     void (*cb)(void *data, const char *name, struct sol_blob *blob, int status),
@@ -150,6 +193,15 @@ sol_fs_write_bool(const char *name, bool value,
     return r;
 }
 
+/**
+ * @brief Read an int32 from storage
+ *
+ * @param name name of property. It will look for a file on filesystem with
+ * this name
+ * @param value value the int32 read from the storage
+ *
+ * return @c 0 on success, a negative number on failure
+ */
 static inline int
 sol_fs_read_int32(const char *name, int32_t *value)
 {
@@ -158,6 +210,19 @@ sol_fs_read_int32(const char *name, int32_t *value)
     return sol_fs_read_raw(name, &buf);
 }
 
+/**
+ * @brief Writes int32 in storage
+ *
+ * @param name name of property. It will create a file on filesystem with
+ * this name.
+ * @param value value that will be written
+ * @param blob blob that will be written
+ * @param cb callback to be called when writing finishes. It contains status
+ * of writing: if failed, is lesser than zero.
+ * @param data user data to be sent to callback @c cb
+ *
+ * return @c 0 on success, a negative number on failure
+ */
 static inline int
 sol_fs_write_int32(const char *name, int32_t value,
     void (*cb)(void *data, const char *name, struct sol_blob *blob, int status),
@@ -172,6 +237,15 @@ sol_fs_write_int32(const char *name, int32_t value,
     return r;
 }
 
+/**
+ * @brief Read sol_irange struct from storage
+ *
+ * @param name name of property. It will look for a file on filesystem with
+ * this name
+ * @param value value the irange read from the storage
+ *
+ * return @c 0 on success, a negative number on failure
+ */
 static inline int
 sol_fs_read_irange(const char *name, struct sol_irange *value)
 {
@@ -180,6 +254,19 @@ sol_fs_read_irange(const char *name, struct sol_irange *value)
     return sol_fs_read_raw(name, &buf);
 }
 
+/**
+ * @brief Writes sol_irange struct in storage
+ *
+ * @param name name of property. It will create a file on filesystem with
+ * this name.
+ * @param value value that will be written
+ * @param blob blob that will be written
+ * @param cb callback to be called when writing finishes. It contains status
+ * of writing: if failed, is lesser than zero.
+ * @param data user data to be sent to callback @c cb
+ *
+ * return @c 0 on success, a negative number on failure
+ */
 static inline int
 sol_fs_write_irange(const char *name, struct sol_irange *value,
     void (*cb)(void *data, const char *name, struct sol_blob *blob, int status),
@@ -194,6 +281,15 @@ sol_fs_write_irange(const char *name, struct sol_irange *value,
     return r;
 }
 
+/**
+ * @brief Read sol_drange struct from storage
+ *
+ * @param name name of property. It will look for a file on filesystem with
+ * this name
+ * @param value value the drange read from the storage
+ *
+ * return @c 0 on success, a negative number on failure
+ */
 static inline int
 sol_fs_read_drange(const char *name, struct sol_drange *value)
 {
@@ -202,6 +298,19 @@ sol_fs_read_drange(const char *name, struct sol_drange *value)
     return sol_fs_read_raw(name, &buf);
 }
 
+/**
+ * @brief Writes sol_drange struct in storage
+ *
+ * @param name name of property. It will create a file on filesystem with
+ * this name.
+ * @param value value that will be written
+ * @param blob blob that will be written
+ * @param cb callback to be called when writing finishes. It contains status
+ * of writing: if failed, is lesser than zero.
+ * @param data user data to be sent to callback @c cb
+ *
+ * return @c 0 on success, a negative number on failure
+ */
 static inline int
 sol_fs_write_drange(const char *name, struct sol_drange *value,
     void (*cb)(void *data, const char *name, struct sol_blob *blob, int status),
@@ -216,6 +325,15 @@ sol_fs_write_drange(const char *name, struct sol_drange *value,
     return r;
 }
 
+/**
+ * @brief Read double in storage
+ *
+ * @param name name of property. It will look for a file on filesystem with
+ * this name
+ * @param value value the int read from the storage
+ *
+ * return @c 0 on success, a negative number on failure
+ */
 static inline int
 sol_fs_read_double(const char *name, double *value)
 {
@@ -224,6 +342,19 @@ sol_fs_read_double(const char *name, double *value)
     return sol_fs_read_raw(name, &buf);
 }
 
+/**
+ * @brief Writes a double in storage
+ *
+ * @param name name of property. It will create a file on filesystem with
+ * this name.
+ * @param value value that will be written
+ * @param blob blob that will be written
+ * @param cb callback to be called when writing finishes. It contains status
+ * of writing: if failed, is lesser than zero.
+ * @param data user data to be sent to callback @c cb
+ *
+ * return @c 0 on success, a negative number on failure
+ */
 static inline int
 sol_fs_write_double(const char *name, double value,
     void (*cb)(void *data, const char *name, struct sol_blob *blob, int status),
@@ -238,6 +369,15 @@ sol_fs_write_double(const char *name, double value,
     return r;
 }
 
+/**
+ * @brief Read string in storage
+ *
+ * @param name name of property. It will look for a file on filesystem with
+ * this name
+ * @param value value the char read from the storage
+ *
+ * return @c 0 on success, a negative number on failure
+ */
 static inline int
 sol_fs_read_string(const char *name, char **value)
 {
@@ -255,6 +395,19 @@ sol_fs_read_string(const char *name, char **value)
     return 0;
 }
 
+/**
+ * @brief Writes a string in storage
+ *
+ * @param name name of property. It will create a file on filesystem with
+ * this name.
+ * @param value value that will be written
+ * @param blob blob that will be written
+ * @param cb callback to be called when writing finishes. It contains status
+ * of writing: if failed, is lesser than zero.
+ * @param data user data to be sent to callback @c cb
+ *
+ * return @c 0 on success, a negative number on failure
+ */
 static inline int
 sol_fs_write_string(const char *name, const char *value,
     void (*cb)(void *data, const char *name, struct sol_blob *blob, int status),
