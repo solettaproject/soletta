@@ -840,9 +840,9 @@ sol_platform_get_appname(void)
 
 #undef SUFIX_LEN
 #undef SUFIX
-#endif //SOL_FEATURE_FILESYSTEM
-
+#else
     return default_name;
+#endif //SOL_FEATURE_FILESYSTEM
 }
 
 int
