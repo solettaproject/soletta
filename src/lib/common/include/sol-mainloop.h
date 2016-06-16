@@ -229,6 +229,14 @@ extern "C" {
 /**
  * @page authors Authors
  *
+ * Please use <soletta-dev@solettaproject.org> to get in contact with the
+ * developers and maintainers. It's the mailing list used for
+ * technical discussions.
+ *
+ * If you need to contact individually any of the Soletta Project authors,
+ * there follows their contacts:
+ *
+ * @author Amanda Coelho <amanda.winder.ribeiro.coelho@intel.com>
  * @author Anselmo L. S. Melo <anselmo.melo@intel.com>
  * @author Bruno Bottazzini <bruno.bottazzini@intel.com>
  * @author Bruno Dilly <bruno.dilly@intel.com>
@@ -244,6 +252,7 @@ extern "C" {
  * @author Iván Briano <ivan.briano@intel.com>
  * @author Jesus Sanchez-Palencia <jesus.sanchez-palencia@intel.com>
  * @author José Roberto de Souza <jose.souza@intel.com>
+ * @author Kamidi Preetham <kamidi@live.com>
  * @author Leandro Dorileo <leandro.maciel.dorileo@intel.com>
  * @author Leandro Pereira <leandro.pereira@intel.com>
  * @author Lei Yang <lei.a.yang@intel.com>
@@ -261,10 +270,10 @@ extern "C" {
  * @author Ulisses Furquim <ulisses.furquim@intel.com>
  * @author Vinicius Costa Gomes <vinicius.gomes@intel.com>
  * @author Vladimir Cernov <cernov.vladimir@gmail.com>
+ * @author wanghongjuan <hongjuanx.wang@intel.com>
+ * @author Yong Li <yong.b.li@intel.com>
  * @author Zoltan Kis <zoltan.kis@intel.com>
  *
- * Please contact <soletta-dev@solettaproject.org> to get in contact with the
- * developers and maintainers.
  */
 
 /**
