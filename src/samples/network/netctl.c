@@ -27,8 +27,6 @@
 #include "sol-util.h"
 #include "sol-log.h"
 
-#include "test.h"
-
 #define CONN_AP "Guest"
 
 static void

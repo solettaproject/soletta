@@ -15,11 +15,6 @@ config TEST_COAP
 	depends on COAP
 	default y
 
-config TEST_NETCTL
-        bool "netctl"
-        depends on NETCTL
-        default y
-
 config TEST_FBP
 	bool "fbp"
 	depends on USE_FLOW

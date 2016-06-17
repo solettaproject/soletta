@@ -17,3 +17,7 @@ config ECHO_CLIENT_SAMPLE
 	bool "Echo client"
 	depends on NETWORK_SAMPLES && NETWORK
 	default y
+
+config NETCTL_SAMPLE
+	bool "Network control"
+	depends on NETWORK_SAMPLES && NETCTL

@@ -8,10 +8,6 @@ test-internal-$(TEST_COAP) += test-coap
 test-internal-test-coap-$(TEST_COAP) := test.c test-coap.c
 test-internal-test-coap-$(TEST_COAP)-deps := lib/comms/coap.o
 
-test-internal-$(TEST_NETCTL) += test-netctl
-test-internal-test-netctl-$(TEST_NETCTL) := test-netctl.c
-test-internal-test-netctl-$(TEST_NETCTL)-deps := lib/comms/sol-netctl-impl-connman.o
-
 test-$(TEST_FBP) += test-fbp
 test-test-fbp-$(TEST_FBP) := test.c test-fbp.c
 
