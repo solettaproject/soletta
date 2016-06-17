@@ -475,6 +475,10 @@ enum sol_fd_flags {
     SOL_FD_FLAGS_NVAL = (1 << 5)
 };
 
+/**
+ * @struct sol_fd
+ * @brief A handle to a fd watcher
+ */
 struct sol_fd;
 
 /**
@@ -570,6 +574,7 @@ uint32_t sol_fd_get_flags(const struct sol_fd *handle);
 #ifdef SOL_MAINLOOP_FORK_WATCH_ENABLED
 
 /**
+ * @struct sol_child_watch
  * @brief Handle for child process.
  *
  * This structure is used to setup and control children process.
@@ -745,6 +750,7 @@ struct sol_mainloop_source_type {
 };
 
 /**
+ * @struct sol_mainloop_source
  * @brief Structure of a Source of mainloop events.
  */
 struct sol_mainloop_source;

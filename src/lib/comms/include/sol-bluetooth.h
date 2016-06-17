@@ -117,6 +117,7 @@ int sol_bt_uuid_to_str(const struct sol_bt_uuid *uuid, struct sol_buffer *buffer
 bool sol_bt_uuid_eq(const struct sol_bt_uuid *u1, const struct sol_bt_uuid *u2);
 
 /**
+ * @struct sol_bt_conn
  * @brief Represents an active connection to a Bluetooth device.
  *
  * The connection is established with sol_bt_connect(), and its lifetime is
@@ -191,6 +192,7 @@ struct sol_bt_conn *sol_bt_connect(const struct sol_network_link_addr *addr,
 int sol_bt_disconnect(struct sol_bt_conn *conn);
 
 /**
+ * @struct sol_bt_session
  * @brief Represents a Bluetooth usage session
  *
  * Because Bluetooth usage may increase the power comsuption, there's
@@ -299,6 +301,7 @@ const char *sol_bt_transport_to_str(enum sol_bt_transport transport);
 enum sol_bt_transport sol_bt_transport_from_str(const char *str);
 
 /**
+ * @struct sol_bt_scan_pending
  * @brief Represents a pending scan session
  *
  * Represents a pending scan session, @see sol_bt_start_scan().

@@ -52,6 +52,9 @@ extern "C" {
  * @{
  */
 
+/**
+ * @struct sol_memdesc
+ */
 struct sol_memdesc;
 
 /**
