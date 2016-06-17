@@ -55,6 +55,7 @@ extern "C" {
 struct sol_oic_client;
 
 /**
+ * @struct sol_oic_pending
  * @brief Represents a pending OIC client call
  *
  * This can be used to cancel the pending call. Note that the context

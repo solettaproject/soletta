@@ -27,6 +27,7 @@
  */
 
 /**
+ * @struct sol_file_reader
  * @brief Opaque handler for a file reader.
  */
 struct sol_file_reader;

@@ -79,6 +79,10 @@ extern "C" {
  * @{
  */
 
+/**
+ * @struct sol_message_digest
+ * @brief A handle for a message digest
+ */
 struct sol_message_digest;
 
 /**

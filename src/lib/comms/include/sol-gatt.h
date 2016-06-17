@@ -122,6 +122,7 @@ enum sol_gatt_desc_flags {
 };
 
 /**
+ * @struct sol_gatt_pending
  * @brief Represents a pending request
  *
  * So a response to a GATT operation can be returned asynchronously,

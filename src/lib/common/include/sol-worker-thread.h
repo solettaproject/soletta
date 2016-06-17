@@ -38,6 +38,12 @@ extern "C" {
  * @{
  */
 
+
+/**
+ * @struct sol_worker_thread
+ * @brief A worker thread handle
+ * @see sol_worker_thread_new()
+ */
 // TODO abstract locks? see eina_lock.h
 struct sol_worker_thread;
 

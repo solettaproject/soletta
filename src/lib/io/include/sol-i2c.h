@@ -433,7 +433,11 @@ struct sol_i2c_op {
     uint8_t value; /**< @brief Operation data */
 };
 
-struct sol_i2c_op_set_pending; /**< @brief I2C Dispatcher pending operation set handle structure */
+/**
+ * @struct sol_i2c_op_set_pending
+ * @brief I2C Dispatcher pending operation set handle structure
+ */
+struct sol_i2c_op_set_pending;
 
 /**
  * @brief Add an operation set in the dispatcher's queue of a given I2C bus.
