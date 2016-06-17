@@ -486,18 +486,19 @@ create_fbp_type(
         (struct metatype_context_internal *)ctx;
 
     struct sol_flow_node_type *result;
-    const char *buf, *filename;
-    size_t size;
+    struct sol_buffer buf;
+    const char *filename;
     int err;
 
     filename = strndupa(ctx->contents.data, ctx->contents.len);
-    err = ctx->read_file(ctx, filename, &buf, &size);
+    err = ctx->read_file(ctx, filename, &buf);
     if (err < 0)
         return -EINVAL;
 
     /* Because its reusing the same parser, there's no need to pass
      * ownership using store_type(), the parser already have it. */
-    result = sol_flow_parse_buffer(internal_ctx->parser, buf, size, filename);
+    result = sol_flow_parse_buffer(internal_ctx->parser, &buf, filename);
+    sol_buffer_fini(&buf);
     if (!result)
         return -EINVAL;
 
@@ -508,7 +509,7 @@ create_fbp_type(
 static int
 metatype_read_file(
     const struct sol_flow_metatype_context *ctx,
-    const char *name, const char **buf, size_t *size)
+    const char *name, struct sol_buffer *buf)
 {
     const struct metatype_context_internal *internal_ctx =
         (const struct metatype_context_internal *)ctx;
@@ -516,7 +517,8 @@ metatype_read_file(
 
     if (!client || !client->read_file)
         return -ENOSYS;
-    return client->read_file(client->data, name, buf, size);
+
+    return client->read_file(client->data, name, buf);
 }
 
 static int
@@ -933,19 +935,20 @@ end:
 SOL_API struct sol_flow_node_type *
 sol_flow_parse_buffer(
     struct sol_flow_parser *parser,
-    const char *buf,
-    size_t len,
+    const struct sol_buffer *buf,
     const char *filename)
 {
     struct parse_state state;
     struct sol_flow_node_type *type = NULL;
     int err;
 
-    struct sol_str_slice input = { .data = buf, .len = len };
+    struct sol_str_slice input;
 
     SOL_NULL_CHECK(buf, NULL);
-    SOL_INT_CHECK(len, == 0, NULL);
+    SOL_INT_CHECK(buf->used, == 0, NULL);
 
+    input.data = (const char *)buf->data;
+    input.len = buf->used;
     err = parse_state_init(&state, parser, input, filename);
     if (err < 0)
         return NULL;
@@ -976,15 +979,16 @@ sol_flow_parse_string(
     const char *cstr,
     const char *filename)
 {
-    return sol_flow_parse_buffer(parser, cstr, strlen(cstr), filename);
+    SOL_NULL_CHECK(cstr, NULL);
+    return sol_flow_parse_buffer(parser, &SOL_BUFFER_INIT_CONST((void *)cstr, strlen(cstr)),
+        filename);
 }
 
 struct metatype_context_with_buf {
     struct metatype_context_internal base;
 
     const char *filename;
-    const char *buf;
-    size_t len;
+    const struct sol_buffer *buf;
 };
 
 /* "Fake" implementation of read_file that expose only one file using
@@ -992,15 +996,18 @@ struct metatype_context_with_buf {
 static int
 metatype_with_buf_read_file(
     const struct sol_flow_metatype_context *ctx,
-    const char *name, const char **buf, size_t *size)
+    const char *name, struct sol_buffer *buf)
 {
     const struct metatype_context_with_buf *ctx_with_buf =
         (const struct metatype_context_with_buf *)ctx;
 
     if (!streq(name, ctx_with_buf->filename))
         return -ENOENT;
-    *buf = ctx_with_buf->buf;
-    *size = ctx_with_buf->len;
+
+    sol_buffer_init_flags(buf, (void *)ctx_with_buf->buf->data, ctx_with_buf->buf->used,
+        SOL_BUFFER_FLAGS_MEMORY_NOT_OWNED);
+    buf->used = ctx_with_buf->buf->used;
+
     return 0;
 }
 
@@ -1008,8 +1015,7 @@ SOL_API struct sol_flow_node_type *
 sol_flow_parse_buffer_metatype(
     struct sol_flow_parser *parser,
     const char *metatype,
-    const char *buf,
-    size_t len,
+    const struct sol_buffer *buf,
     const char *filename)
 {
     struct sol_flow_node_type *type = NULL;
@@ -1026,14 +1032,12 @@ sol_flow_parse_buffer_metatype(
         },
         .filename = filename,
         .buf = buf,
-        .len = len,
     };
 
     SOL_NULL_CHECK(parser, NULL);
     SOL_NULL_CHECK(metatype, NULL);
     SOL_NULL_CHECK(buf, NULL);
     SOL_NULL_CHECK(filename, NULL);
-    SOL_INT_CHECK(len, == 0, NULL);
 
     ctx_with_buf.base.base.name = ctx_with_buf.base.base.contents = sol_str_slice_from_str(filename);
 
@@ -1041,7 +1045,7 @@ sol_flow_parse_buffer_metatype(
      * terms of create function. Probably the call to build_flow
      * should be moved inside the creator function. */
     if (streq(metatype, "fbp"))
-        return sol_flow_parse_buffer(parser, buf, len, filename);
+        return sol_flow_parse_buffer(parser, buf, filename);
 
     creator = get_create_type_func(sol_str_slice_from_str(metatype));
     if (!creator) {
@@ -1073,5 +1077,6 @@ sol_flow_parse_string_metatype(
     SOL_NULL_CHECK(filename, NULL);
 
     return sol_flow_parse_buffer_metatype(
-        parser, metatype, str, strlen(str), filename);
+        parser, metatype, &SOL_BUFFER_INIT_CONST((void *)str, strlen(str)),
+        filename);
 }

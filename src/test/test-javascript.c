@@ -71,7 +71,7 @@ test_js(void)
             SOL_ERR("Node was created but should fail, input='%s'", entry->input);
             FAIL();
         } else if (!type && !entry->should_fail) {
-            SOL_ERR("Node was created but should fail, input='%s'", entry->input);
+            SOL_ERR("Node was not created, input='%s'", entry->input);
             FAIL();
         }
         sol_flow_parser_del(parser);

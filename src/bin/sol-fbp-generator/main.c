@@ -208,7 +208,7 @@ find_metatype_file_reader_by_name(const char *filename)
 
 static int
 read_meta_type_file(const struct sol_flow_metatype_context *ctx,
-    const char *name, const char **buf, size_t *size)
+    const char *name, struct sol_buffer *buf)
 {
     int r;
     struct sol_file_reader *reader;
@@ -217,7 +217,6 @@ read_meta_type_file(const struct sol_flow_metatype_context *ctx,
 
     SOL_NULL_CHECK(buf, -EINVAL);
     SOL_NULL_CHECK(name, -EINVAL);
-    SOL_NULL_CHECK(size, -EINVAL);
     SOL_NULL_CHECK(ctx, -EINVAL);
 
     if (!search_fbp_file(filename, sol_str_slice_from_str(name)))
@@ -233,8 +232,9 @@ read_meta_type_file(const struct sol_flow_metatype_context *ctx,
     }
 
     contents = sol_file_reader_get_all(reader);
-    *buf = contents.data;
-    *size = contents.len;
+    sol_buffer_init_flags(buf, (void *)contents.data, contents.len,
+        SOL_BUFFER_FLAGS_MEMORY_NOT_OWNED);
+    buf->used = contents.len;
     return 0;
 err_exit:
     sol_file_reader_close(reader);
