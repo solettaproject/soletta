@@ -577,7 +577,7 @@ sol_oic_server_ref(void)
     server_info = init_static_server_info();
     SOL_NULL_CHECK_GOTO(server_info, error);
 
-    oic_server.server = sol_coap_server_new(&servaddr);
+    oic_server.server = sol_coap_server_new(&servaddr, false);
     if (!oic_server.server) {
         r = -ENOMEM;
         goto error;
@@ -589,7 +589,7 @@ sol_oic_server_ref(void)
 
     oic_server.security = NULL;
     servaddr.port = OIC_COAP_SERVER_DTLS_PORT;
-    oic_server.dtls_server = sol_coap_secure_server_new(&servaddr);
+    oic_server.dtls_server = sol_coap_server_new(&servaddr, true);
     if (!oic_server.dtls_server) {
         if (errno == ENOSYS) {
             SOL_INF("DTLS support not built in, OIC server running in insecure mode");

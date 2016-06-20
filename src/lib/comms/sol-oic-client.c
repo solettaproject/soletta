@@ -1426,13 +1426,13 @@ sol_oic_client_new(void)
 
     SOL_NULL_CHECK_ERRNO(client, EINVAL, NULL);
 
-    client->server = sol_coap_server_new(&servaddr);
+    client->server = sol_coap_server_new(&servaddr, false);
     if (!client->server) {
         r = -errno;
         goto error_create_server;
     }
 
-    client->dtls_server = sol_coap_secure_server_new(&servaddr);
+    client->dtls_server = sol_coap_server_new(&servaddr, true);
     if (!client->dtls_server) {
         client->security = NULL;
 

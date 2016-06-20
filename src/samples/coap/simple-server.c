@@ -249,7 +249,7 @@ main(int argc, char *argv[])
 
     sol_init();
 
-    server = sol_coap_server_new(&servaddr);
+    server = sol_coap_server_new(&servaddr, false);
     if (!server) {
         fprintf(stderr, "Could not create a coap server using port %d.\n", DEFAULT_UDP_PORT);
         return -1;

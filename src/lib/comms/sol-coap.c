@@ -1870,7 +1870,7 @@ err:
 }
 
 SOL_API struct sol_coap_server *
-sol_coap_server_new(const struct sol_network_link_addr *addr)
+sol_coap_server_new(const struct sol_network_link_addr *addr, bool secure)
 {
     return sol_coap_server_new_full(&((struct sol_socket_ip_options) {
         .base = {
@@ -1880,23 +1880,7 @@ sol_coap_server_new(const struct sol_network_link_addr *addr)
             .on_can_write = on_can_write,
         },
         .family = addr->family,
-        .secure = false,
-        .reuse_addr = true,
-    }), addr);
-}
-
-SOL_API struct sol_coap_server *
-sol_coap_secure_server_new(const struct sol_network_link_addr *addr)
-{
-    return sol_coap_server_new_full(&((struct sol_socket_ip_options) {
-        .base = {
-            SOL_SET_API_VERSION(.api_version = SOL_SOCKET_OPTIONS_API_VERSION, )
-            SOL_SET_API_VERSION(.sub_api = SOL_SOCKET_IP_OPTIONS_SUB_API_VERSION, )
-            .on_can_read = on_can_read,
-            .on_can_write = on_can_write,
-        },
-        .family = addr->family,
-        .secure = true,
+        .secure = secure,
         .reuse_addr = true,
     }), addr);
 }

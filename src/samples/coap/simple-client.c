@@ -117,7 +117,7 @@ main(int argc, char *argv[])
         return 0;
     }
 
-    server = sol_coap_server_new(&servaddr);
+    server = sol_coap_server_new(&servaddr, false);
     if (!server) {
         SOL_WRN("Could not create a coap server.");
         return -1;
