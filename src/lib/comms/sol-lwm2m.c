@@ -2662,7 +2662,7 @@ handle_write(struct sol_lwm2m_client *client,
 {
     int r;
 
-    //If write_resource is not NULL then write_tlv is guaramteed to ve valid as well.
+    //If write_resource is not NULL then write_tlv is guaranteed to be valid as well.
     if (!obj_ctx->obj->write_resource) {
         SOL_WRN("Object %" PRIu16 " does not support the write method",
             obj_ctx->obj->id);
