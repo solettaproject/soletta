@@ -145,9 +145,6 @@ struct sol_http_request_interface {
  * One should check the response code on @c sol_http_response to check
  * if the request returned success or some error. @see sol_http_status_code.
  *
- * @note It should never be called from response callback given in
- *       sol_http_client_request().
- *
  * @code{.c}
  *
  * static void
@@ -232,9 +229,6 @@ struct sol_http_client_connection *sol_http_client_request(enum sol_http_method 
  * One should check the response code on @c sol_http_response to check
  * if the request returned success or some error. @see sol_http_status_code.
  *
- * @note It should never be called from response callback given in
- *       sol_http_client_request().
- *
  * @param method a valid HTTP method, e. g. SOL_HTTP_METHOD_GET or SOL_HTTP_METHOD_POST
  * @param url a string containing a valid URL.
  * @param params the parameters used on this request, e. g. headers,
@@ -254,9 +248,6 @@ struct sol_http_client_connection *sol_http_client_request_with_interface(enum s
 
 /**
  * @brief Cancel a pending request and release its resources.
- *
- * @note It should never be called from response callback given in
- *       sol_http_client_request().
  *
  * @param pending the object previously created with
  *        sol_http_client_request().
