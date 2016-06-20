@@ -32,8 +32,14 @@ $extrastylesheet
    <div id="projectname">$projectname
    <!--BEGIN PROJECT_NUMBER-->&#160;<span id="projectnumber">$projectnumber</span><!--END PROJECT_NUMBER-->
    </div>
-   <!--BEGIN PROJECT_BRIEF--><div id="projectbrief">$projectbrief</div><!--END PROJECT_BRIEF-->
-  </td>
+   <!--BEGIN PROJECT_BRIEF--><div id="projectbrief">
+   $projectbrief<br /><br />
+   <small>
+   <a href="http://solettaproject.github.io/docs/">Full online documentation</a> | 
+   <a href="$relpath^index.html">C API Index</a>
+   </small><br />
+   </div><!--END PROJECT_BRIEF-->
+
   <!--END PROJECT_NAME-->
   <!--BEGIN !PROJECT_NAME-->
    <!--BEGIN PROJECT_BRIEF-->
