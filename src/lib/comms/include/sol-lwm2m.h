@@ -353,7 +353,7 @@ struct sol_lwm2m_resource {
  * @param ret_value_ The return value of sol_lwm2m_resource_init()
  * @param resource_ The resource to be initialized.
  * @param id_ The resource id.
- * @param data_type_ The resource type.
+ * @param data_type_ The resource data type.
  * @param resource_len_ The resource data size.
  * @param ... The LWM2M resource data, respecting the table according to the resource type.
  * @see sol_lwm2m_resource_init()
@@ -398,7 +398,7 @@ struct sol_lwm2m_resource {
  *
  * Every LWM2M client must implement a set of LWM2M objects,
  * This struct is used by the sol-lwm2m to know which objects a
- * LWM2M implements.
+ * LWM2M Client implements.
  *
  * All the functions in this struct will be called by the sol-lwm2m infra,
  * when the LWM2M server request an operation.
@@ -499,11 +499,11 @@ struct sol_lwm2m_object {
      * @param user_data The data provided during sol_lwm2m_client_new().
      * @param client The LWM2M client.
      * @param instance_id The instance id.
-     * @param tlvs a vector of #sol_lwm2m_tlv
+     * @param tlvs A vector of #sol_lwm2m_tlv
      * @return 0 on success or -errno on error.
      * @note Since TLV does not contains a field to express the
-     * data type. It's the user responsibility to know which
-     * function it should be used to get the content value.
+     * data type, it's the user's responsibility to know which
+     * function should be used to get the content value.
      */
     int (*write_tlv)(void *instance_data, void *user_data,
         struct sol_lwm2m_client *client, uint16_t instance_id,
@@ -514,8 +514,8 @@ struct sol_lwm2m_object {
      * A LWM2M Object resource may be executable. An executable resource
      * means that the LWM2M object instance will initiate some action
      * that was requested by the LWM2M server.
-     * As an example, if the LWM2M server wants that the client
-     * sends an update request, the LWM2M server will send
+     * As an example, if the LWM2M server wants the client
+     * to send an update request, the LWM2M server will send
      * an execute command on the path "/1/AnServerInstanceId/8", this will
      * trigger the LWM2M client, which will send the update
      * request.
@@ -639,9 +639,9 @@ int sol_lwm2m_client_send_update(struct sol_lwm2m_client *client);
  * @param client The LWM2M client.
  * @param paths The resource paths that were changed, must be @c NULL terminated.
  * @return 0 on success, -errno on error.
- * @note If a LWM2M server creates an object instance, write on an object instance or
- * write in an object resource, the LWM2M client infrastruct will automatically notify all
- * observing servers.
+ * @note If a LWM2M server creates an object instance, writes on an object instance or
+ * writes in an object resource, the LWM2M client infrastructure will automatically
+ * notify all observing servers.
  */
 int sol_lwm2m_client_notify(struct sol_lwm2m_client *client, const char **paths);
 
@@ -674,9 +674,9 @@ void sol_lwm2m_resource_clear(struct sol_lwm2m_resource *resource);
  *
  * @param resource The resource to be initialized.
  * @param id The resource id.
- * @param data_type The resource type.
+ * @param data_type The resource data type.
  * @param resource_len The resource data size.
- * @param ... The LWM2M resource data, respecting the table according to the resource type.
+ * @param ... The LWM2M resource data, respecting the table according to the resource data type.
  * @return 0 on success, negative errno on error.
  * @see sol_lwm2m_resource_clear()
  * @see SOL_LWM2M_RESOURCE_INIT()
@@ -949,7 +949,7 @@ int sol_lwm2m_server_create_object_instance(struct sol_lwm2m_server *server,
     const void *data);
 
 /**
- * @brief Reads an object, instance or object from a client.
+ * @brief Reads an object, instance or resource from a client.
  *
  * @param server The LWM2M server.
  * @param client The LWM2M client info to be read.
@@ -976,7 +976,7 @@ int sol_lwm2m_server_read(struct sol_lwm2m_server *server,
  * Use this function to stop the LWM2M server and release its resources.
  *
  * @param server The LWM2M server to be deleted.
- * @see sol_lwm2m_server_del()
+ * @see sol_lwm2m_server_new()
  */
 void sol_lwm2m_server_del(struct sol_lwm2m_server *server);
 
