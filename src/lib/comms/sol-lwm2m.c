@@ -1041,7 +1041,7 @@ sol_lwm2m_server_new(uint16_t port)
     server = calloc(1, sizeof(struct sol_lwm2m_server));
     SOL_NULL_CHECK(server, NULL);
 
-    server->coap = sol_coap_server_new(&servaddr);
+    server->coap = sol_coap_server_new(&servaddr, false);
     SOL_NULL_CHECK_GOTO(server->coap, err_coap);
 
     sol_ptr_vector_init(&server->clients);
@@ -3192,7 +3192,7 @@ sol_lwm2m_client_new(const char *name, const char *path, const char *sms,
         SOL_NULL_CHECK_GOTO(client->sms, err_sms);
     }
 
-    client->coap_server = sol_coap_server_new(&servaddr);
+    client->coap_server = sol_coap_server_new(&servaddr, false);
     SOL_NULL_CHECK_GOTO(client->coap_server, err_coap);
 
     client->user_data = data;

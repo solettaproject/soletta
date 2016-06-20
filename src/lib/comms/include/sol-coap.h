@@ -482,28 +482,13 @@ int sol_coap_header_set_id(struct sol_coap_packet *pkt, uint16_t id);
  * @c errno will be set to indicate the reason.
  *
  * @param addr The address where the server will listen on.
+ * @param secure Set to @c true to create a server that will encrypt communication with its
+ * endpoints using DTLS or @c false otherwise
  *
  * @return A new server instance, or NULL in case of failure.
  *
- * @see sol_coap_secure_server_new()
  */
-struct sol_coap_server *sol_coap_server_new(const struct sol_network_link_addr *addr);
-
-/**
- * @brief Creates a new secure CoAP server instance.
- *
- * Creates a new, unsecured, CoAP server instance listening on address
- * @a addr. This server will encrypt communication with its endpoints
- * using DTLS. If the server cannot be created, NULL will be returned
- * and @c errno will be set to indicate the reason.
- *
- * @param addr The address where the server will listen on.
- *
- * @return A new server instance, or NULL in case of failure.
- *
- * @see sol_coap_server_new()
- */
-struct sol_coap_server *sol_coap_secure_server_new(const struct sol_network_link_addr *addr);
+struct sol_coap_server *sol_coap_server_new(const struct sol_network_link_addr *addr, bool secure);
 
 /**
  * @brief Take a reference of the given server.
