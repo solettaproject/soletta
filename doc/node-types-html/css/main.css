@@ -183,6 +183,13 @@ body{
     background-color: rgba(255,255,255,0.05);
     overflow: hidden;
 }
+#example-image-container p{
+    clear: both;
+    color: white;
+    width: auto;
+    height: auto;
+    text-align: center;
+}
 .example-thumb{
     float: left;
     margin-bottom: 8px;

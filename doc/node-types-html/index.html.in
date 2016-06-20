@@ -90,29 +90,37 @@
                 var info = $('#example-info');
                 var title = $('<h1></h1>');
                 var description = $('<p></p>');
+                var getCodeButton = $('<img></img>');
                 title.text(_data['name']);
                 description.text(_data['description']);
                 info.append(title);
                 info.append(description);
-                /* loading all thumbnails */
-                for(var i=0; i<_data['exampleList'].length; i++){
-                    var thumb = $('<img></img>');
-                    thumb.addClass('example-thumb');
-                    /* thumbnail main attributes */
-                    thumb.attr('src',_data['exampleList'][i]['thumb']);
-                    thumb.attr('id','thumb_' + i);
 
-                    /* thumbnail data */
-                    thumb.data('large',_data['exampleList'][i]['large']);
-                    thumb.data('code',_data['exampleList'][i]['code']);
+                if (_data['exampleList'].length === 0) {
+                    var thumb = $('<p>There is no example for this Nodetype</p>');
+                    $("#example-image-container").append(thumb);
+                    getCodeButton.css('visibility', 'hidden');
+                } else {
+                    /* loading all thumbnails */
+                    for(var i=0; i<_data['exampleList'].length; i++){
+                        var thumb = $('<img></img>');
+                        thumb.addClass('example-thumb');
+                        /* thumbnail main attributes */
+                        thumb.attr('src',_data['exampleList'][i]['thumb']);
+                        thumb.attr('id','thumb_' + i);
 
-                    /* thumbnail events */
-                    thumb.on('click',onThumbExampleClick);
-                    info.append(thumb);
+                        /* thumbnail data */
+                        thumb.data('large',_data['exampleList'][i]['large']);
+                        thumb.data('code',_data['exampleList'][i]['code']);
 
-                    if(i==0){
-                        /* load the first example */
-                        loadExampleImage(thumb);
+                        /* thumbnail events */
+                        thumb.on('click',onThumbExampleClick);
+                        info.append(thumb);
+
+                        if(i==0){
+                            /* load the first example */
+                            loadExampleImage(thumb);
+                        }
                     }
                 }
                 // Added hidden textarea element to store code
@@ -121,7 +129,6 @@
                 hidden_code.attr('id','example-info-code');
                 hidden_code.disabled=true;
                 /* adding the get-code button */
-                var getCodeButton = $('<img></img>');
                 getCodeButton.attr('src','images/button_get_code.png');
                 getCodeButton.attr('id','example-get-code');
                 info.append(getCodeButton);
