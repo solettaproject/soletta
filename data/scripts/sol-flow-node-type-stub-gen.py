@@ -1,6 +1,7 @@
 #!/usr/bin/env python3
+# -*- coding: utf-8 -*-
 
-# This file is part of the Soletta Project
+# This file is part of the Soletta™ Project
 #
 # Copyright (C) 2015 Intel Corporation. All rights reserved.
 #
@@ -158,7 +159,7 @@ def add_empty_line(outfile):
 def license_header(outfile):
     outfile.write("""\
 /*
- * This file is part of the Soletta Project
+ * This file is part of the Soletta™ Project
  *
  * Copyright (C) 2015 Intel Corporation. All rights reserved.
  *
