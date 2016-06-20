@@ -81,6 +81,19 @@ struct sol_lwm2m_client;
 struct sol_lwm2m_server;
 
 /**
+ * @struct sol_lwm2m_bootstrap_server
+ * @brief A handle to a LWM2M bootstrap server.
+ * @see sol_lwm2m_bootstrap_server_new()
+ */
+struct sol_lwm2m_bootstrap_server;
+
+/**
+ * @struct sol_lwm2m_bootstrap_client_info
+ * @brief A handle that contains information about a bootstrapping LWM2M client.
+ */
+struct sol_lwm2m_bootstrap_client_info;
+
+/**
  * @struct sol_lwm2m_client_info
  * @brief A handle that contains information about a registered LWM2M client.
  * @see sol_lwm2m_server_get_clients()
@@ -176,6 +189,22 @@ enum sol_lwm2m_registration_event {
      * the server did not hear from it after some time.
      */
     SOL_LWM2M_REGISTRATION_EVENT_TIMEOUT
+};
+
+/**
+ * @brief Enum that express the bootstrapping lifecycle.
+ *
+ * @see sol_lwm2m_client_add_bootstrap_monitor()
+ */
+enum sol_lwm2m_bootstrap_event {
+    /**
+     * Indicates that a server finished bootstrapping the client.
+     */
+    SOL_LWM2M_BOOTSTRAP_EVENT_FINISHED,
+    /**
+     * Indicates that an error occurred during the bootstrap process.
+     */
+    SOL_LWM2M_BOOTSTRAP_EVENT_ERROR
 };
 
 /**
@@ -689,6 +718,18 @@ int sol_lwm2m_resource_init(struct sol_lwm2m_resource *resource,
     enum sol_lwm2m_resource_data_type data_type, ...);
 
 /**
+ * @brief Creates a new LWM2M bootstrap server.
+ *
+ * The server will be immediately operational and waiting for connections.
+ *
+ * @param port The UDP port to be used.
+ * @param known_clients An array with the name of all clients this server has Bootstrap Information for.
+ * @return The LWM2M bootstrap server or @c NULL on error.
+ */
+struct sol_lwm2m_bootstrap_server *sol_lwm2m_bootstrap_server_new(uint16_t port,
+    const char **known_clients);
+
+/**
  * @brief Creates a new LWM2M server.
  *
  * The server will be immediately operational and waiting for connections.
@@ -769,6 +810,73 @@ int sol_lwm2m_tlv_get_bytes(struct sol_lwm2m_tlv *tlv, struct sol_buffer *buf);
 int sol_lwm2m_tlv_get_obj_link(struct sol_lwm2m_tlv *tlv, uint16_t *object_id, uint16_t *instance_id);
 
 /**
+ * @brief Adds a bootstrap request monitor to the server.
+ *
+ * This function register a bootstrap request monitor.
+ * This means that every time a LWM2M client performs a Bootstrap Request
+ * @c sol_lwm2m_bootstrap_server_request_cb will be called.
+ *
+ * @param server The LWM2M bootstrap server.
+ * @param sol_lwm2m_bootstrap_server_request_cb A callback that is used to inform a LWM2M client bootstrap request - @c data User data; @c server The LWM2M bootstrap server; @c bs_cinfo The client that initiated the bootstrap request.
+ * @param data The user data to @c sol_lwm2m_bootstrap_server_request_cb.
+ * @return 0 on success, -errno on error.
+ * @see sol_lwm2m_bootstrap_server_del_request_monitor()
+ */
+int sol_lwm2m_bootstrap_server_add_request_monitor(struct sol_lwm2m_bootstrap_server *server,
+    void (*sol_lwm2m_bootstrap_server_request_cb)(void *data,
+    struct sol_lwm2m_bootstrap_server *server,
+    struct sol_lwm2m_bootstrap_client_info *bs_cinfo),
+    const void *data);
+
+/**
+ * @brief Removes a bootstrap request monitor from the server.
+ *
+ * @param server The LWM2M bootstrap server.
+ * @param sol_lwm2m_bootstrap_server_request_cb The previous registered callback. - @c data User data; @c server The LWM2M bootstrap server; @c bs_cinfo The client that initiated the bootstrap request.
+ * @param data The user data to @c sol_lwm2m_bootstrap_server_request_cb.
+ * @return 0 on success, -errno on error.
+ * @see sol_lwm2m_bootstrap_server_add_request_monitor()
+ */
+int sol_lwm2m_bootstrap_server_del_request_monitor(struct sol_lwm2m_bootstrap_server *server,
+    void (*sol_lwm2m_bootstrap_server_request_cb)(void *data,
+    struct sol_lwm2m_bootstrap_server *server,
+    struct sol_lwm2m_bootstrap_client_info *bs_cinfo),
+    const void *data);
+
+/**
+ * @brief Adds a bootstrap monitor to the client.
+ *
+ * This function register a monitor.
+ * This means that every time a LWM2M bootstrap server performs a Bootstrap Finish
+ * @c sol_lwm2m_client_bootstrap_event_cb will be called.
+ *
+ * @param client The LWM2M client.
+ * @param sol_lwm2m_client_bootstrap_event_cb A callback that is used to inform a LWM2M bootstrap server event - @c data User data; @c client The LWM2M client; @c event The bootstrap event itself.
+ * @param data The user data to @c sol_lwm2m_client_bootstrap_event_cb.
+ * @return 0 on success, -errno on error.
+ * @see sol_lwm2m_client_del_bootstrap_finish_monitor()
+ */
+int sol_lwm2m_client_add_bootstrap_finish_monitor(struct sol_lwm2m_client *client,
+    void (*sol_lwm2m_client_bootstrap_event_cb)(void *data,
+    struct sol_lwm2m_client *client,
+    enum sol_lwm2m_bootstrap_event event),
+    const void *data);
+
+/**
+ * @brief Removes a bootstrap monitor from the client.
+ *
+ * @param client The LWM2M client.
+ * @param sol_lwm2m_client_bootstrap_event_cb The previous registered callback. - @c data User data; @c client The LWM2M client; @c event The bootstrap event itself.
+ * @param data The user data to @c sol_lwm2m_client_bootstrap_event_cb.
+ * @return 0 on success, -errno on error.
+ * @see sol_lwm2m_client_add_bootstrap_finish_monitor()
+ */
+int sol_lwm2m_client_del_bootstrap_finish_monitor(struct sol_lwm2m_client *client,
+    void (*sol_lwm2m_client_bootstrap_event_cb)(void *data,
+    struct sol_lwm2m_client *client,
+    enum sol_lwm2m_bootstrap_event event),
+    const void *data);
+
  * @brief Adds a registration monitor.
  *
  * This function registers a monitor, making it easier to observe a
@@ -971,6 +1079,16 @@ int sol_lwm2m_server_read(struct sol_lwm2m_server *server,
     const void *data);
 
 /**
+ * @brief Deletes a bootstrap server instance.
+ *
+ * Use this function to stop the LWM2M bootstrap server and release its resources.
+ *
+ * @param server The LWM2M bootstrap server to be deleted.
+ * @see sol_lwm2m_bootstrap_server_new()
+ */
+void sol_lwm2m_bootstrap_server_del(struct sol_lwm2m_bootstrap_server *server);
+
+/**
  * @brief Deletes a server instance.
  *
  * Use this function to stop the LWM2M server and release its resources.
@@ -979,6 +1097,28 @@ int sol_lwm2m_server_read(struct sol_lwm2m_server *server,
  * @see sol_lwm2m_server_new()
  */
 void sol_lwm2m_server_del(struct sol_lwm2m_server *server);
+
+/**
+ * @brief Signals the end of the Bootstrap Process.
+ *
+ * Use this function to tell the LWM2M Client that this LWM2M Bootstrap
+ * Server has finished sending the available Bootstrap Information.
+ *
+ * @param server The LWM2M Bootstrap Server.
+ * @param client The LWM2M Bootstrap Client info object.
+ * @note After this function returns, the @c sol_lwm2m_bootstrap_client_info handle will be invalid!
+ * @see sol_lwm2m_bootstrap_server_new()
+ */
+int sol_lwm2m_bootstrap_server_send_finish(struct sol_lwm2m_bootstrap_server *server,
+    struct sol_lwm2m_bootstrap_client_info *client);
+
+/**
+ * @brief Gets the name of bootstrap client.
+ *
+ * @param client The LWM2M bootstrap client info.
+ * @return The @c client name or @c NULL on error.
+ */
+const char *sol_lwm2m_bootstrap_client_info_get_name(const struct sol_lwm2m_bootstrap_client_info *client);
 
 /**
  * @brief Gets the name of client.
@@ -1036,6 +1176,14 @@ int sol_lwm2m_client_info_get_lifetime(const struct sol_lwm2m_client_info *clien
  * @return The client binding mode or #SOL_LWM2M_BINDING_MODE_UNKNOWN on error.
  */
 enum sol_lwm2m_binding_mode sol_lwm2m_client_info_get_binding_mode(const struct sol_lwm2m_client_info *client);
+
+/**
+ * @brief Gets the bootstrap client address.
+ *
+ * @param client The LWM2M bootstrap client info.
+ * @return The @c client address or @c NULL on error.
+ */
+const struct sol_network_link_addr *sol_lwm2m_bootstrap_client_info_get_address(const struct sol_lwm2m_bootstrap_client_info *client);
 
 /**
  * @brief Gets the client address.
