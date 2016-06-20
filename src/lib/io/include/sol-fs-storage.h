@@ -128,7 +128,6 @@ sol_fs_read_uint8(const char *name, uint8_t *value)
  * @param name name of property. It will create a file on filesystem with
  * this name.
  * @param value value that will be written
- * @param blob blob that will be written
  * @param cb callback to be called when writing finishes. It contains status
  * of writing: if failed, is lesser than zero.
  * @param data user data to be sent to callback @c cb
@@ -172,7 +171,6 @@ sol_fs_read_bool(const char *name, bool *value)
  * @param name name of property. It will create a file on filesystem with
  * this name.
  * @param value value that will be written
- * @param blob blob that will be written
  * @param cb callback to be called when writing finishes. It contains status
  * of writing: if failed, is lesser than zero.
  * @param data user data to be sent to callback @c cb
@@ -216,7 +214,6 @@ sol_fs_read_int32(const char *name, int32_t *value)
  * @param name name of property. It will create a file on filesystem with
  * this name.
  * @param value value that will be written
- * @param blob blob that will be written
  * @param cb callback to be called when writing finishes. It contains status
  * of writing: if failed, is lesser than zero.
  * @param data user data to be sent to callback @c cb
@@ -260,7 +257,6 @@ sol_fs_read_irange(const char *name, struct sol_irange *value)
  * @param name name of property. It will create a file on filesystem with
  * this name.
  * @param value value that will be written
- * @param blob blob that will be written
  * @param cb callback to be called when writing finishes. It contains status
  * of writing: if failed, is lesser than zero.
  * @param data user data to be sent to callback @c cb
@@ -304,7 +300,6 @@ sol_fs_read_drange(const char *name, struct sol_drange *value)
  * @param name name of property. It will create a file on filesystem with
  * this name.
  * @param value value that will be written
- * @param blob blob that will be written
  * @param cb callback to be called when writing finishes. It contains status
  * of writing: if failed, is lesser than zero.
  * @param data user data to be sent to callback @c cb
@@ -348,7 +343,6 @@ sol_fs_read_double(const char *name, double *value)
  * @param name name of property. It will create a file on filesystem with
  * this name.
  * @param value value that will be written
- * @param blob blob that will be written
  * @param cb callback to be called when writing finishes. It contains status
  * of writing: if failed, is lesser than zero.
  * @param data user data to be sent to callback @c cb
@@ -401,7 +395,6 @@ sol_fs_read_string(const char *name, char **value)
  * @param name name of property. It will create a file on filesystem with
  * this name.
  * @param value value that will be written
- * @param blob blob that will be written
  * @param cb callback to be called when writing finishes. It contains status
  * of writing: if failed, is lesser than zero.
  * @param data user data to be sent to callback @c cb
