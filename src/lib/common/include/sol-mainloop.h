@@ -33,7 +33,7 @@ extern "C" {
  * @mainpage Soletta Project Documentation
  *
  * @version 1
- * @date 2015
+ * @date 2016
  *
  * Soletta project is a framework for making IoT devices. With Soletta
  * project's libraries developers can easily write software for
