@@ -228,6 +228,20 @@ struct management_ctx {
     const void *data;
 };
 
+enum bootstrap_type {
+    BOOTSTRAP_DELETE,
+    BOOTSTRAP_WRITE
+};
+
+struct bootstrap_ctx {
+    enum bootstrap_type type;
+    struct sol_lwm2m_bootstrap_server *server;
+    struct sol_lwm2m_bootstrap_client_info *cinfo;
+    char *path;
+    void *cb;
+    const void *data;
+};
+
 struct resource_ctx {
     char *str_id;
     struct sol_coap_resource *res;
@@ -1786,6 +1800,36 @@ exit:
 }
 
 static int
+instances_to_tlv(struct sol_lwm2m_resource **instances,
+    size_t *instances_len, uint16_t *instances_ids, size_t len, struct sol_buffer *tlvs)
+{
+    int r;
+    size_t i, j, res, instance_data_len, data_len;
+
+    for (i = 0; i < len; i++) {
+        for (res = 0, instance_data_len = 0; res < instances_len[i]; res++)
+            for (j = 0; j < instances[i][res].data_len; j++) {
+                r = get_resource_len(&instances[i][res], j, &data_len);
+                SOL_INT_CHECK(r, < 0, r);
+
+                instance_data_len += data_len;
+            }
+
+        r = setup_tlv_header(SOL_LWM2M_TLV_TYPE_OBJECT_INSTANCE,
+            instances_ids[i], tlvs, instance_data_len);
+        SOL_INT_CHECK(r, < 0, r);
+
+        r = resources_to_tlv(instances[i], instances_len[i], tlvs);
+        SOL_INT_CHECK_GOTO(r, < 0, exit);
+    }
+
+    return 0;
+
+exit:
+    return r;
+}
+
+static int
 add_coap_int_option(struct sol_coap_packet *pkt,
     enum sol_coap_option opt, const void *data, uint16_t len)
 {
@@ -1817,7 +1861,8 @@ static int
 setup_coap_packet(enum sol_coap_method method,
     enum sol_coap_message_type type, const char *objects_path, const char *path,
     uint8_t *obs, int64_t *token, struct sol_lwm2m_resource *resources,
-    size_t len,
+    struct sol_lwm2m_resource **instances, size_t *instances_len,
+    uint16_t *instances_ids, size_t len,
     const char *execute_args,
     struct sol_coap_packet **pkt)
 {
@@ -1869,8 +1914,10 @@ setup_coap_packet(enum sol_coap_method method,
     r = sol_buffer_append_slice(&buf, sol_str_slice_from_str(path));
     SOL_INT_CHECK_GOTO(r, < 0, exit);
 
-    r = sol_coap_packet_add_uri_path_option(*pkt, buf.data);
-    SOL_INT_CHECK_GOTO(r, < 0, exit);
+    if (strcmp(path, "/") != 0) {
+        r = sol_coap_packet_add_uri_path_option(*pkt, buf.data);
+        SOL_INT_CHECK_GOTO(r, < 0, exit);
+    }
 
     if (execute_args) {
         size_t str_len;
@@ -1883,6 +1930,14 @@ setup_coap_packet(enum sol_coap_method method,
     } else if (resources) {
         content_type = SOL_LWM2M_CONTENT_TYPE_TLV;
         r = resources_to_tlv(resources, len, &tlvs);
+        SOL_INT_CHECK_GOTO(r, < 0, exit);
+        r = -ENOMEM;
+        SOL_INT_CHECK_GOTO(tlvs.used, >= UINT16_MAX, exit);
+        content_data = tlvs.data;
+        content_len = tlvs.used;
+    } else if (instances) {
+        content_type = SOL_LWM2M_CONTENT_TYPE_TLV;
+        r = instances_to_tlv(instances, instances_len, instances_ids, len, &tlvs);
         SOL_INT_CHECK_GOTO(r, < 0, exit);
         r = -ENOMEM;
         SOL_INT_CHECK_GOTO(tlvs.used, >= UINT16_MAX, exit);
@@ -2010,7 +2065,7 @@ sol_lwm2m_server_add_observer(struct sol_lwm2m_server *server,
         return 0;
 
     r = setup_coap_packet(SOL_COAP_METHOD_GET, SOL_COAP_MESSAGE_TYPE_CON,
-        client->objects_path, path, &obs, &entry->token, NULL, 0, NULL, &pkt);
+        client->objects_path, path, &obs, &entry->token, NULL, NULL, NULL, NULL, 0, NULL, &pkt);
     SOL_INT_CHECK(r, < 0, r);
 
     return sol_coap_send_packet_with_reply(server->coap, pkt, &client->cliaddr,
@@ -2187,8 +2242,8 @@ send_management_packet(struct sol_lwm2m_server *server,
     struct management_ctx *ctx;
 
     r = setup_coap_packet(method, SOL_COAP_MESSAGE_TYPE_CON,
-        client->objects_path, path, NULL, NULL, resources, len,
-        execute_args, &pkt);
+        client->objects_path, path, NULL, NULL, resources, NULL, NULL, NULL,
+        len, execute_args, &pkt);
     SOL_INT_CHECK(r, < 0, r);
 
     if (!cb)
@@ -2595,17 +2650,14 @@ extract_path(struct sol_lwm2m_client *client, struct sol_coap_packet *req,
     uint16_t *path_id, uint16_t *path_size)
 {
     struct sol_str_slice path[16] = { };
-    int i, j, r, count;
+    int i, j, r;
 
     r = sol_coap_find_options(req, SOL_COAP_OPTION_URI_PATH, path,
         sol_util_array_size(path));
-    count = r;
-    SOL_INT_CHECK_GOTO(r, < 0, err_exit);
-    r = -ENOENT;
-    SOL_INT_CHECK_GOTO(count, == 0, err_exit);
+    SOL_INT_CHECK(r, < 0, r);
 
     for (i = client->splitted_path_len ? client->splitted_path_len : 0, j = 0;
-        i < count; i++, j++) {
+        i < r; i++, j++) {
         char *end;
         //Only numbers are allowed.
         path_id[j] = sol_util_strtoul_n(path[i].data, &end, path[i].len, 10);
@@ -2613,17 +2665,13 @@ extract_path(struct sol_lwm2m_client *client, struct sol_coap_packet *req,
             errno != 0) {
             SOL_WRN("Could not convert %.*s to integer",
                 SOL_STR_SLICE_PRINT(path[i]));
-            r = -EINVAL;
-            goto err_exit;
+            return -EINVAL;
         }
         SOL_DBG("Path ID at request: %" PRIu16 "", path_id[j]);
     }
 
     *path_size = j;
     return 0;
-
-err_exit:
-    return r;
 }
 
 static struct obj_ctx *
@@ -2853,31 +2901,61 @@ static uint8_t
 handle_delete(struct sol_lwm2m_client *client,
     struct obj_ctx *obj_ctx, struct obj_instance *obj_instance)
 {
-    int r;
+    int r, ret = SOL_COAP_RESPONSE_CODE_BAD_REQUEST;
+    uint16_t i, j;
 
-    if (!obj_instance) {
-        SOL_WRN("Object instance was not provided to delete! (object id: %"
-            PRIu16 "", obj_ctx->obj->id);
-        return SOL_COAP_RESPONSE_CODE_BAD_REQUEST;
+    if (client->is_bootstrapping) {
+        clear_bootstrap_ctx(client);
     }
 
-    if (!obj_ctx->obj->del) {
-        SOL_WRN("The object %" PRIu16 " does not implement the delete method",
-            obj_ctx->obj->id);
-        return SOL_COAP_RESPONSE_CODE_NOT_ALLOWED;
+    //Specific Instance?
+    if (obj_ctx && obj_instance) {
+        if (!obj_ctx->obj->del) {
+            SOL_WRN("The object %" PRIu16 " does not implement the delete method",
+                obj_ctx->obj->id);
+            return client->is_bootstrapping ? SOL_COAP_RESPONSE_CODE_BAD_REQUEST :
+                   SOL_COAP_RESPONSE_CODE_NOT_ALLOWED;
+        }
+
+        r = obj_ctx->obj->del((void *)obj_instance->data,
+            (void *)client->user_data, client, obj_instance->id);
+        if (r < 0) {
+            SOL_WRN("Could not properly delete object id %"
+                PRIu16 " instance id: %" PRIu16 " reason:%d",
+                obj_ctx->obj->id, obj_instance->id, r);
+            return client->is_bootstrapping ? SOL_COAP_RESPONSE_CODE_BAD_REQUEST :
+                   SOL_COAP_RESPONSE_CODE_NOT_ALLOWED;
+        }
+
+        obj_instance->should_delete = true;
+        ret = SOL_COAP_RESPONSE_CODE_DELETED;
+    } else if (client->is_bootstrapping) {
+        SOL_VECTOR_FOREACH_IDX (&client->objects, obj_ctx, i) {
+            if (!obj_ctx->obj->del) {
+                SOL_WRN("The object %" PRIu16 " does not implement the delete method."
+                    " Skipping this Object.",
+                    obj_ctx->obj->id);
+                continue;
+            }
+
+            SOL_VECTOR_FOREACH_IDX (&obj_ctx->instances, obj_instance, j) {
+                r = obj_ctx->obj->del((void *)obj_instance->data,
+                    (void *)client->user_data, client, obj_instance->id);
+
+                if (r < 0) {
+                    SOL_WRN("Could not properly delete object id %"
+                        PRIu16 " instance id: %" PRIu16 " reason:%d",
+                        obj_ctx->obj->id, obj_instance->id, r);
+                } else {
+                    obj_instance_clear(client, obj_ctx, obj_instance);
+                    (void)sol_vector_del_element(&obj_ctx->instances, obj_instance);
+                    ret = SOL_COAP_RESPONSE_CODE_DELETED;
+                }
+            }
+        }
     }
 
-    r = obj_ctx->obj->del((void *)obj_instance->data,
-        (void *)client->user_data, client, obj_instance->id);
-    if (r < 0) {
-        SOL_WRN("Could not properly delete object id %"
-            PRIu16 " instance id: %" PRIu16 " reason:%d",
-            obj_ctx->obj->id, obj_instance->id, r);
-        return SOL_COAP_RESPONSE_CODE_NOT_ALLOWED;
-    }
-
-    obj_instance->should_delete = true;
-    return SOL_COAP_RESPONSE_CODE_DELETED;
+    return ret;
 }
 
 static bool
@@ -2990,7 +3068,7 @@ handle_execute(struct sol_lwm2m_client *client,
 }
 
 static uint8_t
-handle_write(struct sol_lwm2m_client *client,
+write_instance_tlv_or_resource(struct sol_lwm2m_client *client,
     struct obj_ctx *obj_ctx, struct obj_instance *obj_instance,
     int32_t resource, struct sol_lwm2m_payload payload)
 {
@@ -3024,8 +3102,8 @@ handle_write(struct sol_lwm2m_client *client,
             return SOL_COAP_RESPONSE_CODE_BAD_REQUEST;
         }
 
-        blob = sol_blob_new(&SOL_BLOB_TYPE_NO_FREE_DATA, NULL, payload.payload.slice_content.data,
-            payload.payload.slice_content.len);
+        blob = sol_blob_new(&SOL_BLOB_TYPE_NO_FREE_DATA, NULL,
+            payload.payload.slice_content.data, payload.payload.slice_content.len);
         SOL_NULL_CHECK(blob, SOL_COAP_RESPONSE_CODE_BAD_REQUEST);
 
         SOL_SET_API_VERSION(res.api_version = SOL_LWM2M_RESOURCE_API_VERSION; )
@@ -3075,13 +3153,134 @@ handle_create(struct sol_lwm2m_client *client,
         obj_instance->id, (void *)&obj_instance->data, payload);
     SOL_INT_CHECK_GOTO(r, < 0, err_exit);
 
-    r = setup_instance_resource(client, obj_ctx, obj_instance, true);
+    r = setup_instance_resource(client, obj_ctx, obj_instance, !client->is_bootstrapping);
     SOL_INT_CHECK_GOTO(r, < 0, err_exit);
 
     return SOL_COAP_RESPONSE_CODE_CREATED;
 
 err_exit:
     obj_instance_clear(client, obj_ctx, obj_instance);
+    return SOL_COAP_RESPONSE_CODE_BAD_REQUEST;
+}
+
+static uint8_t
+handle_write(struct sol_lwm2m_client *client,
+    struct obj_ctx *obj_ctx, struct obj_instance *obj_instance,
+    uint16_t *path, uint16_t path_size,
+    struct sol_lwm2m_payload payload)
+{
+    int r;
+
+    if (client->is_bootstrapping) {
+        clear_bootstrap_ctx(client);
+    }
+
+    if (path_size < 2 && client->is_bootstrapping) {
+        //Bootstrap Write on Object (e.g.: PUT /1)
+        //In this case the payload is composed of <multiple TLVs> of type OBJECT_INSTANCE,
+        // <each one containing multiple TLVs> of type MULTIPLE_RESOURCES or RESOURCE_WITH_VALUE
+        // and each TLV of type MULTIPLE_RESOURCES can contain multiple TLVs of type
+        // RESOURCE_INSTANCE
+        struct sol_lwm2m_tlv *instance_tlvs;
+        uint16_t i;
+
+        if (payload.type == SOL_LWM2M_CONTENT_TYPE_TLV) {
+            SOL_VECTOR_FOREACH_IDX (&payload.payload.tlv_content, instance_tlvs, i) {
+                struct sol_lwm2m_payload instance_payload = { .type = SOL_LWM2M_CONTENT_TYPE_TLV };
+
+                if (instance_tlvs->type != SOL_LWM2M_TLV_TYPE_OBJECT_INSTANCE) {
+                    SOL_WRN("Only TLV is supported for writing an individual Object Instance."
+                        " Received: %" PRIu16 ". Skipping this instance.", instance_tlvs->type);
+                    continue;
+                }
+
+                sol_vector_init(&instance_payload.payload.tlv_content,
+                    sizeof(struct sol_lwm2m_tlv));
+
+                instance_payload.payload.tlv_content.data =
+                    (unsigned char *)payload.payload.tlv_content.data +
+                    (payload.payload.tlv_content.elem_size * (i + 1));
+                SOL_NULL_CHECK_GOTO(instance_payload.payload.tlv_content.data, err_build_tlvs);
+                instance_payload.payload.tlv_content.len = instance_tlvs->content.used;
+
+                i += instance_tlvs->content.used;
+
+                obj_instance = find_object_instance_by_instance_id(obj_ctx, instance_tlvs->id);
+
+                //Instance already exists?
+                if (obj_instance) {
+                    r = write_instance_tlv_or_resource(client, obj_ctx, obj_instance, -1,
+                        instance_payload);
+                } else {
+                    r = handle_create(client, obj_ctx, instance_tlvs->id, instance_payload);
+                }
+
+                if (r == SOL_COAP_RESPONSE_CODE_CHANGED || r == SOL_COAP_RESPONSE_CODE_CREATED) {
+                    SOL_DBG("Bootstrap Write on Object Instance /%"
+                        PRIu16 "/%" PRIu16 " succeeded!", obj_ctx->obj->id, instance_tlvs->id);
+                } else {
+                    SOL_WRN("Bootstrap Write on Object Instance /%"
+                        PRIu16 "/%" PRIu16 " failed!", obj_ctx->obj->id, instance_tlvs->id);
+                }
+            }
+
+            SOL_DBG("Bootstrap Write on Object /%" PRIu16 " succeeded!", obj_ctx->obj->id);
+
+            return SOL_COAP_RESPONSE_CODE_CHANGED;
+        } else {
+            SOL_WRN("Only TLV is supported for writing multiple Object Instances."
+                " Received: %" PRIu16 "", payload.type);
+            return SOL_COAP_RESPONSE_CODE_UNSUPPORTED_CONTENT_FORMAT;
+        }
+
+    } else if (path_size < 3 && client->is_bootstrapping) {
+        //Bootstrap Write on Object Instance (e.g.: PUT /1/5)
+        //In this case the payload is composed of <multiple TLVs> of type MULTIPLE_RESOURCES
+        // or RESOURCE_WITH_VALUE and each TLV of type MULTIPLE_RESOURCES can contain
+        // multiple TLVs of type RESOURCE_INSTANCE
+        if (payload.type == SOL_LWM2M_CONTENT_TYPE_TLV) {
+            //Instance already exists?
+            if (obj_instance) {
+                r = write_instance_tlv_or_resource(client, obj_ctx, obj_instance, -1, payload);
+            } else {
+                r = handle_create(client, obj_ctx, path[1], payload);
+            }
+
+            if (r == SOL_COAP_RESPONSE_CODE_CHANGED || r == SOL_COAP_RESPONSE_CODE_CREATED) {
+                SOL_DBG("Bootstrap Write on Object Instance /%"
+                    PRIu16 "/%" PRIu16 " succeeded!", obj_ctx->obj->id, path[1]);
+                return SOL_COAP_RESPONSE_CODE_CHANGED;
+            } else {
+                return r;
+            }
+        } else {
+            SOL_WRN("Only TLV is supported for writing Object Instance."
+                " Received: %" PRIu16 "", payload.type);
+            return SOL_COAP_RESPONSE_CODE_UNSUPPORTED_CONTENT_FORMAT;
+        }
+
+    } else if (client->is_bootstrapping) {
+        //Bootstrap Write on Resource (e.g.: PUT /1/5/1)
+        //In this case the payload is composed of a <single TLV> of type MULTIPLE_RESOURCES
+        // or RESOURCE_WITH_VALUE and in case of TLV of type MULTIPLE_RESOURCES this TLV can contain
+        // multiple TLVs of type RESOURCE_INSTANCE
+        r = write_instance_tlv_or_resource(client, obj_ctx, obj_instance, path[2], payload);
+
+        if (r == SOL_COAP_RESPONSE_CODE_CHANGED || r == SOL_COAP_RESPONSE_CODE_CREATED) {
+            SOL_DBG("Bootstrap Write on Resource /%" PRIu16 "/%" PRIu16 "/%" PRIu16 " succeeded!",
+                obj_ctx->obj->id, obj_instance->id, path[2]);
+            return SOL_COAP_RESPONSE_CODE_CHANGED;
+        } else {
+            return r;
+        }
+
+    } else {
+        //Management Write as [Replace] on Object Instance (e.g.: PUT /1/5) or Resource (e.g.: PUT /1/5/1)
+        // or as [Partial Update] on Object Instance (e.g.: POST /1/5)
+        return write_instance_tlv_or_resource(client, obj_ctx, obj_instance, path[2], payload);
+    }
+
+err_build_tlvs:
     return SOL_COAP_RESPONSE_CODE_BAD_REQUEST;
 }
 
@@ -3351,10 +3550,12 @@ handle_resource(void *data, struct sol_coap_server *server,
     header_code = SOL_COAP_RESPONSE_CODE_BAD_REQUEST;
     SOL_INT_CHECK_GOTO(r, < 0, exit);
 
-    obj_ctx = find_object_ctx_by_id(client, path[0]);
-    header_code = SOL_COAP_RESPONSE_CODE_NOT_FOUND;
-    SOL_NULL_CHECK_GOTO(obj_ctx, exit);
-
+    if (path_size >= 1) {
+        obj_ctx = find_object_ctx_by_id(client, path[0]);
+        header_code = client->is_bootstrapping ? SOL_COAP_RESPONSE_CODE_NOT_FOUND :
+            SOL_COAP_RESPONSE_CODE_BAD_REQUEST;
+        SOL_NULL_CHECK_GOTO(obj_ctx, exit);
+    }
     if (path_size >= 2)
         obj_instance = find_object_instance_by_instance_id(obj_ctx, path[1]);
 
@@ -3380,6 +3581,12 @@ handle_resource(void *data, struct sol_coap_server *server,
 
     sol_coap_header_get_code(req, &method);
 
+    if (client->is_bootstrapping &&
+        (method == SOL_COAP_METHOD_GET || method == SOL_COAP_METHOD_POST)) {
+        header_code = SOL_COAP_RESPONSE_CODE_BAD_REQUEST;
+        goto exit;
+    }
+
     switch (method) {
     case SOL_COAP_METHOD_GET:
         if (is_observe_request(req)) {
@@ -3399,9 +3606,8 @@ handle_resource(void *data, struct sol_coap_server *server,
             //This is a create with chosen by the LWM2M server.
             header_code = handle_create(client, obj_ctx, path[1], payload);
         else if (path_size == 2)
-            //Write on object instance
-            header_code = handle_write(client, obj_ctx, obj_instance, -1,
-                payload);
+            //Management Write on object instance
+            header_code = handle_write(client, obj_ctx, obj_instance, path, path_size, payload);
         else {
             //Execute.
             is_execute = true;
@@ -3409,11 +3615,11 @@ handle_resource(void *data, struct sol_coap_server *server,
         }
         break;
     case SOL_COAP_METHOD_PUT:
-        if (path_size == 3) {
-            //Write op on a resource.
-            header_code = handle_write(client, obj_ctx, obj_instance,
-                path[2], payload);
-        } else {
+        if ((path_size == 3 && !client->is_bootstrapping) ||
+            client->is_bootstrapping)
+            //Bootstrap Write on Obj, ObjInst or Res; or Management Write on a resource.
+            header_code = handle_write(client, obj_ctx, obj_instance, path, path_size, payload);
+        else {
             header_code = SOL_COAP_RESPONSE_CODE_BAD_REQUEST;
             SOL_WRN("Write request without full path specified!");
         }
@@ -3431,12 +3637,14 @@ exit:
     r = sol_coap_send_packet(server, resp, cliaddr);
 
     if (should_dispatch_notifications(header_code, is_execute) &&
+        resource &&
         !dispatch_notifications(client, resource,
         header_code == SOL_COAP_RESPONSE_CODE_DELETED)) {
         SOL_WRN("Could not dispatch the observe notifications");
     }
 
-    if (header_code == SOL_COAP_RESPONSE_CODE_DELETED) {
+    if (header_code == SOL_COAP_RESPONSE_CODE_DELETED &&
+        !client->is_bootstrapping) {
         obj_instance_clear(client, obj_ctx, obj_instance);
         (void)sol_vector_del_element(&obj_ctx->instances, obj_instance);
     }
@@ -3445,6 +3653,14 @@ exit:
         sol_lwm2m_tlv_list_clear(&payload.payload.tlv_content);
 
     return r;
+}
+
+static int
+handle_unknown_bootstrap_resource(void *data, struct sol_coap_server *server,
+    struct sol_coap_packet *req,
+    const struct sol_network_link_addr *cliaddr)
+{
+    return handle_resource(data, server, NULL, req, cliaddr);
 }
 
 static char **
@@ -4173,6 +4389,127 @@ lifetime_client_timeout(void *data)
     return false;
 }
 
+static bool
+bootstrap_reply(void *data, struct sol_coap_server *server,
+    struct sol_coap_packet *req, const struct sol_network_link_addr *cliaddr)
+{
+    struct bootstrap_ctx *ctx = data;
+    uint8_t code = 0;
+
+    if (!cliaddr && !req)
+        code = SOL_COAP_RESPONSE_CODE_GATEWAY_TIMEOUT;
+
+    if (!code)
+        sol_coap_header_get_code(req, &code);
+    ((void (*)(void *,
+    struct sol_lwm2m_bootstrap_server *,
+    struct sol_lwm2m_bootstrap_client_info *, const char *,
+    enum sol_coap_response_code))ctx->cb)
+        ((void *)ctx->data, ctx->server, ctx->cinfo, ctx->path, code);
+
+    if (code != SOL_COAP_RESPONSE_CODE_GATEWAY_TIMEOUT)
+        send_ack_if_needed(server, req, cliaddr);
+    free(ctx->path);
+    free(ctx);
+    return false;
+}
+
+static int
+send_bootstrap_packet(struct sol_lwm2m_bootstrap_server *server,
+    struct sol_lwm2m_bootstrap_client_info *client, const char *path,
+    enum bootstrap_type type, void *cb, const void *data,
+    enum sol_coap_method method,
+    struct sol_lwm2m_resource *resources,
+    struct sol_lwm2m_resource **instances, size_t *instances_len,
+    uint16_t *instances_ids, size_t len)
+{
+    int r;
+    struct sol_coap_packet *pkt;
+    struct bootstrap_ctx *ctx;
+
+    r = setup_coap_packet(method, SOL_COAP_MESSAGE_TYPE_CON,
+        NULL, path, NULL, NULL, resources, instances, instances_len,
+        instances_ids, len, NULL, &pkt);
+    SOL_INT_CHECK(r, < 0, r);
+
+    if (!cb)
+        return sol_coap_send_packet(server->coap, pkt, &client->cliaddr);
+
+    ctx = malloc(sizeof(struct bootstrap_ctx));
+    SOL_NULL_CHECK_GOTO(ctx, err_exit);
+
+    ctx->path = strdup(path);
+    SOL_NULL_CHECK_GOTO(ctx->path, err_exit);
+    ctx->type = type;
+    ctx->server = server;
+    ctx->cinfo = client;
+    ctx->data = data;
+    ctx->cb = cb;
+
+    return sol_coap_send_packet_with_reply(server->coap, pkt, &client->cliaddr,
+        bootstrap_reply, ctx);
+
+err_exit:
+    free(ctx);
+    sol_coap_packet_unref(pkt);
+    return -ENOMEM;
+}
+
+SOL_API int
+sol_lwm2m_bootstrap_server_write_object(struct sol_lwm2m_bootstrap_server *server,
+    struct sol_lwm2m_bootstrap_client_info *client, const char *path,
+    struct sol_lwm2m_resource **instances, size_t *instances_len,
+    uint16_t *instances_ids, size_t len,
+    void (*cb)(void *data,
+    struct sol_lwm2m_bootstrap_server *server,
+    struct sol_lwm2m_bootstrap_client_info *client, const char *path,
+    enum sol_coap_response_code response_code),
+    const void *data)
+{
+    SOL_NULL_CHECK(server, -EINVAL);
+    SOL_NULL_CHECK(client, -EINVAL);
+    SOL_NULL_CHECK(path, -EINVAL);
+
+    return send_bootstrap_packet(server, client, path,
+        BOOTSTRAP_WRITE, cb, data, SOL_COAP_METHOD_PUT, NULL, instances,
+        instances_len, instances_ids, len);
+}
+
+SOL_API int
+sol_lwm2m_bootstrap_server_write(struct sol_lwm2m_bootstrap_server *server,
+    struct sol_lwm2m_bootstrap_client_info *client, const char *path,
+    struct sol_lwm2m_resource *resources, size_t len,
+    void (*cb)(void *data,
+    struct sol_lwm2m_bootstrap_server *server,
+    struct sol_lwm2m_bootstrap_client_info *client, const char *path,
+    enum sol_coap_response_code response_code),
+    const void *data)
+{
+    SOL_NULL_CHECK(server, -EINVAL);
+    SOL_NULL_CHECK(client, -EINVAL);
+    SOL_NULL_CHECK(path, -EINVAL);
+
+    return send_bootstrap_packet(server, client, path,
+        BOOTSTRAP_WRITE, cb, data, SOL_COAP_METHOD_PUT, resources, NULL, NULL, NULL, len);
+}
+
+SOL_API int
+sol_lwm2m_bootstrap_server_delete_object_instance(struct sol_lwm2m_bootstrap_server *server,
+    struct sol_lwm2m_bootstrap_client_info *client, const char *path,
+    void (*cb)(void *data,
+    struct sol_lwm2m_bootstrap_server *server,
+    struct sol_lwm2m_bootstrap_client_info *client, const char *path,
+    enum sol_coap_response_code response_code),
+    const void *data)
+{
+    SOL_NULL_CHECK(server, -EINVAL);
+    SOL_NULL_CHECK(client, -EINVAL);
+    SOL_NULL_CHECK(path, -EINVAL);
+
+    return send_bootstrap_packet(server, client, path,
+        BOOTSTRAP_DELETE, cb, data, SOL_COAP_METHOD_DELETE, NULL, NULL, NULL, NULL, 0);
+}
+
 SOL_API int
 sol_lwm2m_bootstrap_server_send_finish(struct sol_lwm2m_bootstrap_server *server,
     struct sol_lwm2m_bootstrap_client_info *client)
@@ -4346,6 +4683,11 @@ sol_lwm2m_client_start(struct sol_lwm2m_client *client)
             &bootstrap_finish_interface, client);
         SOL_INT_CHECK_GOTO(r, < 0, err_clear_3);
 
+        //Create unknown CoAP resource to handle Bootstrap Write and Bootstrap Delete
+        r = sol_coap_server_set_unknown_resource_handler(client->coap_server,
+            &handle_unknown_bootstrap_resource, client);
+        SOL_INT_CHECK_GOTO(r, < 0, err_unregister_bs);
+
         SOL_DBG("Expecting server-initiated Bootstrap for"
             " %" PRId64 " seconds", res[1].data[0].integer);
 
@@ -4383,6 +4725,9 @@ sol_lwm2m_client_start(struct sol_lwm2m_client *client)
 
     return 0;
 
+err_unregister_unknown:
+    if (sol_coap_server_set_unknown_resource_handler(client->coap_server, NULL, client) < 0)
+        SOL_WRN("Could not unregister Bootstrap Unknown resource for client.");
 err_unregister_bs:
     if (sol_coap_server_unregister_resource(client->coap_server, &bootstrap_finish_interface) < 0)
         SOL_WRN("Could not unregister Bootstrap Finish resource for client.");

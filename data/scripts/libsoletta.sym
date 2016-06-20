@@ -490,8 +490,11 @@ global:
         sol_lwm2m_bootstrap_server_add_request_monitor;
         sol_lwm2m_bootstrap_server_del;
         sol_lwm2m_bootstrap_server_del_request_monitor;
+        sol_lwm2m_bootstrap_server_delete_object_instance;
         sol_lwm2m_bootstrap_server_new;
         sol_lwm2m_bootstrap_server_send_finish;
+        sol_lwm2m_bootstrap_server_write;
+        sol_lwm2m_bootstrap_server_write_object;
         sol_lwm2m_client_add_bootstrap_finish_monitor;
         sol_lwm2m_client_del_bootstrap_finish_monitor;
         sol_lwm2m_client_add_object_instance;

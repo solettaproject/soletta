@@ -896,6 +896,78 @@ int sol_lwm2m_client_del_bootstrap_finish_monitor(struct sol_lwm2m_client *clien
     enum sol_lwm2m_bootstrap_event event),
     const void *data);
 
+/**
+ * @brief Writes a full object through the Bootstrap Interface.
+ *
+ * @param server The LWM2M bootstrap server.
+ * @param client The LWM2M bootstrap client info to write.
+ * @param path The object path to be written (Example /2).
+ * @param instances An array of #sol_lwm2m_resource arrays
+ * @param instances_len An array with the length of each element from @c instances
+ * @param instances_ids An array with the desired instance_id of each element from @c instances
+ * @param len The length of @c instances
+ * @param sol_lwm2m_bootstrap_server_status_response_cb A callback to be called when the write operation is completed. - @c server The LW2M bootstrap server; @c client The LWM2M client; @c path The client's path; @c response_code The operation's @c response_code; @c data User data.
+ * @param data User data to @c sol_lwm2m_bootstrap_server_status_response_cb
+ * @return 0 on success, -errno on error.
+ *
+ * @note All data is sent using TLV.
+ * @note Only in Bootstrap Interface, the Write operation can be made using a TLV consisting of various Object Instances.
+ */
+int sol_lwm2m_bootstrap_server_write_object(struct sol_lwm2m_bootstrap_server *server,
+    struct sol_lwm2m_bootstrap_client_info *client, const char *path,
+    struct sol_lwm2m_resource **instances, size_t *instances_len,
+    uint16_t *instances_ids, size_t len,
+    void (*sol_lwm2m_bootstrap_server_status_response_cb)(void *data,
+    struct sol_lwm2m_bootstrap_server *server,
+    struct sol_lwm2m_bootstrap_client_info *client, const char *path,
+    enum sol_coap_response_code response_code),
+    const void *data);
+
+/**
+ * @brief Writes an object instance or resource through the Bootstrap Interface.
+ *
+ * @param server The LWM2M bootstrap server.
+ * @param client The LWM2M bootstrap client info to write.
+ * @param path The object path to be written (Example /2/1).
+ * @param resources An array of #sol_lwm2m_resource
+ * @param len The length of @c resources
+ * @param sol_lwm2m_bootstrap_server_status_response_cb A callback to be called when the write operation is completed. - @c server The LW2M bootstrap server; @c client The LWM2M client; @c path The client's path; @c response_code The operation's @c response_code; @c data User data.
+ * @param data User data to @c sol_lwm2m_bootstrap_server_status_response_cb
+ * @return 0 on success, -errno on error.
+ *
+ * @note All data is sent using TLV.
+ * @note Only in Bootstrap Interface, the Write operation can be made using a TLV consisting of various Object Instances.
+ */
+int sol_lwm2m_bootstrap_server_write(struct sol_lwm2m_bootstrap_server *server,
+    struct sol_lwm2m_bootstrap_client_info *client, const char *path,
+    struct sol_lwm2m_resource *resources, size_t len,
+    void (*sol_lwm2m_bootstrap_server_status_response_cb)(void *data,
+    struct sol_lwm2m_bootstrap_server *server,
+    struct sol_lwm2m_bootstrap_client_info *client, const char *path,
+    enum sol_coap_response_code response_code),
+    const void *data);
+
+/**
+ * @brief Deletes an object instance on a client through the Bootstrap Interface.
+ *
+ * @param server The LWM2M bootstrap server.
+ * @param client The LWM2M bootstrap client info to delete an object
+ * @param path The object path to be deleted (Example /1/1).
+ * @param sol_lwm2m_bootstrap_server_status_response_cb A callback to be called when the delete operation is completed. - @c server The LW2M bootstrap server; @c client The LWM2M client; @c path The client's path; @c response_code The operation's @c response_code; @c data User data.
+ * @param data User data to @c sol_lwm2m_bootstrap_server_status_response_cb
+ * @return 0 on success, -errno on error.
+ *
+ * @note Only in Bootstrap Interface, Delete operation MAY target to '/' URI to delete all the existing Object Instances - except LWM2M Bootstrap Server Account - in the LWM2M Client, for initialization purpose before LWM2M Bootstrap Server sends Write operation(s) to the LWM2M Client.
+ */
+int sol_lwm2m_bootstrap_server_delete_object_instance(struct sol_lwm2m_bootstrap_server *server,
+    struct sol_lwm2m_bootstrap_client_info *client, const char *path,
+    void (*sol_lwm2m_bootstrap_server_status_response_cb)(void *data,
+    struct sol_lwm2m_bootstrap_server *server,
+    struct sol_lwm2m_bootstrap_client_info *client, const char *path,
+    enum sol_coap_response_code response_code),
+    const void *data);
+
+/**
  * @brief Adds a registration monitor.
  *
  * This function registers a monitor, making it easier to observe a
