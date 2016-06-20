@@ -1881,7 +1881,7 @@ sol_coap_server_new(const struct sol_network_link_addr *addr, bool secure)
         },
         .family = addr->family,
         .secure = secure,
-        .reuse_addr = true,
+        .reuse_addr = addr->port ? true : false,
     }), addr);
 }
 
