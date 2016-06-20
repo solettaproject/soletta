@@ -166,8 +166,8 @@ $(DOXYGEN_GENERATED): $(DOXYGEN_RESOURCES) $(shell find $(top_srcdir)src/ -name 
 	$(Q) cat $(top_srcdir)doc/doxygen/examples_foot.dox >> $(build_doxygen_targetdir)/examples.dox
 	$(Q)$(DOXYGEN) doc/doxygen/Doxyfile
 	$(Q) test `du $(build_doxygen_logfile) | cut -f1` -eq 0 || (echo "Failed to build doc" && cat $(build_doxygen_logfile) && exit 1)
-	$(Q) cd $(build_doxygen_targetdir)/html/; for i in `find . -name "_2src*.html"`; do mv $$i $${i:4}; done
-	$(Q) find . -name "*.html" -exec sed -i -e 's/_2src/src/g' {} \;
+	$(Q) cd $(build_doxygen_targetdir)/html/; for i in `find . -name "_2src*.html"`; do mv $$i $${i#./_2}; done
+	$(Q) cd $(build_doxygen_targetdir)/html/; find . -name "*.html" -exec sed -i -e 's/_2src/src/g' {} \;
 
 
 $(build_doxygendir)$(PACKAGE_DOCNAME).tar.bz2: $(DOXYGEN_GENERATED)
