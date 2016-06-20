@@ -56,6 +56,7 @@ struct sol_oic_server_request {
 
 struct sol_oic_server {
     struct sol_coap_server *server;
+    struct sol_coap_server *server_unicast;
     struct sol_coap_server *dtls_server;
     struct sol_ptr_vector resources;
     struct sol_oic_platform_info *plat_info;
@@ -284,6 +285,15 @@ encode_array_from_bsv(CborEncoder *map, const char *val)
 }
 #endif
 
+static struct sol_coap_server *
+get_server_for_response(struct sol_coap_server *server)
+{
+    if (server == oic_server.server)
+        return oic_server.server_unicast;
+
+    return server;
+}
+
 static CborError
 res_payload_do(CborEncoder *encoder,
     uint8_t *buf,
@@ -489,7 +499,7 @@ err:
         buf->used += encoder.ptr - encoder_start;
     }
 
-    return sol_coap_send_packet(server, resp, cliaddr);
+    return sol_coap_send_packet(get_server_for_response(server), resp, cliaddr);
 }
 #undef QUERY_LEN
 
@@ -583,7 +593,18 @@ sol_oic_server_ref(void)
         goto error;
     }
 
+    servaddr.port = 0;
+    oic_server.server_unicast = sol_coap_server_new(&servaddr, false);
+    if (!oic_server.server_unicast) {
+        r = -ENOMEM;
+        goto error;
+    }
+
     r = sol_coap_server_register_resource(oic_server.server,
+        &oic_res_coap_resource, NULL);
+    SOL_INT_CHECK_GOTO(r, < 0, error);
+
+    r = sol_coap_server_register_resource(oic_server.server_unicast,
         &oic_res_coap_resource, NULL);
     SOL_INT_CHECK_GOTO(r, < 0, error);
 
@@ -624,6 +645,9 @@ error:
     if (oic_server.server)
         sol_coap_server_unref(oic_server.server);
 
+    if (oic_server.server_unicast)
+        sol_coap_server_unref(oic_server.server_unicast);
+
     free(server_info);
     free(plat_info);
     return r;
@@ -652,6 +676,7 @@ sol_oic_server_shutdown_internal(void)
         &oic_res_coap_resource);
 
     sol_coap_server_unref(oic_server.server);
+    sol_coap_server_unref(oic_server.server_unicast);
 
     free(oic_server.server_info);
     free(oic_server.plat_info);
@@ -818,7 +843,7 @@ error:
     response_pkt = sol_coap_packet_new(req);
     SOL_NULL_CHECK(response_pkt, -errno);
     sol_coap_header_set_code(response_pkt, code);
-    return sol_coap_send_packet(server, response_pkt, cliaddr);
+    return sol_coap_send_packet(get_server_for_response(server), response_pkt, cliaddr);
 }
 
 SOL_API struct sol_oic_map_writer *
@@ -865,7 +890,7 @@ sol_oic_server_send_response(struct sol_oic_request *request, struct sol_oic_res
     r = sol_coap_header_set_code(pkt, code);
     SOL_INT_CHECK_GOTO(r, < 0, error_pkt);
 
-    r = sol_coap_send_packet(req->server, pkt, &(req->cliaddr));
+    r = sol_coap_send_packet(get_server_for_response(req->server), pkt, &(req->cliaddr));
     goto end;
 
 error_pkt:
@@ -1001,18 +1026,26 @@ sol_oic_server_register_resource_internal(const struct sol_oic_resource_type *rt
     if (sol_coap_server_register_resource(oic_server.server, res->coap, res) < 0)
         goto free_coap;
 
+    if (sol_coap_server_register_resource(oic_server.server_unicast, res->coap, res) < 0)
+        goto unregister_resource;
+
     if (oic_server.dtls_server) {
         if (sol_coap_server_register_resource(oic_server.dtls_server, res->coap, res) < 0) {
             SOL_WRN("Could not register resource in DTLS server");
-            goto unregister_resource;
+            goto unregister_resource_unicast;
         }
     }
 
     if (sol_ptr_vector_append(&oic_server.resources, res) < 0)
-        goto unregister_resource;
+        goto unregister_resource_dtls;
 
     return res;
 
+unregister_resource_dtls:
+    if (oic_server.dtls_server)
+        sol_coap_server_unregister_resource(oic_server.dtls_server, res->coap);
+unregister_resource_unicast:
+    sol_coap_server_unregister_resource(oic_server.server_unicast, res->coap);
 unregister_resource:
     sol_coap_server_unregister_resource(oic_server.server, res->coap);
 free_coap:
@@ -1055,6 +1088,7 @@ static void
 sol_oic_server_unregister_resource_internal(struct sol_oic_server_resource *resource)
 {
     sol_coap_server_unregister_resource(oic_server.server, resource->coap);
+    sol_coap_server_unregister_resource(oic_server.server_unicast, resource->coap);
     if (oic_server.dtls_server)
         sol_coap_server_unregister_resource(oic_server.dtls_server, resource->coap);
     free(resource->coap);
@@ -1128,7 +1162,7 @@ close_error:
     //Keep reference to CoAP packet, because
     //sol_coap_notify() release it's memory, even on errors
     sol_coap_packet_ref(notification->pkt);
-    r = sol_coap_notify(oic_server.server,
+    r = sol_coap_notify(oic_server.server_unicast,
         notification->resource->coap, notification->pkt);
     SOL_INT_CHECK_GOTO(r, < 0, error);
 
