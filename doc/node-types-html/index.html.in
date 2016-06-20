@@ -38,6 +38,32 @@
             /* getting the DOM element */
             var el = $('#example');
 
+            backCompleted = function() {
+                if (window.hashControl) {
+                    $(document).off('scroll');
+
+                    /* removing all active elements */
+                    $('#navigation a').each(function() {
+                        $(this).removeClass('active');
+                    });
+
+                    /* adding the active class to the selected object */
+                    $(this).addClass('active');
+                    var target = $(window.hashString);
+
+                    /* animating the page scroll to the target category */
+                    $('html, body').stop().animate(
+                        {'scrollTop':target.offset().top - 101 - 91},
+                        1200,
+                        'swing',
+                        function() {
+                            window.location.hash = hashString;
+                        }
+                    )
+                    window.hashControl = "";
+                }
+            };
+
             /* setting up the back button */
             $('.button-back').on('click',onBackClick);
             function onBackClick(event){
@@ -209,6 +235,7 @@
                 $('#example-info-code').remove();
                 $('#example').hide();
                 el.trigger('examples:closed');
+                backCompleted();
             }
 
             ExamplesView.prototype.show = function(_data){
@@ -318,28 +345,9 @@
             $('a[href^="#"]').on('click',onMenuItemClick);
 
             function onMenuItemClick(event){
-                event.preventDefault;
-                $(document).off('scroll');
-
-                /* removing all active elements */
-                $('#navigation a').each(function(){
-                    $(this).removeClass('active');
-                });
-
-                /* adding the active class to the selected object */
-                $(this).addClass('active');
-                var hashString = String(this.hash);
-                var target = $(hashString);
-
-                /* animating the page scroll to the target category */
-                $('html, body').stop().animate(
-                    {'scrollTop':target.offset().top - 101 - 91},
-                    1200,
-                    'swing',
-                    function(){
-                        window.location.hash = hashString;
-                    }
-                )
+                window.hashString = String(this.hash);
+                window.hashControl = window.hashString;
+                $('.button-back').click();
             }
         });
     </script>
