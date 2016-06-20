@@ -271,6 +271,7 @@ extern "C" {
  * @author Vinicius Costa Gomes <vinicius.gomes@intel.com>
  * @author Vladimir Cernov <cernov.vladimir@gmail.com>
  * @author wanghongjuan <hongjuanx.wang@intel.com>
+ * @author Wu Zheng <wu.zheng@intel.com>
  * @author Yong Li <yong.b.li@intel.com>
  * @author Zoltan Kis <zoltan.kis@intel.com>
  *
