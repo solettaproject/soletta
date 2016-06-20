@@ -58,6 +58,8 @@ echo "" >> $NOTE
 CLOSED_COUNT=(`wc -l $CLOSED_ISSUES`)
 echo "## Issues resolved in this release ($CLOSED_COUNT):" >> $NOTE
 echo "" >> $NOTE
+echo "A full listing of issues may be found at https://github.com/solettaproject/soletta/issues. Details about specific issues may be found at https://github.com/solettaproject/soletta/issues/ISSUE_NUMBER." >> $NOTE
+echo "" >> $NOTE
 cat $CLOSED_ISSUES >> $NOTE
 echo "" >> $NOTE
 echo "" >> $NOTE
@@ -65,12 +67,16 @@ echo "" >> $NOTE
 OPEN_COUNT=(`wc -l $OPEN_ISSUES`)
 echo "## Open issues ($OPEN_COUNT):" >> $NOTE
 echo "" >> $NOTE
+echo "A full listing of issues may be found at https://github.com/solettaproject/soletta/issues. Details about specific issues may be found at https://github.com/solettaproject/soletta/issues/ISSUE_NUMBER." >> $NOTE
+echo "" >> $NOTE
 cat $OPEN_ISSUES >> $NOTE
 echo "" >> $NOTE
 echo "" >> $NOTE
 
 COMMITS_COUNT=(`wc -l $COMMITS_LOG`)
 echo "## Changes in this release ($COMMITS_COUNT commits):" >> $NOTE
+echo "" >> $NOTE
+echo "A full listing of commits may be found at https://github.com/solettaproject/soletta/commits/master. Details about specific commits may be found at https://github.com/solettaproject/soletta/commit/COMMIT_HASH." >> $NOTE
 echo "" >> $NOTE
 cat $COMMITS_LOG >> $NOTE
 
