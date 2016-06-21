@@ -1886,6 +1886,9 @@ print_usage(const char *program)
         "    -j  When resolving types, use the passed DESC files. If DESC is\n"
         "        a directory then all the .json files in the directory will be used.\n"
         "        Multiple -j can be passed.\n"
+        "        Note that Soletta install dir will also be looked, as well as any\n"
+        "        path on SOL_FLOW_DESCRIPTIONS_PATHS (where multiple paths are\n"
+        "        separated by ':').\n"
         "    -s  Define a function named SYMBOL that will return the type from FBP\n"
         "        and don't generate any main function or entry point.\n"
         "    -I  Define search path for FBP files\n"
@@ -1897,7 +1900,6 @@ static bool
 parse_args(int argc, char *argv[])
 {
     char *filename, *dup_path;
-    bool has_json_file = false;
     int opt;
 
     if (argc < 3) {
@@ -1922,7 +1924,6 @@ parse_args(int argc, char *argv[])
             args.conf_file = optarg;
             break;
         case 'j':
-            has_json_file = true;
             if (!handle_json_path(optarg)) {
                 SOL_ERR("Can't access JSON description path '%s': %s",
                     optarg, sol_util_strerrora(errno));
@@ -1945,12 +1946,6 @@ parse_args(int argc, char *argv[])
     if (optind != argc - 2) {
         fprintf(stderr, "A single FBP input file and output file is required."
             " e.g. './sol-fbp-generator -j builtins.json simple.fbp simple-fbp.c'\n");
-        return false;
-    }
-
-    if (!has_json_file) {
-        fprintf(stderr, "At least one JSON file containing the declaration of the nodes"
-            " (module) used in the FBP is required.\n");
         return false;
     }
 
@@ -2516,6 +2511,25 @@ write_file(const char *filename, const struct sol_buffer *buf)
     return err;
 }
 
+static void
+handle_descriptions_paths(const char *descripions_paths)
+{
+    struct sol_str_slice paths = sol_str_slice_from_str(descripions_paths);
+    struct sol_str_slice token;
+    struct sol_str_slice delim = SOL_STR_SLICE_LITERAL(":");
+    const char *itr = NULL;
+
+    while (sol_str_slice_split_iterate(paths, &token, &itr, delim)) {
+        char *path = sol_str_slice_to_str(token);
+        if (!path) {
+            SOL_WRN("Could not parse pathectories from SOL_FLOW_DESCRIPTIONS_PATHS environment variable");
+            return;
+        }
+        handle_json_path(path);
+        free(path);
+    }
+}
+
 int
 main(int argc, char *argv[])
 {
@@ -2528,6 +2542,8 @@ main(int argc, char *argv[])
     struct exported_option *exported_opt;
     struct exported_option_description *opt_description;
     struct sol_fbp_node *n;
+    char root_dir[PATH_MAX], descriptions_dir[PATH_MAX];
+    const char *descripions_paths;
     uint16_t i, j, k;
     uint8_t result = EXIT_FAILURE;
     int err;
@@ -2545,6 +2561,22 @@ main(int argc, char *argv[])
 
     if (!parse_args(argc, argv))
         goto fail_args;
+
+    /* Let's look for node descriptions environment variable SOL_FLOW_DESCRIPTIONS_PATHS */
+    descripions_paths = getenv("SOL_FLOW_DESCRIPTIONS_PATHS");
+    if (descripions_paths && descripions_paths[0] != '\n')
+        handle_descriptions_paths(descripions_paths);
+
+    /* Let's look for node descriptions on Soletta install dir */
+    err = sol_util_get_rootdir(root_dir, sizeof(root_dir));
+    if (err < 0) {
+        SOL_INF("Could not get Soletta root dir, not using node description from there");
+    } else {
+        err = snprintf(descriptions_dir, sizeof(root_dir), "%s%s/share/soletta/flow/descriptions",
+            root_dir, PREFIX);
+        if (err > 0 && (size_t)err < sizeof(root_dir))
+            handle_json_path(descriptions_dir);
+    }
 
     common_store = type_store_new();
     if (!common_store)
