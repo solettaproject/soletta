@@ -26,6 +26,10 @@
  * @{
  */
 
+#ifdef __cplusplus
+extern "C" {
+#endif
+
 /**
  * @struct sol_file_reader
  * @brief Opaque handler for a file reader.
@@ -96,3 +100,7 @@ struct sol_blob *sol_file_reader_to_blob(struct sol_file_reader *fr);
 /**
  * @}
  */
+
+#ifdef __cplusplus
+}
+#endif
