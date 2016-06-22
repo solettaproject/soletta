@@ -4,7 +4,8 @@ obj-core-y := \
     sol-blob.o \
     sol-mainloop.o \
     sol-platform.o \
-    sol-types.o
+    sol-types.o \
+    sol-util.o
 
 obj-core-extra-ldflags = \
     -lm
@@ -59,14 +60,19 @@ obj-core-$(MAINLOOP_ZEPHYR) += \
 obj-core-$(PLATFORM_LINUX_MICRO) += \
     sol-platform-impl-linux-micro.o
 obj-core-$(PLATFORM_RIOTOS) += \
-    sol-platform-impl-riot.o
+    sol-platform-impl-riot.o \
+    sol-util-impl-riot.o
 obj-core-$(PLATFORM_CONTIKI) += \
-    sol-platform-impl-contiki.o
+    sol-platform-impl-contiki.o \
+    sol-util-impl-contiki.o
 obj-core-$(PLATFORM_ZEPHYR) += \
-    sol-platform-impl-zephyr.o
+    sol-platform-impl-zephyr.o \
+    sol-util-impl-zephyr.o
 
 obj-core-$(PLATFORM_LINUX) += \
-    sol-platform-linux-common.o
+    sol-platform-linux-common.o \
+    sol-file-reader.o \
+    sol-util-impl-linux.o
 
 obj-core-$(DETECT_BOARD_NAME) += \
     sol-board-detect.o
@@ -99,6 +105,10 @@ obj-core-$(PLATFORM_LINUX) += \
 obj-core-$(USE_UPDATE) += \
     sol-update.o
 
+
+obj-core-$(FEATURE_FILESYSTEM) += \
+    sol-util-file.o
+
 requires-private-$(MAINLOOP_GLIB) += \
     $(GLIB_REQUIRES_PRIVATE)
 
@@ -119,6 +129,8 @@ headers-y := \
     include/sol-platform.h \
     include/sol-power-supply.h \
     include/sol-types.h \
+    include/sol-reentrant.h \
+    include/sol-util.h \
     sol-common-buildopts.h.in
 
 headers-$(PLATFORM_LINUX) += \
@@ -138,3 +150,7 @@ headers-$(MAINLOOP_CONTIKI) += \
 headers-$(USE_UPDATE) += \
     include/sol-update.h \
     include/sol-update-modules.h
+
+headers-$(FEATURE_FILESYSTEM) += \
+    include/sol-util-file.h \
+    include/sol-file-reader.h
