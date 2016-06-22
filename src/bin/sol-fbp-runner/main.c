@@ -64,7 +64,6 @@ static struct {
 } args;
 
 static struct runner *the_runner;
-static struct sol_arena *str_arena;
 
 #ifdef SOL_FLOW_INSPECTOR_ENABLED
 /* defined in inspector.c */
@@ -243,12 +242,6 @@ startup(void)
     if (!parse_args(sol_argc(), sol_argv()))
         return;
 
-    str_arena = sol_arena_new();
-    if (!str_arena) {
-        fputs("Error: Cannot create str arena\n", stderr);
-        goto end;
-    }
-
     if (args.execute_type) {
         the_runner = runner_new_from_type(args.name, args.options);
     } else {
@@ -315,9 +308,6 @@ shutdown(void)
 
     if (the_runner)
         runner_del(the_runner);
-
-    if (str_arena)
-        sol_arena_del(str_arena);
 
     sol_ptr_vector_clear(&args.fbp_search_paths);
 }
