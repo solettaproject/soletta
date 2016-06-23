@@ -1,0 +1,59 @@
+#!/usr/bin/env sol-fbp-runner
+
+# This file is part of the Soletta™ Project
+#
+# Copyright (C) 2016 Intel Corporation. All rights reserved.
+#
+# Licensed under the Apache License, Version 2.0 (the "License");
+# you may not use this file except in compliance with the License.
+# You may obtain a copy of the License at
+#
+#     http://www.apache.org/licenses/LICENSE-2.0
+#
+# Unless required by applicable law or agreed to in writing, software
+# distributed under the License is distributed on an "AS IS" BASIS,
+# WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+# See the License for the specific language governing permissions and
+# limitations under the License.
+
+# This sample exemplifies the ThingSpeak Talkback feature usage.
+#
+# TalkBack enables any device to act on queued commands.
+#
+# So in this example we'll have a device
+# used to identify a person and send a command to another device, the
+# smart lock, to open.
+#
+# Here we'll simulate the first device as a single keyboard key and
+# it will add the command "OPEN" to the queue everytime it's pressed
+# (key 'a').
+# It also prints to the console the submitted command.
+#
+# Usage: ./thingspeak-talkback-identify.fbp
+#
+# On other proccess you may run thingspeak-talkback-smart-lock.fbp
+# to consume these commands.
+#
+# Register at https://thingspeak.com or use another server (and
+# update node type options).
+#
+# There you should create a new Talkback. You need the talkback
+# id (not the name) and the API Key. Use these values as
+# options for talkback_add and talkback_execute nodes.
+#
+# You'll be able to see it throught the Thingspeak web interface as well,
+# if you want.
+
+
+# TODO wouldn't be better to accept API_KEY and ID through input ports?
+#talkback_id(app/argv:index=1)
+#api_key(app/argv:index=2)
+
+identity_device(keyboard/boolean:binary_code=97)
+talkback_add(thingspeak/talkback-add:talkback_id="TALKBACK_ID",api_key="API_KEY")
+talkback_add_command(converter/empty-to-string:output_value="OPEN")
+
+identity_device OUT -> PULSE_IF_TRUE _(converter/boolean-to-empty) OUT -> IN talkback_add_command
+
+talkback_add_command OUT -> IN talkback_add
+talkback_add_command OUT -> IN log(console)
