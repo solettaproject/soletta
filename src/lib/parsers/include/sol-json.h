@@ -414,7 +414,7 @@ sol_json_token_str_eq(const struct sol_json_token *token, const char *str, size_
  * @see sol_json_token_get_uint32()
  * @see sol_json_token_get_double()
  */
-int sol_json_token_get_uint64(const struct sol_json_token *token, uint64_t *value) SOL_ATTR_WARN_UNUSED_RESULT SOL_ATTR_NON_NULL(1, 2);
+int sol_json_token_get_uint64(const struct sol_json_token *token, uint64_t *value) SOL_ATTR_WARN_UNUSED_RESULT;
 
 /**
  * @brief Get the numeric value of the given token as an 64 bits signed integer.
@@ -430,7 +430,7 @@ int sol_json_token_get_uint64(const struct sol_json_token *token, uint64_t *valu
  * @see sol_json_token_get_int32()
  * @see sol_json_token_get_double()
  */
-int sol_json_token_get_int64(const struct sol_json_token *token, int64_t *value) SOL_ATTR_WARN_UNUSED_RESULT SOL_ATTR_NON_NULL(1, 2);
+int sol_json_token_get_int64(const struct sol_json_token *token, int64_t *value) SOL_ATTR_WARN_UNUSED_RESULT;
 
 /**
  * @brief Get the numeric value of the given token as an 32 bits unsigned integer.
@@ -511,7 +511,7 @@ sol_json_token_get_int32(const struct sol_json_token *token, int32_t *value)
  * @see sol_json_token_get_uint32()
  * @see sol_json_token_get_int32()
  */
-int sol_json_token_get_double(const struct sol_json_token *token, double *value) SOL_ATTR_WARN_UNUSED_RESULT SOL_ATTR_NON_NULL(1, 2);
+int sol_json_token_get_double(const struct sol_json_token *token, double *value) SOL_ATTR_WARN_UNUSED_RESULT;
 
 /**
  * @brief Converts a JSON token to a string slice.
@@ -690,7 +690,7 @@ sol_json_loop_iterate_init(struct sol_json_scanner *scanner, struct sol_json_tok
  *
  * @return Size necessary to hold the escaped version of @c str
  */
-size_t sol_json_calculate_escaped_string_len(const char *str) SOL_ATTR_NON_NULL(1);
+size_t sol_json_calculate_escaped_string_len(const char *str);
 
 /**
  * @brief Escapes JSON special and control characters from the string content.
@@ -700,7 +700,7 @@ size_t sol_json_calculate_escaped_string_len(const char *str) SOL_ATTR_NON_NULL(
  *
  * @return The escaped string
  */
-char *sol_json_escape_string(const char *str, struct sol_buffer *buf) SOL_ATTR_NON_NULL(1, 2);
+char *sol_json_escape_string(const char *str, struct sol_buffer *buf);
 
 /**
  * @brief Converts a double into a string suited for use in a JSON Document
@@ -736,7 +736,7 @@ bool sol_json_is_valid_type(struct sol_json_scanner *scanner, enum sol_json_type
  * @note The inserted string may be different of the original since this function
  * will call @ref sol_json_escape_string on it.
  */
-int sol_json_serialize_string(struct sol_buffer *buffer, const char *str) SOL_ATTR_NON_NULL(1, 2);
+int sol_json_serialize_string(struct sol_buffer *buffer, const char *str);
 
 /**
  * @brief Inserts the string of the double @c val in the end
@@ -747,7 +747,7 @@ int sol_json_serialize_string(struct sol_buffer *buffer, const char *str) SOL_AT
  *
  * @return @c 0 on success, error code (always negative) otherwise
  */
-int sol_json_serialize_double(struct sol_buffer *buffer, double val) SOL_ATTR_NON_NULL(1);
+int sol_json_serialize_double(struct sol_buffer *buffer, double val);
 
 /**
  * @brief Inserts the string of the 32-bit integer @c val in the end
@@ -758,7 +758,7 @@ int sol_json_serialize_double(struct sol_buffer *buffer, double val) SOL_ATTR_NO
  *
  * @return @c 0 on success, error code (always negative) otherwise
  */
-int sol_json_serialize_int32(struct sol_buffer *buffer, int32_t val) SOL_ATTR_NON_NULL(1);
+int sol_json_serialize_int32(struct sol_buffer *buffer, int32_t val);
 
 /**
  * @brief Inserts the string of the unsigned 32-bit integer @c val in the end
@@ -769,7 +769,7 @@ int sol_json_serialize_int32(struct sol_buffer *buffer, int32_t val) SOL_ATTR_NO
  *
  * @return @c 0 on success, error code (always negative) otherwise
  */
-int sol_json_serialize_uint32(struct sol_buffer *buffer, uint32_t val) SOL_ATTR_NON_NULL(1);
+int sol_json_serialize_uint32(struct sol_buffer *buffer, uint32_t val);
 
 /**
  * @brief Inserts the string of the 64-bit integer @c val in the end
@@ -780,7 +780,7 @@ int sol_json_serialize_uint32(struct sol_buffer *buffer, uint32_t val) SOL_ATTR_
  *
  * @return @c 0 on success, error code (always negative) otherwise
  */
-int sol_json_serialize_int64(struct sol_buffer *buffer, int64_t val) SOL_ATTR_NON_NULL(1);
+int sol_json_serialize_int64(struct sol_buffer *buffer, int64_t val);
 
 /**
  * @brief Inserts the string of the unsigned 64-bit integer @c val in the end
@@ -791,7 +791,7 @@ int sol_json_serialize_int64(struct sol_buffer *buffer, int64_t val) SOL_ATTR_NO
  *
  * @return @c 0 on success, error code (always negative) otherwise
  */
-int sol_json_serialize_uint64(struct sol_buffer *buffer, uint64_t val) SOL_ATTR_NON_NULL(1);
+int sol_json_serialize_uint64(struct sol_buffer *buffer, uint64_t val);
 
 /**
  * @brief Inserts the string of the boolean value @c val in the end
@@ -802,7 +802,7 @@ int sol_json_serialize_uint64(struct sol_buffer *buffer, uint64_t val) SOL_ATTR_
  *
  * @return @c 0 on success, error code (always negative) otherwise
  */
-int sol_json_serialize_bool(struct sol_buffer *buffer, bool val) SOL_ATTR_NON_NULL(1);
+int sol_json_serialize_bool(struct sol_buffer *buffer, bool val);
 
 /**
  * @brief Inserts the string "null" in the end of the JSON document contained in @c buffer.
@@ -836,7 +836,7 @@ sol_json_serialize_null(struct sol_buffer *buffer)
  *
  * @see sol_json_load_memdesc()
  */
-int sol_json_serialize_memdesc(struct sol_buffer *buffer, const struct sol_memdesc *desc, const void *memory, bool detailed_structures) SOL_ATTR_NON_NULL(1, 2, 3);
+int sol_json_serialize_memdesc(struct sol_buffer *buffer, const struct sol_memdesc *desc, const void *memory, bool detailed_structures);
 
 /**
  * @brief Loads the members of a memory from JSON according to its description.
@@ -862,7 +862,7 @@ int sol_json_serialize_memdesc(struct sol_buffer *buffer, const struct sol_memde
  *
  * @see sol_json_serialize_memdesc()
  */
-int sol_json_load_memdesc(const struct sol_json_token *token, const struct sol_memdesc *desc, void *memory) SOL_ATTR_NON_NULL(1, 2, 3);
+int sol_json_load_memdesc(const struct sol_json_token *token, const struct sol_memdesc *desc, void *memory);
 
 /**
  *  @brief Copy to a @ref sol_buffer the string pointed by @c token.
