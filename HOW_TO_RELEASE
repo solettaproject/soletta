@@ -1,0 +1,16 @@
+To properly versioning the Soletta (TM) Project the
+following variables are used and should be updated
+before each new release (all of them on Makefiles.vars)
+
+The shared object versioning follows libtool approach.
+
+    * SOL_VERSION -> project version, not related to soname
+    * SOL_LIB_CURRENT
+    * SOL_LIB_AGE
+    * SOL_LIB_REVISION
+
+1) At every release you should increment SOL_VERSION
+2) If the library source code has changed at all since the last update, then increment SOL_LIB_REVISION
+3) If any interfaces have been added, removed, or changed since the last update, increment SOL_LIB_CURRENT, and set SOL_LIB_REVISION to 0.
+4) If any interfaces have been added since the last public release, then increment SOL_LIB_AGE.
+5) If any interfaces have been removed or changed since the last public release, then set SOL_LIB_AGE to 0.
