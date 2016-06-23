@@ -99,7 +99,7 @@ err:
     return result;
 }
 
-void
+SOL_API void
 sol_file_reader_close(struct sol_file_reader *fr)
 {
     SOL_NULL_CHECK(fr);
@@ -111,7 +111,7 @@ sol_file_reader_close(struct sol_file_reader *fr)
     free(fr);
 }
 
-struct sol_str_slice
+SOL_API struct sol_str_slice
 sol_file_reader_get_all(const struct sol_file_reader *fr)
 {
     SOL_NULL_CHECK(fr, (struct sol_str_slice) {
@@ -125,7 +125,7 @@ sol_file_reader_get_all(const struct sol_file_reader *fr)
     };
 }
 
-const struct stat *
+SOL_API const struct stat *
 sol_file_reader_get_stat(const struct sol_file_reader *fr)
 {
     SOL_NULL_CHECK(fr, NULL);
@@ -155,7 +155,7 @@ static const struct sol_blob_type _SOL_BLOB_TYPE_FILE_READER = {
     .free = _sol_blob_type_file_reader_close
 };
 
-struct sol_blob *
+SOL_API struct sol_blob *
 sol_file_reader_to_blob(struct sol_file_reader *fr)
 {
     struct sol_blob_file_reader *b;

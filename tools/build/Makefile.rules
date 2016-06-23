@@ -377,7 +377,7 @@ $(foreach obj,$(sort $(all-objs)), \
 )
 
 define make-mod-so
-$($(1)-out): $(SOL_LIB_OUTPUT) $($(1)-objs) $(call find-deps,$(1)) $($(1)-bs)
+$($(1)-out): $(SOL_LIB_OUTPUT) $(SOL_SHARED_AR) $($(1)-objs) $(call find-deps,$(1)) $($(1)-bs)
 	$(Q)echo "     "MOD"   "$$@
 	$(Q)$(MKDIR) -p $(dir $($(1)-out))
 	$(Q)$(TARGETCC) $(MOD_CFLAGS) $(sort $($(1)-cflags)) $($(1)-objs) \
@@ -385,15 +385,20 @@ $($(1)-out): $(SOL_LIB_OUTPUT) $($(1)-objs) $(call find-deps,$(1)) $($(1)-bs)
 endef
 $(foreach curr,$(mod-so),$(eval $(call make-mod-so,$(curr))))
 
-$(SOL_LIB_AR): $(all-objs)
+$(SOL_SHARED_AR): $(builtin-objs)
+	$(Q)echo "      "AR"   "$(@)
+	$(Q)$(MKDIR) -p $(dir $(SOL_SHARED_AR))
+	$(Q)$(TARGETAR) $(TARGET_ARFLAGS) $(@) $(filter $(build_stagedir)shared/%,$(builtin-objs))
+
+$(SOL_LIB_AR): $(SOL_SHARED_AR) $(all-objs)
 	$(Q)echo "      "AR"   "$(@)
 	$(Q)$(MKDIR) -p $(dir $(SOL_LIB_AR))
-	$(Q)$(TARGETAR) $(TARGET_ARFLAGS) $(@) $(all-objs)
+	$(Q)$(TARGETAR) $(TARGET_ARFLAGS) $(@) $(filter-out $(build_stagedir)shared/%,$(all-objs))
 
-$(SOL_LIB_SO): $(builtin-objs)
+$(SOL_LIB_SO): $(SOL_SHARED_AR)
 	$(Q)echo "      "LD"   "$(@)
 	$(Q)$(MKDIR) -p $(dir $(SOL_LIB_SO))
-	$(Q)$(TARGETCC) -shared $(sort $(builtin-objs)) $(sort $(builtin-ldflags)) $(LIB_LDFLAGS) -o $(@).$(VERSION)
+	$(Q)$(TARGETCC) -shared $(sort $(filter-out $(build_stagedir)shared/%,$(builtin-objs))) $(sort $(builtin-ldflags)) $(LIB_LDFLAGS) -o $(@).$(VERSION)
 	$(Q)$(LN) -fs $(notdir $(@).$(VERSION)) $(@).$(VERSION_MAJOR)
 	$(Q)$(LN) -fs $(notdir $(@).$(VERSION)) $(@)
 
