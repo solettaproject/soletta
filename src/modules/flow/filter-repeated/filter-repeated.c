@@ -134,6 +134,7 @@ error_filter(struct sol_flow_node *node, void *data, uint16_t port, uint16_t con
         return -errno;
     }
     mdata->code = code_value;
+    mdata->initialized = true;
 
     return sol_flow_send_error_packet_str(node, code_value, in_value);
 }
