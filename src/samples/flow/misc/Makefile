@@ -19,11 +19,5 @@ sample-change_system_clock-$(FLOW_MISC_CHANGE_SYSTEM_CLOCK_SAMPLE) := change_sys
 sample-$(FLOW_MISC_CHANGE_LOCALE_SAMPLE) += change_locale
 sample-change_locale-$(FLOW_MISC_CHANGE_LOCALE_SAMPLE) := change_locale.fbp
 
-sample-$(FLOW_MISC_FLOWER_POWER_SAMPLE) += flower-power-http
-sample-flower-power-http-$(FLOW_MISC_FLOWER_POWER_SAMPLE) := flower-power-http.fbp
-
 sample-$(FLOW_MISC_PERSISTENCE_SAMPLE) += persistence
 sample-persistence-$(FLOW_MISC_PERSISTENCE_SAMPLE) := persistence.fbp
-
-sample-$(FLOW_MISC_FREEGEO_IP_SAMPLE) += freegeoip
-sample-freegeoip-$(FLOW_MISC_FREEGEO_IP_SAMPLE) := freegeoip.fbp
