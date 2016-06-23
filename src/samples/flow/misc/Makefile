@@ -21,3 +21,6 @@ sample-change_locale-$(FLOW_MISC_CHANGE_LOCALE_SAMPLE) := change_locale.fbp
 
 sample-$(FLOW_MISC_PERSISTENCE_SAMPLE) += persistence
 sample-persistence-$(FLOW_MISC_PERSISTENCE_SAMPLE) := persistence.fbp
+
+sample-$(FLOW_MISC_EVDEV_SAMPLE) += evdev
+sample-evdev-$(FLOW_MISC_EVDEV_SAMPLE) := evdev.fbp
