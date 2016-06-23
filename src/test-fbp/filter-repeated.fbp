@@ -21,6 +21,7 @@ filter_int(filter-repeated/int)
 filter_rgb(filter-repeated/rgb)
 filter_direction_vector(filter-repeated/direction-vector)
 filter_string(filter-repeated/string)
+filter_error(filter-repeated/error)
 
 gen_boolean(test/boolean-generator:sequence="TTFFFTT")
 validator_boolean(test/boolean-validator:sequence="TFT")
@@ -83,3 +84,19 @@ string3 OUT -> IN filter_string
 string4 OUT -> IN filter_string
 accumulator OUT -> IN validator_string
 validator_string OUT -> RESULT filter_repeated_string(test/result)
+
+division(int/division)
+divisor(constant/int:value=0)
+dividend1(constant/int:value=1)
+dividend2(constant/int:value=1)
+conv_error(converter/error)
+const_error(constant/string:value="Numerical argument out of domain (errno 33)")
+
+divisor OUT -> DIVISOR division
+dividend1 OUT -> DIVIDEND division
+dividend2 OUT -> DIVIDEND division
+division ERROR -> IN filter_error
+filter_error ERROR -> IN conv_error
+conv_error MESSAGE -> IN[0] error_msg_equal(string/compare)
+const_error OUT -> IN[1] error_msg_equal
+error_msg_equal EQUAL -> RESULT filter_repeated_error(test/result)
