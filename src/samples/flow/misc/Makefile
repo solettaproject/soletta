@@ -24,3 +24,6 @@ sample-persistence-$(FLOW_MISC_PERSISTENCE_SAMPLE) := persistence.fbp
 
 sample-$(FLOW_MISC_EVDEV_SAMPLE) += evdev
 sample-evdev-$(FLOW_MISC_EVDEV_SAMPLE) := evdev.fbp
+
+sample-$(FLOW_MISC_NET_STATUS_SAMPLE) += net-status
+sample-net-status-$(FLOW_MISC_NET_STATUS_SAMPLE) := network-status.fbp
