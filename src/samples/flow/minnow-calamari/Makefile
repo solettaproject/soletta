@@ -26,3 +26,6 @@ sample-$(FLOW_CALAMARI_BUTTON_ACCUMULATOR_PERSISTENCE) += calamari-button-accumu
 sample-calamari-button-accumulator-persistence-$(FLOW_CALAMARI_BUTTON_ACCUMULATOR_PERSISTENCE) := calamari-button-accumulator-persistence.fbp
 sample-calamari-button-accumulator-persistence-$(FLOW_CALAMARI_BUTTON_ACCUMULATOR_PERSISTENCE)-conffile := sol-flow-intel-minnow-max-linux_gt_3_17.json
 
+sample-$(FLOW_CALAMARI_BUTTON_ACCUMULATOR_PERSISTENCE_EFIVARS) += calamari-button-accumulator-persistence-efivars
+sample-calamari-button-accumulator-persistence-efivars-$(FLOW_CALAMARI_BUTTON_ACCUMULATOR_PERSISTENCE_EFIVARS) := calamari-button-accumulator-persistence-efivars.fbp
+sample-calamari-button-accumulator-persistence-efivars-$(FLOW_CALAMARI_BUTTON_ACCUMULATOR_PERSISTENCE_EFIVARS)-conffile := sol-flow-intel-minnow-max-linux_gt_3_17.json
