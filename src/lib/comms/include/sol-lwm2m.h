@@ -579,7 +579,7 @@ struct sol_lwm2m_object {
  * @param data The user's data that will be passed to the object callbacks. (create, execute, read, write and del).
  * @return A LWM2M client handle or @c NULL on error
  * @see sol_lwm2m_client_del()
- * @see sol_lwm2m_add_object_instance()
+ * @see sol_lwm2m_client_add_object_instance()
  * @see sol_lwm2m_client_start()
  */
 struct sol_lwm2m_client *sol_lwm2m_client_new(const char *name,
@@ -605,7 +605,7 @@ void sol_lwm2m_client_del(struct sol_lwm2m_client *client);
  * @param data The instance data.
  * @return 0 on success, -errno on error.
  */
-int sol_lwm2m_add_object_instance(struct sol_lwm2m_client *client,
+int sol_lwm2m_client_add_object_instance(struct sol_lwm2m_client *client,
     const struct sol_lwm2m_object *obj, const void *data);
 
 /**

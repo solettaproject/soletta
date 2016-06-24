@@ -629,9 +629,9 @@ main(int argc, char *argv[])
     client = sol_lwm2m_client_new(CLIENT_NAME, OBJ_PATH, SMS_NUMBER, objects, NULL);
     ASSERT(client != NULL);
 
-    r = sol_lwm2m_add_object_instance(client, &server_object, NULL);
+    r = sol_lwm2m_client_add_object_instance(client, &server_object, NULL);
     ASSERT_INT_EQ(r, 0);
-    r = sol_lwm2m_add_object_instance(client, &security_object, NULL);
+    r = sol_lwm2m_client_add_object_instance(client, &security_object, NULL);
     ASSERT_INT_EQ(r, 0);
 
     r = sol_lwm2m_client_start(client);
