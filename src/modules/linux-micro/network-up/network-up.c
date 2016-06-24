@@ -62,10 +62,12 @@ network_up_start(const struct sol_platform_linux_micro_module *mod, const char *
 static int
 network_up_init(const struct sol_platform_linux_micro_module *module, const char *service)
 {
+    int r;
+
     SOL_LOG_INTERNAL_INIT_ONCE;
 
-    if (!sol_network_subscribe_events(_network_event_cb, NULL))
-        return -1;
+    r = sol_network_subscribe_events(_network_event_cb, NULL);
+    SOL_INT_CHECK(r, < 0, r);
 
     return 0;
 }

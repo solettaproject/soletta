@@ -190,8 +190,8 @@ network_open(struct sol_flow_node *node, void *data, const struct sol_flow_node_
     SOL_FLOW_NODE_OPTIONS_SUB_API_CHECK(options,
         SOL_FLOW_NODE_TYPE_NETWORK_BOOLEAN_OPTIONS_API_VERSION, -EINVAL);
 
-    if (!sol_network_subscribe_events(_on_network_event, mdata))
-        return -EINVAL;
+    r = sol_network_subscribe_events(_on_network_event, mdata);
+    SOL_INT_CHECK(r, < 0, r);
 
     sol_ptr_vector_init(&mdata->links);
     mdata->node = node;

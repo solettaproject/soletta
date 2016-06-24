@@ -127,7 +127,7 @@ static void
 startup_network(void)
 {
     char **argv = sol_argv();
-    int c, opt_idx,  argc = sol_argc();
+    int c, r, opt_idx,  argc = sol_argc();
     char *regexp = NULL;
     static const struct option opts[] = {
         { "interface", required_argument, NULL, 'i' },
@@ -154,8 +154,8 @@ startup_network(void)
     if (!_compile_regex(regexp))
         goto err;
 
-    if (!sol_network_subscribe_events(_on_network_event, NULL))
-        goto err_init;
+    r = sol_network_subscribe_events(_on_network_event, NULL);
+    SOL_INT_CHECK_GOTO(r, < 0, err_init);
 
     return;
 
