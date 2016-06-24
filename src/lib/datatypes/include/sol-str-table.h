@@ -105,7 +105,7 @@ const struct sol_str_table *sol_str_table_entry_lookup(const struct sol_str_tabl
  */
 int16_t sol_str_table_lookup_fallback(const struct sol_str_table *table,
     const struct sol_str_slice key,
-    int16_t fallback) SOL_ATTR_NON_NULL(1);
+    int16_t fallback);
 
 /**
  * @brief flag to detect key 'misses' in @ref sol_str_table_lookup.
