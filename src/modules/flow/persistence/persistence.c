@@ -345,7 +345,7 @@ persist_open(struct sol_flow_node *node,
     sol_buffer_fini(&buf);
 
     if (r < 0) {
-        SOL_WRN("Error reading previous storage (%s). Sending default value "
+        SOL_INF("Error reading previous storage (%s). Sending default value "
             "on output port.", sol_util_strerrora(-r));
         r = persist_reset(mdata, node);
         SOL_INT_CHECK_GOTO(r, < 0, err);
