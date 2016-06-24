@@ -396,13 +396,13 @@ main(int argc, char *argv[])
         goto exit;
     }
 
-    r = sol_lwm2m_add_object_instance(client, &server_object, NULL);
+    r = sol_lwm2m_client_add_object_instance(client, &server_object, NULL);
     if (r < 0) {
         fprintf(stderr, "Could not add a server object instance\n");
         goto exit_del;
     }
 
-    r = sol_lwm2m_add_object_instance(client, &security_object, NULL);
+    r = sol_lwm2m_client_add_object_instance(client, &security_object, NULL);
 
     if (r < 0) {
         fprintf(stderr, "Could not add a security object instance\n");
