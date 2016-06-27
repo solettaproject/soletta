@@ -37,10 +37,10 @@ set_port_index(int *port_index, int index_value)
 {
     *port_index = index_value;
     if (*port_index < 0) {
-        SOL_WRN("Output port index must be greater or equal to zero. Using 0.");
+        SOL_WRN("Port index must be greater or equal to zero. Using 0.");
         *port_index = 0;
     } else if (*port_index >= PORT_MAX) {
-        SOL_WRN("Output port index must be less than %d. Using %d.",
+        SOL_WRN("Port index must be less than %d. Using %d.",
             PORT_MAX, PORT_MAX - 1);
         *port_index = PORT_MAX - 1;
     }
