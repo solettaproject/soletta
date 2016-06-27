@@ -67,7 +67,7 @@ on_timeout(void *data)
 {
     struct test_result_data *d;
 
-    SOL_WRN("Timeout expired! Failing test...");
+    SOL_WRN("Timeout expired! Failing test %s", sol_flow_node_get_id(data));
 
     fail(data);
     d = sol_flow_node_get_private_data(data);
