@@ -19,3 +19,9 @@ sample-keyboard-$(FLOW_BASICS_KEYBOARD_SAMPLE) := keyboard.fbp
 sample-$(FLOW_BASICS_SET_TARGET_SAMPLE) += set-target
 sample-set-target-$(FLOW_BASICS_SET_TARGET_SAMPLE) := set-target.fbp
 sample-set-target-$(FLOW_BASICS_SET_TARGET_SAMPLE)-conffile := sol-flow-intel-galileo-rev-g.json
+
+sample-$(FLOW_BASICS_WEEKDAY_SAMPLE) += weekday
+sample-weekday-$(FLOW_BASICS_WEEKDAY_SAMPLE) := weekday.fbp
+
+sample-$(FLOW_BASICS_TIMEBLOCK_SAMPLE) += timeblock
+sample-timeblock-$(FLOW_BASICS_TIMEBLOCK_SAMPLE) := timeblock.fbp
