@@ -157,3 +157,6 @@ headers-$(FEATURE_FILESYSTEM) += \
 
 headers-$(PLATFORM_LINUX) += \
     include/sol-platform-linux.h
+
+headers-$(PLATFORM_LINUX_MICRO) += \
+    include/sol-platform-linux-micro.h
