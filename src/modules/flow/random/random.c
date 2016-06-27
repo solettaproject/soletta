@@ -63,7 +63,7 @@ random_close(struct sol_flow_node *node, void *data)
 static int
 random_int_generate(struct sol_flow_node *node, void *data, uint16_t port, uint16_t conn_id, const struct sol_flow_packet *packet)
 {
-    struct sol_irange value = { 0, 0, INT32_MAX, 1 };
+    struct sol_irange value = { 0, INT32_MIN, INT32_MAX, 1 };
     struct random_node_data *mdata = data;
     int r;
 

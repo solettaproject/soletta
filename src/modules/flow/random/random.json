@@ -188,7 +188,7 @@
       "out_ports": [
         {
           "data_type": "int",
-          "description": "Random int value from 0 to INT32_MAX. Do NOT use it for anything else than test purposes.",
+          "description": "Random int value from INT32_MIN to INT32_MAX. Do NOT use it for anything else than test purposes.",
           "name": "OUT"
         }
       ],
