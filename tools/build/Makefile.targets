@@ -60,7 +60,10 @@ check-fbp-valgrind: check-valgrind
 check-fbp-bin-valgrind: check-valgrind
 endif # HAVE_VALGRIND
 
-PHONY += check-valgrind check-fbp-valgrind check-fbp-bin-valgrind
+check-api:
+	$(Q)$(PYTHON) $(TEST_API_SCRIPT) --src_dir $(top_srcdir)src --version_script $(SCRIPTDIR)libsoletta.sym
+
+PHONY += check-valgrind check-fbp-valgrind check-fbp-bin-valgrind check-api
 
 ifneq (,$(LCOV))
 run-coverage: check check-fbp
