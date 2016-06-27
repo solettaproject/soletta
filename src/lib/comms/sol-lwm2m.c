@@ -3293,7 +3293,7 @@ sol_lwm2m_client_del(struct sol_lwm2m_client *client)
 }
 
 SOL_API int
-sol_lwm2m_add_object_instance(struct sol_lwm2m_client *client,
+sol_lwm2m_client_add_object_instance(struct sol_lwm2m_client *client,
     const struct sol_lwm2m_object *obj, const void *data)
 {
     struct obj_ctx *ctx;
