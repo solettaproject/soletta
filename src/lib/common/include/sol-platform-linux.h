@@ -30,7 +30,13 @@ extern "C" {
 #endif
 
 /**
- * Fork a new process and run the given @a on_fork callback on that process.
+ * @file
+ * @brief These routines are used for Soletta platform Linux interaction.
+ * @ingroup Platform
+ */
+
+/**
+ * @brief Fork a new process and run the given @a on_fork callback on that process.
  *
  * This call will execute fork(), then wait for children to be ready
  * (internally uses a pipe() to synchronize), reset all signal
@@ -80,7 +86,7 @@ extern "C" {
 struct sol_platform_linux_fork_run *sol_platform_linux_fork_run(void (*on_fork)(void *data), void (*on_child_exit)(void *data, uint64_t pid, int status), const void *data);
 
 /**
- * Force the child process to stop running and wait for it.
+ * @brief Force the child process to stop running and wait for it.
  *
  * This is a blocking function that will kill the child process using
  * @c SIGTERM, then waiting the process to exit using waitpid().
@@ -104,7 +110,7 @@ int sol_platform_linux_fork_run_stop(struct sol_platform_linux_fork_run *handle)
 
 
 /**
- * Send a signal to the child process.
+ * @brief Send a signal to the child process.
  *
  * This is a helper using sol_platform_linux_fork_run_get_pid() and
  * kill(). It may be useful to send control signals such as @c SIGUSR1
@@ -118,7 +124,7 @@ int sol_platform_linux_fork_run_stop(struct sol_platform_linux_fork_run *handle)
 int sol_platform_linux_fork_run_send_signal(struct sol_platform_linux_fork_run *handle, int sig);
 
 /**
- * The process identifier of this child.
+ * @brief The process identifier of this child.
  *
  * @param handle a valid (non-NULL and alive) handle returned by
  *        sol_platform_linux_fork_run().
@@ -130,7 +136,7 @@ int sol_platform_linux_fork_run_send_signal(struct sol_platform_linux_fork_run *
 uint64_t sol_platform_linux_fork_run_get_pid(const struct sol_platform_linux_fork_run *handle);
 
 /**
- * Exit from a child process.
+ * @brief Exit from a child process.
  *
  * This function is to be called from inside @c on_fork to exit the
  * child process using a specific status, such as @c EXIT_FAILURE or
@@ -146,18 +152,35 @@ uint64_t sol_platform_linux_fork_run_get_pid(const struct sol_platform_linux_for
  */
 void sol_platform_linux_fork_run_exit(int status) SOL_ATTR_NO_RETURN;
 
+/**
+ * @brief Mounts a device in a specific location.
+ *
+ * @param dev The device to be mounted
+ * @param mpoint The location to mount the device
+ * @param fstype The file system type
+ * @param cb Callback used to inform that the device was pointed with the proper status.
+ * @param data User data to @c cb
+ *
+ * @return 0 on success or -errno on error.
+ */
 int sol_platform_linux_mount(const char *dev, const char *mpoint, const char *fstype, void (*cb)(void *data, const char *mpoint, int status), const void *data);
 
+/**
+ * @brief Struct that contains information about an uevent.
+ *
+ * @see sol_platform_linux_uevent_subscribe()
+ * @see sol_platform_linux_uevent_unsubscribe()
+ */
 struct sol_uevent {
-    struct sol_str_slice modalias;
-    struct sol_str_slice action;
-    struct sol_str_slice subsystem;
-    struct sol_str_slice devtype;
-    struct sol_str_slice devname;
+    struct sol_str_slice modalias; /**<  The alias */
+    struct sol_str_slice action; /**< The uevent action */
+    struct sol_str_slice subsystem; /**< The event subsystem*/
+    struct sol_str_slice devtype; /**< The device type */
+    struct sol_str_slice devname; /**< The device name */
 };
 
 /**
- * Subscribe to monitor linux's uevent events
+ * @brief Subscribe to monitor linux's uevent events
  *
  * @param action The action desired to monitor - i.e add, remove etc
  * @param subsystem The subsystem of interest
@@ -169,7 +192,7 @@ struct sol_uevent {
 int sol_platform_linux_uevent_subscribe(const char *action, const char *subsystem, void (*cb)(void *data, struct sol_uevent *uevent), const void *data);
 
 /**
- * Unsubscribe @c uevent_cb() for @c action and @c subsystem events monitoring
+ * @brief Unsubscribe @c uevent_cb() for @c action and @c subsystem events monitoring
  *
  * @param action The action we're monitoring and want to release the callback
  * @param subsystem The subsystem we're monitoring and want to release the callback

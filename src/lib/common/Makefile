@@ -154,3 +154,6 @@ headers-$(USE_UPDATE) += \
 headers-$(FEATURE_FILESYSTEM) += \
     include/sol-util-file.h \
     include/sol-file-reader.h
+
+headers-$(PLATFORM_LINUX) += \
+    include/sol-platform-linux.h
