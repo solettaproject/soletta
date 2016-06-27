@@ -1,0 +1,89 @@
+#!/usr/bin/env sol-fbp-runner
+
+# This file is part of the Soletta™ Project
+#
+# Copyright (C) 2016 Intel Corporation. All rights reserved.
+#
+# Licensed under the Apache License, Version 2.0 (the "License");
+# you may not use this file except in compliance with the License.
+# You may obtain a copy of the License at
+#
+#     http://www.apache.org/licenses/LICENSE-2.0
+#
+# Unless required by applicable law or agreed to in writing, software
+# distributed under the License is distributed on an "AS IS" BASIS,
+# WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+# See the License for the specific language governing permissions and
+# limitations under the License.
+
+# This sample exemplifies the ThingSpeak channel update feature usage.
+#
+# Channels are used to collect data from a device, from another channel,
+# or from the web. In this sample you'll see how to push data
+# from a device, using Soletta Project node types.
+#
+# Here we'll consider two different fields (a channel supports up
+# to 8), the first one to keep the device's signal strenght,
+# and another to check if a hipotetical interface is up or down.
+#
+# These data will be randonly generated, pushed to the server
+# and printed to console.
+#
+# Usage: ./thingspeak-update-channel.fbp
+#
+# Register at https://thingspeak.com or use another server (and
+# update node type options).
+#
+# There you should create a new channel. You need the channel id
+# (not the name) and the Write API Key. Use these values as
+# options for thingspeak/channel-update node.
+#
+# You'll be able to see the collected data throught the Thingspeak
+# web interface.
+
+
+# TODO wouldn't be better to accept API_KEY and ID through input ports?
+# TODO shouldn't we be able to specify channel id? Multiple channels
+# may be created.
+# FIXME map nodes max range should be N - 1. But if we use 0-2 the signal
+# never is high.
+#channel_id(app/argv:index=1)
+#api_key(app/argv:index=2)
+
+channel(thingspeak/channel-update:api_key="EFS6IG01WNNNLCJB")
+
+signal(switcher/string:keep_state=true)
+signal_message(console)
+signal_updated(converter/empty-to-string:output_value="Signal updated")
+signal_low(constant/string:value="Signal Low")
+signal_medium(constant/string:value="Signal Medium")
+signal_high(constant/string:value="Signal High")
+signal_timer(timer:interval=2000)
+signal_random(random/int)
+signal_map(int/map:output_range=min:0|max:3)
+
+interface(switcher/string:keep_state=true)
+interface_updated(converter/empty-to-string:output_value="Interface updated")
+interface_message(console)
+interface_up(constant/string:value="Interface Up")
+interface_down(constant/string:value="Interface Down")
+interface_timer(timer:interval=4500)
+interface_random(random/int)
+interface_map(int/map:output_range=min:0|max:2)
+
+signal_low OUT -> IN[0] signal
+signal_medium OUT -> IN[1] signal
+signal_high OUT -> IN[2] signal
+signal_timer OUT -> IN signal_random OUT -> IN signal_map
+signal_map OUT -> IN_PORT signal
+signal OUT[0] -> FIELD[0] channel
+signal OUT[0] -> IN signal_updated OUT -> STATUS channel
+signal OUT[0] -> IN signal_message
+
+interface_down OUT -> IN[0] interface
+interface_up OUT -> IN[1] interface
+interface_timer OUT -> IN interface_random OUT -> IN interface_map
+interface_map OUT -> IN_PORT interface
+interface OUT[0] -> FIELD[1] channel
+interface OUT[0] -> IN interface_updated OUT -> STATUS channel
+interface OUT[0] -> IN interface_message

@@ -9,3 +9,6 @@ sample-thingspeak-identify-$(FLOW_WEBSERVICES_THINGSPEAK_IDENTIFY_SAMPLE) := thi
 
 sample-$(FLOW_WEBSERVICES_THINGSPEAK_SMART_LOCK_SAMPLE) += thingspeak-smart-lock
 sample-thingspeak-smart-lock-$(FLOW_WEBSERVICES_THINGSPEAK_SMART_LOCK_SAMPLE) := thingspeak-talkback-smart-lock.fbp
+
+sample-$(FLOW_WEBSERVICES_THINGSPEAK_CHANNEL_UPDATE_SAMPLE) += thingspeak-channel-update
+sample-thingspeak-channel-update-$(FLOW_WEBSERVICES_THINGSPEAK_CHANNEL_UPDATE_SAMPLE) := thingspeak-channel-update.fbp
