@@ -1169,3 +1169,46 @@ sol_netctl_get_services(void)
 {
     return &_ctx.service_vector;
 }
+
+SOL_API enum sol_netctl_service_state
+sol_netctl_service_state_from_str(const char *state)
+{
+    static const struct sol_str_table table[] = {
+        SOL_STR_TABLE_ITEM("unknown", SOL_NETCTL_SERVICE_STATE_UNKNOWN),
+        SOL_STR_TABLE_ITEM("idle", SOL_NETCTL_SERVICE_STATE_IDLE),
+        SOL_STR_TABLE_ITEM("association", SOL_NETCTL_SERVICE_STATE_ASSOCIATION),
+        SOL_STR_TABLE_ITEM("configuration", SOL_NETCTL_SERVICE_STATE_CONFIGURATION),
+        SOL_STR_TABLE_ITEM("ready", SOL_NETCTL_SERVICE_STATE_READY),
+        SOL_STR_TABLE_ITEM("online", SOL_NETCTL_SERVICE_STATE_ONLINE),
+        SOL_STR_TABLE_ITEM("disconnect", SOL_NETCTL_SERVICE_STATE_DISCONNECT),
+        SOL_STR_TABLE_ITEM("failure", SOL_NETCTL_SERVICE_STATE_FAILURE),
+        SOL_STR_TABLE_ITEM("remove", SOL_NETCTL_SERVICE_STATE_REMOVE),
+        { }
+    };
+
+    SOL_NULL_CHECK(state, SOL_NETCTL_SERVICE_STATE_UNKNOWN);
+
+    return sol_str_table_lookup_fallback(table,
+        sol_str_slice_from_str(state), SOL_NETCTL_SERVICE_STATE_UNKNOWN);
+}
+
+SOL_API const char *
+sol_netctl_service_state_to_str(enum sol_netctl_service_state state)
+{
+    static const char *service_states[] = {
+        [SOL_NETCTL_SERVICE_STATE_UNKNOWN] = "unknown",
+        [SOL_NETCTL_SERVICE_STATE_IDLE] = "idle",
+        [SOL_NETCTL_SERVICE_STATE_ASSOCIATION] = "association",
+        [SOL_NETCTL_SERVICE_STATE_CONFIGURATION] = "configuration",
+        [SOL_NETCTL_SERVICE_STATE_READY] = "ready",
+        [SOL_NETCTL_SERVICE_STATE_ONLINE] = "online",
+        [SOL_NETCTL_SERVICE_STATE_DISCONNECT] = "disconnect",
+        [SOL_NETCTL_SERVICE_STATE_FAILURE] = "failure",
+        [SOL_NETCTL_SERVICE_STATE_REMOVE] = "remove",
+    };
+
+    if (state < sol_util_array_size(service_states))
+        return service_states[state];
+
+    return NULL;
+}

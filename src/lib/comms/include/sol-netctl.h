@@ -471,6 +471,33 @@ int sol_netctl_del_error_monitor(sol_netctl_error_monitor_cb cb,
  */
 const struct sol_ptr_vector *sol_netctl_get_services(void);
 
+/**
+ * @brief Converts a string service state to sol_netctl_service_state.
+ *
+ * This function converts a string service state to enumeration sol_netctl_service_state.
+ *
+ * @see sol_netctl_service_state_from_str().
+ *
+ * @param state Valid values are "unknown", "idle", "association", "configuration", "ready",
+ * "online", "disconnect", "failure", "remove".
+ *
+ * @return enumeration sol_netctl_service_state.
+ */
+enum sol_netctl_service_state sol_netctl_service_state_from_str(const char *state) SOL_ATTR_WARN_UNUSED_RESULT;
+
+/**
+ * @brief Converts sol_netctl_service_state to a string name.
+ *
+ * This function converts sol_netctl_service_state enumeration to a string service state.
+ *
+ * @see sol_netctl_service_state_to_str().
+ *
+ * @param state sol_netctl_service_state.
+ *
+ * @return String representation of the sol_netctl_service_state..
+ */
+const char *sol_netctl_service_state_to_str(enum sol_netctl_service_state state) SOL_ATTR_WARN_UNUSED_RESULT;
+
 #ifdef __cplusplus
 }
 #endif
