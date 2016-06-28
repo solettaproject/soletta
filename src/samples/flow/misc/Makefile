@@ -27,3 +27,6 @@ sample-evdev-$(FLOW_MISC_EVDEV_SAMPLE) := evdev.fbp
 
 sample-$(FLOW_MISC_NET_STATUS_SAMPLE) += net-status
 sample-net-status-$(FLOW_MISC_NET_STATUS_SAMPLE) := network-status.fbp
+
+sample-$(FLOW_MISC_UDEV_SAMPLE) += udev
+sample-udev-$(FLOW_MISC_UDEV_SAMPLE) := udev.fbp
