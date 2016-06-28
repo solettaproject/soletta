@@ -1,6 +1,6 @@
 #!/bin/bash
 
-# This file is part of the Soletta™ Project
+# This file is part of the Soletta (TM) Project
 #
 # Copyright (C) 2015 Intel Corporation. All rights reserved.
 #
@@ -73,7 +73,7 @@ cat "${DIFF_LIST}" | ( EXIT_CODE=0; while read; do
         test1=$(grep -c -m 1 "\"license\": \"Apache-2.0\"" "${f}");
         test2=1
     else
-        test1=$(grep -c -m 1 "This file is part of the Soletta™ Project" "${f}")
+        test1=$(grep -c -m 1 "This file is part of the Soletta (TM) Project" "${f}")
         test2=$(grep -c -m 1 "http://www.apache.org/licenses/LICENSE-2.0" "${f}")
     fi
     if [ "${test1}" -eq 0 ] || [ "${test2}" -eq 0 ]; then

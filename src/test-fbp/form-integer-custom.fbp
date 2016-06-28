@@ -1,4 +1,4 @@
-# This file is part of the Soletta™ Project
+# This file is part of the Soletta (TM) Project
 #
 # Copyright (C) 2015 Intel Corporation. All rights reserved.
 #

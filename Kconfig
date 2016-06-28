@@ -1,4 +1,4 @@
-mainmenu "Soletta™ Framework configuration"
+mainmenu "Soletta (TM) Framework configuration"
 
 source "Kconfig.gen"
 source "tools/build/Kconfig.features"
