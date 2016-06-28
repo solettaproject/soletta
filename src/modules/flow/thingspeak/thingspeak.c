@@ -106,8 +106,13 @@ thingspeak_execute_poll_finished(void *data,
 {
     struct thingspeak_execute_data *mdata = data;
     char *body;
+    int r;
 
     SOL_NULL_CHECK(response);
+
+    r = sol_ptr_vector_remove(&mdata->pending_conns, connection);
+    if (r < 0)
+        SOL_WRN("Connection %p wasn't pending", connection);
 
     if (response->response_code != SOL_HTTP_STATUS_OK) {
         sol_flow_send_error_packet(mdata->node, EINVAL,
@@ -209,8 +214,13 @@ thingspeak_add_request_finished(void *data,
     struct sol_http_response *response)
 {
     struct thingspeak_add_data *mdata = data;
+    int r;
 
     SOL_NULL_CHECK(response);
+
+    r = sol_ptr_vector_remove(&mdata->pending_conns, connection);
+    if (r < 0)
+        SOL_WRN("Connection %p wasn't pending", connection);
 
     if (!response->content.used) {
         sol_flow_send_error_packet(mdata->node, EINVAL,
@@ -344,8 +354,13 @@ thingspeak_channel_update_finished(void *data,
     struct sol_http_response *response)
 {
     struct thingspeak_channel_update_data *mdata = data;
+    int r;
 
     SOL_NULL_CHECK(response);
+
+    r = sol_ptr_vector_remove(&mdata->pending_conns, connection);
+    if (r < 0)
+        SOL_WRN("Connection %p wasn't pending", connection);
 
     if (!strncmp(response->content.data, "0", response->content.used)) {
         sol_flow_send_error_packet(mdata->node, EINVAL,

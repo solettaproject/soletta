@@ -50,7 +50,7 @@
 #channel_id(app/argv:index=1)
 #api_key(app/argv:index=2)
 
-channel(thingspeak/channel-update:api_key="EFS6IG01WNNNLCJB")
+channel(thingspeak/channel-update:api_key="API_KEY")
 
 signal(switcher/string:keep_state=true)
 signal_message(console)
