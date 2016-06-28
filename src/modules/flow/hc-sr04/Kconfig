@@ -1,4 +1,4 @@
 config FLOW_NODE_TYPE_HC_SR04
 	tristate "Node type: hc-sr04"
 	depends on USE_GPIO
-	default m
+	default n

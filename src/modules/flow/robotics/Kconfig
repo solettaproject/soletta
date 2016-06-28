@@ -1,7 +1,7 @@
 config FLOW_NODE_TYPE_ROBOTICS
     tristate "Node type: robotics"
     depends on USE_PWM
-    default y
+    default n
     help
         Series of node types related to robotics.
 
