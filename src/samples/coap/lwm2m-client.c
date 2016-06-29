@@ -127,13 +127,10 @@ change_location(void *data)
 
 static int
 create_location_obj(void *user_data, struct sol_lwm2m_client *client,
-    uint16_t instance_id, void **instance_data,
-    enum sol_lwm2m_content_type content_type,
-    const struct sol_str_slice content)
+    uint16_t instance_id, void **instance_data, struct sol_lwm2m_payload payload)
 {
     struct location_obj_instance_ctx *instance_ctx;
     bool *has_location_instance = user_data;
-    struct sol_vector tlvs;
     int r;
     uint16_t i;
     struct sol_lwm2m_tlv *tlv;
@@ -144,7 +141,7 @@ create_location_obj(void *user_data, struct sol_lwm2m_client *client,
         return -EINVAL;
     }
 
-    if (content_type != SOL_LWM2M_CONTENT_TYPE_TLV) {
+    if (payload.type != SOL_LWM2M_CONTENT_TYPE_TLV) {
         fprintf(stderr, "Content type is not in TLV format\n");
         return -EINVAL;
     }
@@ -163,19 +160,13 @@ create_location_obj(void *user_data, struct sol_lwm2m_client *client,
         goto err_free_instance;
     }
 
-    r = sol_lwm2m_parse_tlv(content, &tlvs);
-    if (r < 0) {
-        fprintf(stderr, "Could not parse the TLV content\n");
+    if (payload.payload.tlv_content.len != 3) {
+        r = -EINVAL;
+        fprintf(stderr, "Missing mandatory fields.\n");
         goto err_free_timeout;
     }
 
-    if (tlvs.len != 3) {
-        r = -EINVAL;
-        fprintf(stderr, "Missing mandatory fields.\n");
-        goto err_free_tlvs;
-    }
-
-    SOL_VECTOR_FOREACH_IDX (&tlvs, tlv, i) {
+    SOL_VECTOR_FOREACH_IDX (&payload.payload.tlv_content, tlv, i) {
         SOL_BUFFER_DECLARE_STATIC(buf, 32);
         double *prop = NULL;
 
@@ -191,7 +182,7 @@ create_location_obj(void *user_data, struct sol_lwm2m_client *client,
         if (r < 0) {
             fprintf(stderr, "Could not get the tlv value for resource %"
                 PRIu16 "\n", tlv->id);
-            goto err_free_tlvs;
+            goto err_free_timeout;
         }
 
         if (buf.used) {
@@ -203,7 +194,7 @@ create_location_obj(void *user_data, struct sol_lwm2m_client *client,
                 r = -EINVAL;
                 fprintf(stderr, "Could not copy the longitude/latitude"
                     " property\n");
-                goto err_free_tlvs;
+                goto err_free_timeout;
             }
         }
         sol_buffer_fini(&buf);
@@ -212,13 +203,10 @@ create_location_obj(void *user_data, struct sol_lwm2m_client *client,
     instance_ctx->client = client;
     *instance_data = instance_ctx;
     *has_location_instance = true;
-    sol_lwm2m_tlv_list_clear(&tlvs);
     printf("Location object created\n");
 
     return 0;
 
-err_free_tlvs:
-    sol_lwm2m_tlv_list_clear(&tlvs);
 err_free_timeout:
     sol_timeout_del(instance_ctx->timeout);
 err_free_instance:
