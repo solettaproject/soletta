@@ -394,6 +394,28 @@ struct sol_lwm2m_resource {
         (ret_value_) = sol_lwm2m_resource_init((resource_), (id_), 1, SOL_LWM2M_RESOURCE_DATA_TYPE_INT, SOL_TYPE_CHECK(int64_t, (value_))); \
     } while (0)
 
+
+/**
+ * @brief A payload received from the network used to create a LWM2M object instance.
+ *
+ * @see sol_lwm2m_content_type
+ * @see struct sol_lwm2m_object::create
+ */
+struct sol_lwm2m_payload {
+    /** @brief The payload type
+     * @see sol_lwm2m_content_type
+     */
+    enum sol_lwm2m_content_type type;
+    union sol_lwm2m_payload_data {
+        /** @brief The payload content as TLV format -
+            use only when @c sol_lwm2m_payload::type is #SOL_LWM2M_CONTENT_TYPE_TLV
+         */
+        struct sol_vector tlv_content;
+        /** @brief The payload content in bytes. */
+        struct sol_str_slice slice_content;
+    } payload /** @brief The payload data */;
+};
+
 /** @brief A LWM2M object implementation.
  *
  * Every LWM2M client must implement a set of LWM2M objects,
@@ -432,14 +454,11 @@ struct sol_lwm2m_object {
      * @param client The LWM2M client.
      * @param istance_id The instance ID that is being created.
      * @param instance_data The pointer where the instance data should be stored.
-     * @param content_type The content type of the @c content
-     * @param content The object's initial content.
+     * @param payload The object's initial content.
      * @return 0 on success, -errno on error.
      */
     int (*create)(void *user_data, struct sol_lwm2m_client *client,
-        uint16_t instance_id, void **instance_data,
-        enum sol_lwm2m_content_type content_type,
-        const struct sol_str_slice content);
+        uint16_t instance_id, void **instance_data, struct sol_lwm2m_payload payload);
     /**
      * @brief Reads a resource.
      *
