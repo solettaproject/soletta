@@ -2614,7 +2614,7 @@ is_valid_args(const struct sol_str_slice args)
 static uint8_t
 handle_execute(struct sol_lwm2m_client *client,
     struct obj_ctx *obj_ctx, struct obj_instance *obj_instance,
-    uint16_t resource, const struct sol_str_slice args)
+    uint16_t resource, struct sol_lwm2m_payload payload)
 {
     int r;
 
@@ -2630,18 +2630,25 @@ handle_execute(struct sol_lwm2m_client *client,
         return SOL_COAP_RESPONSE_CODE_NOT_ALLOWED;
     }
 
-    if (!is_valid_args(args)) {
-        SOL_WRN("Invalid arguments. Args: %.*s", SOL_STR_SLICE_PRINT(args));
+    if (payload.type != SOL_LWM2M_CONTENT_TYPE_TEXT) {
+        SOL_WRN("Only text payload is valid for execution");
+        return SOL_COAP_RESPONSE_CODE_BAD_REQUEST;
+    }
+
+    if (!is_valid_args(payload.payload.slice_content)) {
+        SOL_WRN("Invalid arguments. Args: %.*s",
+            SOL_STR_SLICE_PRINT(payload.payload.slice_content));
         return SOL_COAP_RESPONSE_CODE_BAD_REQUEST;
     }
 
     r = obj_ctx->obj->execute((void *)obj_instance->data,
-        (void *)client->user_data, client, obj_instance->id, resource, args);
+        (void *)client->user_data, client, obj_instance->id, resource,
+        payload.payload.slice_content);
 
     if (r < 0) {
         SOL_WRN("Could not execute the path /%" PRIu16
             "/%" PRIu16 "/%" PRIu16 " with args: %.*s", obj_ctx->obj->id,
-            obj_instance->id, resource, SOL_STR_SLICE_PRINT(args));
+            obj_instance->id, resource, SOL_STR_SLICE_PRINT(payload.payload.slice_content));
         return SOL_COAP_RESPONSE_CODE_NOT_ALLOWED;
     }
 
@@ -2651,8 +2658,7 @@ handle_execute(struct sol_lwm2m_client *client,
 static uint8_t
 handle_write(struct sol_lwm2m_client *client,
     struct obj_ctx *obj_ctx, struct obj_instance *obj_instance,
-    int32_t resource, uint16_t content_format,
-    const struct sol_str_slice payload)
+    int32_t resource, struct sol_lwm2m_payload payload)
 {
     int r;
 
@@ -2663,49 +2669,34 @@ handle_write(struct sol_lwm2m_client *client,
         return SOL_COAP_RESPONSE_CODE_NOT_ALLOWED;
     }
 
-    if (!content_format) {
-        SOL_WRN("Content format was not set."
-            " Impossible to create object instance");
-        return SOL_COAP_RESPONSE_CODE_BAD_REQUEST;
-    }
-
-    if (!payload.len) {
-        SOL_WRN("Payload to write on object instance /%"
-            PRIu16 "/%" PRIu16 " is empty", obj_ctx->obj->id, obj_instance->id);
-        return SOL_COAP_RESPONSE_CODE_BAD_REQUEST;
-    }
-
     if (!obj_instance) {
         SOL_WRN("Object instance was not provided."
             " Can not complete the write operation");
         return SOL_COAP_RESPONSE_CODE_BAD_REQUEST;
     }
 
-    if (content_format == SOL_LWM2M_CONTENT_TYPE_TLV) {
-        struct sol_vector tlvs;
-        r = sol_lwm2m_parse_tlv(payload, &tlvs);
-        SOL_INT_CHECK(r, < 0, SOL_COAP_RESPONSE_CODE_BAD_REQUEST);
+    if (payload.type == SOL_LWM2M_CONTENT_TYPE_TLV) {
         r = obj_ctx->obj->write_tlv((void *)obj_instance->data,
-            (void *)client->user_data, client, obj_instance->id, &tlvs);
-        sol_lwm2m_tlv_list_clear(&tlvs);
+            (void *)client->user_data, client, obj_instance->id, &payload.payload.tlv_content);
         SOL_INT_CHECK(r, < 0, SOL_COAP_RESPONSE_CODE_BAD_REQUEST);
-    } else if (content_format == SOL_LWM2M_CONTENT_TYPE_TEXT ||
-        content_format == SOL_LWM2M_CONTENT_TYPE_OPAQUE) {
+    } else if (payload.type == SOL_LWM2M_CONTENT_TYPE_TEXT ||
+        payload.type == SOL_LWM2M_CONTENT_TYPE_OPAQUE) {
         struct sol_lwm2m_resource res;
         struct sol_blob *blob;
 
         if (resource < 0) {
             SOL_WRN("Unexpected content format (%" PRIu16
-                "). It must be TLV", content_format);
+                "). It must be TLV", payload.type);
             return SOL_COAP_RESPONSE_CODE_BAD_REQUEST;
         }
 
-        blob = sol_blob_new(&SOL_BLOB_TYPE_NO_FREE_DATA, NULL, payload.data, payload.len);
+        blob = sol_blob_new(&SOL_BLOB_TYPE_NO_FREE_DATA, NULL, payload.payload.slice_content.data,
+            payload.payload.slice_content.len);
         SOL_NULL_CHECK(blob, SOL_COAP_RESPONSE_CODE_BAD_REQUEST);
 
         SOL_SET_API_VERSION(res.api_version = SOL_LWM2M_RESOURCE_API_VERSION; )
         r = sol_lwm2m_resource_init(&res, resource, 1,
-            content_format == SOL_LWM2M_CONTENT_TYPE_TEXT ?
+            payload.type == SOL_LWM2M_CONTENT_TYPE_TEXT ?
             SOL_LWM2M_RESOURCE_DATA_TYPE_STRING :
             SOL_LWM2M_RESOURCE_DATA_TYPE_OPAQUE, blob);
         sol_blob_unref(blob);
@@ -2716,7 +2707,7 @@ handle_write(struct sol_lwm2m_client *client,
         SOL_INT_CHECK(r, < 0, SOL_COAP_RESPONSE_CODE_BAD_REQUEST);
     } else {
         SOL_WRN("Only TLV, string or opaque is supported for writing."
-            " Received: %" PRIu16 "", content_format);
+            " Received: %" PRIu16 "", payload.type);
         return SOL_COAP_RESPONSE_CODE_BAD_REQUEST;
     }
 
@@ -2725,8 +2716,7 @@ handle_write(struct sol_lwm2m_client *client,
 
 static uint8_t
 handle_create(struct sol_lwm2m_client *client,
-    struct obj_ctx *obj_ctx, int32_t instance_id,
-    uint16_t content_format, const struct sol_str_slice payload)
+    struct obj_ctx *obj_ctx, int32_t instance_id, struct sol_lwm2m_payload payload)
 {
     int r;
     struct obj_instance *obj_instance;
@@ -2748,7 +2738,7 @@ handle_create(struct sol_lwm2m_client *client,
     sol_vector_init(&obj_instance->resources_ctx, sizeof(struct resource_ctx));
 
     r = obj_ctx->obj->create((void *)client->user_data, client,
-        obj_instance->id, (void *)&obj_instance->data, content_format, payload);
+        obj_instance->id, (void *)&obj_instance->data, payload);
     SOL_INT_CHECK_GOTO(r, < 0, err_exit);
 
     r = setup_instance_resource(client, obj_ctx, obj_instance, true);
@@ -3003,8 +2993,8 @@ handle_resource(void *data, struct sol_coap_server *server,
     struct obj_instance *obj_instance = NULL;
     uint16_t path[3], path_size = 0, content_format;
     uint8_t header_code;
-    struct sol_str_slice payload = SOL_STR_SLICE_EMPTY;
     bool is_execute = false;
+    struct sol_lwm2m_payload payload = { 0 };
 
     resp = sol_coap_packet_new(req);
     SOL_NULL_CHECK(resp, -ENOMEM);
@@ -3013,7 +3003,15 @@ handle_resource(void *data, struct sol_coap_server *server,
         &content_format);
 
     if (r < 0)
-        content_format = SOL_LWM2M_CONTENT_TYPE_TEXT;
+        payload.type = SOL_LWM2M_CONTENT_TYPE_TEXT;
+    else
+        payload.type = content_format;
+
+    if (payload.type == SOL_LWM2M_CONTENT_TYPE_JSON) {
+        SOL_WRN("JSON content format is not supported");
+        header_code = SOL_COAP_RESPONSE_CODE_UNSUPPORTED_CONTENT_FORMAT;
+        goto exit;
+    }
 
     r = extract_path(client, req, path, &path_size);
     header_code = SOL_COAP_RESPONSE_CODE_BAD_REQUEST;
@@ -3028,13 +3026,22 @@ handle_resource(void *data, struct sol_coap_server *server,
 
     if (sol_coap_packet_has_payload(req)) {
         struct sol_buffer *buf;
+        struct sol_str_slice slice;
         size_t offset;
 
         r = sol_coap_packet_get_payload(req, &buf, &offset);
         header_code = SOL_COAP_RESPONSE_CODE_BAD_REQUEST;
         SOL_INT_CHECK_GOTO(r, < 0, exit);
-        payload.len = buf->used - offset;
-        payload.data = sol_buffer_at(buf, offset);
+
+        slice.len = buf->used - offset;
+        slice.data = sol_buffer_at(buf, offset);
+
+        if (payload.type == SOL_LWM2M_CONTENT_TYPE_TLV) {
+            r = sol_lwm2m_parse_tlv(slice, &payload.payload.tlv_content);
+            header_code = SOL_COAP_RESPONSE_CODE_INTERNAL_ERROR;
+            SOL_INT_CHECK_GOTO(r, < 0, exit);
+        } else
+            payload.payload.slice_content = slice;
     }
 
     sol_coap_header_get_code(req, &method);
@@ -3053,28 +3060,25 @@ handle_resource(void *data, struct sol_coap_server *server,
     case SOL_COAP_METHOD_POST:
         if (path_size == 1)
             //This is a create op
-            header_code = handle_create(client, obj_ctx, -1,
-                content_format, payload);
+            header_code = handle_create(client, obj_ctx, -1, payload);
         else if (path_size == 2 && !obj_instance)
             //This is a create with chosen by the LWM2M server.
-            header_code = handle_create(client, obj_ctx, path[1],
-                content_format, payload);
+            header_code = handle_create(client, obj_ctx, path[1], payload);
         else if (path_size == 2)
             //Write on object instance
             header_code = handle_write(client, obj_ctx, obj_instance, -1,
-                content_format, payload);
+                payload);
         else {
             //Execute.
             is_execute = true;
-            header_code = handle_execute(client, obj_ctx, obj_instance, path[2],
-                payload);
+            header_code = handle_execute(client, obj_ctx, obj_instance, path[2], payload);
         }
         break;
     case SOL_COAP_METHOD_PUT:
         if (path_size == 3) {
             //Write op on a resource.
             header_code = handle_write(client, obj_ctx, obj_instance,
-                path[2], content_format, payload);
+                path[2], payload);
         } else {
             header_code = SOL_COAP_RESPONSE_CODE_BAD_REQUEST;
             SOL_WRN("Write request without full path specified!");
@@ -3102,6 +3106,9 @@ exit:
         obj_instance_clear(client, obj_ctx, obj_instance);
         (void)sol_vector_del_element(&obj_ctx->instances, obj_instance);
     }
+
+    if (payload.type == SOL_LWM2M_CONTENT_TYPE_TLV)
+        sol_lwm2m_tlv_list_clear(&payload.payload.tlv_content);
 
     return r;
 }

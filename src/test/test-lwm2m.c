@@ -251,22 +251,16 @@ check_tlv_and_save(struct sol_vector *tlvs, struct dummy_ctx *ctx)
 static int
 create_dummy(void *user_data, struct sol_lwm2m_client *client,
     uint16_t instance_id, void **instance_data,
-    enum sol_lwm2m_content_type content_type,
-    const struct sol_str_slice content)
+    struct sol_lwm2m_payload payload)
 {
     struct dummy_ctx *ctx = calloc(1, sizeof(struct dummy_ctx));
-    struct sol_vector tlvs;
-    int r;
 
     ASSERT(ctx);
     *instance_data = ctx;
     ctx->id = instance_id;
 
-    ASSERT(content_type == SOL_LWM2M_CONTENT_TYPE_TLV);
-    r = sol_lwm2m_parse_tlv(content, &tlvs);
-    ASSERT(r == 0);
-    check_tlv_and_save(&tlvs, ctx);
-    sol_lwm2m_tlv_list_clear(&tlvs);
+    ASSERT(payload.type == SOL_LWM2M_CONTENT_TYPE_TLV);
+    check_tlv_and_save(&payload.payload.tlv_content, ctx);
     return 0;
 }
 
