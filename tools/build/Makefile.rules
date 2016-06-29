@@ -394,7 +394,6 @@ $(SOL_LIB_SO): $(builtin-objs)
 	$(Q)echo "      "LD"   "$(@)
 	$(Q)$(MKDIR) -p $(dir $(SOL_LIB_SO))
 	$(Q)$(TARGETCC) -shared $(sort $(builtin-objs)) $(sort $(builtin-ldflags)) $(LIB_LDFLAGS) -o $(@).$(VERSION)
-	$(Q)$(LN) -fs $(notdir $(@).$(VERSION)) $(@).$(VERSION_MAJOR)
 	$(Q)$(LN) -fs $(notdir $(@).$(VERSION)) $(@)
 
 # generators
