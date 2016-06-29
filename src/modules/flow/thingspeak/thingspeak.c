@@ -506,7 +506,8 @@ thingspeak_channel_update_close(struct sol_flow_node *node, void *data)
     free(mdata->api_key);
     free(mdata->endpoint);
 
-    sol_timeout_del(mdata->timeout);
+    if (mdata->timeout)
+        sol_timeout_del(mdata->timeout);
 
     SOL_PTR_VECTOR_FOREACH_IDX (&mdata->pending_conns, connection, i)
         sol_http_client_connection_cancel(connection);
