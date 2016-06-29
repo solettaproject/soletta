@@ -535,6 +535,7 @@ thingspeak_channel_update_open(struct sol_flow_node *node, void *data, const str
         return -ENOMEM;
     }
 
+    mdata->node = node;
     for (i = 0; i < sol_util_array_size(mdata->fields); i++)
         mdata->fields[i] = NULL;
     mdata->status = NULL;
