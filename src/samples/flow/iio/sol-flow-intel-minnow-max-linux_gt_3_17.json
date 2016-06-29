@@ -64,6 +64,14 @@
            "buffer_size": "-1"
      },
      "type": "iio/thermometer"
+  },
+  {
+     "name": "MyProximity",
+     "options": {
+           "iio_device": "apds9960 create,i2c,platform/80860F41:05,0x39,apds9960 0",
+           "buffer_size": "-1"
+     },
+     "type": "iio/proximity-sensor"
   }
  ]
 }

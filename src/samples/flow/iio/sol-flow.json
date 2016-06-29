@@ -34,6 +34,10 @@
    "type": "iio/thermometer"
   },
   {
+   "name": "MyProximity",
+   "type": "iio/proximity-sensor"
+  },
+  {
    "name": "MyADC",
    "type": "iio/adc"
   }

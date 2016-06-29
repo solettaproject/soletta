@@ -30,6 +30,10 @@ sample-$(FLOW_IIO_SAMPLE) += iio-temperature
 sample-iio-temperature-$(FLOW_IIO_SAMPLE) := temperature.fbp
 sample-iio-temperature-$(FLOW_IIO_SAMPLE)-conffile := sol-flow-intel-minnow-max-linux_gt_3_17.json
 
+sample-$(FLOW_IIO_SAMPLE) += iio-proximity
+sample-iio-proximity-$(FLOW_IIO_SAMPLE) := proximity.fbp
+sample-iio-proximity-$(FLOW_IIO_SAMPLE)-conffile := sol-flow-intel-minnow-max-linux_gt_3_17.json
+
 sample-$(FLOW_IIO_SAMPLE) += iio-adc
 sample-iio-adc-$(FLOW_IIO_SAMPLE) := adc.fbp
 sample-iio-adc-$(FLOW_IIO_SAMPLE)-conffile := sol-flow-intel-galileo-rev-g.json
