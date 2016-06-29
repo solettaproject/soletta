@@ -233,7 +233,12 @@ network_address_process(struct sol_flow_node *node, void *data,
     r = sol_flow_packet_get_string(packet, &reg);
     SOL_INT_CHECK(r, < 0, r);
 
-    return _setup_links(mdata, reg);
+    r = _setup_links(mdata, reg);
+    SOL_INT_CHECK(r, < 0, r);
+
+    return sol_flow_send_bool_packet(node,
+        SOL_FLOW_NODE_TYPE_NETWORK_BOOLEAN__OUT__OUT,
+        _check_connected(&mdata->links));
 }
 
 
