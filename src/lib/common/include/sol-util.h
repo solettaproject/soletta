@@ -1146,6 +1146,20 @@ ssize_t sol_util_strftime(struct sol_buffer *buf, const char *format, const stru
 bool sol_util_double_eq(double var0, double var1);
 
 /**
+ * @brief Duplicate memory.
+ *
+ * It's a helper function to allocated memory and copy data, returning
+ * the pointer to it.
+ *
+ * @param data Pointer to the memory to be copied
+ * @param len Size in bytes of the memory to be allocated
+ *
+ * @return A valid pointer to the allocated memory, with copied data or @c NULL
+ * if it fails to allocate it. The pointer need to be freed after usage.
+ */
+void *sol_util_memdup(const void *data, size_t len);
+
+/**
  * @}
  */
 

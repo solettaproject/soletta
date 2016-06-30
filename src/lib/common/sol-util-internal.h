@@ -72,8 +72,6 @@ sol_util_int_compare(int a, int b)
     return (a > b) - (a < b);
 }
 
-void *sol_util_memdup(const void *data, size_t len);
-
 /* Power of 2 alignment */
 #define DEFINE_ALIGN_POWER2(name_, type_, max_, clz_fn_) \
     static inline type_ \
