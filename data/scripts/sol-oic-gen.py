@@ -1794,7 +1794,13 @@ if __name__ == '__main__':
                         help="Relative path to header generated with "
                         "sol-flow-node-type-gen for inclusion purposes.",
                         required=True)
-    args = parser.parse_args()
+    parser.add_argument("--quiet", action='store_true',
+                        help="If quiet no warning message will be displayed.")
+    pargs = parser.parse_args()
+
+    def warn(*args,**kwargs):
+        if not pargs.quiet:
+            print(*args, **kwargs)
 
     def seems_schema(path):
         # TODO properly handle update, batch and error files
@@ -1803,15 +1809,15 @@ if __name__ == '__main__':
             return False
         return path.endswith('.json') and (path.startswith('oic.r.') or path.startswith('core.'))
 
-    json_name = os.path.basename(args.node_type_json)
+    json_name = os.path.basename(pargs.node_type_json)
     if json_name.endswith(".json"):
         json_name = json_name[:-5]
 
     generated = []
-    print('Generating code for schemas: ', end='')
-    for schema_dir in args.schema_dirs:
+    warn('Generating code for schemas: ', end='')
+    for schema_dir in pargs.schema_dirs:
         for path in (f for f in sorted(os.listdir(schema_dir)) if seems_schema(f)):
-            print(path, end=', ')
+            warn(path, end=', ')
 
             try:
                 for code in generate_for_schema(schema_dir, path, \
@@ -1819,25 +1825,26 @@ if __name__ == '__main__':
                     generated.append(code)
             except KeyError as e:
                 if e.args[0] in ('array', 'object'):
-                    print("(%ss unsupported)" % e.args[0], end=' ')
+                    warn("(%ss unsupported)" % e.args[0], end=' ')
                 else:
                     raise e
             except Exception as e:
-                print('Ignoring %s due to exception in generator. '
-                      'Traceback follows:' % path, file=sys.stderr)
-                traceback.print_exc(file=sys.stderr)
+                if not pargs.quiet:
+                    print('Ignoring %s due to exception in generator. '
+                          'Traceback follows:' % path, file=sys.stderr)
+                    traceback.print_exc(file=sys.stderr)
                 continue
 
-    print('\nWriting master JSON: %s' % args.node_type_json)
-    open(args.node_type_json, 'w+', encoding='UTF-8').write(
+    warn('\nWriting master JSON: %s' % pargs.node_type_json)
+    open(pargs.node_type_json, 'w+', encoding='UTF-8').write(
             master_json_as_string(generated, json_name))
 
-    print('Writing C: %s' % args.node_type_impl)
-    open(args.node_type_impl, 'w+', encoding='UTF-8').write(
-            master_c_as_string(generated, args.node_type_gen_c,
-            args.node_type_gen_h))
+    warn('Writing C: %s' % pargs.node_type_impl)
+    open(pargs.node_type_impl, 'w+', encoding='UTF-8').write(
+            master_c_as_string(generated, pargs.node_type_gen_c,
+            pargs.node_type_gen_h))
     if os.path.exists('/usr/bin/indent'):
-        print('Indenting generated C.')
-        os.system("/usr/bin/indent -kr -l120 '%s'" % args.node_type_impl)
+        warn('Indenting generated C.')
+        os.system("/usr/bin/indent -kr -l120 '%s'" % pargs.node_type_impl)
 
-    print('Done.')
+    warn('Done.')

@@ -407,6 +407,7 @@ define make-oic-gen
 $(addprefix $(addprefix $(1), $(notdir $(abspath $(1)))), .json) $(addprefix $(addprefix $(1), $(notdir $(abspath $(1)))), .c) $(addprefix $(addprefix $(1), $(notdir $(abspath $(1)))), -gen.c) $(addprefix $(addprefix $(1), $(notdir $(abspath $(1)))), .h): $(FLOW_OIC_GEN_SCRIPT)
 	$(Q)echo "     "GEN"   "$$@
 	$(Q)$(PYTHON) $(FLOW_OIC_GEN_SCRIPT) \
+		--quiet \
 		--node-type-json=$(addprefix $(addprefix $(1), $(notdir $(abspath $(1)))), .json) \
 		--node-type-impl=$(addprefix $(addprefix $(1), $(notdir $(abspath $(1)))), .c) \
 		--node-type-gen-c=$(addprefix $(notdir $(abspath $(1))), -gen.c) \
