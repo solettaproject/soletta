@@ -258,7 +258,10 @@ sol_fbp_graph_add_exported_in_port(struct sol_fbp_graph *g,
     }
 
     ep = sol_vector_append(&g->exported_in_ports);
-    SOL_NULL_CHECK(ep, -errno);
+    if (!ep) {
+        err = -errno;
+        goto end;
+    }
 
     ep->node = node;
     ep->port = port;
@@ -296,7 +299,10 @@ sol_fbp_graph_add_exported_out_port(struct sol_fbp_graph *g,
     }
 
     ep = sol_vector_append(&g->exported_out_ports);
-    SOL_NULL_CHECK(ep, -errno);
+    if (!ep) {
+        err = -errno;
+        goto end;
+    }
 
     ep->node = node;
     ep->port = port;
