@@ -141,9 +141,11 @@ i2c_read_multiple_data_cb(void *cb_data, struct sol_i2c *i2c, uint8_t reg, uint8
     sol_flow_send_direction_vector_packet(mdata->node,
         SOL_FLOW_NODE_TYPE_ACCELEROMETER_ADXL345__OUT__OUT, &val);
 
-    mdata->pending_ticks--;
-    if (mdata->pending_ticks)
-        accel_tick_do(mdata);
+    if (mdata->pending_ticks) {
+        mdata->pending_ticks--;
+        if (mdata->pending_ticks)
+            accel_tick_do(mdata);
+    }
 }
 
 static void
