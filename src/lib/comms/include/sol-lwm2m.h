@@ -52,11 +52,9 @@ extern "C" {
  * - TLV format.
  *
  * Unsupported features for now:
- * - Bootstrap.
  * - LWM2M JSON.
  * - Queue Mode operation (only 'U' is supported for now).
  * - Data encryption.
- * - Access rights.
  *
  * @{
  */
@@ -374,6 +372,42 @@ struct sol_lwm2m_resource {
             bool b;
         } content;
     } *data;
+};
+
+/**
+ * @brief Enum that represents the Access Control Rights.
+ *
+ * Setting each bit means the LWM2M Server has the access right for that operation.
+ */
+enum sol_lwm2m_acl_rights {
+    /**
+     * No bit is set (No access rights for any operation)
+     */
+    SOL_LWM2M_ACL_NONE = (0),
+    /**
+     * 1st lsb: R (Read, Observe, Discover, Write Attributes)
+     */
+    SOL_LWM2M_ACL_READ = (1),
+    /**
+     * 2nd lsb: W (Write)
+     */
+    SOL_LWM2M_ACL_WRITE = (2),
+    /**
+     * 3rd lsb: E (Execute)
+     */
+    SOL_LWM2M_ACL_EXECUTE = (4),
+    /**
+     * 4th lsb: D (Delete)
+     */
+    SOL_LWM2M_ACL_DELETE = (8),
+    /**
+     * 5th lsb: C (Create)
+     */
+    SOL_LWM2M_ACL_CREATE = (16),
+    /**
+     * All 5 lsbs: Full Access Rights
+     */
+    SOL_LWM2M_ACL_ALL = (31)
 };
 
 /**
