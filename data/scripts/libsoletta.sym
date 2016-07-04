@@ -517,6 +517,7 @@ global:
         sol_lwm2m_parse_tlv;
         sol_lwm2m_resource_clear;
         sol_lwm2m_resource_init;
+        sol_lwm2m_resource_init_vector;
         sol_lwm2m_server_add_observer;
         sol_lwm2m_server_add_registration_monitor;
         sol_lwm2m_server_create_object_instance;
