@@ -1600,11 +1600,11 @@ get_resource_len(const struct sol_lwm2m_resource *resource, uint16_t index,
     switch (resource->data_type) {
     case SOL_LWM2M_RESOURCE_DATA_TYPE_STRING:
     case SOL_LWM2M_RESOURCE_DATA_TYPE_OPAQUE:
-        *len = resource->data[index].blob->size;
+        *len = resource->data[index].content.blob->size;
         return 0;
     case SOL_LWM2M_RESOURCE_DATA_TYPE_INT:
     case SOL_LWM2M_RESOURCE_DATA_TYPE_TIME:
-        *len = get_int_size(resource->data[index].integer);
+        *len = get_int_size(resource->data[index].content.integer);
         return 0;
     case SOL_LWM2M_RESOURCE_DATA_TYPE_BOOL:
         *len = 1;
@@ -1682,16 +1682,16 @@ add_resource_bytes_to_buffer(const struct sol_lwm2m_resource *resource,
     switch (resource->data_type) {
     case SOL_LWM2M_RESOURCE_DATA_TYPE_STRING:
     case SOL_LWM2M_RESOURCE_DATA_TYPE_OPAQUE:
-        return sol_buffer_append_slice(buf, sol_str_slice_from_blob(resource->data[idx].blob));
+        return sol_buffer_append_slice(buf, sol_str_slice_from_blob(resource->data[idx].content.blob));
     case SOL_LWM2M_RESOURCE_DATA_TYPE_INT:
     case SOL_LWM2M_RESOURCE_DATA_TYPE_TIME:
     case SOL_LWM2M_RESOURCE_DATA_TYPE_OBJ_LINK:
-        return add_int_resource(buf, resource->data[idx].integer, len);
+        return add_int_resource(buf, resource->data[idx].content.integer, len);
     case SOL_LWM2M_RESOURCE_DATA_TYPE_BOOL:
-        b = resource->data[idx].integer != 0 ? 1 : 0;
+        b = resource->data[idx].content.integer != 0 ? 1 : 0;
         return sol_buffer_append_bytes(buf, (uint8_t *)&b, 1);
     case SOL_LWM2M_RESOURCE_DATA_TYPE_FLOAT:
-        return add_float_resource(buf, resource->data[idx].fp, len);
+        return add_float_resource(buf, resource->data[idx].content.fp, len);
     default:
         return -EINVAL;
     }
@@ -1791,7 +1791,7 @@ setup_tlv(struct sol_lwm2m_resource *resource, struct sol_buffer *buf)
     for (i = 0; i < resource->data_len; i++) {
         r = get_resource_len(resource, i, &data_len);
         SOL_INT_CHECK(r, < 0, r);
-        r = setup_tlv_header(SOL_LWM2M_TLV_TYPE_RESOURCE_INSTANCE, i,
+        r = setup_tlv_header(SOL_LWM2M_TLV_TYPE_RESOURCE_INSTANCE, resource->data[i].id,
             buf, data_len);
         SOL_INT_CHECK(r, < 0, r);
         r = add_resource_bytes_to_buffer(resource, buf, i);
@@ -2131,7 +2131,7 @@ sol_lwm2m_server_del_observer(struct sol_lwm2m_server *server,
 
 SOL_API int
 sol_lwm2m_resource_init(struct sol_lwm2m_resource *resource,
-    uint16_t id, uint16_t resource_len,
+    uint16_t id, enum sol_lwm2m_resource_type type, uint16_t resource_len,
     enum sol_lwm2m_resource_data_type data_type, ...)
 {
     uint16_t i;
@@ -2146,39 +2146,39 @@ sol_lwm2m_resource_init(struct sol_lwm2m_resource *resource,
     LWM2M_RESOURCE_CHECK_API(resource, -EINVAL);
 
     resource->id = id;
-    if (resource_len > 1)
-        resource->type = SOL_LWM2M_RESOURCE_TYPE_MULTIPLE;
-    else
-        resource->type = SOL_LWM2M_RESOURCE_TYPE_SINGLE;
+    resource->type = type;
     resource->data_type = data_type;
-    resource->data = calloc(resource_len, sizeof(union sol_lwm2m_resource_data));
+    resource->data = calloc(resource_len, sizeof(struct sol_lwm2m_resource_data));
     SOL_NULL_CHECK(resource->data, -ENOMEM);
     resource->data_len = resource_len;
 
     va_start(ap, data_type);
 
     for (i = 0; i < resource_len; i++) {
+        if (resource->type == SOL_LWM2M_RESOURCE_TYPE_MULTIPLE)
+            resource->data[i].id = va_arg(ap, int);
+
         switch (resource->data_type) {
         case SOL_LWM2M_RESOURCE_DATA_TYPE_OPAQUE:
         case SOL_LWM2M_RESOURCE_DATA_TYPE_STRING:
             blob = va_arg(ap, struct sol_blob *);
             SOL_NULL_CHECK_GOTO(blob, err_exit);
-            resource->data[i].blob = sol_blob_ref(blob);
-            SOL_NULL_CHECK_GOTO(resource->data[i].blob, err_ref);
+            resource->data[i].content.blob = sol_blob_ref(blob);
+            SOL_NULL_CHECK_GOTO(resource->data[i].content.blob, err_ref);
             break;
         case SOL_LWM2M_RESOURCE_DATA_TYPE_FLOAT:
-            resource->data[i].fp = va_arg(ap, double);
+            resource->data[i].content.fp = va_arg(ap, double);
             break;
         case SOL_LWM2M_RESOURCE_DATA_TYPE_INT:
         case SOL_LWM2M_RESOURCE_DATA_TYPE_TIME:
-            resource->data[i].integer = va_arg(ap, int64_t);
+            resource->data[i].content.integer = va_arg(ap, int64_t);
             break;
         case SOL_LWM2M_RESOURCE_DATA_TYPE_BOOL:
-            resource->data[i].integer = va_arg(ap, int);
+            resource->data[i].content.integer = va_arg(ap, int);
             break;
         case SOL_LWM2M_RESOURCE_DATA_TYPE_OBJ_LINK:
-            resource->data[i].integer = (uint16_t)va_arg(ap, int);
-            resource->data[i].integer = (resource->data[i].integer << 16) |
+            resource->data[i].content.integer = (uint16_t)va_arg(ap, int);
+            resource->data[i].content.integer = (resource->data[i].content.integer << 16) |
                 (uint16_t)va_arg(ap, int);
             break;
         default:
@@ -2198,10 +2198,81 @@ err_exit:
         uint16_t until = i;
 
         for (i = 0; i < until; i++)
-            sol_blob_unref(resource->data[i].blob);
+            sol_blob_unref(resource->data[i].content.blob);
     }
     free(resource->data);
     va_end(ap);
+    return r;
+}
+
+SOL_API int
+sol_lwm2m_resource_init_vector(struct sol_lwm2m_resource *resource,
+    uint16_t id, enum sol_lwm2m_resource_data_type data_type,
+    struct sol_vector *res_instances)
+{
+    uint16_t i;
+    int r = -EINVAL;
+    uint16_t resource_len = res_instances->len;
+
+    if (!resource || data_type == SOL_LWM2M_RESOURCE_DATA_TYPE_NONE ||
+        !resource_len)
+        return -EINVAL;
+
+    LWM2M_RESOURCE_CHECK_API(resource, -EINVAL);
+
+    resource->id = id;
+    resource->type = SOL_LWM2M_RESOURCE_TYPE_MULTIPLE;
+    resource->data_type = data_type;
+    resource->data = calloc(resource_len, sizeof(struct sol_lwm2m_resource_data));
+    SOL_NULL_CHECK(resource->data, -ENOMEM);
+    resource->data_len = resource_len;
+
+    for (i = 0; i < resource_len; i++) {
+        void *v = sol_vector_get_no_check(res_instances, i);
+        struct sol_lwm2m_resource_data *res_data = v;
+        resource->data[i].id = res_data->id;
+
+        if (resource->data_type == SOL_LWM2M_RESOURCE_DATA_TYPE_OPAQUE ||
+            resource->data_type == SOL_LWM2M_RESOURCE_DATA_TYPE_STRING) {
+            struct sol_blob *blob = res_data->content.blob;
+            SOL_NULL_CHECK_GOTO(blob, err_exit);
+            resource->data[i].content.blob = sol_blob_ref(blob);
+            SOL_NULL_CHECK_GOTO(resource->data[i].content.blob, err_ref);
+
+        } else if (resource->data_type == SOL_LWM2M_RESOURCE_DATA_TYPE_FLOAT) {
+            resource->data[i].content.fp = res_data->content.fp;
+
+        } else if (resource->data_type == SOL_LWM2M_RESOURCE_DATA_TYPE_INT ||
+            resource->data_type == SOL_LWM2M_RESOURCE_DATA_TYPE_TIME) {
+            resource->data[i].content.integer = res_data->content.integer;
+
+        } else if (resource->data_type == SOL_LWM2M_RESOURCE_DATA_TYPE_BOOL) {
+            resource->data[i].content.integer = res_data->content.integer;
+
+        } else if (resource->data_type == SOL_LWM2M_RESOURCE_DATA_TYPE_OBJ_LINK) {
+            resource->data[i].content.integer = (uint16_t)res_data->content.integer;
+            resource->data[i].content.integer = (resource->data[i].content.integer << 16) |
+                (uint16_t)res_data->content.integer;
+
+        } else {
+            SOL_WRN("Unknown resource data type");
+            goto err_exit;
+        }
+    }
+
+    return 0;
+
+err_ref:
+    r = -EOVERFLOW;
+err_exit:
+    if (data_type == SOL_LWM2M_RESOURCE_DATA_TYPE_OPAQUE ||
+        data_type == SOL_LWM2M_RESOURCE_DATA_TYPE_STRING) {
+        uint16_t until = i;
+
+        for (i = 0; i < until; i++)
+            sol_blob_unref(resource->data[i].content.blob);
+    }
+    free(resource->data);
     return r;
 }
 
@@ -2659,7 +2730,7 @@ sol_lwm2m_resource_clear(struct sol_lwm2m_resource *resource)
     if (resource->data_type == SOL_LWM2M_RESOURCE_DATA_TYPE_OPAQUE ||
         resource->data_type == SOL_LWM2M_RESOURCE_DATA_TYPE_STRING) {
         for (i = 0; i < resource->data_len; i++)
-            sol_blob_unref(resource->data[i].blob);
+            sol_blob_unref(resource->data[i].content.blob);
     }
     free(resource->data);
     resource->data = NULL;
@@ -3127,7 +3198,7 @@ write_instance_tlv_or_resource(struct sol_lwm2m_client *client,
         SOL_NULL_CHECK(blob, SOL_COAP_RESPONSE_CODE_BAD_REQUEST);
 
         SOL_SET_API_VERSION(res.api_version = SOL_LWM2M_RESOURCE_API_VERSION; )
-        r = sol_lwm2m_resource_init(&res, resource, 1,
+        r = sol_lwm2m_resource_init(&res, resource, 1, SOL_LWM2M_RESOURCE_TYPE_SINGLE,
             payload.type == SOL_LWM2M_CONTENT_TYPE_TEXT ?
             SOL_LWM2M_RESOURCE_DATA_TYPE_STRING :
             SOL_LWM2M_RESOURCE_DATA_TYPE_OPAQUE, blob);
@@ -3974,12 +4045,12 @@ get_binding_and_lifetime(struct sol_lwm2m_client *client, int64_t server_id,
             SERVER_OBJECT_BINDING);
         SOL_INT_CHECK(r, < 0, r);
 
-        if (res[0].data[0].integer == server_id) {
+        if (res[0].data[0].content.integer == server_id) {
             r = -EINVAL;
-            SOL_INT_CHECK_GOTO(get_binding_mode_from_str(sol_str_slice_from_blob(res[2].data[0].blob)),
+            SOL_INT_CHECK_GOTO(get_binding_mode_from_str(sol_str_slice_from_blob(res[2].data[0].content.blob)),
                 == SOL_LWM2M_BINDING_MODE_UNKNOWN, exit);
-            *lifetime = res[1].data[0].integer;
-            *binding = sol_blob_ref(res[2].data[0].blob);
+            *lifetime = res[1].data[0].content.integer;
+            *binding = sol_blob_ref(res[2].data[0].content.blob);
             r = 0;
             goto exit;
         }
@@ -4680,14 +4751,14 @@ sol_lwm2m_client_start(struct sol_lwm2m_client *client)
         SOL_INT_CHECK_GOTO(r, < 0, err_exit);
 
         //Is it a bootstap?
-        if (!res[0].data[0].b) {
+        if (!res[0].data[0].content.b) {
             sol_lwm2m_resource_clear(&res[0]);
             r = read_resources(client, ctx, instance, res, 2,
                 SECURITY_SERVER_URI, SECURITY_SERVER_ID);
             SOL_INT_CHECK_GOTO(r, < 0, err_exit);
 
-            conn_ctx = server_connection_ctx_new(client, sol_str_slice_from_blob(res[0].data[0].blob),
-                res[1].data[0].integer);
+            conn_ctx = server_connection_ctx_new(client, sol_str_slice_from_blob(res[0].data[0].content.blob),
+                res[1].data[0].content.integer);
             r = -ENOMEM;
             SOL_NULL_CHECK_GOTO(conn_ctx, err_clear_2);
             has_server = true;
@@ -4722,13 +4793,13 @@ sol_lwm2m_client_start(struct sol_lwm2m_client *client)
         SOL_INT_CHECK_GOTO(r, < 0, err_unregister_bs);
 
         SOL_DBG("Expecting server-initiated Bootstrap for"
-            " %" PRId64 " seconds", res[1].data[0].integer);
+            " %" PRId64 " seconds", res[1].data[0].content.integer);
 
         //Expect server-initiated bootstrap with sol_timeout before client-initiated bootstrap
-        client->bootstrap_ctx.server_uri = sol_blob_ref(res[0].data[0].blob);
+        client->bootstrap_ctx.server_uri = sol_blob_ref(res[0].data[0].content.blob);
         SOL_NULL_CHECK_GOTO(client->bootstrap_ctx.server_uri, err_unregister_unknown);
 
-        client->bootstrap_ctx.timeout = sol_timeout_add(res[1].data[0].integer * ONE_SECOND,
+        client->bootstrap_ctx.timeout = sol_timeout_add(res[1].data[0].content.integer * ONE_SECOND,
             client_bootstrap, client);
         SOL_NULL_CHECK_GOTO(client->bootstrap_ctx.timeout, err_unregister_unknown);
 
