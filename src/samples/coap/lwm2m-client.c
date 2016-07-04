@@ -372,7 +372,7 @@ write_security_tlv(void *instance_data, void *user_data,
     struct sol_lwm2m_client *client,
     uint16_t instance_id, struct sol_vector *tlvs)
 {
-    int r;
+    int r = 0;
     uint16_t i;
     struct sol_lwm2m_tlv *tlv;
     struct security_obj_instance_ctx *instance_ctx = instance_data;
@@ -568,7 +568,7 @@ write_server_tlv(void *instance_data, void *user_data,
     struct sol_lwm2m_client *client,
     uint16_t instance_id, struct sol_vector *tlvs)
 {
-    int r;
+    int r = 0;
     uint16_t i;
     struct sol_lwm2m_tlv *tlv;
     struct server_obj_instance_ctx *instance_ctx = instance_data;
