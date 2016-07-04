@@ -57,6 +57,12 @@
 #define SERVER_OBJ_BINDING_RES_ID (7)
 #define SERVER_OBJ_REGISTRATION_UPDATE_RES_ID (8)
 
+#define ACCESS_CONTROL_OBJ_ID (2)
+#define ACCESS_CONTROL_OBJ_OBJECT_RES_ID (0)
+#define ACCESS_CONTROL_OBJ_INSTANCE_RES_ID (1)
+#define ACCESS_CONTROL_OBJ_ACL_RES_ID (2)
+#define ACCESS_CONTROL_OBJ_OWNER_RES_ID (3)
+
 #define SECURITY_SERVER_OBJ_ID (0)
 #define SECURITY_SERVER_SERVER_URI_RES_ID (0)
 #define SECURITY_SERVER_IS_BOOTSTRAP_RES_ID (1)
@@ -83,6 +89,19 @@ struct server_obj_instance_ctx {
     struct sol_blob *binding;
     int64_t server_id;
     int64_t lifetime;
+};
+
+struct acl_instance {
+    uint16_t key;
+    int64_t value;
+};
+
+struct access_control_obj_instance_ctx {
+    struct sol_lwm2m_client *client;
+    int64_t owner_id;
+    int64_t object_id;
+    int64_t instance_id;
+    struct sol_vector acl;
 };
 
 struct location_obj_instance_ctx {
@@ -707,6 +726,272 @@ del_location_obj(void *instance_data, void *user_data,
     return 0;
 }
 
+static int
+read_access_control_obj(void *instance_data, void *user_data,
+    struct sol_lwm2m_client *client,
+    uint16_t instance_id, uint16_t res_id, struct sol_lwm2m_resource *res)
+{
+    struct access_control_obj_instance_ctx *ctx = instance_data;
+    int r;
+
+    if (res_id == ACCESS_CONTROL_OBJ_OBJECT_RES_ID) {
+        SOL_LWM2M_RESOURCE_SINGLE_INT_INIT(r, res, res_id, ctx->object_id);
+    } else if (res_id == ACCESS_CONTROL_OBJ_INSTANCE_RES_ID) {
+        SOL_LWM2M_RESOURCE_SINGLE_INT_INIT(r, res, res_id, ctx->instance_id);
+    } else if (res_id == ACCESS_CONTROL_OBJ_ACL_RES_ID) {
+        struct acl_instance *acl_item;
+        uint16_t i;
+        struct sol_vector acl_instances;
+        struct sol_lwm2m_resource_data *res_data;
+
+        if (ctx->acl.len == 0)
+            return -ENOENT;
+
+        sol_vector_init(&acl_instances, sizeof(struct sol_lwm2m_resource_data));
+
+        SOL_VECTOR_FOREACH_IDX (&ctx->acl, acl_item, i) {
+            res_data = sol_vector_append(&acl_instances);
+            res_data->id = acl_item->key;
+            res_data->content.integer = acl_item->value;
+        }
+
+        SOL_SET_API_VERSION(res->api_version = SOL_LWM2M_RESOURCE_API_VERSION; )
+        r = sol_lwm2m_resource_init_vector(res, ACCESS_CONTROL_OBJ_ACL_RES_ID,
+            SOL_LWM2M_RESOURCE_DATA_TYPE_INT, &acl_instances);
+
+        sol_vector_clear(&acl_instances);
+    } else if (res_id == ACCESS_CONTROL_OBJ_OWNER_RES_ID) {
+        SOL_LWM2M_RESOURCE_SINGLE_INT_INIT(r, res, res_id, ctx->owner_id);
+    } else {
+        r = -EINVAL;
+    }
+
+    return r;
+}
+
+static int
+write_access_control_res(void *instance_data, void *user_data,
+    struct sol_lwm2m_client *client,
+    uint16_t instance_id, uint16_t res_id, const struct sol_lwm2m_resource *res)
+{
+    struct access_control_obj_instance_ctx *instance_ctx = instance_data;
+    int r = 0;
+    struct acl_instance *acl_item;
+    uint16_t i;
+
+    switch (res->id) {
+    case ACCESS_CONTROL_OBJ_OBJECT_RES_ID:
+        instance_ctx->object_id = res->data->content.integer;
+        break;
+    case ACCESS_CONTROL_OBJ_INSTANCE_RES_ID:
+        instance_ctx->instance_id = res->data->content.integer;
+        break;
+    case ACCESS_CONTROL_OBJ_ACL_RES_ID:
+        if (res->type == SOL_LWM2M_RESOURCE_TYPE_MULTIPLE) {
+            sol_vector_clear(&instance_ctx->acl);
+
+            for (i = 0; i < res->data_len; i++) {
+                acl_item = sol_vector_append(&instance_ctx->acl);
+                if (!acl_item) {
+                    fprintf(stderr, "Could not alloc memory for access control list Resource Instance\n");
+                    r = -ENOMEM;
+                    goto err_free_acl;
+                }
+
+                acl_item->key = res->data[i].id;
+                acl_item->value = res->data[i].content.integer;
+                printf("<<[WRITE_RES]<< acl[%" PRIu16 "]=%" PRId64 ">>>>\n", acl_item->key, acl_item->value);
+            }
+        } else {
+            r = -EINVAL;
+        }
+        break;
+    case ACCESS_CONTROL_OBJ_OWNER_RES_ID:
+        instance_ctx->owner_id = res->data->content.integer;
+        break;
+    default:
+        r = -EINVAL;
+    }
+
+    if (r >= 0)
+        printf("Resource written to Access Control object at /2/%" PRIu16 "/%" PRIu16 "\n",
+            instance_id, res->id);
+
+    return r;
+
+err_free_acl:
+    sol_vector_clear(&instance_ctx->acl);
+    return r;
+}
+
+static int
+write_or_create_acl(struct sol_vector *acl,
+    struct sol_vector *tlvs, uint16_t *j, bool is_create)
+{
+    struct acl_instance *acl_item;
+    struct sol_lwm2m_tlv *res_tlv;
+    int64_t res_val;
+    int r;
+
+    while ((res_tlv = sol_vector_get(tlvs, *j)) &&
+        res_tlv->type == SOL_LWM2M_TLV_TYPE_RESOURCE_INSTANCE) {
+        r = sol_lwm2m_tlv_get_int(res_tlv, &res_val);
+        if (r < 0)
+            return r;
+
+        acl_item = sol_vector_append(acl);
+        if (!acl_item) {
+            fprintf(stderr, "Could not alloc memory for access control list Resource Instance\n");
+            return -ENOMEM;
+        }
+
+        acl_item->key = res_tlv->id;
+        acl_item->value = res_val;
+        if (is_create)
+            printf("<<[CREATE]<< acl[%" PRIu16 "]=%" PRId64 ">>>>\n", acl_item->key, acl_item->value);
+        else
+            printf("<<[WRITE_TLV]<< acl[%" PRIu16 "]=%" PRId64 ">>>>\n", acl_item->key, acl_item->value);
+        (*j)++;
+    }
+
+    return 0;
+}
+
+static int
+write_access_control_tlv(void *instance_data, void *user_data,
+    struct sol_lwm2m_client *client,
+    uint16_t instance_id, struct sol_vector *tlvs)
+{
+    int r = -EINVAL;
+    uint16_t i;
+    struct sol_lwm2m_tlv *tlv;
+    struct access_control_obj_instance_ctx *instance_ctx = instance_data;
+
+    SOL_VECTOR_FOREACH_IDX (tlvs, tlv, i) {
+        if (tlv->id == ACCESS_CONTROL_OBJ_OBJECT_RES_ID &&
+            tlv->type == SOL_LWM2M_TLV_TYPE_RESOURCE_WITH_VALUE) {
+            r = sol_lwm2m_tlv_get_int(tlv, &instance_ctx->object_id);
+            if (r < 0)
+                return r;
+        } else if (tlv->id == ACCESS_CONTROL_OBJ_INSTANCE_RES_ID &&
+            tlv->type == SOL_LWM2M_TLV_TYPE_RESOURCE_WITH_VALUE) {
+            r = sol_lwm2m_tlv_get_int(tlv, &instance_ctx->instance_id);
+            if (r < 0)
+                return r;
+        } else if (tlv->id == ACCESS_CONTROL_OBJ_ACL_RES_ID &&
+            tlv->type == SOL_LWM2M_TLV_TYPE_MULTIPLE_RESOURCES) {
+            uint16_t j = i + 1;
+
+            sol_vector_clear(&instance_ctx->acl);
+
+            r = write_or_create_acl(&instance_ctx->acl, tlvs, &j, false);
+            if (r < 0)
+                goto err_free_acl;
+
+            i = j - 1;
+        } else if (tlv->id == ACCESS_CONTROL_OBJ_OWNER_RES_ID &&
+            tlv->type == SOL_LWM2M_TLV_TYPE_RESOURCE_WITH_VALUE) {
+            r = sol_lwm2m_tlv_get_int(tlv, &instance_ctx->owner_id);
+            if (r < 0)
+                return r;
+        } else {
+            fprintf(stderr, "tlv type: %u, ID: %" PRIu16 ", Size: %zu, Content: %.*s"
+                " could not be written to Access Control Object at /2/%" PRIu16,
+                tlv->type, tlv->id, tlv->content.used,
+                SOL_STR_SLICE_PRINT(sol_buffer_get_slice(&tlv->content)), instance_id);
+            return -EINVAL;
+        }
+    }
+
+    if (tlvs->len == 1 && r >= 0)
+        printf("TLV written to Access Control object at /2/%" PRIu16 "/%" PRIu16 "\n",
+            instance_id, tlv->id);
+    else
+        printf("TLV written to Access Control object at /2/%" PRIu16 "\n", instance_id);
+
+    return r;
+
+err_free_acl:
+    sol_vector_clear(&instance_ctx->acl);
+    return r;
+}
+
+static int
+create_access_control_obj(void *user_data, struct sol_lwm2m_client *client,
+    uint16_t instance_id, void **instance_data,
+    struct sol_lwm2m_payload payload)
+{
+    struct access_control_obj_instance_ctx *instance_ctx;
+    int r;
+    uint16_t i;
+    struct sol_lwm2m_tlv *tlv;
+
+    if (payload.type != SOL_LWM2M_CONTENT_TYPE_TLV) {
+        fprintf(stderr, "Content type is not in TLV format\n");
+        return -EINVAL;
+    }
+
+    instance_ctx = calloc(1, sizeof(struct access_control_obj_instance_ctx));
+    if (!instance_ctx) {
+        fprintf(stderr, "Could not alloc memory for access control object context\n");
+        return -ENOMEM;
+    }
+
+    sol_vector_init(&instance_ctx->acl, sizeof(struct acl_instance));
+
+    SOL_VECTOR_FOREACH_IDX (&payload.payload.tlv_content, tlv, i) {
+        if (tlv->id == ACCESS_CONTROL_OBJ_OBJECT_RES_ID &&
+            tlv->type == SOL_LWM2M_TLV_TYPE_RESOURCE_WITH_VALUE) {
+            r = sol_lwm2m_tlv_get_int(tlv, &instance_ctx->object_id);
+        } else if (tlv->id == ACCESS_CONTROL_OBJ_INSTANCE_RES_ID &&
+            tlv->type == SOL_LWM2M_TLV_TYPE_RESOURCE_WITH_VALUE) {
+            r = sol_lwm2m_tlv_get_int(tlv, &instance_ctx->instance_id);
+        } else if (tlv->id == ACCESS_CONTROL_OBJ_ACL_RES_ID &&
+            tlv->type == SOL_LWM2M_TLV_TYPE_MULTIPLE_RESOURCES) {
+            uint16_t j = i + 1;
+
+            sol_vector_clear(&instance_ctx->acl);
+
+            r = write_or_create_acl(&instance_ctx->acl, &payload.payload.tlv_content, &j, true);
+            if (r < 0)
+                goto err_free_acl;
+
+            i = j - 1;
+        } else if (tlv->id == ACCESS_CONTROL_OBJ_OWNER_RES_ID &&
+            tlv->type == SOL_LWM2M_TLV_TYPE_RESOURCE_WITH_VALUE) {
+            r = sol_lwm2m_tlv_get_int(tlv, &instance_ctx->owner_id);
+        }
+
+        if (r < 0) {
+            fprintf(stderr, "Could not get the tlv value for resource %"
+                PRIu16 "\n", tlv->id);
+            goto err_free_acl;
+        }
+    }
+
+    instance_ctx->client = client;
+    *instance_data = instance_ctx;
+    printf("Access Control object created at /2/%" PRIu16 "\n\n", instance_id);
+
+    return 0;
+
+err_free_acl:
+    sol_vector_clear(&instance_ctx->acl);
+    free(instance_ctx);
+    return r;
+}
+
+static int
+del_access_control_obj(void *instance_data, void *user_data,
+    struct sol_lwm2m_client *client, uint16_t instance_id)
+{
+    struct access_control_obj_instance_ctx *instance_ctx = instance_data;
+
+    sol_vector_clear(&instance_ctx->acl);
+    free(instance_ctx);
+    return 0;
+}
+
 static void
 bootstrap_cb(void *data,
     struct sol_lwm2m_client *client,
@@ -753,12 +1038,23 @@ static const struct sol_lwm2m_object server_object = {
     .execute = execute_server_obj
 };
 
+static const struct sol_lwm2m_object access_control_object = {
+    SOL_SET_API_VERSION(.api_version = SOL_LWM2M_OBJECT_API_VERSION, )
+    .id = ACCESS_CONTROL_OBJ_ID,
+    .resources_count = 4,
+    .read = read_access_control_obj,
+    .create = create_access_control_obj,
+    .del = del_access_control_obj,
+    .write_resource = write_access_control_res,
+    .write_tlv = write_access_control_tlv,
+};
+
 int
 main(int argc, char *argv[])
 {
     struct sol_lwm2m_client *client;
     static const struct sol_lwm2m_object *objects[] =
-    { &security_object, &server_object, &location_object, NULL };
+    { &security_object, &server_object, &access_control_object, &location_object, NULL };
     struct client_data_ctx data_ctx = { 0 };
     struct security_obj_instance_ctx *security_data;
     struct server_obj_instance_ctx *server_data;
