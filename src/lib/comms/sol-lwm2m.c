@@ -307,6 +307,8 @@ static int bootstrap_with_server(struct sol_lwm2m_client *client,
 static int handle_resource(void *data, struct sol_coap_server *server,
     const struct sol_coap_resource *resource, struct sol_coap_packet *req,
     const struct sol_network_link_addr *cliaddr);
+static void remove_observer_entry(struct sol_ptr_vector *entries,
+    struct observer_entry *entry);
 
 static void
 send_ack_if_needed(struct sol_coap_server *coap, struct sol_coap_packet *msg,
@@ -429,9 +431,29 @@ clients_to_delete_clear(struct sol_ptr_vector *to_delete)
 }
 
 static void
+remove_all_observer_entries_from_client(struct sol_lwm2m_server *server,
+    struct sol_lwm2m_client_info *cinfo)
+{
+    uint16_t i;
+    int64_t token;
+    struct observer_entry *entry;
+
+    SOL_PTR_VECTOR_FOREACH_IDX (&server->observers, entry, i) {
+        if (entry->cinfo == cinfo) {
+            token = entry->token;
+            entry->removed = true;
+            sol_coap_unobserve_by_token(server->coap, &cinfo->cliaddr,
+                (uint8_t *)&token, sizeof(token));
+        }
+    }
+}
+
+static void
 remove_client(struct sol_lwm2m_client_info *cinfo, bool del)
 {
     int r = 0;
+
+    remove_all_observer_entries_from_client(cinfo->server, cinfo);
 
     r = sol_ptr_vector_remove(&cinfo->server->clients, cinfo);
     if (r < 0)
