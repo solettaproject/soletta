@@ -429,9 +429,29 @@ clients_to_delete_clear(struct sol_ptr_vector *to_delete)
 }
 
 static void
+remove_all_observer_entries_from_client(struct sol_lwm2m_server *server,
+    struct sol_lwm2m_client_info *cinfo)
+{
+    uint16_t i;
+    int64_t token;
+    struct observer_entry *entry;
+
+    SOL_PTR_VECTOR_FOREACH_IDX (&server->observers, entry, i) {
+        if (entry->cinfo == cinfo) {
+            token = entry->token;
+            entry->removed = true;
+            sol_coap_unobserve_by_token(server->coap, &cinfo->cliaddr,
+                (uint8_t *)&token, sizeof(token));
+        }
+    }
+}
+
+static void
 remove_client(struct sol_lwm2m_client_info *cinfo, bool del)
 {
     int r = 0;
+
+    remove_all_observer_entries_from_client(cinfo->server, cinfo);
 
     r = sol_ptr_vector_remove(&cinfo->server->clients, cinfo);
     if (r < 0)
