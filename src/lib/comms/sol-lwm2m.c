@@ -969,7 +969,7 @@ new_bootstrap_client_info(struct sol_lwm2m_bootstrap_client_info **bs_cinfo,
     return 0;
 
 err_no_name:
-    free(bs_cinfo);
+    free(*bs_cinfo);
     return -ENOMEM;
 }
 
@@ -4623,7 +4623,7 @@ SOL_API int
 sol_lwm2m_client_start(struct sol_lwm2m_client *client)
 {
     uint16_t i, j, k;
-    uint16_t bootstrap_account_idx;
+    uint16_t bootstrap_account_idx = 0;
     struct obj_ctx *ctx;
     bool has_server = false;
     struct obj_instance *instance;
@@ -4637,6 +4637,11 @@ sol_lwm2m_client_start(struct sol_lwm2m_client *client)
     ctx = find_object_ctx_by_id(client, SECURITY_SERVER_OBJECT_ID);
     if (!ctx) {
         SOL_WRN("LWM2M Security object not provided!");
+        return -ENOENT;
+    }
+
+    if (!ctx->instances.len) {
+        SOL_WRN("There are no Security Server instances");
         return -ENOENT;
     }
 
