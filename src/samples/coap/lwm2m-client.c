@@ -267,18 +267,18 @@ read_location_obj(void *instance_data, void *user_data,
     switch (res_id) {
     case LOCATION_OBJ_LATITUDE_RES_ID:
         blob = coord_to_str(ctx->latitude);
-        SOL_LWM2M_RESOURCE_INIT(r, res, res_id, 1,
+        SOL_LWM2M_RESOURCE_SINGLE_INIT(r, res, res_id,
             SOL_LWM2M_RESOURCE_DATA_TYPE_STRING, blob);
         sol_blob_unref(blob);
         break;
     case LOCATION_OBJ_LONGITUDE_RES_ID:
         blob = coord_to_str(ctx->longitude);
-        SOL_LWM2M_RESOURCE_INIT(r, res, res_id, 1,
+        SOL_LWM2M_RESOURCE_SINGLE_INIT(r, res, res_id,
             SOL_LWM2M_RESOURCE_DATA_TYPE_STRING, blob);
         sol_blob_unref(blob);
         break;
     case LOCATION_OBJ_TIMESTAMP_RES_ID:
-        SOL_LWM2M_RESOURCE_INIT(r, res, res_id, 1,
+        SOL_LWM2M_RESOURCE_SINGLE_INIT(r, res, res_id,
             SOL_LWM2M_RESOURCE_DATA_TYPE_TIME, ctx->timestamp);
         break;
     default:
@@ -303,21 +303,21 @@ read_security_obj(void *instance_data, void *user_data,
     // or bootstrap server without encryption.
     switch (res_id) {
     case SECURITY_SERVER_SERVER_URI_RES_ID:
-        SOL_LWM2M_RESOURCE_INIT(r, res, res_id, 1,
+        SOL_LWM2M_RESOURCE_SINGLE_INIT(r, res, res_id,
             SOL_LWM2M_RESOURCE_DATA_TYPE_STRING, ctx->server_uri);
         break;
     case SECURITY_SERVER_IS_BOOTSTRAP_RES_ID:
-        SOL_LWM2M_RESOURCE_INIT(r, res, res_id, 1,
+        SOL_LWM2M_RESOURCE_SINGLE_INIT(r, res, res_id,
             SOL_LWM2M_RESOURCE_DATA_TYPE_BOOL, ctx->is_bootstrap);
         break;
     case SECURITY_SERVER_SERVER_ID_RES_ID:
-        SOL_LWM2M_RESOURCE_INT_INIT(r, res, res_id, ctx->server_id);
+        SOL_LWM2M_RESOURCE_SINGLE_INT_INIT(r, res, res_id, ctx->server_id);
         break;
     case SECURITY_SERVER_CLIENT_HOLD_OFF_TIME_RES_ID:
-        SOL_LWM2M_RESOURCE_INT_INIT(r, res, res_id, ctx->client_hold_off_time);
+        SOL_LWM2M_RESOURCE_SINGLE_INT_INIT(r, res, res_id, ctx->client_hold_off_time);
         break;
     case SECURITY_SERVER_BOOTSTRAP_SERVER_ACCOUNT_TIMEOUT_RES_ID:
-        SOL_LWM2M_RESOURCE_INT_INIT(r, res, res_id, ctx->bootstrap_server_account_timeout);
+        SOL_LWM2M_RESOURCE_SINGLE_INT_INIT(r, res, res_id, ctx->bootstrap_server_account_timeout);
         break;
     default:
         if (res_id >= 2 && res_id <= 9)
@@ -340,19 +340,19 @@ write_security_res(void *instance_data, void *user_data,
     switch (res->id) {
     case SECURITY_SERVER_SERVER_URI_RES_ID:
         sol_blob_unref(instance_ctx->server_uri);
-        instance_ctx->server_uri = sol_blob_ref(res->data->blob);
+        instance_ctx->server_uri = sol_blob_ref(res->data->content.blob);
         break;
     case SECURITY_SERVER_IS_BOOTSTRAP_RES_ID:
-        instance_ctx->is_bootstrap = res->data->b;
+        instance_ctx->is_bootstrap = res->data->content.b;
         break;
     case SECURITY_SERVER_SERVER_ID_RES_ID:
-        instance_ctx->server_id = res->data->integer;
+        instance_ctx->server_id = res->data->content.integer;
         break;
     case SECURITY_SERVER_CLIENT_HOLD_OFF_TIME_RES_ID:
-        instance_ctx->client_hold_off_time = res->data->integer;
+        instance_ctx->client_hold_off_time = res->data->content.integer;
         break;
     case SECURITY_SERVER_BOOTSTRAP_SERVER_ACCOUNT_TIMEOUT_RES_ID:
-        instance_ctx->bootstrap_server_account_timeout = res->data->integer;
+        instance_ctx->bootstrap_server_account_timeout = res->data->content.integer;
         break;
     default:
         if (res->id >= 2 && res->id <= 9)
@@ -512,13 +512,13 @@ read_server_obj(void *instance_data, void *user_data,
     // without encryption.
     switch (res_id) {
     case SERVER_OBJ_SHORT_RES_ID:
-        SOL_LWM2M_RESOURCE_INT_INIT(r, res, res_id, ctx->server_id);
+        SOL_LWM2M_RESOURCE_SINGLE_INT_INIT(r, res, res_id, ctx->server_id);
         break;
     case SERVER_OBJ_LIFETIME_RES_ID:
-        SOL_LWM2M_RESOURCE_INT_INIT(r, res, res_id, ctx->lifetime);
+        SOL_LWM2M_RESOURCE_SINGLE_INT_INIT(r, res, res_id, ctx->lifetime);
         break;
     case SERVER_OBJ_BINDING_RES_ID:
-        SOL_LWM2M_RESOURCE_INIT(r, res, res_id, 1,
+        SOL_LWM2M_RESOURCE_SINGLE_INIT(r, res, res_id,
             SOL_LWM2M_RESOURCE_DATA_TYPE_STRING, ctx->binding);
         break;
     default:
@@ -541,14 +541,14 @@ write_server_res(void *instance_data, void *user_data,
 
     switch (res->id) {
     case SERVER_OBJ_SHORT_RES_ID:
-        instance_ctx->server_id = res->data->integer;
+        instance_ctx->server_id = res->data->content.integer;
         break;
     case SERVER_OBJ_LIFETIME_RES_ID:
-        instance_ctx->lifetime = res->data->integer;
+        instance_ctx->lifetime = res->data->content.integer;
         break;
     case SERVER_OBJ_BINDING_RES_ID:
         sol_blob_unref(instance_ctx->binding);
-        instance_ctx->binding = sol_blob_ref(res->data->blob);
+        instance_ctx->binding = sol_blob_ref(res->data->content.blob);
         break;
     default:
         if (res->id >= 2 && res->id <= 6)

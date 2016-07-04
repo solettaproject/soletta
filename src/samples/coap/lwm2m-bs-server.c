@@ -106,7 +106,7 @@ write_servers_cb(void *data,
 
     printf("The client %s wrote the object(s)/resource at %s.\n", name, path);
 
-    SOL_LWM2M_RESOURCE_INT_INIT(r, &server_two_lifetime, SERVER_OBJ_LIFETIME_RES_ID, LIFETIME * 2);
+    SOL_LWM2M_RESOURCE_SINGLE_INT_INIT(r, &server_two_lifetime, SERVER_OBJ_LIFETIME_RES_ID, LIFETIME * 2);
     if (r < 0) {
         fprintf(stderr, "Could not init Server Object's [Lifetime] resource\n");
         return;
@@ -150,17 +150,17 @@ write_server_one_cb(void *data,
     printf("The client %s wrote the object(s)/resource at %s.\n", name, path);
 
     // Server Two's Server Object
-    SOL_LWM2M_RESOURCE_INT_INIT(r, &server_two[0], SERVER_OBJ_SHORT_RES_ID, 102);
+    SOL_LWM2M_RESOURCE_SINGLE_INT_INIT(r, &server_two[0], SERVER_OBJ_SHORT_RES_ID, 102);
     if (r < 0) {
         fprintf(stderr, "Could not init Server Object's [Short Server ID] resource\n");
         return;
     }
-    SOL_LWM2M_RESOURCE_INT_INIT(r, &server_two[1], SERVER_OBJ_LIFETIME_RES_ID, LIFETIME);
+    SOL_LWM2M_RESOURCE_SINGLE_INT_INIT(r, &server_two[1], SERVER_OBJ_LIFETIME_RES_ID, LIFETIME);
     if (r < 0) {
         fprintf(stderr, "Could not init Server Object's [Lifetime] resource\n");
         return;
     }
-    SOL_LWM2M_RESOURCE_INIT(r, &server_two[2], SERVER_OBJ_BINDING_RES_ID, 1,
+    SOL_LWM2M_RESOURCE_SINGLE_INIT(r, &server_two[2], SERVER_OBJ_BINDING_RES_ID,
         SOL_LWM2M_RESOURCE_DATA_TYPE_STRING, &binding);
     if (r < 0) {
         fprintf(stderr, "Could not init Server Object's [Binding] resource\n");
@@ -168,17 +168,17 @@ write_server_one_cb(void *data,
     }
 
     // Server Three's Server Object
-    SOL_LWM2M_RESOURCE_INT_INIT(r, &server_three[0], SERVER_OBJ_SHORT_RES_ID, 103);
+    SOL_LWM2M_RESOURCE_SINGLE_INT_INIT(r, &server_three[0], SERVER_OBJ_SHORT_RES_ID, 103);
     if (r < 0) {
         fprintf(stderr, "Could not init Server Object's [Short Server ID] resource\n");
         return;
     }
-    SOL_LWM2M_RESOURCE_INT_INIT(r, &server_three[1], SERVER_OBJ_LIFETIME_RES_ID, LIFETIME);
+    SOL_LWM2M_RESOURCE_SINGLE_INT_INIT(r, &server_three[1], SERVER_OBJ_LIFETIME_RES_ID, LIFETIME);
     if (r < 0) {
         fprintf(stderr, "Could not init Server Object's [Lifetime] resource\n");
         return;
     }
-    SOL_LWM2M_RESOURCE_INIT(r, &server_three[2], SERVER_OBJ_BINDING_RES_ID, 1,
+    SOL_LWM2M_RESOURCE_SINGLE_INIT(r, &server_three[2], SERVER_OBJ_BINDING_RES_ID,
         SOL_LWM2M_RESOURCE_DATA_TYPE_STRING, &binding);
     if (r < 0) {
         fprintf(stderr, "Could not init Server Object's [Binding] resource\n");
@@ -216,17 +216,17 @@ write_sec_one_cb(void *data,
     printf("The client %s wrote the object(s)/resource at %s.\n", name, path);
 
     // Server One's Server Object
-    SOL_LWM2M_RESOURCE_INT_INIT(r, &server_one[0], SERVER_OBJ_SHORT_RES_ID, 101);
+    SOL_LWM2M_RESOURCE_SINGLE_INT_INIT(r, &server_one[0], SERVER_OBJ_SHORT_RES_ID, 101);
     if (r < 0) {
         fprintf(stderr, "Could not init Server Object's [Short Server ID] resource\n");
         return;
     }
-    SOL_LWM2M_RESOURCE_INT_INIT(r, &server_one[1], SERVER_OBJ_LIFETIME_RES_ID, LIFETIME);
+    SOL_LWM2M_RESOURCE_SINGLE_INT_INIT(r, &server_one[1], SERVER_OBJ_LIFETIME_RES_ID, LIFETIME);
     if (r < 0) {
         fprintf(stderr, "Could not init Server Object's [Lifetime] resource\n");
         return;
     }
-    SOL_LWM2M_RESOURCE_INIT(r, &server_one[2], SERVER_OBJ_BINDING_RES_ID, 1,
+    SOL_LWM2M_RESOURCE_SINGLE_INIT(r, &server_one[2], SERVER_OBJ_BINDING_RES_ID,
         SOL_LWM2M_RESOURCE_DATA_TYPE_STRING, &binding);
     if (r < 0) {
         fprintf(stderr, "Could not init Server Object's [Binding] resource\n");
@@ -263,19 +263,19 @@ delete_all_cb(void *data,
     printf("The client %s deleted the object at %s.\n", name, path);
 
     // Server One's Security Object
-    SOL_LWM2M_RESOURCE_INIT(r, &sec_server_one[0], SECURITY_SERVER_SERVER_URI_RES_ID, 1,
+    SOL_LWM2M_RESOURCE_SINGLE_INIT(r, &sec_server_one[0], SECURITY_SERVER_SERVER_URI_RES_ID,
         SOL_LWM2M_RESOURCE_DATA_TYPE_STRING, &server_one_addr);
     if (r < 0) {
         fprintf(stderr, "Could not init Security Object's [Server URI] resource\n");
         return;
     }
-    SOL_LWM2M_RESOURCE_INIT(r, &sec_server_one[1], SECURITY_SERVER_IS_BOOTSTRAP_RES_ID, 1,
+    SOL_LWM2M_RESOURCE_SINGLE_INIT(r, &sec_server_one[1], SECURITY_SERVER_IS_BOOTSTRAP_RES_ID,
         SOL_LWM2M_RESOURCE_DATA_TYPE_BOOL, false);
     if (r < 0) {
         fprintf(stderr, "Could not init Security Object's [Bootstrap Server] resource\n");
         return;
     }
-    SOL_LWM2M_RESOURCE_INT_INIT(r, &sec_server_one[2], SECURITY_SERVER_SERVER_ID_RES_ID, 102);
+    SOL_LWM2M_RESOURCE_SINGLE_INT_INIT(r, &sec_server_one[2], SECURITY_SERVER_SERVER_ID_RES_ID, 102);
     if (r < 0) {
         fprintf(stderr, "Could not init Security Object's [Short Server ID] resource\n");
         return;
