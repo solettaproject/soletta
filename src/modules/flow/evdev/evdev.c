@@ -119,6 +119,9 @@ evdev_fd_handler_cb(void *data, int fd, uint32_t active_flags)
                     ((evdev_cb)e->cb)(e->data, &ev[i]);
             }
         }
+
+        if (!ret)
+            break;
     }
 
     if (!retval) {
