@@ -4623,8 +4623,6 @@ client_bootstrap(void *data)
     conn_ctx = server_connection_ctx_new(client,
         sol_str_slice_from_blob(client->bootstrap_ctx.server_uri),
         DEFAULT_SHORT_SERVER_ID);
-    sol_blob_unref(client->bootstrap_ctx.server_uri);
-    client->bootstrap_ctx.server_uri = NULL;
 
     if (!conn_ctx) {
         SOL_WRN("Could not perform Client-initiated Bootstrap with server %.*s",
@@ -4637,6 +4635,9 @@ client_bootstrap(void *data)
             &bootstrap_finish_interface) < 0)
             SOL_WRN("Could not unregister Bootstrap Finish resource for client.");
     }
+
+    sol_blob_unref(client->bootstrap_ctx.server_uri);
+    client->bootstrap_ctx.server_uri = NULL;
 
     return false;
 }
