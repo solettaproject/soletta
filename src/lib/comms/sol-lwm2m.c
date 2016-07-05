@@ -307,6 +307,8 @@ static int bootstrap_with_server(struct sol_lwm2m_client *client,
 static int handle_resource(void *data, struct sol_coap_server *server,
     const struct sol_coap_resource *resource, struct sol_coap_packet *req,
     const struct sol_network_link_addr *cliaddr);
+static void remove_observer_entry(struct sol_ptr_vector *entries,
+    struct observer_entry *entry);
 
 static void
 send_ack_if_needed(struct sol_coap_server *coap, struct sol_coap_packet *msg,
