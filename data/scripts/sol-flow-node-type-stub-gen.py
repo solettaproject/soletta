@@ -108,7 +108,7 @@ def print_data_struct(outfile, struct):
 """ % struct)
 
 data_type_to_packet_getter_map = {
-    "boolean": "boolean(packet, &in_value)",
+    "boolean": "bool(packet, &in_value)",
     "blob": "blob(packet, &in_value)",
     "json-object": "json_object(packet, &in_value)",
     "json-array": "json_array(packet, &in_value)",
