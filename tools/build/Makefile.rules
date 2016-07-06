@@ -393,7 +393,7 @@ $(SOL_SHARED_AR): $(builtin-objs)
 $(SOL_LIB_AR): $(SOL_SHARED_AR) $(all-objs)
 	$(Q)echo "      "AR"   "$(@)
 	$(Q)$(MKDIR) -p $(dir $(SOL_LIB_AR))
-	$(Q)$(TARGETAR) $(TARGET_ARFLAGS) $(@) $(filter-out $(build_stagedir)shared/%,$(all-objs))
+	$(Q)$(TARGETAR) $(TARGET_ARFLAGS) $(@) $(all-objs)
 
 $(SOL_LIB_SO): $(SOL_SHARED_AR)
 	$(Q)echo "      "LD"   "$(@)
