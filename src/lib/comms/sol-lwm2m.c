@@ -248,6 +248,13 @@ struct bootstrap_ctx {
     const void *data;
 };
 
+struct notification_ctx {
+    struct sol_lwm2m_client *client;
+    struct obj_ctx *obj_ctx;
+    struct obj_instance *obj_instance;
+    int32_t resource_id;
+};
+
 struct resource_ctx {
     char *str_id;
     struct sol_coap_resource *res;
@@ -3008,9 +3015,105 @@ clear_bootstrap_ctx(struct sol_lwm2m_client *client)
     }
 }
 
+/* Returns 1 if authorized; 0 if unauthorized and < 0 if error */
+static int
+check_authorization(struct sol_lwm2m_client *client,
+    int64_t server_id, uint16_t obj_id,
+    int32_t instance_id, int64_t rights_needed)
+{
+    struct obj_ctx *obj_ctx;
+    struct obj_instance *obj_instance;
+    struct sol_lwm2m_resource res[2];
+    int r = 0;
+    int64_t default_acl = SOL_LWM2M_ACL_NONE;
+    uint16_t i;
+
+    //If only one server or Bootstrap Server ID, then full access rights
+    if (sol_ptr_vector_get_len(&client->connections) == 1 || server_id == UINT16_MAX) {
+        SOL_DBG("Full access rights granted. This is either a Bootstrap Server"
+            " or single-server scenario");
+        return 1;
+    }
+
+    obj_ctx = find_object_ctx_by_id(client, ACCESS_CONTROL_OBJECT_ID);
+    SOL_VECTOR_FOREACH_IDX (&obj_ctx->instances, obj_instance, i) {
+        r = read_resources(client, obj_ctx, obj_instance, res, 2,
+            ACCESS_CONTROL_OBJECT_OBJECT_RES_ID,
+            ACCESS_CONTROL_OBJECT_INSTANCE_RES_ID);
+        if (r < 0) {
+            SOL_WRN("Could not read Access Control Object's"
+                " [Object ID] and [Instance ID] resources\n");
+            goto exit;
+        }
+
+        //Retrieve the associated Access Control Object Instance, by matching Object ID
+        // and Instance ID, or if instance_id == -1 and 'R'ead is needed, this
+        // is an Observe Request on Object level and any Instance with this access right
+        // is enough to reply with the Observe flag on CoAP
+        if ((res[0].data[0].content.integer == obj_id &&
+            res[1].data[0].content.integer == instance_id) ||
+            (res[0].data[0].content.integer == obj_id &&
+            instance_id == -1 && (rights_needed & SOL_LWM2M_ACL_READ))) {
+            clear_resource_array(res, sol_util_array_size(res));
+
+            r = read_resources(client, obj_ctx, obj_instance, res, 2,
+                ACCESS_CONTROL_OBJECT_ACL_RES_ID,
+                ACCESS_CONTROL_OBJECT_OWNER_RES_ID);
+            if (r < 0) {
+                SOL_WRN("Could not read Access Control"
+                    " Object's [ACL] and [Owner ID] resources\n");
+                goto exit;
+            }
+
+            //Retrive this server's ACL Resource Instance
+            for (i = 0; i < res[0].data_len; i++) {
+                if (res[0].data[i].id == server_id) {
+                    if (res[0].data[i].content.integer & rights_needed) {
+                        r = 1;
+                        goto exit;
+                    } else {
+                        r = 0;
+                        goto exit;
+                    }
+                }
+
+                //Keep the default ACL Resource Instance, if any, to save another loop later
+                if (res[0].data[i].id == DEFAULT_SHORT_SERVER_ID)
+                    default_acl = res[0].data[i].content.integer;
+            }
+
+            //If no ACL for this server, check if it is the owner of the object.
+            // If owner and no specific ACL Resource Instance, then full access rights.
+            if (res[1].data[0].content.integer == server_id) {
+                r = 1;
+                goto exit;
+            }
+
+            //If no ACL and not owner, check if the default ACL Resource Instance applies
+            if (default_acl & rights_needed) {
+                r = 1;
+                goto exit;
+            }
+
+            //If not Observe operation on Object level, do not check next instance;
+            // only break and return
+            if (!(instance_id == -1 && (rights_needed & SOL_LWM2M_ACL_READ)))
+                goto exit;
+        }
+
+        clear_resource_array(res, sol_util_array_size(res));
+    }
+
+exit:
+    clear_resource_array(res, sol_util_array_size(res));
+
+    return r;
+}
+
 static uint8_t
 handle_delete(struct sol_lwm2m_client *client,
-    struct obj_ctx *obj_ctx, struct obj_instance *obj_instance)
+    struct obj_ctx *obj_ctx, struct obj_instance *obj_instance,
+    int64_t server_id)
 {
     int r, ret = SOL_COAP_RESPONSE_CODE_BAD_REQUEST;
     uint16_t i;
@@ -3019,6 +3122,27 @@ handle_delete(struct sol_lwm2m_client *client,
 
     //Specific Instance?
     if (obj_ctx && obj_instance) {
+        if (client->supports_access_control) {
+            r = check_authorization(client, server_id, obj_ctx->obj->id,
+                obj_instance->id, SOL_LWM2M_ACL_DELETE);
+
+            if (r > 0) {
+                SOL_DBG("Server ID %" PRId64 " authorized for D on"
+                    " Object Instance /%" PRIu16 "/%" PRIu16,
+                    server_id, obj_ctx->obj->id, obj_instance->id);
+            } else if (r == 0) {
+                SOL_WRN("Server ID %" PRId64 " is not authorized for D on"
+                    " Object Instance /%" PRIu16 "/%" PRIu16,
+                    server_id, obj_ctx->obj->id, obj_instance->id);
+                return SOL_COAP_RESPONSE_CODE_UNAUTHORIZED;
+            } else {
+                SOL_WRN("Error checking for authorization. Server ID:"
+                    " %" PRId64 "; Object Instance: /%" PRIu16 "/%" PRIu16 "; Reason: %d",
+                    server_id, obj_ctx->obj->id, obj_instance->id, r);
+                return SOL_COAP_RESPONSE_CODE_INTERNAL_ERROR;
+            }
+        }
+
         if (!obj_ctx->obj->del) {
             SOL_WRN("The object %" PRIu16 " does not implement the delete method",
                 obj_ctx->obj->id);
@@ -3155,7 +3279,8 @@ is_valid_args(const struct sol_str_slice args)
 static uint8_t
 handle_execute(struct sol_lwm2m_client *client,
     struct obj_ctx *obj_ctx, struct obj_instance *obj_instance,
-    uint16_t resource, struct sol_lwm2m_payload payload)
+    uint16_t resource, struct sol_lwm2m_payload payload,
+    int64_t server_id)
 {
     int r;
 
@@ -3163,6 +3288,27 @@ handle_execute(struct sol_lwm2m_client *client,
         SOL_WRN("Object instance was not provided to execute the path"
             "/%" PRIu16 "/?/%" PRIu16 "", obj_ctx->obj->id, resource);
         return SOL_COAP_RESPONSE_CODE_BAD_REQUEST;
+    }
+
+    if (client->supports_access_control) {
+        r = check_authorization(client, server_id, obj_ctx->obj->id,
+            obj_instance->id, SOL_LWM2M_ACL_EXECUTE);
+
+        if (r > 0) {
+            SOL_DBG("Server ID %" PRId64 " authorized for E on"
+                " Object Instance /%" PRIu16 "/%" PRIu16,
+                server_id, obj_ctx->obj->id, obj_instance->id);
+        } else if (r == 0) {
+            SOL_WRN("Server ID %" PRId64 " is not authorized for E on"
+                " Object Instance /%" PRIu16 "/%" PRIu16,
+                server_id, obj_ctx->obj->id, obj_instance->id);
+            return SOL_COAP_RESPONSE_CODE_UNAUTHORIZED;
+        } else {
+            SOL_WRN("Error checking for authorization. Server ID:"
+                " %" PRId64 "; Object Instance: /%" PRIu16 "/%" PRIu16 "; Reason: %d",
+                server_id, obj_ctx->obj->id, obj_instance->id, r);
+            return SOL_COAP_RESPONSE_CODE_INTERNAL_ERROR;
+        }
     }
 
     if (!obj_ctx->obj->execute) {
@@ -3199,21 +3345,43 @@ handle_execute(struct sol_lwm2m_client *client,
 static uint8_t
 write_instance_tlv_or_resource(struct sol_lwm2m_client *client,
     struct obj_ctx *obj_ctx, struct obj_instance *obj_instance,
-    int32_t resource, struct sol_lwm2m_payload payload)
+    int32_t resource, struct sol_lwm2m_payload payload,
+    int64_t server_id)
 {
     int r;
+
+    if (!obj_instance) {
+        SOL_WRN("Object instance was not provided."
+            " Can not complete the write operation");
+        return SOL_COAP_RESPONSE_CODE_BAD_REQUEST;
+    }
+
+    if (client->supports_access_control) {
+        r = check_authorization(client, server_id, obj_ctx->obj->id,
+            obj_instance->id, SOL_LWM2M_ACL_WRITE);
+
+        if (r > 0) {
+            SOL_DBG("Server ID %" PRId64 " authorized for W on"
+                " Object Instance /%" PRIu16 "/%" PRIu16,
+                server_id, obj_ctx->obj->id, obj_instance->id);
+        } else if (r == 0) {
+            SOL_WRN("Server ID %" PRId64 " is not authorized for W on"
+                " Object Instance /%" PRIu16 "/%" PRIu16,
+                server_id, obj_ctx->obj->id, obj_instance->id);
+            return SOL_COAP_RESPONSE_CODE_UNAUTHORIZED;
+        } else {
+            SOL_WRN("Error checking for authorization. Server ID:"
+                " %" PRId64 "; Object Instance: /%" PRIu16 "/%" PRIu16 "; Reason: %d",
+                server_id, obj_ctx->obj->id, obj_instance->id, r);
+            return SOL_COAP_RESPONSE_CODE_INTERNAL_ERROR;
+        }
+    }
 
     //If write_resource is not NULL then write_tlv is guaranteed to be valid as well.
     if (!obj_ctx->obj->write_resource) {
         SOL_WRN("Object %" PRIu16 " does not support the write method",
             obj_ctx->obj->id);
         return SOL_COAP_RESPONSE_CODE_NOT_ALLOWED;
-    }
-
-    if (!obj_instance) {
-        SOL_WRN("Object instance was not provided."
-            " Can not complete the write operation");
-        return SOL_COAP_RESPONSE_CODE_BAD_REQUEST;
     }
 
     if (payload.type == SOL_LWM2M_CONTENT_TYPE_TLV) {
@@ -3262,6 +3430,27 @@ handle_create(struct sol_lwm2m_client *client,
 {
     int r;
     struct obj_instance *obj_instance;
+
+    if (client->supports_access_control) {
+        r = check_authorization(client, owner_server_id, obj_ctx->obj->id,
+            UINT16_MAX, SOL_LWM2M_ACL_CREATE);
+
+        if (r > 0) {
+            SOL_DBG("Server ID %" PRId64 " authorized for C on"
+                " Object /%" PRIu16,
+                owner_server_id, obj_ctx->obj->id);
+        } else if (r == 0) {
+            SOL_WRN("Server ID %" PRId64 " is not authorized for C on"
+                " Object /%" PRIu16,
+                owner_server_id, obj_ctx->obj->id);
+            return SOL_COAP_RESPONSE_CODE_UNAUTHORIZED;
+        } else {
+            SOL_WRN("Error checking for authorization. Server ID:"
+                " %" PRId64 "; Object : /%" PRIu16 "; Reason: %d",
+                owner_server_id, obj_ctx->obj->id, r);
+            return SOL_COAP_RESPONSE_CODE_INTERNAL_ERROR;
+        }
+    }
 
     if (!obj_ctx->obj->create) {
         SOL_WRN("Object %" PRIu16 " does not support the create method",
@@ -3313,7 +3502,7 @@ static uint8_t
 handle_write(struct sol_lwm2m_client *client,
     struct obj_ctx *obj_ctx, struct obj_instance *obj_instance,
     uint16_t *path, uint16_t path_size,
-    struct sol_lwm2m_payload payload)
+    struct sol_lwm2m_payload payload, int64_t server_id)
 {
     int r;
 
@@ -3351,7 +3540,7 @@ handle_write(struct sol_lwm2m_client *client,
                 //Instance already exists?
                 if (obj_instance) {
                     r = write_instance_tlv_or_resource(client, obj_ctx, obj_instance, -1,
-                        instance_payload);
+                        instance_payload, UINT16_MAX);
                 } else {
                     r = handle_create(client, obj_ctx, instance_tlvs->id,
                         instance_payload, UINT16_MAX, false);
@@ -3412,7 +3601,8 @@ handle_write(struct sol_lwm2m_client *client,
         // multiple TLVs of type RESOURCE_INSTANCE} or
         //{Management Write as [Replace] on Object Instance (e.g.: PUT /1/5) or Resource (e.g.: PUT /1/5/1)
         // or as [Partial Update] on Object Instance (e.g.: POST /1/5)}
-        r = write_instance_tlv_or_resource(client, obj_ctx, obj_instance, path[2], payload);
+        r = write_instance_tlv_or_resource(client, obj_ctx, obj_instance,
+            path[2], payload, client->is_bootstrapping ? UINT16_MAX : server_id);
 
         if (r == SOL_COAP_RESPONSE_CODE_CHANGED || r == SOL_COAP_RESPONSE_CODE_CREATED) {
             SOL_DBG("Bootstrap/Management Write on Resource /%"
@@ -3471,7 +3661,7 @@ err_exit:
 static uint8_t
 handle_read(struct sol_lwm2m_client *client,
     struct obj_ctx *obj_ctx, struct obj_instance *obj_instance,
-    int32_t resource_id, struct sol_coap_packet *resp)
+    int32_t resource_id, struct sol_coap_packet *resp, int64_t server_id)
 {
     struct sol_vector resources = SOL_VECTOR_INIT(struct sol_lwm2m_resource);
     struct sol_buffer buf = SOL_BUFFER_INIT_EMPTY;
@@ -3479,6 +3669,27 @@ handle_read(struct sol_lwm2m_client *client,
     uint16_t format = SOL_LWM2M_CONTENT_TYPE_TLV;
     uint16_t i;
     int r;
+
+    if (client->supports_access_control && obj_instance) {
+        r = check_authorization(client, server_id, obj_ctx->obj->id,
+            obj_instance->id, SOL_LWM2M_ACL_READ);
+
+        if (r > 0) {
+            SOL_DBG("Server ID %" PRId64 " authorized for R on"
+                " Object Instance /%" PRIu16 "/%" PRIu16,
+                server_id, obj_ctx->obj->id, obj_instance->id);
+        } else if (r == 0) {
+            SOL_WRN("Server ID %" PRId64 " is not authorized for R on"
+                " Object Instance /%" PRIu16 "/%" PRIu16,
+                server_id, obj_ctx->obj->id, obj_instance->id);
+            return SOL_COAP_RESPONSE_CODE_UNAUTHORIZED;
+        } else {
+            SOL_WRN("Error checking for authorization. Server ID:"
+                " %" PRId64 "; Object Instance: /%" PRIu16 "/%" PRIu16 "; Reason: %d",
+                server_id, obj_ctx->obj->id, obj_instance->id, r);
+            return SOL_COAP_RESPONSE_CODE_INTERNAL_ERROR;
+        }
+    }
 
     if (!obj_ctx->obj->read) {
         SOL_WRN("Object %" PRIu16 " does not support the read method",
@@ -3510,6 +3721,28 @@ handle_read(struct sol_lwm2m_client *client,
         SOL_VECTOR_FOREACH_IDX (&obj_ctx->instances, instance, i) {
             if (instance->should_delete)
                 continue;
+
+            if (client->supports_access_control) {
+                r = check_authorization(client, server_id, obj_ctx->obj->id,
+                    instance->id, SOL_LWM2M_ACL_READ);
+
+                if (r > 0) {
+                    SOL_DBG("Server ID %" PRId64 " authorized for R on"
+                        " Object Instance /%" PRIu16 "/%" PRIu16,
+                        server_id, obj_ctx->obj->id, instance->id);
+                } else if (r == 0) {
+                    SOL_WRN("Server ID %" PRId64 " is not authorized for R on"
+                        " Object Instance /%" PRIu16 "/%" PRIu16,
+                        server_id, obj_ctx->obj->id, instance->id);
+                    continue;
+                } else {
+                    SOL_WRN("Error checking for authorization. Server ID:"
+                        " %" PRId64 "; Object Instance: /%" PRIu16 "/%" PRIu16 "; Reason: %d",
+                        server_id, obj_ctx->obj->id, instance->id, r);
+                    return SOL_COAP_RESPONSE_CODE_INTERNAL_ERROR;
+                }
+            }
+
             r = read_object_instance(client, obj_ctx, instance, &resources);
             SOL_INT_CHECK_GOTO(r, < 0, err_exit);
         }
@@ -3559,31 +3792,44 @@ get_server_id_by_link_addr(const struct sol_ptr_vector *connections,
     return -ENOENT;
 }
 
-static bool
-send_notification_pkt(struct sol_lwm2m_client *client,
-    struct obj_ctx *obj_ctx, struct obj_instance *obj_instance,
-    int32_t resource_id, struct sol_coap_resource *resource)
+static int
+notification_cb(void *data, struct sol_coap_server *server,
+    struct sol_coap_resource *resource, struct sol_network_link_addr *addr,
+    struct sol_coap_packet **pkt)
 {
-    struct sol_coap_packet *pkt;
-    uint8_t ret;
+    struct notification_ctx *ctx = data;
     int r;
+    int64_t server_id;
 
-    pkt = sol_coap_packet_new_notification(client->coap_server, resource);
-    SOL_NULL_CHECK(pkt, false);
-
-    r = sol_coap_header_set_type(pkt, SOL_COAP_MESSAGE_TYPE_CON);
+    r = get_server_id_by_link_addr(&ctx->client->connections, addr, &server_id);
     SOL_INT_CHECK_GOTO(r, < 0, err_exit);
-    r = sol_coap_header_set_code(pkt, SOL_COAP_RESPONSE_CODE_CHANGED);
-    SOL_INT_CHECK_GOTO(r, < 0, err_exit);
-    ret = handle_read(client, obj_ctx, obj_instance, resource_id, pkt);
-    SOL_INT_CHECK_GOTO(ret, != SOL_COAP_RESPONSE_CODE_CONTENT, err_exit);
 
-    return sol_coap_notify(client->coap_server,
-        resource, pkt) == 0;
+    *pkt = sol_coap_packet_new_notification(ctx->client->coap_server, resource);
+    SOL_NULL_CHECK(*pkt, false);
 
+    r = sol_coap_header_set_type(*pkt, SOL_COAP_MESSAGE_TYPE_CON);
+    SOL_INT_CHECK_GOTO(r, < 0, err_pkt);
+    r = sol_coap_header_set_code(*pkt, SOL_COAP_RESPONSE_CODE_CHANGED);
+    SOL_INT_CHECK_GOTO(r, < 0, err_pkt);
+    r = handle_read(ctx->client, ctx->obj_ctx, ctx->obj_instance,
+        ctx->resource_id, *pkt, server_id);
+    if ((uint8_t)r == SOL_COAP_RESPONSE_CODE_UNAUTHORIZED) {
+        SOL_WRN("Server ID %" PRId64 " is not authorized for Notify [R]", server_id);
+        r = -EPERM;
+        goto err_pkt;
+    } else if ((uint8_t)r != SOL_COAP_RESPONSE_CODE_CONTENT) {
+        SOL_WRN("Error while reading data to create notification"
+            " packet. Reason: %d", r);
+        r = -EINVAL;
+        goto err_pkt;
+    }
+
+    return 0;
+
+err_pkt:
+    sol_coap_packet_unref(*pkt);
 err_exit:
-    sol_coap_packet_unref(pkt);
-    return false;
+    return r;
 }
 
 static bool
@@ -3593,9 +3839,12 @@ dispatch_notifications(struct sol_lwm2m_client *client,
     uint16_t i, path_idx = 0;
     struct obj_ctx *obj_ctx;
     bool stop = false, r;
+    struct notification_ctx ctx = { };
 
     if (client->splitted_path_len)
         path_idx = client->splitted_path_len;
+
+    ctx.client = client;
 
     SOL_VECTOR_FOREACH_IDX (&client->objects, obj_ctx, i) {
         struct obj_instance *instance;
@@ -3605,8 +3854,14 @@ dispatch_notifications(struct sol_lwm2m_client *client,
             resource->path[path_idx]))
             continue;
 
-        r = send_notification_pkt(client, obj_ctx, NULL, -1, obj_ctx->obj_res);
-        SOL_EXP_CHECK(!r, false);
+        ctx.obj_ctx = obj_ctx;
+        ctx.resource_id = -1;
+        r = sol_coap_notify_by_callback(client->coap_server, obj_ctx->obj_res,
+            notification_cb, &ctx);
+        if (r < 0) {
+            SOL_WRN("Error in Notify operation. Reason: %d", r);
+            return false;
+        }
 
         if (!resource->path[1].len || is_delete)
             break;
@@ -3619,9 +3874,13 @@ dispatch_notifications(struct sol_lwm2m_client *client,
                 resource->path[path_idx + 1]))
                 continue;
 
-            r = send_notification_pkt(client, obj_ctx, instance, -1,
-                instance->instance_res);
-            SOL_EXP_CHECK(!r, false);
+            ctx.obj_instance = instance;
+            r = sol_coap_notify_by_callback(client->coap_server, instance->instance_res,
+                notification_cb, &ctx);
+            if (r < 0) {
+                SOL_WRN("Error in Notify operation. Reason: %d", r);
+                return false;
+            }
 
             if (!resource->path[2].len) {
                 stop = true;
@@ -3633,9 +3892,14 @@ dispatch_notifications(struct sol_lwm2m_client *client,
                     resource->path[path_idx + 2]))
                     continue;
 
-                r = send_notification_pkt(client, obj_ctx, instance, k,
-                    res_ctx->res);
-                SOL_EXP_CHECK(!r, false);
+                ctx.resource_id = k;
+                r = sol_coap_notify_by_callback(client->coap_server, res_ctx->res,
+                    notification_cb, &ctx);
+                if (r < 0) {
+                    SOL_WRN("Error in Notify operation. Reason: %d", r);
+                    return false;
+                }
+
                 stop = true;
                 break;
             }
@@ -3765,13 +4029,36 @@ handle_resource(void *data, struct sol_coap_server *server,
     switch (method) {
     case SOL_COAP_METHOD_GET:
         if (is_observe_request(req)) {
+            if (client->supports_access_control) {
+                r = check_authorization(client, server_id, path[0],
+                    path_size > 1 ? path[1] : -1, SOL_LWM2M_ACL_READ);
+
+                if (r > 0) {
+                    SOL_DBG("Server ID %" PRId64 " authorized for Observe"
+                        " [R] on Object Instance /%" PRIu16 "/%" PRIu16,
+                        server_id, path[0], path_size > 1 ? path[1] : -1);
+                } else if (r == 0) {
+                    SOL_WRN("Server ID %" PRId64 " is not authorized for Observe"
+                        " [R] on Object Instance /%" PRIu16 "/%" PRIu16,
+                        server_id, path[0], path_size > 1 ? path[1] : -1);
+                    header_code = SOL_COAP_RESPONSE_CODE_UNAUTHORIZED;
+                    goto exit;
+                } else {
+                    SOL_WRN("Error checking for authorization. Server ID:"
+                        " %" PRId64 "; Object Instance: /%" PRIu16 "/%" PRIu16 "; Reason: %d",
+                        server_id, path[0], path_size > 1 ? path[1] : -1, r);
+                    header_code = SOL_COAP_RESPONSE_CODE_INTERNAL_ERROR;
+                    goto exit;
+                }
+            }
+
             uint8_t obs = 1;
             r = add_coap_int_option(resp, SOL_COAP_OPTION_OBSERVE,
                 &obs, sizeof(obs));
             SOL_INT_CHECK_GOTO(r, < 0, exit);
         }
         header_code = handle_read(client, obj_ctx, obj_instance,
-            path_size > 2 ? path[2] : -1, resp);
+            path_size > 2 ? path[2] : -1, resp, server_id);
         break;
     case SOL_COAP_METHOD_POST:
         if (path_size == 1)
@@ -3782,25 +4069,27 @@ handle_resource(void *data, struct sol_coap_server *server,
             header_code = handle_create(client, obj_ctx, path[1], payload, server_id, true);
         else if (path_size == 2)
             //Management Write on object instance
-            header_code = handle_write(client, obj_ctx, obj_instance, path, path_size, payload);
+            header_code = handle_write(client, obj_ctx, obj_instance,
+                path, path_size, payload, server_id);
         else {
             //Execute.
             is_execute = true;
-            header_code = handle_execute(client, obj_ctx, obj_instance, path[2], payload);
+            header_code = handle_execute(client, obj_ctx, obj_instance, path[2], payload, server_id);
         }
         break;
     case SOL_COAP_METHOD_PUT:
         if ((path_size == 3 && !client->is_bootstrapping) ||
             client->is_bootstrapping)
             //Bootstrap Write on Obj, ObjInst or Res; or Management Write on a resource.
-            header_code = handle_write(client, obj_ctx, obj_instance, path, path_size, payload);
+            header_code = handle_write(client, obj_ctx, obj_instance,
+                path, path_size, payload, server_id);
         else {
             header_code = SOL_COAP_RESPONSE_CODE_BAD_REQUEST;
             SOL_WRN("Write request without full path specified!");
         }
         break;
     case SOL_COAP_METHOD_DELETE:
-        header_code = handle_delete(client, obj_ctx, obj_instance);
+        header_code = handle_delete(client, obj_ctx, obj_instance, server_id);
         break;
     default:
         header_code = SOL_COAP_RESPONSE_CODE_BAD_REQUEST;
@@ -4141,11 +4430,18 @@ read_resources(struct sol_lwm2m_client *client,
 
     va_start(ap, res_len);
 
-    // The va_list contains the resources IDs that we should be read.
+    // The va_list contains the resources IDs that should be read.
     for (i = 0; i < res_len; i++) {
         r = obj_ctx->obj->read((void *)instance->data,
             (void *)client->user_data, client, instance->id,
             (uint16_t)va_arg(ap, int), &res[i]);
+
+        if (r == -ENOENT) {
+            res[i].data_len = 0;
+            res[i].data = NULL;
+            continue;
+        }
+
         LWM2M_RESOURCE_CHECK_API_GOTO(res[i], err_exit_api);
         SOL_INT_CHECK_GOTO(r, < 0, err_exit);
     }
@@ -5320,7 +5616,6 @@ sol_lwm2m_client_notify(struct sol_lwm2m_client *client, const char **paths)
     SOL_NULL_CHECK(paths, -EINVAL);
 
     for (i = 0; paths[i]; i++) {
-        bool r_bool;
         uint16_t j, k;
         struct obj_ctx *obj_ctx;
         struct obj_instance *obj_instance;
@@ -5328,6 +5623,7 @@ sol_lwm2m_client_notify(struct sol_lwm2m_client *client, const char **paths)
         struct sol_vector tokens;
         uint16_t path[3];
         struct sol_str_slice *token;
+        struct notification_ctx ctx = { };
 
         tokens = sol_str_slice_split(sol_str_slice_from_str(paths[i]), "/", 0);
 
@@ -5362,26 +5658,33 @@ sol_lwm2m_client_notify(struct sol_lwm2m_client *client, const char **paths)
         res_ctx = find_resource_ctx_by_id(obj_instance, path[2]);
         SOL_NULL_CHECK_GOTO(res_ctx, err_exit_einval);
 
+        ctx.client = client;
+        ctx.obj_ctx = obj_ctx;
+        ctx.resource_id = -1;
+
         if (!notification_already_sent(&already_sent, obj_ctx)) {
-            r_bool = send_notification_pkt(client, obj_ctx, NULL, -1, obj_ctx->obj_res);
-            SOL_EXP_CHECK_GOTO(!r_bool, err_exit_einval);
+            r = sol_coap_notify_by_callback(client->coap_server, obj_ctx->obj_res,
+                notification_cb, &ctx);
+            SOL_INT_CHECK_GOTO(r, < 0, err_exit);
 
             r = sol_ptr_vector_append(&already_sent, obj_ctx);
             SOL_INT_CHECK_GOTO(r, < 0, err_exit);
         }
 
         if (!notification_already_sent(&already_sent, obj_instance)) {
-            r_bool = send_notification_pkt(client, obj_ctx, obj_instance, -1,
-                obj_instance->instance_res);
-            SOL_EXP_CHECK_GOTO(!r_bool, err_exit_einval);
+            ctx.obj_instance = obj_instance;
+            r = sol_coap_notify_by_callback(client->coap_server, obj_instance->instance_res,
+                notification_cb, &ctx);
+            SOL_INT_CHECK_GOTO(r, < 0, err_exit);
 
             r = sol_ptr_vector_append(&already_sent, obj_instance);
             SOL_INT_CHECK_GOTO(r, < 0, err_exit);
         }
 
-        r_bool = send_notification_pkt(client, obj_ctx, obj_instance, path[2],
-            res_ctx->res);
-        SOL_EXP_CHECK_GOTO(!r_bool, err_exit_einval);
+        ctx.resource_id = path[2];
+        r = sol_coap_notify_by_callback(client->coap_server, res_ctx->res,
+            notification_cb, &ctx);
+        SOL_INT_CHECK_GOTO(r, < 0, err_exit);
     }
 
     sol_ptr_vector_clear(&already_sent);
