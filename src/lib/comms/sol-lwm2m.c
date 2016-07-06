@@ -4477,7 +4477,6 @@ bootstrap_request_reply(void *data, struct sol_coap_server *server,
 
     SOL_DBG("Bootstrap process with server %.*s can start",
         SOL_STR_SLICE_PRINT(sol_buffer_get_slice(&addr)));
-    sol_vector_clear(&conn_ctx->server_addr_list);
 
     return false;
 
@@ -4792,6 +4791,9 @@ bootstrap_finish(void *data, struct sol_coap_server *coap,
     struct sol_lwm2m_client *client = data;
     struct sol_coap_packet *response;
     int r;
+    struct server_conn_ctx *conn_ctx;
+    struct sol_network_link_addr *server_addr;
+    uint16_t i;
 
     SOL_DBG("Bootstrap Finish received");
 
@@ -4809,6 +4811,15 @@ bootstrap_finish(void *data, struct sol_coap_server *coap,
 
     r = sol_coap_send_packet(coap, response, cliaddr);
     dispatch_bootstrap_event_to_client(client, SOL_LWM2M_BOOTSTRAP_EVENT_FINISHED);
+
+    SOL_PTR_VECTOR_FOREACH_IDX (&client->connections, conn_ctx, i) {
+        server_addr = sol_vector_get_no_check(&conn_ctx->server_addr_list, conn_ctx->addr_list_idx);
+        if (sol_network_link_addr_eq(cliaddr, server_addr)) {
+            server_connection_ctx_remove(&client->connections, conn_ctx);
+            break;
+        }
+    }
+
     return r;
 
 err_exit:
