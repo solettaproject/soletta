@@ -4482,7 +4482,6 @@ bootstrap_request_reply(void *data, struct sol_coap_server *server,
 
     SOL_DBG("Bootstrap process with server %.*s can start",
         SOL_STR_SLICE_PRINT(sol_buffer_get_slice(&addr)));
-    sol_vector_clear(&conn_ctx->server_addr_list);
 
     return false;
 
@@ -4586,7 +4585,7 @@ server_connection_ctx_new(struct sol_lwm2m_client *client,
     SOL_DBG("Fetching hostname info for:%.*s", SOL_STR_SLICE_PRINT(str_addr));
     conn_ctx->hostname_handle =
         sol_network_get_hostname_address_info(uri.host,
-        SOL_NETWORK_FAMILY_UNSPEC, hostname_ready, conn_ctx); //TODO: INET6
+        SOL_NETWORK_FAMILY_INET6, hostname_ready, conn_ctx);
     SOL_NULL_CHECK_GOTO(conn_ctx->hostname_handle, err_exit);
 
     //For Registration Interface, location will be filled in register_reply()
@@ -4792,7 +4791,12 @@ bootstrap_finish(void *data, struct sol_coap_server *coap,
     struct sol_lwm2m_client *client = data;
     struct sol_coap_packet *response;
     int r;
-
+///*
+    struct server_conn_ctx *conn_ctx;
+    struct sol_network_link_addr *server_addr;
+    uint16_t i;
+    SOL_BUFFER_DECLARE_STATIC(addr, SOL_NETWORK_INET_ADDR_STR_LEN);
+// */
     SOL_DBG("Bootstrap Finish received");
 
     response = sol_coap_packet_new(req);
@@ -4809,6 +4813,22 @@ bootstrap_finish(void *data, struct sol_coap_server *coap,
 
     r = sol_coap_send_packet(coap, response, cliaddr);
     dispatch_bootstrap_event_to_client(client, SOL_LWM2M_BOOTSTRAP_EVENT_FINISHED);
+    //TODO: delete connection with bs-server after bs-finish, this is conflicting with the
+    // code in get_server_id_by_link_addr as well
+///*
+    SOL_WRN("FINISH:\ncliaddr=%s", sol_network_link_addr_to_str(cliaddr, &addr));
+    SOL_VECTOR_FOREACH_IDX (&client->connections, conn_ctx, i) {
+        server_addr = sol_vector_get_no_check(&conn_ctx->server_addr_list, conn_ctx->addr_list_idx);
+        SOL_WRN("server_addr=%s", sol_network_link_addr_to_str(server_addr, &addr));
+        if (sol_network_link_addr_eq(cliaddr, server_addr)) {
+            SOL_WRN("EQUAL!");
+//            server_connection_ctx_clear(conn_ctx);
+            //TODO: Why can't I call the function below to clear and del from the vector?
+            server_connection_ctx_remove(&client->connections, conn_ctx);
+            break;
+        }
+    }
+// */
     return r;
 
 err_exit:
