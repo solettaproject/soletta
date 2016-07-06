@@ -103,8 +103,11 @@ sol_platform_init(void)
     _ctx.locale_timeout = NULL;
     sol_monitors_init_custom(&_ctx.service_monitors, sizeof(struct service_monitor), service_monitor_free);
 
+#ifdef SOL_FEATURE_FILESYSTEM
     _ctx.appname.data = NULL;
     _ctx.appname.len = 0;
+#endif
+
     return sol_platform_impl_init();
 
 err_exit:
