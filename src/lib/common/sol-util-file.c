@@ -327,7 +327,7 @@ get_libname(char *out, size_t size)
         return -EINVAL;
 
     if (!info.dli_saddr) {
-        SOL_WRN("No symbol 'sol_init' found");
+        SOL_INF("No symbol 'sol_init' found");
         return -EINVAL;
     }
 
