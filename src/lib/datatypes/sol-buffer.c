@@ -385,8 +385,11 @@ sol_buffer_steal(struct sol_buffer *buf, size_t *size)
 
     SOL_NULL_CHECK(buf, NULL);
 
-    if (buf->flags & SOL_BUFFER_FLAGS_NO_FREE)
+    if (buf->flags & SOL_BUFFER_FLAGS_NO_FREE) {
+        if (size)
+            *size = 0;
         return NULL;
+    }
 
     r = buf->data;
 
