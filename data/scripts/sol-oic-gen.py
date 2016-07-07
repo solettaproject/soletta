@@ -1784,16 +1784,14 @@ if __name__ == '__main__':
                         help="Path to store the master JSON with node type information",
                         required=True)
     parser.add_argument("--node-type-impl",
-                        help="Path to store the node type implementation",
-                        required=True)
+                        help="Path to store the node type implementation")
     parser.add_argument("--node-type-gen-c",
                         help="Relative path to source generated with "
-                        "sol-flow-node-type-gen for inclusion purposes.",
-                        required=True)
+                        "sol-flow-node-type-gen for inclusion purposes.")
     parser.add_argument("--node-type-gen-h",
                         help="Relative path to header generated with "
-                        "sol-flow-node-type-gen for inclusion purposes.",
-                        required=True)
+                        "sol-flow-node-type-gen for inclusion purposes.")
+    parser.add_argument("--generate", help="TODO", choices=['json', 'source_code', 'both'], required=True)
     parser.add_argument("--quiet", action='store_true',
                         help="If quiet no warning message will be displayed.")
     pargs = parser.parse_args()
@@ -1835,16 +1833,18 @@ if __name__ == '__main__':
                     traceback.print_exc(file=sys.stderr)
                 continue
 
-    warn('\nWriting master JSON: %s' % pargs.node_type_json)
-    open(pargs.node_type_json, 'w+', encoding='UTF-8').write(
+    if pargs.generate == 'json' or pargs.generate == 'both':
+        warn('\nWriting master JSON: %s' % pargs.node_type_json)
+        open(pargs.node_type_json, 'w+', encoding='UTF-8').write(
             master_json_as_string(generated, json_name))
 
-    warn('Writing C: %s' % pargs.node_type_impl)
-    open(pargs.node_type_impl, 'w+', encoding='UTF-8').write(
+    if pargs.generate == 'source_code' or pargs.generate == 'both':
+        warn('\nWriting C: %s' % pargs.node_type_impl)
+        open(pargs.node_type_impl, 'w+', encoding='UTF-8').write(
             master_c_as_string(generated, pargs.node_type_gen_c,
-            pargs.node_type_gen_h))
-    if os.path.exists('/usr/bin/indent'):
-        warn('Indenting generated C.')
-        os.system("/usr/bin/indent -kr -l120 '%s'" % pargs.node_type_impl)
+                               pargs.node_type_gen_h))
+        if os.path.exists('/usr/bin/indent'):
+            warn('Indenting generated C.')
+            os.system("/usr/bin/indent -kr -l120 '%s'" % pargs.node_type_impl)
 
     warn('Done.')

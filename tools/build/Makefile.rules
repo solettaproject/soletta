@@ -404,16 +404,25 @@ $(SOL_LIB_SO): $(SOL_SHARED_AR)
 
 # generators
 define make-oic-gen
-$(addprefix $(addprefix $(1), $(notdir $(abspath $(1)))), .json) $(addprefix $(addprefix $(1), $(notdir $(abspath $(1)))), .c) $(addprefix $(addprefix $(1), $(notdir $(abspath $(1)))), -gen.c) $(addprefix $(addprefix $(1), $(notdir $(abspath $(1)))), .h): $(FLOW_OIC_GEN_SCRIPT)
-	$(Q)echo "     "GEN"   "$$@
+$(addprefix $(addprefix $(1), $(notdir $(abspath $(1)))), .json): $(FLOW_OIC_GEN_SCRIPT)
+	$(Q)echo "     "GEN OIC JSON"   "$$@
+	$(Q)$(PYTHON) $(FLOW_OIC_GEN_SCRIPT) \
+		--quiet \
+		--node-type-json=$(addprefix $(addprefix $(1), $(notdir $(abspath $(1)))), .json) \
+                --generate json \
+		$(2)
+	$(eval cleanup-files += $(addprefix $(addprefix $(1), $(notdir $(abspath $(1)))), .json))
+$(addprefix $(addprefix $(1), $(notdir $(abspath $(1)))), .c): $(FLOW_OIC_GEN_SCRIPT)
+	$(Q)echo "     "GEN OIC Source"   "$$@
 	$(Q)$(PYTHON) $(FLOW_OIC_GEN_SCRIPT) \
 		--quiet \
 		--node-type-json=$(addprefix $(addprefix $(1), $(notdir $(abspath $(1)))), .json) \
 		--node-type-impl=$(addprefix $(addprefix $(1), $(notdir $(abspath $(1)))), .c) \
 		--node-type-gen-c=$(addprefix $(notdir $(abspath $(1))), -gen.c) \
 		--node-type-gen-h=$(addprefix sol-flow/, $(addprefix $(notdir $(abspath $(1))), .h)) \
+                --generate source_code \
 		$(2)
-	$(eval cleanup-files += $(addprefix $(addprefix $(1), $(notdir $(abspath $(1)))), .json) $(addprefix $(addprefix $(1), $(notdir $(abspath $(1)))), .c))
+	$(eval cleanup-files += $(addprefix $(addprefix $(1), $(notdir $(abspath $(1)))), .c))
 endef
 $(foreach gen,$(sort $(oic-gens)),$(eval $(call make-oic-gen,$(gen),$(oic-gens-$(gen)))))
 
