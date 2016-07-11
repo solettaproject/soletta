@@ -129,7 +129,7 @@ sol_platform_impl_get_mount_points(struct sol_ptr_vector *vector)
 }
 
 int
-sol_platform_impl_umount(const char *mpoint, void (*cb)(void *data, const char *mpoint, int WRNor), const void *data)
+sol_platform_impl_umount(const char *mpoint, void (*cb)(void *data, const char *mpoint, int error), const void *data)
 {
     SOL_WRN("Not implemented");
     return -ENOTSUP;
@@ -190,4 +190,88 @@ sol_platform_impl_locale_to_c_str_category(enum sol_platform_locale_category cat
 {
     SOL_WRN("Not implemented");
     return NULL;
+}
+
+int
+sol_platform_unregister_hostname_monitor(void)
+{
+    SOL_WRN("Not implemented");
+    return -ENOTSUP;
+}
+
+int
+sol_platform_register_hostname_monitor(void)
+{
+    SOL_WRN("Not implemented");
+    return -ENOTSUP;
+}
+
+const char *
+sol_platform_impl_get_hostname(void)
+{
+    SOL_WRN("Not implemented");
+    return NULL;
+}
+
+int
+sol_platform_impl_set_hostname(const char *name)
+{
+    SOL_WRN("Not implemented");
+    return -ENOTSUP;
+}
+
+int
+sol_platform_impl_set_system_clock(int64_t timestamp)
+{
+    SOL_WRN("Not implemented");
+    return -ENOTSUP;
+}
+
+int64_t
+sol_platform_impl_get_system_clock(void)
+{
+    SOL_WRN("Not implemented");
+    return -ENOTSUP;
+}
+
+int
+sol_platform_unregister_system_clock_monitor(void)
+{
+    SOL_WRN("Not implemented");
+    return -ENOTSUP;
+}
+
+int
+sol_platform_register_system_clock_monitor(void)
+{
+    SOL_WRN("Not implemented");
+    return -ENOTSUP;
+}
+
+int
+sol_platform_impl_set_timezone(const char *timezone)
+{
+    SOL_WRN("Not implemented");
+    return -ENOTSUP;
+}
+
+const char *
+sol_platform_impl_get_timezone(void)
+{
+    SOL_WRN("Not implemented");
+    return NULL;
+}
+
+int
+sol_platform_register_timezone_monitor(void)
+{
+    SOL_WRN("Not implemented");
+    return -ENOTSUP;
+}
+
+int
+sol_platform_unregister_timezone_monitor(void)
+{
+    SOL_WRN("Not implemented");
+    return -ENOTSUP;
 }
