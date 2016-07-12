@@ -27,12 +27,14 @@
 
 
 #define ADD_CHANNEL(_scale, _offset, _channel, _nodename, _error) \
-    if (!mdata->iio_base.use_device_default_scale) \
-        channel_config.scale = _scale; \
-    if (!mdata->iio_base.use_device_default_offset) \
-        channel_config.offset = _offset; \
-    _channel = sol_iio_add_channel(mdata->iio_base.device, _nodename, &channel_config); \
-    SOL_NULL_CHECK_GOTO(_channel, _error);
+    do { \
+        if (!mdata->iio_base.use_device_default_scale) \
+            channel_config.scale = _scale; \
+        if (!mdata->iio_base.use_device_default_offset) \
+            channel_config.offset = _offset; \
+        _channel = sol_iio_add_channel(mdata->iio_base.device, _nodename, &channel_config); \
+        SOL_NULL_CHECK_GOTO(_channel, _error); \
+} while(0)
 
 struct iio_device_config {
     struct sol_iio_config config;
