@@ -25,17 +25,6 @@
 
 #include <sol-iio.h>
 
-
-#define ADD_CHANNEL(_scale, _offset, _channel, _nodename, _error) \
-    do { \
-        if (!mdata->iio_base.use_device_default_scale) \
-            channel_config.scale = _scale; \
-        if (!mdata->iio_base.use_device_default_offset) \
-            channel_config.offset = _offset; \
-        _channel = sol_iio_add_channel(mdata->iio_base.device, _nodename, &channel_config); \
-        SOL_NULL_CHECK_GOTO(_channel, _error); \
-} while(0)
-
 struct iio_device_config {
     struct sol_iio_config config;
     struct sol_drange_spec out_range;
@@ -80,6 +69,20 @@ struct iio_node_type {
     uint16_t out_port;
     void (*reader_cb)(void *data, struct sol_iio_device *device);
 };
+
+static inline struct sol_iio_channel *
+iio_add_channel(double scale, double offset, const char *name, struct iio_device_config *base)
+{
+    struct sol_iio_channel_config channel_config = SOL_IIO_CHANNEL_CONFIG_INIT;
+
+    if (base->use_device_default_scale)
+        channel_config.scale = scale;
+
+    if (base->use_device_default_offset)
+        channel_config.offset = offset;
+
+    return sol_iio_add_channel(base->device, name, &channel_config);
+}
 
 static void
 iio_common_close(struct sol_flow_node *node, void *data)
@@ -219,14 +222,17 @@ error:
 static bool
 gyroscope_create_channels(struct iio_direction_vector_data *mdata, int device_id)
 {
-    struct sol_iio_channel_config channel_config = SOL_IIO_CHANNEL_CONFIG_INIT;
-
     mdata->iio_base.device = sol_iio_open(device_id, &mdata->iio_base.config);
     SOL_NULL_CHECK(mdata->iio_base.device, false);
 
-    ADD_CHANNEL(mdata->scale.x, mdata->offset.x, mdata->channel_x, "in_anglvel_x", error);
-    ADD_CHANNEL(mdata->scale.y, mdata->offset.y, mdata->channel_y, "in_anglvel_y", error);
-    ADD_CHANNEL(mdata->scale.z, mdata->offset.z, mdata->channel_z, "in_anglvel_z", error);
+    mdata->channel_x = iio_add_channel(mdata->scale.x, mdata->offset.x, "in_anglvel_x", &mdata->iio_base);
+    SOL_NULL_CHECK_GOTO(mdata->channel_x, error);
+
+    mdata->channel_y = iio_add_channel(mdata->scale.y, mdata->offset.y, "in_anglvel_y", &mdata->iio_base);
+    SOL_NULL_CHECK_GOTO(mdata->channel_y, error);
+
+    mdata->channel_z = iio_add_channel(mdata->scale.z, mdata->offset.z, "in_anglvel_z", &mdata->iio_base);
+    SOL_NULL_CHECK_GOTO(mdata->channel_z, error);
 
     sol_iio_device_start_buffer(mdata->iio_base.device);
 
@@ -295,14 +301,17 @@ err:
 static bool
 magnet_create_channels(struct iio_direction_vector_data *mdata, int device_id)
 {
-    struct sol_iio_channel_config channel_config = SOL_IIO_CHANNEL_CONFIG_INIT;
-
     mdata->iio_base.device = sol_iio_open(device_id, &mdata->iio_base.config);
     SOL_NULL_CHECK(mdata->iio_base.device, false);
 
-    ADD_CHANNEL(mdata->scale.x, mdata->offset.x, mdata->channel_x, "in_magn_x", error);
-    ADD_CHANNEL(mdata->scale.y, mdata->offset.y, mdata->channel_y, "in_magn_y", error);
-    ADD_CHANNEL(mdata->scale.z, mdata->offset.z, mdata->channel_z, "in_magn_z", error);
+    mdata->channel_x = iio_add_channel(mdata->scale.x, mdata->offset.x, "in_magn_x", &mdata->iio_base);
+    SOL_NULL_CHECK_GOTO(mdata->channel_x, error);
+
+    mdata->channel_y = iio_add_channel(mdata->scale.y, mdata->offset.y, "in_magn_y", &mdata->iio_base);
+    SOL_NULL_CHECK_GOTO(mdata->channel_y, error);
+
+    mdata->channel_z = iio_add_channel(mdata->scale.z, mdata->offset.z, "in_magn_z", &mdata->iio_base);
+    SOL_NULL_CHECK_GOTO(mdata->channel_z, error);
 
     sol_iio_device_start_buffer(mdata->iio_base.device);
 
@@ -370,12 +379,11 @@ err:
 static bool
 temp_create_channels(struct iio_double_data *mdata, int device_id)
 {
-    struct sol_iio_channel_config channel_config = SOL_IIO_CHANNEL_CONFIG_INIT;
-
     mdata->iio_base.device = sol_iio_open(device_id, &mdata->iio_base.config);
     SOL_NULL_CHECK(mdata->iio_base.device, false);
 
-    ADD_CHANNEL(mdata->scale, mdata->offset, mdata->channel_val, "in_temp", error);
+    mdata->channel_val = iio_add_channel(mdata->scale, mdata->offset, "in_temp", &mdata->iio_base);
+    SOL_NULL_CHECK_GOTO(mdata->channel_val, error);
 
     sol_iio_device_start_buffer(mdata->iio_base.device);
 
@@ -445,12 +453,11 @@ err:
 static bool
 pressure_create_channels(struct iio_double_data *mdata, int device_id)
 {
-    struct sol_iio_channel_config channel_config = SOL_IIO_CHANNEL_CONFIG_INIT;
-
     mdata->iio_base.device = sol_iio_open(device_id, &mdata->iio_base.config);
     SOL_NULL_CHECK(mdata->iio_base.device, false);
 
-    ADD_CHANNEL(mdata->scale, mdata->offset, mdata->channel_val, "in_pressure", error);
+    mdata->channel_val = iio_add_channel(mdata->scale, mdata->offset, "in_pressure", &mdata->iio_base);
+    SOL_NULL_CHECK_GOTO(mdata->channel_val, error);
 
     sol_iio_device_start_buffer(mdata->iio_base.device);
 
@@ -520,14 +527,17 @@ err:
 static bool
 color_create_channels(struct iio_color_data *mdata, int device_id)
 {
-    struct sol_iio_channel_config channel_config = SOL_IIO_CHANNEL_CONFIG_INIT;
-
     mdata->iio_base.device = sol_iio_open(device_id, &mdata->iio_base.config);
     SOL_NULL_CHECK(mdata->iio_base.device, false);
 
-    ADD_CHANNEL(mdata->scale_red, mdata->offset_red, mdata->channel_red, "in_intensity_red", error);
-    ADD_CHANNEL(mdata->scale_green, mdata->offset_green, mdata->channel_green, "in_intensity_green", error);
-    ADD_CHANNEL(mdata->scale_blue, mdata->offset_blue, mdata->channel_blue, "in_intensity_blue", error);
+    mdata->channel_red = iio_add_channel(mdata->scale_red, mdata->offset_red, "in_intensity_red", &mdata->iio_base);
+    SOL_NULL_CHECK_GOTO(mdata->channel_red, error);
+
+    mdata->channel_green = iio_add_channel(mdata->scale_green, mdata->offset_green, "in_intensity_green", &mdata->iio_base);
+    SOL_NULL_CHECK_GOTO(mdata->channel_green, error);
+
+    mdata->channel_blue = iio_add_channel(mdata->scale_blue, mdata->offset_blue, "in_intensity_blue", &mdata->iio_base);
+    SOL_NULL_CHECK_GOTO(mdata->channel_blue, error);
 
     sol_iio_device_start_buffer(mdata->iio_base.device);
 
@@ -603,14 +613,17 @@ err:
 static bool
 accelerate_create_channels(struct iio_direction_vector_data *mdata, int device_id)
 {
-    struct sol_iio_channel_config channel_config = SOL_IIO_CHANNEL_CONFIG_INIT;
-
     mdata->iio_base.device = sol_iio_open(device_id, &mdata->iio_base.config);
     SOL_NULL_CHECK(mdata->iio_base.device, false);
 
-    ADD_CHANNEL(mdata->scale.x, mdata->offset.x, mdata->channel_x, "in_accel_x", error);
-    ADD_CHANNEL(mdata->scale.y, mdata->offset.y, mdata->channel_y, "in_accel_y", error);
-    ADD_CHANNEL(mdata->scale.z, mdata->offset.z, mdata->channel_z, "in_accel_z", error);
+    mdata->channel_x = iio_add_channel(mdata->scale.x, mdata->offset.x, "in_accel_x", &mdata->iio_base);
+    SOL_NULL_CHECK_GOTO(mdata->channel_x, error);
+
+    mdata->channel_y = iio_add_channel(mdata->scale.y, mdata->offset.y, "in_accel_y", &mdata->iio_base);
+    SOL_NULL_CHECK_GOTO(mdata->channel_y, error);
+
+    mdata->channel_z = iio_add_channel(mdata->scale.z, mdata->offset.z, "in_accel_z", &mdata->iio_base);
+    SOL_NULL_CHECK_GOTO(mdata->channel_z, error);
 
     sol_iio_device_start_buffer(mdata->iio_base.device);
 
@@ -678,12 +691,11 @@ err:
 static bool
 humidity_create_channels(struct iio_double_data *mdata, int device_id)
 {
-    struct sol_iio_channel_config channel_config = SOL_IIO_CHANNEL_CONFIG_INIT;
-
     mdata->iio_base.device = sol_iio_open(device_id, &mdata->iio_base.config);
     SOL_NULL_CHECK(mdata->iio_base.device, false);
 
-    ADD_CHANNEL(mdata->scale, mdata->offset, mdata->channel_val, "in_humidityrelative", error);
+    mdata->channel_val = iio_add_channel(mdata->scale, mdata->offset, "in_humidityrelative", &mdata->iio_base);
+    SOL_NULL_CHECK_GOTO(mdata->channel_val, error);
 
     sol_iio_device_start_buffer(mdata->iio_base.device);
 
@@ -753,12 +765,11 @@ err:
 static bool
 adc_create_channels(struct iio_double_data *mdata, int device_id)
 {
-    struct sol_iio_channel_config channel_config = SOL_IIO_CHANNEL_CONFIG_INIT;
-
     mdata->iio_base.device = sol_iio_open(device_id, &mdata->iio_base.config);
     SOL_NULL_CHECK(mdata->iio_base.device, false);
 
-    ADD_CHANNEL(mdata->scale, mdata->offset, mdata->channel_val, "in_voltage0", error);
+    mdata->channel_val = iio_add_channel(mdata->scale, mdata->offset, "in_voltage0", &mdata->iio_base);
+    SOL_NULL_CHECK_GOTO(mdata->channel_val, error);
 
     sol_iio_device_start_buffer(mdata->iio_base.device);
 
@@ -828,16 +839,14 @@ err:
 static bool
 light_create_channels(struct iio_double_data *mdata, int device_id)
 {
-    struct sol_iio_channel_config channel_config = SOL_IIO_CHANNEL_CONFIG_INIT;
-
     mdata->iio_base.device = sol_iio_open(device_id, &mdata->iio_base.config);
     SOL_NULL_CHECK(mdata->iio_base.device, false);
 
-    ADD_CHANNEL(mdata->scale, mdata->offset, mdata->channel_val, "in_illuminance0", error0);
-
-error0:
-    if (!mdata->channel_val)
-        ADD_CHANNEL(mdata->scale, mdata->offset, mdata->channel_val, "in_illuminance", error);
+    mdata->channel_val = iio_add_channel(mdata->scale, mdata->offset, "in_illuminance0", &mdata->iio_base);
+    if (!mdata->channel_val) {
+        mdata->channel_val = iio_add_channel(mdata->scale, mdata->offset, "in_illuminance", &mdata->iio_base);
+        SOL_NULL_CHECK_GOTO(mdata->channel_val, error);
+    }
 
     sol_iio_device_start_buffer(mdata->iio_base.device);
 
@@ -907,16 +916,14 @@ err:
 static bool
 proximity_create_channels(struct iio_double_data *mdata, int device_id)
 {
-    struct sol_iio_channel_config channel_config = SOL_IIO_CHANNEL_CONFIG_INIT;
-
     mdata->iio_base.device = sol_iio_open(device_id, &mdata->iio_base.config);
     SOL_NULL_CHECK(mdata->iio_base.device, false);
 
-    ADD_CHANNEL(mdata->scale, mdata->offset, mdata->channel_val, "in_proximity", error0);
-
-error0:
-    if (!mdata->channel_val)
-        ADD_CHANNEL(mdata->scale, mdata->offset, mdata->channel_val, "in_proximity2", error);
+    mdata->channel_val = iio_add_channel(mdata->scale, mdata->offset, "in_proximity", &mdata->iio_base);
+    if (!mdata->channel_val) {
+        mdata->channel_val = iio_add_channel(mdata->scale, mdata->offset, "in_proximity2", &mdata->iio_base);
+        SOL_NULL_CHECK_GOTO(mdata->channel_val, error);
+    }
 
     sol_iio_device_start_buffer(mdata->iio_base.device);
 
