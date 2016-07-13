@@ -75,10 +75,10 @@ iio_add_channel(double scale, double offset, const char *name, struct iio_device
 {
     struct sol_iio_channel_config channel_config = SOL_IIO_CHANNEL_CONFIG_INIT;
 
-    if (base->use_device_default_scale)
+    if (!base->use_device_default_scale)
         channel_config.scale = scale;
 
-    if (base->use_device_default_offset)
+    if (!base->use_device_default_offset)
         channel_config.offset = offset;
 
     return sol_iio_add_channel(base->device, name, &channel_config);
