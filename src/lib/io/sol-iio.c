@@ -1205,6 +1205,7 @@ resolve_absolute_path_cb(void *data, const char *dir_path, struct dirent *ent)
         SYSFS_DEVICE_PATH, ent->d_name)) {
 
         if (realpath(path, real_path)) {
+            SOL_DBG("resolve_absolute_path_cb - Real path: %s", real_path);
             if (strstartswith(real_path, result->path)) {
                 result->id = atoi(ent->d_name + strlen("iio:device"));
                 return SOL_UTIL_ITERATE_DIR_STOP;
@@ -1224,11 +1225,13 @@ resolve_absolute_path(const char *address)
 
     /* Wait up to one second for the file to exist. Useful if we created
      * via i2c */
+    SOL_DBG("Trying to open address: %s", address);
     while (result.id == -1) {
         struct timespec elapsed, now;
 
         if (realpath(address, real_path)) {
             result.path = real_path;
+            SOL_DBG("resolve_absolute_path - Real path: %s", real_path);
             sol_util_iterate_dir(SYSFS_DEVICES_PATH, resolve_absolute_path_cb, &result);
         }
 
