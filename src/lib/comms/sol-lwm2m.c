@@ -2048,7 +2048,7 @@ observation_request_reply(void *data, struct sol_coap_server *coap_server,
             return false;
         }
         SOL_WRN("Could not complete the observation request on client:%s"
-            " path:%s", entry->path, entry->cinfo->name);
+            " path:%s", entry->cinfo->name, entry->path);
         keep_alive = false;
     } else {
         extract_content(req, &code, &type, &content);
