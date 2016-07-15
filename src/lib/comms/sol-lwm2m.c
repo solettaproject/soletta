@@ -3180,6 +3180,7 @@ handle_create(struct sol_lwm2m_client *client,
 
 err_exit:
     obj_instance_clear(client, obj_ctx, obj_instance);
+    (void)sol_vector_del_element(&obj_ctx->instances, obj_instance);
     return SOL_COAP_RESPONSE_CODE_BAD_REQUEST;
 }
 
