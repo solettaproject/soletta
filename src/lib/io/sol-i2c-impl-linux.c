@@ -1060,7 +1060,7 @@ create_device_iter_cb(void *data, const char *dir_path, struct dirent *ent)
                 sol_util_strerrora(errno));
         }
 
-        r = snprintf(path, PATH_MAX, "%s/%s/%s-00%x",
+        r = snprintf(path, PATH_MAX, "%s/%s/%s-%04x",
             dir_path, ent->d_name, ent->d_name + strlen("i2c-"),
             result->dev_number);
         if (r < 0 || r >= PATH_MAX) {
