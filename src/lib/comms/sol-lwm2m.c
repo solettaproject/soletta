@@ -884,7 +884,7 @@ update_client(void *data, struct sol_coap_server *coap,
 
 err_update:
     sol_coap_header_set_code(response, SOL_COAP_RESPONSE_CODE_BAD_REQUEST);
-    (void)sol_coap_send_packet(coap, response, cliaddr);
+    sol_coap_send_packet(coap, response, cliaddr);
     return r;
 }
 
@@ -1074,7 +1074,7 @@ err_exit_del_client:
     client_info_del(cinfo);
 err_exit:
     sol_coap_header_set_code(response, SOL_COAP_RESPONSE_CODE_BAD_REQUEST);
-    (void)sol_coap_send_packet(coap, response, cliaddr);
+    sol_coap_send_packet(coap, response, cliaddr);
     return r;
 }
 
@@ -1141,12 +1141,12 @@ bootstrap_request(void *data, struct sol_coap_server *coap,
     return r;
 
 err_exit_del_client_list:
-    (void)sol_ptr_vector_remove(&server->clients, bs_cinfo);
+    sol_ptr_vector_remove(&server->clients, bs_cinfo);
 err_exit_del_client:
     bootstrap_client_info_del(bs_cinfo);
 err_exit:
     sol_coap_header_set_code(response, SOL_COAP_RESPONSE_CODE_BAD_REQUEST);
-    (void)sol_coap_send_packet(coap, response, cliaddr);
+    sol_coap_send_packet(coap, response, cliaddr);
     return r;
 }
 
@@ -2968,7 +2968,7 @@ handle_delete(struct sol_lwm2m_client *client,
                         PRIu16 " instance id: %" PRIu16,
                         obj_ctx->obj->id, obj_instance->id);
                     obj_instance_clear(client, obj_ctx, obj_instance);
-                    (void)sol_vector_del_element(&obj_ctx->instances, obj_instance);
+                    sol_vector_del_element(&obj_ctx->instances, obj_instance);
                     ret = SOL_COAP_RESPONSE_CODE_DELETED;
                 }
             }
@@ -3319,11 +3319,11 @@ read_object_instance(struct sol_lwm2m_client *client,
             (void *)client->user_data, client, obj_instance->id, i, res);
 
         if (r == -ENOENT) {
-            (void)sol_vector_del_element(resources, res);
+            sol_vector_del_element(resources, res);
             continue;
         }
         if (r == -EINVAL) {
-            (void)sol_vector_del_element(resources, res);
+            sol_vector_del_element(resources, res);
             break;
         }
         LWM2M_RESOURCE_CHECK_API_GOTO(*res, err_api);
@@ -3337,7 +3337,7 @@ err_api:
     r = -EINVAL;
 #endif
 err_exit:
-    (void)sol_vector_del_element(resources, res);
+    sol_vector_del_element(resources, res);
     return r;
 }
 
@@ -3667,7 +3667,7 @@ exit:
     if (header_code == SOL_COAP_RESPONSE_CODE_DELETED &&
         !client->is_bootstrapping) {
         obj_instance_clear(client, obj_ctx, obj_instance);
-        (void)sol_vector_del_element(&obj_ctx->instances, obj_instance);
+        sol_vector_del_element(&obj_ctx->instances, obj_instance);
     }
 
     if (payload.type == SOL_LWM2M_CONTENT_TYPE_TLV)
@@ -3833,7 +3833,7 @@ server_connection_ctx_remove(struct sol_ptr_vector *conns,
     struct server_conn_ctx *conn_ctx)
 {
     server_connection_ctx_free(conn_ctx);
-    (void)sol_ptr_vector_del_element(conns, conn_ctx);
+    sol_ptr_vector_del_element(conns, conn_ctx);
 }
 
 static void
@@ -3903,7 +3903,7 @@ sol_lwm2m_client_add_object_instance(struct sol_lwm2m_client *client,
     return 0;
 
 err_exit:
-    (void)sol_vector_del_element(&ctx->instances, instance);
+    sol_vector_del_element(&ctx->instances, instance);
     return r;
 }
 
@@ -4380,7 +4380,7 @@ server_connection_ctx_new(struct sol_lwm2m_client *client,
     return conn_ctx;
 
 err_exit:
-    (void)sol_ptr_vector_del_element(&client->connections, conn_ctx);
+    sol_ptr_vector_del_element(&client->connections, conn_ctx);
 err_append:
     free(conn_ctx);
     return NULL;
@@ -4601,7 +4601,7 @@ bootstrap_finish(void *data, struct sol_coap_server *coap,
 
 err_exit:
     sol_coap_header_set_code(response, SOL_COAP_RESPONSE_CODE_BAD_REQUEST);
-    (void)sol_coap_send_packet(coap, response, cliaddr);
+    sol_coap_send_packet(coap, response, cliaddr);
     dispatch_bootstrap_event_to_client(client, SOL_LWM2M_BOOTSTRAP_EVENT_ERROR);
     return r;
 }
