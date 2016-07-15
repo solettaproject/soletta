@@ -612,7 +612,7 @@ hostname_worker(void *data)
         struct sol_vector sol_addr_list;
         struct sol_network_link_addr *sol_addr;
 
-        base_data[network->hostname_handles.base.elem_size * i] = NULL;
+        base_data[i] = NULL;
 
         sol_vector_init(&sol_addr_list, sizeof(struct sol_network_link_addr));
         switch (ctx->family) {
