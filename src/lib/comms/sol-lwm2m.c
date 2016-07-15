@@ -268,7 +268,7 @@ struct obj_ctx {
 struct sol_lwm2m_client {
     struct sol_coap_server *coap_server;
     struct lifetime_ctx lifetime_ctx;
-    struct sol_vector connections;
+    struct sol_ptr_vector connections;
     struct sol_vector objects;
     struct sol_monitors bootstrap;
     struct {
@@ -2730,7 +2730,7 @@ obj_instance_clear(struct sol_lwm2m_client *client, struct obj_ctx *obj_ctx,
     struct resource_ctx *res_ctx;
 
     SOL_VECTOR_FOREACH_IDX (&obj_instance->resources_ctx, res_ctx, i) {
-        if (!client->removed) {
+        if (!client->removed && res_ctx->res) {
             sol_coap_server_unregister_resource(client->coap_server,
                 res_ctx->res);
         }
@@ -2738,7 +2738,7 @@ obj_instance_clear(struct sol_lwm2m_client *client, struct obj_ctx *obj_ctx,
         free(res_ctx->str_id);
     }
 
-    if (!client->removed) {
+    if (!client->removed && obj_instance->instance_res) {
         sol_coap_server_unregister_resource(client->coap_server,
             obj_instance->instance_res);
     }
@@ -3180,6 +3180,7 @@ handle_create(struct sol_lwm2m_client *client,
 
 err_exit:
     obj_instance_clear(client, obj_ctx, obj_instance);
+    (void)sol_vector_del_element(&obj_ctx->instances, obj_instance);
     return SOL_COAP_RESPONSE_CODE_BAD_REQUEST;
 }
 
@@ -3743,7 +3744,7 @@ sol_lwm2m_client_new(const char *name, const char *path, const char *sms,
     }
 
     sol_vector_init(&client->objects, sizeof(struct obj_ctx));
-    sol_vector_init(&client->connections, sizeof(struct server_conn_ctx));
+    sol_ptr_vector_init(&client->connections);
 
     for (i = 0; objects[i]; i++) {
         LWM2M_OBJECT_CHECK_API_GOTO(*objects[i], err_obj);
@@ -3816,7 +3817,7 @@ obj_ctx_clear(struct sol_lwm2m_client *client, struct obj_ctx *ctx)
 }
 
 static void
-server_connection_ctx_clear(struct server_conn_ctx *conn_ctx)
+server_connection_ctx_free(struct server_conn_ctx *conn_ctx)
 {
     if (conn_ctx->pending_pkt)
         sol_coap_packet_unref(conn_ctx->pending_pkt);
@@ -3824,25 +3825,26 @@ server_connection_ctx_clear(struct server_conn_ctx *conn_ctx)
         sol_network_hostname_pending_cancel(conn_ctx->hostname_handle);
     sol_vector_clear(&conn_ctx->server_addr_list);
     free(conn_ctx->location);
+    free(conn_ctx);
 }
 
 static void
-server_connection_ctx_remove(struct sol_vector *conns,
+server_connection_ctx_remove(struct sol_ptr_vector *conns,
     struct server_conn_ctx *conn_ctx)
 {
-    server_connection_ctx_clear(conn_ctx);
-    (void)sol_vector_del_element(conns, conn_ctx);
+    server_connection_ctx_free(conn_ctx);
+    (void)sol_ptr_vector_del_element(conns, conn_ctx);
 }
 
 static void
-server_connection_ctx_list_clear(struct sol_vector *conns)
+server_connection_ctx_list_clear(struct sol_ptr_vector *conns)
 {
     uint16_t i;
     struct server_conn_ctx *conn_ctx;
 
-    SOL_VECTOR_FOREACH_IDX (conns, conn_ctx, i)
-        server_connection_ctx_clear(conn_ctx);
-    sol_vector_clear(conns);
+    SOL_PTR_VECTOR_FOREACH_IDX (conns, conn_ctx, i)
+        server_connection_ctx_free(conn_ctx);
+    sol_ptr_vector_clear(conns);
 }
 
 SOL_API void
@@ -4055,7 +4057,7 @@ reschedule_client_timeout(struct sol_lwm2m_client *client)
     now = time(NULL);
     smallest = UINT32_MAX;
 
-    SOL_VECTOR_FOREACH_IDX (&client->connections, conn_ctx, i) {
+    SOL_PTR_VECTOR_FOREACH_IDX (&client->connections, conn_ctx, i) {
         if (!conn_ctx->location)
             continue;
         remaining = conn_ctx->lifetime - (now - conn_ctx->registration_time);
@@ -4352,8 +4354,11 @@ server_connection_ctx_new(struct sol_lwm2m_client *client,
     r = sol_http_split_uri(str_addr, &uri);
     SOL_INT_CHECK(r, < 0, NULL);
 
-    conn_ctx = sol_vector_append(&client->connections);
+    conn_ctx = calloc(1, sizeof(struct server_conn_ctx));
     SOL_NULL_CHECK(conn_ctx, NULL);
+
+    r = sol_ptr_vector_append(&client->connections, conn_ctx);
+    SOL_INT_CHECK_GOTO(r, < 0, err_append);
     conn_ctx->client = client;
     conn_ctx->server_id = server_id;
     sol_vector_init(&conn_ctx->server_addr_list,
@@ -4375,7 +4380,9 @@ server_connection_ctx_new(struct sol_lwm2m_client *client,
     return conn_ctx;
 
 err_exit:
-    (void)sol_vector_del_element(&client->connections, conn_ctx);
+    (void)sol_ptr_vector_del_element(&client->connections, conn_ctx);
+err_append:
+    free(conn_ctx);
     return NULL;
 }
 
@@ -4386,7 +4393,7 @@ spam_update(struct sol_lwm2m_client *client, bool consider_lifetime)
     uint16_t i;
     struct server_conn_ctx *conn_ctx;
 
-    SOL_VECTOR_FOREACH_IDX (&client->connections, conn_ctx, i) {
+    SOL_PTR_VECTOR_FOREACH_IDX (&client->connections, conn_ctx, i) {
         if (!conn_ctx->location || (consider_lifetime &&
             conn_ctx->lifetime != client->lifetime_ctx.lifetime))
             continue;
@@ -4817,7 +4824,7 @@ sol_lwm2m_client_stop(struct sol_lwm2m_client *client)
 
     SOL_NULL_CHECK(client, -EINVAL);
 
-    SOL_VECTOR_FOREACH_IDX (&client->connections, conn_ctx, i) {
+    SOL_PTR_VECTOR_FOREACH_IDX (&client->connections, conn_ctx, i) {
         //Send unregister only to non-bootstrap servers
         if (conn_ctx->registration_time) {
             r = send_client_delete_request(client, conn_ctx);
