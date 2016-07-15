@@ -160,7 +160,7 @@ write_server_one_cb(void *data,
         fprintf(stderr, "Could not init Server Object's [Lifetime] resource\n");
         return;
     }
-    SOL_LWM2M_RESOURCE_INIT(r, &server_two[2], SERVER_OBJ_BINDING_RES_ID, 1,
+    SOL_LWM2M_RESOURCE_SINGLE_INIT(r, &server_two[2], SERVER_OBJ_BINDING_RES_ID,
         SOL_LWM2M_RESOURCE_DATA_TYPE_STRING, &binding);
     if (r < 0) {
         fprintf(stderr, "Could not init Server Object's [Binding] resource\n");
@@ -178,7 +178,7 @@ write_server_one_cb(void *data,
         fprintf(stderr, "Could not init Server Object's [Lifetime] resource\n");
         return;
     }
-    SOL_LWM2M_RESOURCE_INIT(r, &server_three[2], SERVER_OBJ_BINDING_RES_ID, 1,
+    SOL_LWM2M_RESOURCE_SINGLE_INIT(r, &server_three[2], SERVER_OBJ_BINDING_RES_ID,
         SOL_LWM2M_RESOURCE_DATA_TYPE_STRING, &binding);
     if (r < 0) {
         fprintf(stderr, "Could not init Server Object's [Binding] resource\n");
@@ -226,7 +226,7 @@ write_sec_one_cb(void *data,
         fprintf(stderr, "Could not init Server Object's [Lifetime] resource\n");
         return;
     }
-    SOL_LWM2M_RESOURCE_INIT(r, &server_one[2], SERVER_OBJ_BINDING_RES_ID, 1,
+    SOL_LWM2M_RESOURCE_SINGLE_INIT(r, &server_one[2], SERVER_OBJ_BINDING_RES_ID,
         SOL_LWM2M_RESOURCE_DATA_TYPE_STRING, &binding);
     if (r < 0) {
         fprintf(stderr, "Could not init Server Object's [Binding] resource\n");
@@ -263,13 +263,13 @@ delete_all_cb(void *data,
     printf("The client %s deleted the object at %s.\n", name, path);
 
     // Server One's Security Object
-    SOL_LWM2M_RESOURCE_INIT(r, &sec_server_one[0], SECURITY_SERVER_SERVER_URI_RES_ID, 1,
+    SOL_LWM2M_RESOURCE_SINGLE_INIT(r, &sec_server_one[0], SECURITY_SERVER_SERVER_URI_RES_ID,
         SOL_LWM2M_RESOURCE_DATA_TYPE_STRING, &server_one_addr);
     if (r < 0) {
         fprintf(stderr, "Could not init Security Object's [Server URI] resource\n");
         return;
     }
-    SOL_LWM2M_RESOURCE_INIT(r, &sec_server_one[1], SECURITY_SERVER_IS_BOOTSTRAP_RES_ID, 1,
+    SOL_LWM2M_RESOURCE_SINGLE_INIT(r, &sec_server_one[1], SECURITY_SERVER_IS_BOOTSTRAP_RES_ID,
         SOL_LWM2M_RESOURCE_DATA_TYPE_BOOL, false);
     if (r < 0) {
         fprintf(stderr, "Could not init Security Object's [Bootstrap Server] resource\n");
