@@ -2730,7 +2730,7 @@ obj_instance_clear(struct sol_lwm2m_client *client, struct obj_ctx *obj_ctx,
     struct resource_ctx *res_ctx;
 
     SOL_VECTOR_FOREACH_IDX (&obj_instance->resources_ctx, res_ctx, i) {
-        if (!client->removed) {
+        if (!client->removed && res_ctx->res) {
             sol_coap_server_unregister_resource(client->coap_server,
                 res_ctx->res);
         }
@@ -2738,7 +2738,7 @@ obj_instance_clear(struct sol_lwm2m_client *client, struct obj_ctx *obj_ctx,
         free(res_ctx->str_id);
     }
 
-    if (!client->removed) {
+    if (!client->removed && obj_instance->instance_res) {
         sol_coap_server_unregister_resource(client->coap_server,
             obj_instance->instance_res);
     }
