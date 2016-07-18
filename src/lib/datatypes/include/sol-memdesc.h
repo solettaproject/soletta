@@ -52,9 +52,6 @@ extern "C" {
  * @{
  */
 
-/**
- * @struct sol_memdesc
- */
 struct sol_memdesc;
 
 /**
@@ -326,7 +323,7 @@ extern const uint16_t SOL_MEMDESC_API_VERSION_COMPILED;
  * @see struct sol_memdesc_ops
  * @see struct sol_memdesc
  */
-struct sol_memdesc_ops_array {
+typedef struct sol_memdesc_ops_array {
 #ifndef SOL_NO_API_VERSION
 #define SOL_MEMDESC_OPS_ARRAY_API_VERSION (1) /**< API version to use in struct sol_memdesc_ops_array::api_version */
     uint16_t api_version; /**< @brief API version, must match SOL_MEMDESC_OPS_ARRAY_API_VERSION at runtime */
@@ -374,7 +371,7 @@ struct sol_memdesc_ops_array {
      * @see sol_memdesc_resize_array()
      */
     int (*resize)(const struct sol_memdesc *desc, void *memory, size_t length);
-};
+} sol_memdesc_ops_array;
 
 /**
  * @brief Operations specific to SOL_MEMDESC_TYPE_ENUMERATION.
@@ -385,7 +382,7 @@ struct sol_memdesc_ops_array {
  * @see struct sol_memdesc_ops
  * @see struct sol_memdesc
  */
-struct sol_memdesc_ops_enumeration {
+typedef struct sol_memdesc_ops_enumeration {
 #ifndef SOL_NO_API_VERSION
 #define SOL_MEMDESC_OPS_ENUMERATION_API_VERSION (1) /**< API version to use in struct sol_memdesc_ops_enumeration::api_version */
     uint16_t api_version; /**< @brief API version, must match SOL_MEMDESC_OPS_ENUMERATION_API_VERSION at runtime */
@@ -412,7 +409,7 @@ struct sol_memdesc_ops_enumeration {
      * @see sol_memdesc_enumeration_from_str()
      */
     int (*from_str)(const struct sol_memdesc *desc, void *ptr_return, const struct sol_str_slice str);
-};
+} sol_memdesc_ops_enumeration;
 
 /**
  * @brief override operations to be used in this memory description.
@@ -427,7 +424,7 @@ struct sol_memdesc_ops_enumeration {
  * To map struct sol_vector, use SOL_MEMDESC_OPS_VECTOR. to map
  * struct sol_ptr_vector use SOL_MEMDESC_OPS_PTR_VECTOR.
  */
-struct sol_memdesc_ops {
+typedef struct sol_memdesc_ops {
 #ifndef SOL_NO_API_VERSION
 #define SOL_MEMDESC_OPS_API_VERSION (1) /**< API version to use in struct sol_memdesc_ops::api_version */
     uint16_t api_version; /**< @brief API version, must match SOL_MEMDESC_OPS_API_VERSION at runtime */
@@ -501,12 +498,12 @@ struct sol_memdesc_ops {
         const struct sol_memdesc_ops_array *array;
         const struct sol_memdesc_ops_enumeration *enumeration;
     };
-};
+} sol_memdesc_ops;
 
 /**
  * @brief Data type to describe a memory region.
  */
-struct sol_memdesc {
+typedef struct sol_memdesc {
 #ifndef SOL_NO_API_VERSION
 #define SOL_MEMDESC_API_VERSION (1) /**< @brief API version to use in struct sol_memdesc::api_version */
     uint16_t api_version; /**< @brief API version, must match SOL_MEMDESC_API_VERSION at runtime */
@@ -604,7 +601,7 @@ struct sol_memdesc {
      * May be NULL to use the default operations.
      */
     const struct sol_memdesc_ops *ops;
-};
+} sol_memdesc;
 
 /**
  * @brief Description of a structure member.
@@ -614,7 +611,7 @@ struct sol_memdesc {
  *
  * @see struct sol_memdesc
  */
-struct sol_memdesc_structure_member {
+typedef struct sol_memdesc_structure_member {
     struct sol_memdesc base;
     /**
      * @brief memory name, such as the member name in a structure.
@@ -657,7 +654,7 @@ struct sol_memdesc_structure_member {
      * wanted.
      */
     bool detail : 1;
-};
+} sol_memdesc_structure_member;
 
 /**
  * @brief operations to handle struct sol_vector.
@@ -1707,7 +1704,7 @@ sol_memdesc_is_signed_integer(const struct sol_memdesc *desc)
 /**
  * @brief Options on how to serialize a memory given its description.
  */
-struct sol_memdesc_serialize_options {
+typedef struct sol_memdesc_serialize_options {
 #ifndef SOL_NO_API_VERSION
 #define SOL_MEMDESC_SERIALIZE_OPTIONS_API_VERSION (1) /**< @brief API version to use in struct sol_memdesc_serialize_options::api_version */
     uint16_t api_version; /**< @brief API version, must match SOL_MEMDESC_SERIALIZE_OPTIONS_API_VERSION at runtime */
@@ -1978,7 +1975,7 @@ struct sol_memdesc_serialize_options {
          */
         bool show_index;
     } array;
-};
+} sol_memdesc_serialize_options;
 
 /**
  * @brief the default struct sol_memdesc_serialize_options.

@@ -73,7 +73,7 @@ enum sol_bt_uuid_type {
  *
  * @see #sol_bt_uuid_type
  */
-struct sol_bt_uuid {
+typedef struct sol_bt_uuid {
     enum sol_bt_uuid_type type;
     union {
         uint16_t val16;
@@ -81,7 +81,7 @@ struct sol_bt_uuid {
         uint8_t val128[16];
         uint8_t val[0];
     };
-};
+} sol_bt_uuid;
 
 /**
  * @brief Convert a string to a UUID.
@@ -117,13 +117,14 @@ int sol_bt_uuid_to_str(const struct sol_bt_uuid *uuid, struct sol_buffer *buffer
 bool sol_bt_uuid_eq(const struct sol_bt_uuid *u1, const struct sol_bt_uuid *u2);
 
 /**
- * @struct sol_bt_conn
+ * @typedef sol_bt_conn
  * @brief Represents an active connection to a Bluetooth device.
  *
  * The connection is established with sol_bt_connect(), and its lifetime is
  * managed by sol_bt_conn_ref()/sol_bt_conn_unref().
  */
 struct sol_bt_conn;
+typedef struct sol_bt_conn sol_bt_conn;
 
 /**
  * @brief Increases the reference count of a connection.
@@ -192,7 +193,7 @@ struct sol_bt_conn *sol_bt_connect(const struct sol_network_link_addr *addr,
 int sol_bt_disconnect(struct sol_bt_conn *conn);
 
 /**
- * @struct sol_bt_session
+ * @typedef sol_bt_session
  * @brief Represents a Bluetooth usage session
  *
  * Because Bluetooth usage may increase the power comsuption, there's
@@ -200,6 +201,7 @@ int sol_bt_disconnect(struct sol_bt_conn *conn);
  * keep Bluetooth turned off if it's not used.
  */
 struct sol_bt_session;
+typedef struct sol_bt_session sol_bt_session;
 
 /**
  * @brief Enables the local Bluetooth controller.
@@ -237,7 +239,7 @@ int sol_bt_disable(struct sol_bt_session *session);
 /**
  * @brief Represents a information about a remote device.
  */
-struct sol_bt_device_info {
+typedef struct sol_bt_device_info {
     /**
      * @brief Network address of the remote device.
      */
@@ -266,7 +268,7 @@ struct sol_bt_device_info {
      * @brief Whether the devices is currently in range.
      */
     bool in_range;
-};
+} sol_bt_device_info;
 
 /**
  * @brief Over which transport should a scan be performed.
@@ -301,12 +303,13 @@ const char *sol_bt_transport_to_str(enum sol_bt_transport transport);
 enum sol_bt_transport sol_bt_transport_from_str(const char *str);
 
 /**
- * @struct sol_bt_scan_pending
+ * @typedef sol_bt_scan_pending
  * @brief Represents a pending scan session
  *
  * Represents a pending scan session, @see sol_bt_start_scan().
  */
 struct sol_bt_scan_pending;
+typedef struct sol_bt_scan_pending sol_bt_scan_pending;
 
 /**
  * @brief Start scanning for devices.

@@ -40,7 +40,7 @@ extern "C" {
  */
 
 /**
- * @struct sol_iio_device
+ * @typedef sol_iio_device
  * @brief An IIO device handle
  * @see sol_iio_open()
  * @see sol_iio_close()
@@ -48,9 +48,10 @@ extern "C" {
  * @see sol_iio_device_start_buffer()
  */
 struct sol_iio_device;
+typedef struct sol_iio_device sol_iio_device;
 
 /**
- * @struct sol_iio_channel
+ * @typedef sol_iio_channel
  * @brief An IIO channel handle
  * @see sol_iio_add_channel()
  * @see sol_iio_read_channel_value()
@@ -59,13 +60,14 @@ struct sol_iio_device;
  * @see SOL_IIO_CHANNEL_CONFIG_INIT()
  */
 struct sol_iio_channel;
+typedef struct sol_iio_channel sol_iio_channel;
 
 /**
  * @brief A configuration struct for an IIO device
  *
  * @see sol_iio_open()
  */
-struct sol_iio_config {
+typedef struct sol_iio_config {
 #ifndef SOL_NO_API_VERSION
 #define SOL_IIO_CONFIG_API_VERSION (1)
     uint16_t api_version; /**< The API version */
@@ -75,14 +77,14 @@ struct sol_iio_config {
     const void *data; /**< User defined data to be sent to sol_iio_reader_cb */
     int buffer_size; /**< The size of reading buffer. 0: use device default; -1: disable buffer and readings will be performed on channel files on sysfs. */
     int sampling_frequency; /**< Device sampling frequency. -1 uses device default */
-};
+} sol_iio_config;
 
 /**
  * @brief A configuration struct for an IIO channel
  *
  * @see sol_iio_add_channel()
  */
-struct sol_iio_channel_config {
+typedef struct sol_iio_channel_config {
 #ifndef SOL_NO_API_VERSION
 #define SOL_IIO_CHANNEL_CONFIG_API_VERSION (1)
     uint16_t api_version; /**< The API version */
@@ -90,7 +92,7 @@ struct sol_iio_channel_config {
     double scale; /**< Channel scale, to be applied to raw readings. -1 uses device default. Some devices share scale among all channels, so changing one will change all. If, in this case, different channels set different scales the result is unknown. */
     int offset; /**< Channel offset, to be added to raw readings. Some devices share offset among all channels, so changing one will change all. If, in this case, different channels set different offsets the result is unknown. */
     bool use_custom_offset; /**< If true, will use user defined offset on member #offset of this struct */
-};
+} sol_iio_channel_config;
 
 /**
  * @brief Macro that may be used for initialized a @ref sol_iio_channel_config

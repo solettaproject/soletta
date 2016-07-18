@@ -51,11 +51,12 @@ extern "C" {
  */
 
 /**
- * @struct sol_flow_builder
+ * @typedef sol_flow_builder
  *
  * @brief Builder's handle.
  */
 struct sol_flow_builder;
+typedef struct sol_flow_builder sol_flow_builder;
 
 /**
  * @brief Creates a new instance of a @ref sol_flow_builder.

@@ -47,22 +47,22 @@ extern "C" {
  */
 
 /**
- * @struct sol_http_server
+ * @typedef sol_http_server
  * @brief Opaque handler for an HTTP server instance.
  *
  * It's created with sol_http_server_new() and should be later
  * deleted with sol_http_server_del()
  */
 struct sol_http_server;
+typedef struct sol_http_server sol_http_server;
 
 /**
- * @struct sol_http_server_config
  * @brief
  *
  * It's created with sol_http_server_new() and should be later
  * deleted with sol_http_server_del()
  */
-struct sol_http_server_config {
+typedef struct sol_http_server_config {
 #ifndef SOL_NO_API_VERSION
 #define SOL_HTTP_SERVER_CONFIG_API_VERSION (1)  /**< compile time API version to be checked during runtime */
     /**
@@ -76,10 +76,10 @@ struct sol_http_server_config {
         const struct sol_cert *cert;
         const struct sol_cert *key;
     } security;
-};
+} sol_http_server_config;
 
 /**
- * @struct sol_http_request
+ * @typedef sol_http_request
  * @brief Opaque handler for a request made to an HTTP server.
  *
  * Request properties can be queried with:
@@ -91,9 +91,10 @@ struct sol_http_server_config {
  * A response to a request can be send with sol_http_server_send_response()
  */
 struct sol_http_request;
+typedef struct sol_http_request sol_http_request;
 
 /**
- * @struct sol_http_progressive_response
+ * @typedef sol_http_progressive_response
  * @brief Opaque handler used for send data progressively.
  *
  * Progressive responses can be used to create server sent events.
@@ -103,6 +104,7 @@ struct sol_http_request;
  * To delete it use sol_http_progressive_response_del().
  */
 struct sol_http_progressive_response;
+typedef struct sol_http_progressive_response sol_http_progressive_response;
 
 /**
  * @brief Creates an HTTP server, binding on all interfaces
@@ -281,11 +283,10 @@ sol_http_response_set_sse_headers(struct sol_http_response *response)
 
 /**
  * @brief Progressive server response configuration.
- * @struct sol_http_server_progressive_config
  * @see sol_http_server_send_progressive_response()
  * @note HTTP server follows the Soletta stream design pattern, which can be found here: @ref streams
  */
-struct sol_http_server_progressive_config {
+typedef struct sol_http_server_progressive_config {
 #ifndef SOL_NO_API_VERSION
 #define SOL_HTTP_SERVER_PROGRESSIVE_CONFIG_API_VERSION (1)
     /**
@@ -327,7 +328,7 @@ struct sol_http_server_progressive_config {
      * @see sol_http_progressive_response_feed()
      */
     size_t feed_size;
-};
+} sol_http_server_progressive_config;
 
 /**
  * @brief Send the response and keep connection alive to request given in the

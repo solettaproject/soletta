@@ -49,29 +49,29 @@ extern "C" {
 /**
  * @brief Structure for the specification of a node.
  */
-struct sol_flow_static_node_spec {
+typedef struct sol_flow_static_node_spec {
     const struct sol_flow_node_type *type; /**< @brief Node type */
     const char *name; /**< @brief Name for the specific type's instance */
     const struct sol_flow_node_options *opts; /**< @brief Options for the specific type's instance */
-};
+} sol_flow_static_node_spec;
 
 /**
  * @brief Structure for the specification of a connection.
  */
-struct sol_flow_static_conn_spec {
+typedef struct sol_flow_static_conn_spec {
     uint16_t src; /**< @brief Source node index */
     uint16_t src_port; /**< @brief Source node port index */
     uint16_t dst; /**< @brief Destination node index */
     uint16_t dst_port; /**< @brief Destination node port index */
-};
+} sol_flow_static_conn_spec;
 
 /**
  * @brief Structure for the specification of node ports
  */
-struct sol_flow_static_port_spec {
+typedef struct sol_flow_static_port_spec {
     uint16_t node; /**< @brief Node index */
     uint16_t port; /**< @brief Port index */
-};
+} sol_flow_static_port_spec;
 
 /* Use these guards as the last element of the spec arrays. */
 
@@ -97,7 +97,7 @@ struct sol_flow_static_port_spec {
  * @note Note that the arrays and functions provided are assumed to be available
  * and valid while the static flow type created from it is being used.
  */
-struct sol_flow_static_spec {
+typedef struct sol_flow_static_spec {
 #ifndef SOL_NO_API_VERSION
 #define SOL_FLOW_STATIC_API_VERSION (1) /**< @brief Current API version number */
     uint16_t api_version; /**< @brief API version number */
@@ -155,7 +155,7 @@ struct sol_flow_static_spec {
      * reference to extra resources to be disposed.
      */
     void (*dispose)(const void *type_data);
-};
+} sol_flow_static_spec;
 
 /**
  * @brief Creates a new "static flow" node.

@@ -30,22 +30,21 @@ extern "C" {
 #endif
 
 /**
- * @struct sol_netctl_service
+ * @typedef sol_netctl_service
  *
  * @brief service struct
  */
 struct sol_netctl_service;
+typedef struct sol_netctl_service sol_netctl_service;
 
 /**
- * @struct sol_netctl_network_params
- *
  * @brief network params
  *
  * This struct contains the information of a network.
  * it has the addr of network link addr, the network of
  * netmask and its gateway of network.
  */
-struct sol_netctl_network_params {
+typedef struct sol_netctl_network_params {
     /**
      * @brief The network devices address
      */
@@ -58,7 +57,7 @@ struct sol_netctl_network_params {
      * @brief The network gateway
      */
     struct sol_network_link_addr gateway;
-};
+} sol_netctl_network_params;
 
 /**
  * @enum sol_netctl_service_state

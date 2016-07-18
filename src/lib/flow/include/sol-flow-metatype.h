@@ -84,7 +84,7 @@ extern "C" {
  * some helper functions.
  *
  */
-struct sol_flow_metatype_context {
+typedef struct sol_flow_metatype_context {
     struct sol_str_slice name; /**< The node name that is being created. */
     struct sol_str_slice contents; /**< Parameters for the metatype that is being created. */
 
@@ -118,7 +118,7 @@ struct sol_flow_metatype_context {
     int (*store_type)(
         const struct sol_flow_metatype_context *ctx,
         struct sol_flow_node_type *type);
-};
+} sol_flow_metatype_context;
 
 /**
  * @brief Struct that describes the meta type ports.
@@ -130,12 +130,12 @@ struct sol_flow_metatype_context {
  * @see sol_flow_metatype_ports_description_func()
  * @see sol_flow_metatype_get_ports_description_func()
  */
-struct sol_flow_metatype_port_description {
+typedef struct sol_flow_metatype_port_description {
     char *name; /**< The port name. */
     char *type; /**< The port type (int, float, blob and etc). */
     int array_size; /**< If the port is an array this field should be > 0. */
     int idx; /**< The port index. */
-};
+} sol_flow_metatype_port_description;
 
 /**
  * @brief Struct that describes the meta type options.
@@ -147,10 +147,10 @@ struct sol_flow_metatype_port_description {
  * @see sol_flow_metatype_options_description_func()
  * @see sol_flow_metatype_get_options_description_func()
  */
-struct sol_flow_metatype_option_description {
+typedef struct sol_flow_metatype_option_description {
     char *name; /**< The option name. */
     char *data_type; /**< The option type (int, float, blob and etc). */
-};
+} sol_flow_metatype_option_description;
 
 /**
  * @brief A callback used to create the meta type itself.
@@ -306,7 +306,7 @@ const char *sol_flow_metatype_get_options_symbol(const struct sol_str_slice name
  * @see sol_flow_metatype_ports_description_func()
  * @see sol_flow_metatype_generate_code_func()
  */
-struct sol_flow_metatype {
+typedef struct sol_flow_metatype {
 #ifndef SOL_NO_API_VERSION
     uint16_t api_version; /**< The API version. It is autocamically set by @ref SOL_FLOW_METATYPE macro. */
 #endif
@@ -320,7 +320,7 @@ struct sol_flow_metatype {
     sol_flow_metatype_generate_code_func generate_type_end; /**< A callback used to generate the meta type end code. */
     sol_flow_metatype_ports_description_func ports_description; /**< A callback used to fetch the meta type port description. */
     sol_flow_metatype_options_description_func options_description; /**< A callback used to fetch the meta type options description. */
-};
+} sol_flow_metatype;
 
 #ifdef SOL_FLOW_METATYPE_MODULE_EXTERNAL
 /**

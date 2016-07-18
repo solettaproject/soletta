@@ -47,7 +47,7 @@ extern "C" {
 
 
 /**
- * @struct sol_http_client_connection
+ * @typedef sol_http_client_connection
  * @brief Opaque handler for an HTTP client connection.
  *
  * It's created when a request is made with
@@ -57,6 +57,7 @@ extern "C" {
  * A connection may be canceled with sol_http_client_connection_cancel().
  */
 struct sol_http_client_connection;
+typedef struct sol_http_client_connection sol_http_client_connection;
 
 /**
  * @brief The HTTP request interface to use when creating a new request.
@@ -67,7 +68,7 @@ struct sol_http_client_connection;
  * @see sol_http_client_request_with_interface()
  * @note HTTP client follows the Soletta stream design pattern, which can be found here: @ref streams
  */
-struct sol_http_request_interface {
+typedef struct sol_http_request_interface {
 #ifndef SOL_NO_API_VERSION
 #define SOL_HTTP_REQUEST_INTERFACE_API_VERSION (1)
     /**
@@ -136,7 +137,7 @@ struct sol_http_request_interface {
      * @see sol_http_request_interface::on_data
      */
     size_t data_buffer_size;
-};
+} sol_http_request_interface;
 
 /**
  * @brief Create a request for the specified URL using the given method. The result of

@@ -43,18 +43,16 @@ extern "C" {
  */
 
 /**
- * @struct sol_str_table
- *
  * @brief String table element type.
  *
  * For larger integers see struct sol_str_table_int64, for pointers see
  * struct sol_str_table_ptr.
  */
-struct sol_str_table {
+typedef struct sol_str_table {
     const char *key; /**< @brief Key string */
     uint16_t len; /**< @brief Key string length */
     int16_t val; /**< @brief Value (16 bits integer) */
-};
+} sol_str_table;
 
 /**
  * @def SOL_STR_TABLE_ITEM(_key, _val)
@@ -138,15 +136,13 @@ int16_t sol_str_table_lookup_fallback(const struct sol_str_table *table,
     })
 
 /**
- * @struct sol_str_table_ptr
- *
  * @brief String/Pointer table type
  */
-struct sol_str_table_ptr {
+typedef struct sol_str_table_ptr {
     const char *key; /**< @brief Key string */
     const void *val; /**< @brief Value (pointer) */
     size_t len; /**< @brief Key string length */
-};
+} sol_str_table_ptr;
 
 /**
  * @def SOL_STR_TABLE_PTR_ITEM(_key, _val)
@@ -223,15 +219,13 @@ const struct sol_str_table_ptr *sol_str_table_ptr_entry_lookup(const struct sol_
     })
 
 /**
- * @struct sol_str_table_int64
- *
  * @brief String/int64_t table type
  */
-struct sol_str_table_int64 {
+typedef struct sol_str_table_int64 {
     const char *key; /**< @brief Key string */
     size_t len; /**< @brief Key string length */
     int64_t val; /**< @brief Value (int64_t) */
-};
+} sol_str_table_int64;
 
 /**
  * @def SOL_STR_TABLE_INT64_ITEM(_key, _val)

@@ -45,13 +45,14 @@ extern "C" {
  */
 
 /**
- * @struct sol_uart
+ * @typedef sol_uart
  * @brief A handle to a UART device.
  * @see sol_uart_open()
  * @see sol_uart_close()
  * @see sol_uart_feed()
  */
 struct sol_uart;
+typedef struct sol_uart sol_uart;
 
 /**
  * @brief Baud rate is the number of times the signal can switch states in one second.
@@ -95,13 +96,12 @@ enum sol_uart_stop_bits {
 };
 
 /**
- * @struct sol_uart_config
  * @brief A configuration struct used to set the UART paramenters.
  *
  * @see sol_uart_open()
  * @note UART follows the Soletta stream design pattern, which can be found here: @ref streams
  */
-struct sol_uart_config {
+typedef struct sol_uart_config {
 #ifndef SOL_NO_API_VERSION
 #define SOL_UART_CONFIG_API_VERSION (1) /**< compile time API version to be checked during runtime */
     uint16_t api_version; /**< must match #SOL_UART_CONFIG_API_VERSION at runtime */
@@ -148,7 +148,7 @@ struct sol_uart_config {
     enum sol_uart_parity parity; /**< The parity value*/
     enum sol_uart_stop_bits stop_bits; /**< The stop bits value */
     bool flow_control; /**< Enables software flow control(XOFF and XON) */
-};
+} sol_uart_config;
 
 /**
  * @brief Converts a string UART baudRate to sol_uart_baud_rate

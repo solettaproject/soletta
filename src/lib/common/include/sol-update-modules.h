@@ -44,7 +44,7 @@ extern "C" {
  * @brief Structure containing function that need to be implemented by Soletta
  * update modules.
  */
-struct sol_update {
+typedef struct sol_update {
 #ifndef SOL_NO_API_VERSION
 #define SOL_UPDATE_API_VERSION (1)
     uint16_t api_version; /**< @brief API version */
@@ -106,7 +106,7 @@ struct sol_update {
      * Cleanup tasks can be performed when this function is called.
      */
     void (*shutdown)(void);
-};
+} sol_update;
 
 /**
  * @def SOL_UPDATE_DECLARE(_NAME, decl ...)

@@ -67,45 +67,51 @@ extern "C" {
 #define SOL_LWM2M_DEFAULT_SERVER_PORT (5683)
 
 /**
- * @struct sol_lwm2m_client
+ * @typedef sol_lwm2m_client
  * @brief A handle to a LWM2M client.
  * @see sol_lwm2m_client_new().
  */
 struct sol_lwm2m_client;
+typedef struct sol_lwm2m_client sol_lwm2m_client;
 
 /**
- * @struct sol_lwm2m_server
+ * @typedef sol_lwm2m_server
  * @brief A handle to a LWM2M server.
  * @see sol_lwm2m_server_new()
  */
 struct sol_lwm2m_server;
+typedef struct sol_lwm2m_server sol_lwm2m_server;
 
 /**
- * @struct sol_lwm2m_bootstrap_server
+ * @typedef sol_lwm2m_bootstrap_server
  * @brief A handle to a LWM2M bootstrap server.
  * @see sol_lwm2m_bootstrap_server_new()
  */
 struct sol_lwm2m_bootstrap_server;
+typedef struct sol_lwm2m_bootstrap_server sol_lwm2m_bootstrap_server;
 
 /**
- * @struct sol_lwm2m_bootstrap_client_info
+ * @typedef sol_lwm2m_bootstrap_client_info
  * @brief A handle that contains information about a bootstrapping LWM2M client.
  */
 struct sol_lwm2m_bootstrap_client_info;
+typedef struct sol_lwm2m_bootstrap_client_info sol_lwm2m_bootstrap_client_info;
 
 /**
- * @struct sol_lwm2m_client_info
+ * @typedef sol_lwm2m_client_info
  * @brief A handle that contains information about a registered LWM2M client.
  * @see sol_lwm2m_server_get_clients()
  */
 struct sol_lwm2m_client_info;
+typedef struct sol_lwm2m_client_info sol_lwm2m_client_info;
 
 /**
- * @struct sol_lwm2m_client_object
+ * @typedef sol_lwm2m_client_object
  * @brief A handle of a client's object.
  * @see sol_lwm2m_client_info_get_objects()
  */
 struct sol_lwm2m_client_object;
+typedef struct sol_lwm2m_client_object sol_lwm2m_client_object;
 
 /**
  * @brief LWM2M Client binding mode.
@@ -327,7 +333,7 @@ enum sol_lwm2m_resource_type {
  *
  * @see sol_lwm2m_parse_tlv()
  */
-struct sol_lwm2m_tlv {
+typedef struct sol_lwm2m_tlv {
 #ifndef SOL_NO_API_VERSION
 #define SOL_LWM2M_TLV_API_VERSION (1)
     /** @brief API version */
@@ -340,13 +346,13 @@ struct sol_lwm2m_tlv {
     uint16_t id;
     /** @brief The TLV content */
     struct sol_buffer content;
-};
+} sol_lwm2m_tlv;
 
 /**
  * @brief Struct that represents a LWM2M resource.
  * @see sol_lwm2m_resource_init()
  */
-struct sol_lwm2m_resource {
+typedef struct sol_lwm2m_resource {
 #ifndef SOL_NO_API_VERSION
 #define SOL_LWM2M_RESOURCE_API_VERSION (1)
     /** @brief API version */
@@ -371,7 +377,7 @@ struct sol_lwm2m_resource {
         /** @brief The resource is a bool value */
         bool b;
     } *data;
-};
+} sol_lwm2m_resource;
 
 /**
  * @brief Convinent macro to initialize a LWM2M resource.
@@ -430,7 +436,7 @@ struct sol_lwm2m_resource {
  * @see sol_lwm2m_content_type
  * @see struct sol_lwm2m_object::create
  */
-struct sol_lwm2m_payload {
+typedef struct sol_lwm2m_payload {
     /** @brief The payload type
      * @see sol_lwm2m_content_type
      */
@@ -443,7 +449,7 @@ struct sol_lwm2m_payload {
         /** @brief The payload content in bytes. */
         struct sol_str_slice slice_content;
     } payload /** @brief The payload data */;
-};
+} sol_lwm2m_payload;
 
 /** @brief A LWM2M object implementation.
  *
@@ -462,7 +468,7 @@ struct sol_lwm2m_payload {
  *
  * @see sol_lwm2m_client_new()
  */
-struct sol_lwm2m_object {
+typedef struct sol_lwm2m_object {
 #ifndef SOL_NO_API_VERSION
 #define SOL_LWM2M_OBJECT_API_VERSION (1)
     /** @brief API version */
@@ -591,7 +597,7 @@ struct sol_lwm2m_object {
      */
     int (*del)(void *instance_data, void *user_data,
         struct sol_lwm2m_client *client, uint16_t instance_id);
-};
+} sol_lwm2m_object;
 
 /**
  *

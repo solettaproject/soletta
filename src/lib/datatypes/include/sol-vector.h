@@ -49,19 +49,18 @@ extern "C" {
  */
 
 /**
- * @struct sol_vector
- *
  * @brief Soletta vector is an array that grows dynamically.
  *
  * For storing pointers, see @ref sol_ptr_vector.
  *
  * @see sol_ptr_vector
  */
-struct sol_vector {
+typedef struct sol_vector {
     void *data; /**< @brief Vector data */
     uint16_t len; /**< @brief Vector length */
     uint16_t elem_size; /**< @brief Size of each element in bytes */
-};
+} sol_vector;
+
 
 /**
  * @def SOL_VECTOR_INIT(TYPE)
@@ -299,8 +298,6 @@ sol_vector_steal_data(struct sol_vector *v)
  */
 
 /**
- * @struct sol_ptr_vector
- *
  * @brief Soletta pointer vector is a wrapper around vector with an API
  * more convenient to handle pointers.
  *
@@ -308,11 +305,11 @@ sol_vector_steal_data(struct sol_vector *v)
  * some functions will return @c NULL as an error when failing to retrieve
  * the data from vector elements.
  *
- * @see struct sol_vector.
+ * @see struct sol_vector
  */
-struct sol_ptr_vector {
+typedef struct sol_ptr_vector {
     struct sol_vector base;
-};
+} sol_ptr_vector;
 
 /**
  * @def SOL_PTR_VECTOR_INIT

@@ -43,7 +43,7 @@ extern "C" {
  */
 
 /**
- * @struct sol_pwm
+ * @typedef sol_pwm
  * @brief A handle to a PWM
  *
  * @see sol_pwm_open_by_label()
@@ -58,6 +58,7 @@ extern "C" {
  * @see sol_pwm_set_enabled()
  */
 struct sol_pwm;
+typedef struct sol_pwm sol_pwm;
 
 /**
  * @brief Alignment determines how the pulse is aligned within the PWM period.
@@ -91,7 +92,7 @@ enum sol_pwm_polarity {
  * @see sol_pwm_open()
  * @see sol_pwm_open_raw()
  */
-struct sol_pwm_config {
+typedef struct sol_pwm_config {
 #ifndef SOL_NO_API_VERSION
 #define SOL_PWM_CONFIG_API_VERSION (1)
     uint16_t api_version; /**< The API version */
@@ -101,7 +102,7 @@ struct sol_pwm_config {
     enum sol_pwm_alignment alignment; /**< The PWM alignment. @see sol_pwm_alignment */
     enum sol_pwm_polarity polarity; /**< The PWM polarity. @see sol_pwm_polarity */
     bool enabled; /**< Set to @c true to for enabled @c false for disabled */
-};
+} sol_pwm_config;
 
 /**
  * @brief Converts a string PWM alignment to sol_pwm_alignment

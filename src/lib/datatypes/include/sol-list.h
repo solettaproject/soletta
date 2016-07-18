@@ -45,8 +45,6 @@ extern "C" {
  */
 
 /**
- * @struct sol_list
- *
  * @brief Structure to add list support to a type.
  *
  * To make possible for instances of a given type to be part of a @c sol_list,
@@ -59,10 +57,10 @@ extern "C" {
  * }
  * @endcode
  */
-struct sol_list {
+typedef struct sol_list {
     struct sol_list *next; /**< @brief Link to the next node in the list */
     struct sol_list *prev; /**< @brief Link to the previous node in the list */
-};
+} sol_list;
 
 /**
  * @def SOL_LIST_INIT

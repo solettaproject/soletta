@@ -76,7 +76,7 @@ extern "C" {
  * with #SOL_FLOW_SINGLE_OPTIONS_API_VERSION, or use
  * SOL_FLOW_SINGLE_OPTIONS_DEFAULTS() to help you.
  */
-struct sol_flow_single_options {
+typedef struct sol_flow_single_options {
     /**
      * @brief base guarantees sol_flow_node_options compatibility.
      *
@@ -155,7 +155,7 @@ struct sol_flow_single_options {
      *       packets, but this is not checked due performance reasons.
      */
     const uint16_t *connected_ports_out;
-};
+} sol_flow_single_options;
 
 /**
  * @def SOL_FLOW_SINGLE_OPTIONS_DEFAULTS()

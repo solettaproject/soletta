@@ -34,18 +34,17 @@ extern "C" {
  */
 
 /**
- * @struct sol_socket
+ * @typedef sol_socket
  *
  * @brief Opaque handler for a socket
  */
 struct sol_socket;
+typedef struct sol_socket sol_socket;
 
 /**
- * @struct sol_socket_options
- *
  * @brief Defines the behaviour of a socket instance
  */
-struct sol_socket_options {
+typedef struct sol_socket_options {
 #ifndef SOL_NO_API_VERSION
 #define SOL_SOCKET_OPTIONS_API_VERSION (1)  /**< compile time API version to be checked during runtime */
     /**
@@ -83,15 +82,13 @@ struct sol_socket_options {
      * on_can_write()
      */
     const void *data;
-};
+} sol_socket_options;
 
 /**
- * @struct sol_socket_options
- *
  * @brief Defines specific IP layer related behaviour of a socket
  * instance
  */
-struct sol_socket_ip_options {
+typedef struct sol_socket_ip_options {
     struct sol_socket_options base;
 #ifndef SOL_NO_API_VERSION
 #define SOL_SOCKET_IP_OPTIONS_SUB_API_VERSION (1)  /**< compile time API version to be checked during runtime */
@@ -119,7 +116,7 @@ struct sol_socket_ip_options {
      * sol_socket_bind()
      */
     bool reuse_addr;
-};
+} sol_socket_ip_options;
 
 /**
  * @brief Structure to represent a socket class.
@@ -128,7 +125,7 @@ struct sol_socket_ip_options {
  * socket. This contains the methods necessary to create a new socket
  * type.
  */
-struct sol_socket_type {
+typedef struct sol_socket_type {
 #ifndef SOL_NO_API_VERSION
 #define SOL_SOCKET_TYPE_API_VERSION (1)  /**< compile time API version to be checked during runtime */
     /**
@@ -218,16 +215,16 @@ struct sol_socket_type {
      *     is returned.
      */
     int (*bind)(struct sol_socket *s, const struct sol_network_link_addr *addr);
-};
+} sol_socket_type;
 
 /**
  * @brief Structure to represent a socket.
  *
  * @see sol_socket_type
  */
-struct sol_socket {
+typedef struct sol_socket {
     const struct sol_socket_type *type;
-};
+} sol_socket;
 
 /**
  * @brief Creates an endpoint for communication.
