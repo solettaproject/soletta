@@ -118,6 +118,7 @@ struct sol_flow_inspector {
      */
     void (*will_deliver_packet)(const struct sol_flow_inspector *inspector, const struct sol_flow_node *dst_node, uint16_t dst_port, uint16_t dst_conn_id, const struct sol_flow_packet *packet);
 };
+typedef struct sol_flow_inspector sol_flow_inspector;
 
 /**
  * @brief Provide a set of inspecting routines to flow's runtime inspector.

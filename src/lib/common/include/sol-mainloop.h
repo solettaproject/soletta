@@ -348,6 +348,7 @@ void sol_shutdown(void);
  * @brief Handle for timers tracking the timeouts.
  */
 struct sol_timeout;
+typedef struct sol_timeout sol_timeout;
 
 /**
  * @brief Adds a function to be called periodically by the main loop.
@@ -388,6 +389,7 @@ bool sol_timeout_del(struct sol_timeout *handle);
  * This structure is used to help setup and control Idlers.
  */
 struct sol_idle;
+typedef struct sol_idle sol_idle;
 
 /**
  * @brief Adds a function to be called when the application goes idle.
@@ -481,6 +483,7 @@ enum sol_fd_flags {
  * @brief A handle to a fd watcher
  */
 struct sol_fd;
+typedef struct sol_fd sol_fd;
 
 /**
  * @brief Adds a function to be called when the requested events are triggered by the
@@ -581,6 +584,7 @@ uint32_t sol_fd_get_flags(const struct sol_fd *handle);
  * This structure is used to setup and control children process.
  */
 struct sol_child_watch;
+typedef struct sol_child_watch sol_child_watch;
 
 /**
  * @brief Watch for a child process' termination.
@@ -749,12 +753,14 @@ struct sol_mainloop_source_type {
      */
     void (*dispose)(void *data);
 };
+typedef struct sol_mainloop_source_type sol_mainloop_source_type;
 
 /**
  * @struct sol_mainloop_source
  * @brief Structure of a Source of mainloop events.
  */
 struct sol_mainloop_source;
+typedef struct sol_mainloop_source sol_mainloop_source;
 
 /**
  * @brief Create a new source of events to the main loop.
@@ -1143,6 +1149,7 @@ struct sol_mainloop_implementation {
      */
     void *(*source_get_data)(const void *handle);
 };
+typedef struct sol_mainloop_implementation sol_mainloop_implementation;
 
 /**
  * Pointer to Soletta's internal mainloop implementation, that is the
@@ -1246,6 +1253,7 @@ struct sol_main_callbacks {
     void (*startup)(void); /**< @brief Application @c startup function */
     void (*shutdown)(void); /**< @brief Application @c shutdown function */
 };
+typedef struct sol_main_callbacks sol_main_callbacks;
 
 /**
  * @brief Helper function called by @ref SOL_MAIN. Shouldn't be called directly.

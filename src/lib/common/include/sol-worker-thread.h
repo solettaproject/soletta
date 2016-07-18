@@ -46,6 +46,7 @@ extern "C" {
  */
 // TODO abstract locks? see eina_lock.h
 struct sol_worker_thread;
+typedef struct sol_worker_thread sol_worker_thread;
 
 /**
  * @struct sol_worker_thread_config
@@ -107,6 +108,7 @@ struct sol_worker_thread_config {
      */
     void (*feedback)(void *data);
 };
+typedef struct sol_worker_thread_config sol_worker_thread_config;
 
 /**
  * Create and run a worker thread.

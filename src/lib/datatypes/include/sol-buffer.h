@@ -135,6 +135,7 @@ struct sol_buffer {
     size_t used;  /**< @brief Used size in bytes */
     enum sol_buffer_flags flags; /**< @brief Buffer flags */
 };
+typedef struct sol_buffer sol_buffer;
 
 /**
  * @brief Case of a string to be decoded.

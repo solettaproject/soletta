@@ -123,6 +123,7 @@ struct sol_memmap_map {
                        * writing operations until it expires, when real writing will be performed */
     const struct sol_str_table_ptr *entries; /**< Entries on map, containing name, offset and size */ /* Memory trick in place, must be last on struct*/
 };
+typedef struct sol_memmap_map sol_memmap_map;
 
 /**
  * @struct sol_memmap_entry
@@ -137,6 +138,7 @@ struct sol_memmap_entry {
     uint32_t bit_size; /**< Total size of this entry on storage, in bits. Must be up to <tt>size * 8</tt>. If zero, it will be assumed as <tt>size * 8</tt>. Note that this will be ignored if @c size is greater than 8. */
     uint8_t bit_offset; /**< Bit offset on first byte. Note that this will be ignored if @c size is greater than 8. */
 };
+typedef struct sol_memmap_entry sol_memmap_entry;
 
 /**
  * @brief Writes buffer contents to storage.

@@ -156,6 +156,7 @@ struct sol_flow_single_options {
      */
     const uint16_t *connected_ports_out;
 };
+typedef struct sol_flow_single_options sol_flow_single_options;
 
 /**
  * @def SOL_FLOW_SINGLE_OPTIONS_DEFAULTS()

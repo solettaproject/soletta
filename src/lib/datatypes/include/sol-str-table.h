@@ -55,6 +55,7 @@ struct sol_str_table {
     uint16_t len; /**< @brief Key string length */
     int16_t val; /**< @brief Value (16 bits integer) */
 };
+typedef struct sol_str_table sol_str_table;
 
 /**
  * @def SOL_STR_TABLE_ITEM(_key, _val)
@@ -147,6 +148,7 @@ struct sol_str_table_ptr {
     const void *val; /**< @brief Value (pointer) */
     size_t len; /**< @brief Key string length */
 };
+typedef struct sol_str_table_ptr sol_str_table_ptr;
 
 /**
  * @def SOL_STR_TABLE_PTR_ITEM(_key, _val)

@@ -184,6 +184,7 @@ struct sol_http_params {
     struct sol_vector params; /**< vector of parameters, struct @ref sol_http_param_value */
     struct sol_arena *arena; /**< arena with copied parameter slices */
 };
+typedef struct sol_http_params sol_http_params;
 
 /**
  * @brief Used to rank content type priorities.
@@ -236,6 +237,7 @@ struct sol_http_param_value {
         } data;
     } value;
 };
+typedef struct sol_http_param_value sol_http_param_value;
 
 /**
  * @brief Handle for an HTTP response
@@ -257,6 +259,7 @@ struct sol_http_response {
     struct sol_http_params param;
     int response_code;
 };
+typedef struct sol_http_response sol_http_response;
 
 /**
  * @brief Handle for an HTTP URL
@@ -275,6 +278,7 @@ struct sol_http_url {
     struct sol_str_slice fragment;
     uint32_t port; /**< If set to 0 it'll be ignored */
 };
+typedef struct sol_http_url sol_http_url;
 
 #ifndef SOL_NO_API_VERSION
 /**

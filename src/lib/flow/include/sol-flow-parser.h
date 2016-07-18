@@ -53,6 +53,7 @@ extern "C" {
  * @brief Flow Parser handle.
  */
 struct sol_flow_parser;
+typedef struct sol_flow_parser sol_flow_parser;
 
 /**
  * @brief Flow Parser's client structure.
@@ -79,6 +80,7 @@ struct sol_flow_parser_client {
      */
     int (*read_file)(void *data, const char *name, struct sol_buffer *buf);
 };
+typedef struct sol_flow_parser_client sol_flow_parser_client;
 
 /**
  * @brief Creates a new instance of @ref sol_flow_parser.

@@ -57,6 +57,7 @@ extern "C" {
  * A connection may be canceled with sol_http_client_connection_cancel().
  */
 struct sol_http_client_connection;
+typedef struct sol_http_client_connection sol_http_client_connection;
 
 /**
  * @brief The HTTP request interface to use when creating a new request.
@@ -137,6 +138,7 @@ struct sol_http_request_interface {
      */
     size_t data_buffer_size;
 };
+typedef struct sol_http_request_interface sol_http_request_interface;
 
 /**
  * @brief Create a request for the specified URL using the given method. The result of

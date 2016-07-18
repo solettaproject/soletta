@@ -51,6 +51,7 @@ extern "C" {
  * @see sol_aio_pending_cancel()
  */
 struct sol_aio;
+typedef struct sol_aio sol_aio;
 
 /**
  * @struct sol_aio_pending
@@ -59,6 +60,7 @@ struct sol_aio;
  * @see sol_aio_pending_cancel()
  */
 struct sol_aio_pending;
+typedef struct sol_aio_pending sol_aio_pending;
 
 /**
  * @brief Open the given board @c pin by its label to be used as Analog I/O.

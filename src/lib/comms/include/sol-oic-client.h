@@ -53,6 +53,7 @@ extern "C" {
  * deleted with sol_oic_client_del()
  */
 struct sol_oic_client;
+typedef struct sol_oic_client sol_oic_client;
 
 /**
  * @struct sol_oic_pending
@@ -65,6 +66,7 @@ struct sol_oic_client;
  *
  */
 struct sol_oic_pending;
+typedef struct sol_oic_pending sol_oic_pending;
 
 /**
  * @brief Structure defining an OIC resource. It's open to the API
@@ -108,6 +110,7 @@ struct sol_oic_resource {
      */
     const bool secure;
 };
+typedef struct sol_oic_resource sol_oic_resource;
 
 /**
  * @brief Creates a new OIC client intance.

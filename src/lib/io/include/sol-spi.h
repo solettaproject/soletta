@@ -50,6 +50,7 @@ extern "C" {
  * @see sol_spi_transfer()
  */
 struct sol_spi;
+typedef struct sol_spi sol_spi;
 
 /**
  * @brief SPI Transfer Modes.
@@ -95,6 +96,7 @@ struct sol_spi_config {
     uint32_t frequency; /**< Clock frequency in Hz */
     uint8_t bits_per_word; /**< Number of bits per word */
 };
+typedef struct sol_spi_config sol_spi_config;
 
 /**
  * @brief Converts a string SPI mode name to sol_spi_mode

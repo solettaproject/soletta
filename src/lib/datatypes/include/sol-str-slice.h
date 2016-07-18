@@ -87,6 +87,7 @@ struct sol_str_slice {
     size_t len; /**< @brief Slice length */
     const char *data; /**< @brief Slice data */
 };
+typedef struct sol_str_slice sol_str_slice;
 
 /**
  * @brief Checks if the content of the slice is equal to the string.

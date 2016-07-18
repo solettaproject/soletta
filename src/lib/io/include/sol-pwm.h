@@ -58,6 +58,7 @@ extern "C" {
  * @see sol_pwm_set_enabled()
  */
 struct sol_pwm;
+typedef struct sol_pwm sol_pwm;
 
 /**
  * @brief Alignment determines how the pulse is aligned within the PWM period.
@@ -102,6 +103,7 @@ struct sol_pwm_config {
     enum sol_pwm_polarity polarity; /**< The PWM polarity. @see sol_pwm_polarity */
     bool enabled; /**< Set to @c true to for enabled @c false for disabled */
 };
+typedef struct sol_pwm_config sol_pwm_config;
 
 /**
  * @brief Converts a string PWM alignment to sol_pwm_alignment

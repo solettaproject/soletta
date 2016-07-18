@@ -105,6 +105,7 @@ struct sol_platform_linux_micro_module {
      */
     int (*stop_monitor)(const struct sol_platform_linux_micro_module *module, const char *service);
 };
+typedef struct sol_platform_linux_micro_module sol_platform_linux_micro_module;
 
 /**
  * @brief Inform the service observers the current state of the @c service

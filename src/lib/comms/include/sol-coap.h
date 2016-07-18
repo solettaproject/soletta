@@ -246,6 +246,7 @@ enum sol_coap_flags {
  * @brief Opaque handler for a CoAP packet.
  */
 struct sol_coap_packet;
+typedef struct sol_coap_packet sol_coap_packet;
 
 /**
  * @struct sol_coap_server
@@ -253,6 +254,7 @@ struct sol_coap_packet;
  * @brief Opaque handler for a CoAP server.
  */
 struct sol_coap_server;
+typedef struct sol_coap_server sol_coap_server;
 
 /**
  * @brief Description for a CoAP resource.
@@ -344,6 +346,7 @@ struct sol_coap_resource {
      */
     struct sol_str_slice path[];
 };
+typedef struct sol_coap_resource sol_coap_resource;
 
 /**
  * @brief Gets the CoAP protocol version of the packet.

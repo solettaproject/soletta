@@ -35,6 +35,7 @@ extern "C" {
  * @brief service struct
  */
 struct sol_netctl_service;
+typedef struct sol_netctl_service sol_netctl_service;
 
 /**
  * @struct sol_netctl_network_params
@@ -59,6 +60,7 @@ struct sol_netctl_network_params {
      */
     struct sol_network_link_addr gateway;
 };
+typedef struct sol_netctl_network_params sol_netctl_network_params;
 
 /**
  * @enum sol_netctl_service_state

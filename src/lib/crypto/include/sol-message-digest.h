@@ -84,6 +84,7 @@ extern "C" {
  * @brief A handle for a message digest
  */
 struct sol_message_digest;
+typedef struct sol_message_digest sol_message_digest;
 
 /**
  * The message digest configuration to use when creating a new handle.
@@ -178,6 +179,7 @@ struct sol_message_digest_config {
      */
     size_t feed_size;
 };
+typedef struct sol_message_digest_config sol_message_digest_config;
 
 /**
  * Create a new handle to feed the message to digest.

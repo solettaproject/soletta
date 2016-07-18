@@ -56,6 +56,7 @@ extern "C" {
  * @struct sol_memdesc
  */
 struct sol_memdesc;
+typedef struct sol_memdesc sol_memdesc;
 
 /**
  * @brief Designates the type of the memory description
@@ -383,6 +384,7 @@ struct sol_memdesc_ops_array {
      */
     int (*resize)(const struct sol_memdesc *desc, void *memory, size_t length);
 };
+typedef struct sol_memdesc_ops_array sol_memdesc_ops_array;
 
 /**
  * @brief Operations specific to SOL_MEMDESC_TYPE_ENUMERATION.
@@ -421,6 +423,7 @@ struct sol_memdesc_ops_enumeration {
      */
     int (*from_str)(const struct sol_memdesc *desc, void *ptr_return, const struct sol_str_slice str);
 };
+typedef struct sol_memdesc_ops_enumeration sol_memdesc_ops_enumeration;
 
 /**
  * @brief override operations to be used in this memory description.
@@ -510,6 +513,7 @@ struct sol_memdesc_ops {
         const struct sol_memdesc_ops_enumeration *enumeration;
     };
 };
+typedef struct sol_memdesc_ops sol_memdesc_ops;
 
 /**
  * @brief Data type to describe a memory region.
@@ -613,6 +617,7 @@ struct sol_memdesc {
      */
     const struct sol_memdesc_ops *ops;
 };
+typedef struct sol_memdesc sol_memdesc;
 
 /**
  * @brief Description of a structure member.
@@ -666,6 +671,7 @@ struct sol_memdesc_structure_member {
      */
     bool detail : 1;
 };
+typedef struct sol_memdesc_structure_member sol_memdesc_structure_member;
 
 /**
  * @brief operations to handle struct sol_vector.
@@ -1987,6 +1993,7 @@ struct sol_memdesc_serialize_options {
         bool show_index;
     } array;
 };
+typedef struct sol_memdesc_serialize_options sol_memdesc_serialize_options;
 
 /**
  * @brief the default struct sol_memdesc_serialize_options.

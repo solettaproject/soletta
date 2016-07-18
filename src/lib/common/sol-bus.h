@@ -108,6 +108,7 @@ struct sol_bus_interfaces {
  * Represents an remote service on a bus.
  */
 struct sol_bus_client;
+typedef struct sol_bus_client sol_bus_client;
 
 /**
  * Opens and returns an connection to the system bus.

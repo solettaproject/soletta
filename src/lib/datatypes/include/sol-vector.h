@@ -62,6 +62,7 @@ struct sol_vector {
     uint16_t len; /**< @brief Vector length */
     uint16_t elem_size; /**< @brief Size of each element in bytes */
 };
+typedef struct sol_vector sol_vector;
 
 /**
  * @def SOL_VECTOR_INIT(TYPE)
@@ -313,6 +314,7 @@ sol_vector_steal_data(struct sol_vector *v)
 struct sol_ptr_vector {
     struct sol_vector base;
 };
+typedef struct sol_ptr_vector sol_ptr_vector;
 
 /**
  * @def SOL_PTR_VECTOR_INIT
