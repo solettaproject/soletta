@@ -414,7 +414,10 @@ sol_json_token_str_eq(const struct sol_json_token *token, const char *str, size_
  * @see sol_json_token_get_uint32()
  * @see sol_json_token_get_double()
  */
-int sol_json_token_get_uint64(const struct sol_json_token *token, uint64_t *value) SOL_ATTR_WARN_UNUSED_RESULT;
+int sol_json_token_get_uint64(const struct sol_json_token *token, uint64_t *value)
+#ifndef DOXYGEN_RUN
+    SOL_ATTR_WARN_UNUSED_RESULT
+#endif
 
 /**
  * @brief Get the numeric value of the given token as an 64 bits signed integer.
@@ -430,7 +433,11 @@ int sol_json_token_get_uint64(const struct sol_json_token *token, uint64_t *valu
  * @see sol_json_token_get_int32()
  * @see sol_json_token_get_double()
  */
-int sol_json_token_get_int64(const struct sol_json_token *token, int64_t *value) SOL_ATTR_WARN_UNUSED_RESULT;
+int sol_json_token_get_int64(const struct sol_json_token *token, int64_t *value)
+#ifndef DOXYGEN_RUN
+    SOL_ATTR_WARN_UNUSED_RESULT
+#endif
+    ;
 
 /**
  * @brief Get the numeric value of the given token as an 32 bits unsigned integer.
@@ -537,7 +544,11 @@ sol_json_token_to_slice(const struct sol_json_token *token)
  * @return @c true if successfully advanced, @c false otherwise
  */
 bool sol_json_scanner_next(struct sol_json_scanner *scanner,
-    struct sol_json_token *token) SOL_ATTR_WARN_UNUSED_RESULT SOL_ATTR_NON_NULL(1, 2);
+    struct sol_json_token *token)
+#ifndef DOXYGEN_RUN
+    SOL_ATTR_WARN_UNUSED_RESULT SOL_ATTR_NON_NULL(1, 2)
+#endif
+    ;
 
 /**
  * @brief Modifies @c scanner to point to @c token end, skipping over the @c token content.
@@ -555,7 +566,11 @@ bool sol_json_scanner_next(struct sol_json_scanner *scanner,
  * @return @c true if successfully skipped the token, @c false otherwise
  */
 bool sol_json_scanner_skip(struct sol_json_scanner *scanner,
-    struct sol_json_token *token) SOL_ATTR_WARN_UNUSED_RESULT SOL_ATTR_NON_NULL(1, 2);
+    struct sol_json_token *token)
+#ifndef DOXYGEN_RUN
+    SOL_ATTR_WARN_UNUSED_RESULT SOL_ATTR_NON_NULL(1, 2)
+#endif
+    ;
 
 /**
  * @brief Retrieve <key, value> pair currently pointed by @c scanner.
@@ -570,7 +585,11 @@ bool sol_json_scanner_skip(struct sol_json_scanner *scanner,
  * @return @c true if a pair is successfully retrieved, @c false otherwise
  */
 bool sol_json_scanner_get_dict_pair(struct sol_json_scanner *scanner,
-    struct sol_json_token *key, struct sol_json_token *value) SOL_ATTR_WARN_UNUSED_RESULT SOL_ATTR_NON_NULL(1, 2, 3);
+    struct sol_json_token *key, struct sol_json_token *value)
+#ifndef DOXYGEN_RUN
+    SOL_ATTR_WARN_UNUSED_RESULT SOL_ATTR_NON_NULL(1, 2, 3)
+#endif
+    ;
 
 /**
  * @brief Function to help iterate over a generic JSON sequence.
@@ -723,7 +742,11 @@ int sol_json_double_to_str(const double value, struct sol_buffer *buf);
  *
  * @return @c true if JSON element is valid, @c false otherwise
  */
-bool sol_json_is_valid_type(struct sol_json_scanner *scanner, enum sol_json_type start_type) SOL_ATTR_NON_NULL(1);
+bool sol_json_is_valid_type(struct sol_json_scanner *scanner, enum sol_json_type start_type)
+#ifndef DOXYGEN_RUN
+    SOL_ATTR_NON_NULL(1)
+#endif
+    ;
 
 /**
  * @brief Inserts the string @c str in the end of the JSON document contained in @c buffer.
@@ -985,7 +1008,11 @@ int sol_json_get_value_by_path(struct sol_json_scanner *scanner, struct sol_str_
  *
  * @see sol_json_path_scanner
  */
-int sol_json_path_scanner_init(struct sol_json_path_scanner *scanner, struct sol_str_slice path) SOL_ATTR_NON_NULL(1);
+int sol_json_path_scanner_init(struct sol_json_path_scanner *scanner, struct sol_str_slice path)
+#ifndef DOXYGEN_RUN
+    SOL_ATTR_NON_NULL(1)
+#endif
+    ;
 
 /**
  * @brief Get next segment from JSON Path in @a scanner.
@@ -1004,7 +1031,11 @@ int sol_json_path_scanner_init(struct sol_json_path_scanner *scanner, struct sol
  * @return True if next segment was updated in @a value. False if an error
  *         occurred or if there is no more segments available.
  */
-bool sol_json_path_get_next_segment(struct sol_json_path_scanner *scanner, struct sol_str_slice *slice, enum sol_json_loop_status *status) SOL_ATTR_NON_NULL(1, 2, 3);
+bool sol_json_path_get_next_segment(struct sol_json_path_scanner *scanner, struct sol_str_slice *slice, enum sol_json_loop_status *status)
+#ifndef DOXYGEN_RUN
+    SOL_ATTR_NON_NULL(1, 2, 3)
+#endif
+    ;
 
 /**
  * @brief Get the integer index from a JSON Path array segment.

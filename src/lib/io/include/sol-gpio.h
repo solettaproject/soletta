@@ -248,7 +248,11 @@ struct sol_gpio_config {
  *
  * @return enumeration sol_gpio_direction.
  */
-enum sol_gpio_direction sol_gpio_direction_from_str(const char *direction) SOL_ATTR_WARN_UNUSED_RESULT;
+enum sol_gpio_direction sol_gpio_direction_from_str(const char *direction)
+#ifndef DOXYGEN_RUN
+    SOL_ATTR_WARN_UNUSED_RESULT
+#endif
+    ;
 
 /**
  * @brief Converts sol_gpio_direction to a string name.
@@ -261,7 +265,11 @@ enum sol_gpio_direction sol_gpio_direction_from_str(const char *direction) SOL_A
  *
  * @return String representation of the sol_gpio_direction.
  */
-const char *sol_gpio_direction_to_str(enum sol_gpio_direction direction) SOL_ATTR_WARN_UNUSED_RESULT;
+const char *sol_gpio_direction_to_str(enum sol_gpio_direction direction)
+#ifndef DOXYGEN_RUN
+    SOL_ATTR_WARN_UNUSED_RESULT
+#endif
+    ;
 
 /**
  * @brief Converts a string GPIO edge to sol_gpio_edge
@@ -274,7 +282,11 @@ const char *sol_gpio_direction_to_str(enum sol_gpio_direction direction) SOL_ATT
  *
  * @return enumeration sol_gpio_edge
  */
-enum sol_gpio_edge sol_gpio_edge_from_str(const char *edge) SOL_ATTR_WARN_UNUSED_RESULT;
+enum sol_gpio_edge sol_gpio_edge_from_str(const char *edge)
+#ifndef DOXYGEN_RUN
+    SOL_ATTR_WARN_UNUSED_RESULT
+#endif
+    ;
 
 /**
  * @brief Converts sol_gpio_edge to a string name.
@@ -287,7 +299,11 @@ enum sol_gpio_edge sol_gpio_edge_from_str(const char *edge) SOL_ATTR_WARN_UNUSED
  *
  * @return String representation of the sol_gpio_edge
  */
-const char *sol_gpio_edge_to_str(enum sol_gpio_edge edge) SOL_ATTR_WARN_UNUSED_RESULT;
+const char *sol_gpio_edge_to_str(enum sol_gpio_edge edge)
+#ifndef DOXYGEN_RUN
+    SOL_ATTR_WARN_UNUSED_RESULT
+#endif
+    ;
 
 /**
  * @brief Converts a string GPIO drive to sol_gpio_drive.
@@ -300,7 +316,11 @@ const char *sol_gpio_edge_to_str(enum sol_gpio_edge edge) SOL_ATTR_WARN_UNUSED_R
  *
  * @return enumeration sol_gpio_drive.
  */
-enum sol_gpio_drive sol_gpio_drive_from_str(const char *drive) SOL_ATTR_WARN_UNUSED_RESULT;
+enum sol_gpio_drive sol_gpio_drive_from_str(const char *drive)
+#ifndef DOXYGEN_RUN
+    SOL_ATTR_WARN_UNUSED_RESULT
+#endif
+    ;
 
 /**
  * @brief Converts sol_gpio_drive to a string name.
@@ -313,7 +333,11 @@ enum sol_gpio_drive sol_gpio_drive_from_str(const char *drive) SOL_ATTR_WARN_UNU
  *
  * @return String representation of the sol_gpio_drive.
  */
-const char *sol_gpio_drive_to_str(enum sol_gpio_drive drive) SOL_ATTR_WARN_UNUSED_RESULT;
+const char *sol_gpio_drive_to_str(enum sol_gpio_drive drive)
+#ifndef DOXYGEN_RUN
+    SOL_ATTR_WARN_UNUSED_RESULT
+#endif
+    ;
 
 /**
  * @brief Opens a given pin by its board label as general purpose input or output.
@@ -332,7 +356,11 @@ const char *sol_gpio_drive_to_str(enum sol_gpio_drive drive) SOL_ATTR_WARN_UNUSE
  *
  * @return A new @c sol_gpio instance on success, @c NULL otherwise.
  */
-struct sol_gpio *sol_gpio_open_by_label(const char *label, const struct sol_gpio_config *config) SOL_ATTR_WARN_UNUSED_RESULT;
+struct sol_gpio *sol_gpio_open_by_label(const char *label, const struct sol_gpio_config *config)
+#ifndef DOXYGEN_RUN
+    SOL_ATTR_WARN_UNUSED_RESULT
+#endif
+    ;
 
 /**
  * @brief Opens a given pin as general purpose input or output.
@@ -347,7 +375,11 @@ struct sol_gpio *sol_gpio_open_by_label(const char *label, const struct sol_gpio
  *
  * @return A new @c sol_gpio instance on success, @c NULL otherwise.
  */
-struct sol_gpio *sol_gpio_open(uint32_t pin, const struct sol_gpio_config *config) SOL_ATTR_WARN_UNUSED_RESULT;
+struct sol_gpio *sol_gpio_open(uint32_t pin, const struct sol_gpio_config *config)
+#ifndef DOXYGEN_RUN
+    SOL_ATTR_WARN_UNUSED_RESULT
+#endif
+    ;
 
 
 /**
@@ -363,7 +395,11 @@ struct sol_gpio *sol_gpio_open(uint32_t pin, const struct sol_gpio_config *confi
  *
  * @return A new @c sol_gpio instance on success, @c NULL otherwise.
  */
-struct sol_gpio *sol_gpio_open_raw(uint32_t pin, const struct sol_gpio_config *config) SOL_ATTR_WARN_UNUSED_RESULT;
+struct sol_gpio *sol_gpio_open_raw(uint32_t pin, const struct sol_gpio_config *config)
+#ifndef DOXYGEN_RUN
+    SOL_ATTR_WARN_UNUSED_RESULT
+#endif
+    ;
 
 /**
  * @brief Closes a given GPIO pin.

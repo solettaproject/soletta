@@ -178,7 +178,11 @@ struct sol_str_table_ptr {
  */
 const void *sol_str_table_ptr_lookup_fallback(const struct sol_str_table_ptr *table_ptr,
     const struct sol_str_slice key,
-    const void *fallback) SOL_ATTR_NON_NULL(1);
+    const void *fallback)
+#ifndef DOXYGEN_RUN
+    SOL_ATTR_NON_NULL(1)
+#endif
+    ;
 
 /**
  * @brief Retrieves the table entry associated with a given key from
@@ -281,7 +285,11 @@ const struct sol_str_table_int64 *sol_str_table_int64_entry_lookup(const struct 
  */
 int64_t sol_str_table_int64_lookup_fallback(const struct sol_str_table_int64 *table_int64,
     const struct sol_str_slice key,
-    int64_t fallback) SOL_ATTR_NON_NULL(1);
+    int64_t fallback)
+#ifndef DOXYGEN_RUN
+    SOL_ATTR_NON_NULL(1)
+#endif
+    ;
 
 /**
  * @brief flag to detect key 'misses' in @ref sol_str_table_int64_lookup.

@@ -107,7 +107,11 @@ struct sol_spi_config {
  *
  * @return enumeration sol_spi_mode
  */
-enum sol_spi_mode sol_spi_mode_from_str(const char *spi_mode) SOL_ATTR_WARN_UNUSED_RESULT;
+enum sol_spi_mode sol_spi_mode_from_str(const char *spi_mode)
+#ifndef DOXYGEN_RUN
+    SOL_ATTR_WARN_UNUSED_RESULT
+#endif
+    ;
 
 /**
  * @brief Converts sol_spi_mode to a string name.
@@ -120,7 +124,11 @@ enum sol_spi_mode sol_spi_mode_from_str(const char *spi_mode) SOL_ATTR_WARN_UNUS
  *
  * @return String representation of the sol_spi_mode
  */
-const char *sol_spi_mode_to_str(enum sol_spi_mode spi_mode) SOL_ATTR_WARN_UNUSED_RESULT;
+const char *sol_spi_mode_to_str(enum sol_spi_mode spi_mode)
+#ifndef DOXYGEN_RUN
+    SOL_ATTR_WARN_UNUSED_RESULT
+#endif
+    ;
 
 /**
  * @brief Perform a SPI asynchronous transfer.

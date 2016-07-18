@@ -269,7 +269,11 @@ enum sol_memdesc_type {
  * @param str the string representing a valid type.
  * @return the type or SOL_MEMDESC_TYPE_UNKNOWN if invalid.
  */
-enum sol_memdesc_type sol_memdesc_type_from_str(const char *str) SOL_ATTR_WARN_UNUSED_RESULT;
+enum sol_memdesc_type sol_memdesc_type_from_str(const char *str)
+#ifndef DOXYGEN_RUN
+    SOL_ATTR_WARN_UNUSED_RESULT
+#endif
+    ;
 
 /**
  * @brief Converts a sol_memdesc_type to a string.
@@ -277,7 +281,11 @@ enum sol_memdesc_type sol_memdesc_type_from_str(const char *str) SOL_ATTR_WARN_U
  * @param type the type to be converted.
  * @return the string or NULL, if the type is invalid.
  */
-const char *sol_memdesc_type_to_str(enum sol_memdesc_type type) SOL_ATTR_WARN_UNUSED_RESULT;
+const char *sol_memdesc_type_to_str(enum sol_memdesc_type type)
+#ifndef DOXYGEN_RUN
+    SOL_ATTR_WARN_UNUSED_RESULT
+#endif
+    ;
 
 /**
  * @def SOL_MEMDESC_DESCRIPTION

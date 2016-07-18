@@ -225,29 +225,35 @@ sol_str_slice_str_starts_with(const struct sol_str_slice slice, const char *pref
     return slice.len >= len && strncmp(slice.data, prefix, len) == 0;
 }
 
-//TODO: Fix SOL_ATTR_NON_NULL bugging doxygen
-/*
+/**
  * @brief Populates a slice from a string.
  *
  * @param s Source string
  *
  * @return Resulting slice
  */
-static SOL_ATTR_NON_NULL(1) inline struct sol_str_slice
+static
+#ifndef DOXYGEN_RUN
+    SOL_ATTR_NON_NULL(1)
+#endif
+inline struct sol_str_slice
 sol_str_slice_from_str(const char *s)
 {
     return SOL_STR_SLICE_STR(s, strlen(s));
 }
 
-//TODO: Fix SOL_ATTR_NON_NULL bugging doxygen
-/*
+/**
  * @brief Populates a slice from a @ref sol_blob.
  *
  * @param blob Source blob
  *
  * @return Resulting slice
  */
-static SOL_ATTR_NON_NULL(1) inline struct sol_str_slice
+static
+#ifndef DOXYGEN_RUN
+    SOL_ATTR_NON_NULL(1)
+#endif
+inline struct sol_str_slice
 sol_str_slice_from_blob(const struct sol_blob *blob)
 {
     return SOL_STR_SLICE_STR((char *)blob->mem, blob->size);

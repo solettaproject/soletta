@@ -114,7 +114,11 @@ struct sol_pwm_config {
  *
  * @return enumeration sol_pwm_alignment
  */
-enum sol_pwm_alignment sol_pwm_alignment_from_str(const char *pwm_alignment) SOL_ATTR_WARN_UNUSED_RESULT;
+enum sol_pwm_alignment sol_pwm_alignment_from_str(const char *pwm_alignment)
+#ifndef DOXYGEN_RUN
+    SOL_ATTR_WARN_UNUSED_RESULT
+#endif
+    ;
 
 /**
  * @brief Converts sol_pwm_alignment to a string name.
@@ -127,7 +131,11 @@ enum sol_pwm_alignment sol_pwm_alignment_from_str(const char *pwm_alignment) SOL
  *
  * @return String representation of the sol_pwm_alignment
  */
-const char *sol_pwm_alignment_to_str(enum sol_pwm_alignment pwm_alignment) SOL_ATTR_WARN_UNUSED_RESULT;
+const char *sol_pwm_alignment_to_str(enum sol_pwm_alignment pwm_alignment)
+#ifndef DOXYGEN_RUN
+    SOL_ATTR_WARN_UNUSED_RESULT
+#endif
+    ;
 
 /**
  * @brief Converts a string PWM polarity to sol_pwm_polarity
@@ -140,7 +148,11 @@ const char *sol_pwm_alignment_to_str(enum sol_pwm_alignment pwm_alignment) SOL_A
  *
  * @return enumeration sol_pwm_polarity
  */
-enum sol_pwm_polarity sol_pwm_polarity_from_str(const char *pwm_polarity) SOL_ATTR_WARN_UNUSED_RESULT;
+enum sol_pwm_polarity sol_pwm_polarity_from_str(const char *pwm_polarity)
+#ifndef DOXYGEN_RUN
+    SOL_ATTR_WARN_UNUSED_RESULT
+#endif
+    ;
 
 /**
  * @brief Converts sol_pwm_polarity to a string name.
@@ -153,7 +165,11 @@ enum sol_pwm_polarity sol_pwm_polarity_from_str(const char *pwm_polarity) SOL_AT
  *
  * @return String representation of the sol_pwm_polarity
  */
-const char *sol_pwm_polarity_to_str(enum sol_pwm_polarity pwm_polarity) SOL_ATTR_WARN_UNUSED_RESULT;
+const char *sol_pwm_polarity_to_str(enum sol_pwm_polarity pwm_polarity)
+#ifndef DOXYGEN_RUN
+    SOL_ATTR_WARN_UNUSED_RESULT
+#endif
+    ;
 
 /**
  * @brief Opens a given pin by its board label as pwm.

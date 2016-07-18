@@ -100,7 +100,11 @@ enum sol_i2c_speed {
  *
  * @return enumeration sol_i2c_speed.
  */
-enum sol_i2c_speed sol_i2c_speed_from_str(const char *speed) SOL_ATTR_WARN_UNUSED_RESULT;
+enum sol_i2c_speed sol_i2c_speed_from_str(const char *speed)
+#ifndef DOXYGEN_RUN
+    SOL_ATTR_WARN_UNUSED_RESULT
+#endif
+    ;
 
 /**
  * @brief Converts sol_i2c_speed to a string name.
@@ -113,7 +117,11 @@ enum sol_i2c_speed sol_i2c_speed_from_str(const char *speed) SOL_ATTR_WARN_UNUSE
  *
  * @return String representation of the sol_i2c_speed.
  */
-const char *sol_i2c_speed_to_str(enum sol_i2c_speed speed) SOL_ATTR_WARN_UNUSED_RESULT;
+const char *sol_i2c_speed_to_str(enum sol_i2c_speed speed)
+#ifndef DOXYGEN_RUN
+    SOL_ATTR_WARN_UNUSED_RESULT
+#endif
+    ;
 
 /**
  * @brief Open an I2C bus.
@@ -127,7 +135,11 @@ const char *sol_i2c_speed_to_str(enum sol_i2c_speed speed) SOL_ATTR_WARN_UNUSED_
  * cache this I2C handle (or return any previously cached I2C handle).
  *
  */
-struct sol_i2c *sol_i2c_open_raw(uint8_t bus, enum sol_i2c_speed speed) SOL_ATTR_WARN_UNUSED_RESULT;
+struct sol_i2c *sol_i2c_open_raw(uint8_t bus, enum sol_i2c_speed speed)
+#ifndef DOXYGEN_RUN
+    SOL_ATTR_WARN_UNUSED_RESULT
+#endif
+    ;
 
 /**
  * @brief Open an I2C bus.
@@ -143,7 +155,11 @@ struct sol_i2c *sol_i2c_open_raw(uint8_t bus, enum sol_i2c_speed speed) SOL_ATTR
  * @note The same I2C bus is shared between every user, so only the
  * first one opening a bus will be able to set its speed.
  */
-struct sol_i2c *sol_i2c_open(uint8_t bus, enum sol_i2c_speed speed) SOL_ATTR_WARN_UNUSED_RESULT;
+struct sol_i2c *sol_i2c_open(uint8_t bus, enum sol_i2c_speed speed)
+#ifndef DOXYGEN_RUN
+    SOL_ATTR_WARN_UNUSED_RESULT
+#endif
+    ;
 
 /**
  * @brief Close an I2C bus.
