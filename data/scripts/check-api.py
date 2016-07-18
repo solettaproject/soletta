@@ -21,7 +21,7 @@ import os
 import re
 import sys
 
-functionsPattern = re.compile('(\w*\s*\w+)\s\**\s*(\w+)\([\w*,\s\(\).\[\]]+\)[\s\w,\(\)]*;')
+functionsPattern = re.compile('(\w*\s*\w+)\s\**\s*(\w+)\([\w*,\s\(\).\[\]]+\)[\s\w,\(\)]*(;|\s#ifndef)')
 variablesPattern = re.compile('extern[\s\w]+?\**(\w+)[\[\d\]]*;')
 
 if __name__ == "__main__":
