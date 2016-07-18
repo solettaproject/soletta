@@ -3832,8 +3832,8 @@ static void
 server_connection_ctx_remove(struct sol_ptr_vector *conns,
     struct server_conn_ctx *conn_ctx)
 {
-    server_connection_ctx_free(conn_ctx);
     sol_ptr_vector_del_element(conns, conn_ctx);
+    server_connection_ctx_free(conn_ctx);
 }
 
 static void
