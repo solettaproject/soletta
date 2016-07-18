@@ -418,6 +418,7 @@ int sol_json_token_get_uint64(const struct sol_json_token *token, uint64_t *valu
 #ifndef DOXYGEN_RUN
     SOL_ATTR_WARN_UNUSED_RESULT
 #endif
+    ;
 
 /**
  * @brief Get the numeric value of the given token as an 64 bits signed integer.
