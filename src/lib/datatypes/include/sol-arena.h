@@ -44,13 +44,14 @@ extern "C" {
  */
 
 /**
- * @struct sol_arena
+ * @typedef sol_arena
  *
  * @brief Sol Arena type.
  *
  * See also @ref sol_buffer if you just need a single re-sizable buffer.
  */
 struct sol_arena;
+typedef struct sol_arena sol_arena;
 
 /**
  * @brief Creates an Arena.

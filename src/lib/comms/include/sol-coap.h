@@ -241,18 +241,20 @@ enum sol_coap_flags {
 };
 
 /**
- * @struct sol_coap_packet
+ * @typedef sol_coap_packet
  *
  * @brief Opaque handler for a CoAP packet.
  */
 struct sol_coap_packet;
+typedef struct sol_coap_packet sol_coap_packet;
 
 /**
- * @struct sol_coap_server
+ * @typedef sol_coap_server
  *
  * @brief Opaque handler for a CoAP server.
  */
 struct sol_coap_server;
+typedef struct sol_coap_server sol_coap_server;
 
 /**
  * @brief Description for a CoAP resource.
@@ -262,7 +264,7 @@ struct sol_coap_server;
  * are registered using this struct and the sol_coap_server_register_resource()
  * function.
  */
-struct sol_coap_resource {
+typedef struct sol_coap_resource {
 #ifndef SOL_NO_API_VERSION
 #define SOL_COAP_RESOURCE_API_VERSION (1)
     /** @brief API version */
@@ -343,7 +345,7 @@ struct sol_coap_resource {
      * any separators. Last slice should be empty.
      */
     struct sol_str_slice path[];
-};
+} sol_coap_resource;
 
 /**
  * @brief Gets the CoAP protocol version of the packet.

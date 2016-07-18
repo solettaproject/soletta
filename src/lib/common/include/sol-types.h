@@ -122,13 +122,13 @@ extern "C" {
 /**
  * @brief Data type to describe a direction vector.
  */
-struct sol_direction_vector {
+typedef struct sol_direction_vector {
     double x; /**< @brief X coordinate */
     double y; /**< @brief Y coordinate */
     double z; /**< @brief Z coordinate */
     double min; /**< @brief Minimum value of a coordinate for all axis */
     double max; /**< @brief Maximum value of a coordinate for all axis */
-};
+} sol_direction_vector;
 
 /**
  * @brief Checks the ranges of @c var0 and @c var1 for equality.
@@ -143,23 +143,23 @@ bool sol_direction_vector_eq(const struct sol_direction_vector *var0, const stru
 /**
  * @brief Data type to describe a location.
  */
-struct sol_location {
+typedef struct sol_location {
     double lat; /**< @brief Latitude */
     double lon; /**< @brief Longitude */
     double alt; /**< @brief Altitude */
-};
+} sol_location;
 
 /**
  * @brief Data type to describe a RGB color.
  */
-struct sol_rgb {
+typedef struct sol_rgb {
     uint32_t red; /**< @brief Red component */
     uint32_t green; /**< @brief Green component */
     uint32_t blue; /**< @brief Blue component */
     uint32_t red_max; /**< @brief Red component maximum value */
     uint32_t green_max; /**< @brief Green component maximum value */
     uint32_t blue_max; /**< @brief Blue component maximum value */
-};
+} sol_rgb;
 
 /**
  * @brief Checks the ranges of @c var0 and @c var1 for equality.
@@ -184,23 +184,23 @@ int sol_rgb_set_max(struct sol_rgb *color, uint32_t max_value);
 /**
  * @brief Data type describing a Double range.
  */
-struct sol_drange {
+typedef struct sol_drange {
     double val; /**< @brief Current value */
     double min; /**< @brief Range minimum value */
     double max; /**< @brief Range maximum value */
     double step; /**< @brief Range step */
-};
+} sol_drange;
 
 /**
  * @brief Data type describing a spec for Double ranges.
  *
  * A range spec is composed by the range limits and step.
  */
-struct sol_drange_spec {
+typedef struct sol_drange_spec {
     double min; /**< @brief Range minimum value */
     double max; /**< @brief Range maximum value */
     double step; /**< @brief Range step */
-};
+} sol_drange_spec;
 
 /**
  * @brief Helper macro to initialize a double range with default values.
@@ -324,23 +324,23 @@ int sol_drange_compose(const struct sol_drange_spec *spec, double value, struct 
 /**
  * @brief Data type describing Integer ranges.
  */
-struct sol_irange {
+typedef struct sol_irange {
     int32_t val; /**< @brief Current value */
     int32_t min; /**< @brief Range minimum value */
     int32_t max; /**< @brief Range maximum value */
     int32_t step; /**< @brief Range step */
-};
+} sol_irange;
 
 /**
  * @brief Data type describing a spec for Integer ranges.
  *
  * A range spec is composed by the range limits and step.
  */
-struct sol_irange_spec {
+typedef struct sol_irange_spec {
     int32_t min; /**< @brief Range minimum value */
     int32_t max; /**< @brief Range maximum value */
     int32_t step; /**< @brief Range step */
-};
+} sol_irange_spec;
 
 /**
  * @brief Helper macro to initialize an integer range with default values.
@@ -465,13 +465,13 @@ struct sol_blob_type;
 /**
  * @brief Data type describing the default blob implementation.
  */
-struct sol_blob {
+typedef struct sol_blob {
     const struct sol_blob_type *type; /**< @brief Blob type */
     struct sol_blob *parent; /**< @brief Pointer to the parent Blob */
     void *mem; /**< @brief Blob data */
     size_t size; /**< @brief Blob size */
     uint16_t refcnt; /**< @brief Blob reference counter */
-};
+} sol_blob;
 
 /**
  * @brief Data type describing a blob type.
@@ -479,14 +479,14 @@ struct sol_blob {
  * This should be used by different kinds of Blob implementation to make than
  * compatible to our blob API.
  */
-struct sol_blob_type {
+typedef struct sol_blob_type {
 #ifndef SOL_NO_API_VERSION
 #define SOL_BLOB_TYPE_API_VERSION (1)
     uint16_t api_version; /**< @brief API version */
     uint16_t sub_api; /**< @brief Type API version */
 #endif
     void (*free)(struct sol_blob *blob); /**< @brief Callback to free an instance */
-};
+} sol_blob_type;
 
 /**
  * @brief Blob type object for the default implementation.
@@ -626,10 +626,10 @@ sol_blob_new_dup_str(const char *str)
 /**
  * @brief Data type to describe <key, value> pairs of strings.
  */
-struct sol_key_value {
+typedef struct sol_key_value {
     const char *key; /**< @brief Pair's key */
     const char *value; /**< @brief Pair's value */
-};
+} sol_key_value;
 
 /**
  * @}

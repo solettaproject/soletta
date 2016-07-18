@@ -117,8 +117,6 @@ enum sol_buffer_flags {
     (!(buf->flags & (SOL_BUFFER_FLAGS_FIXED_CAPACITY | SOL_BUFFER_FLAGS_MEMORY_NOT_OWNED)))
 
 /**
- * @struct sol_buffer
- *
  * @brief A sol_buffer is a dynamic array, that can be resized if needed.
  *
  * It grows exponentially but also supports setting a specific size.
@@ -129,12 +127,12 @@ enum sol_buffer_flags {
  * See also @ref sol_arena if you are allocating multiple pieces of data
  * that will be deallocated twice.
  */
-struct sol_buffer {
+typedef struct sol_buffer {
     void *data; /**< @brief Buffer data */
     size_t capacity; /**< @brief Buffer capacity in bytes */
     size_t used;  /**< @brief Used size in bytes */
     enum sol_buffer_flags flags; /**< @brief Buffer flags */
-};
+} sol_buffer;
 
 /**
  * @brief Case of a string to be decoded.

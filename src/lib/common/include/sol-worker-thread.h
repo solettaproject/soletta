@@ -40,18 +40,18 @@ extern "C" {
 
 
 /**
- * @struct sol_worker_thread
+ * @typedef sol_worker_thread
  * @brief A worker thread handle
  * @see sol_worker_thread_new()
  */
 // TODO abstract locks? see eina_lock.h
 struct sol_worker_thread;
+typedef struct sol_worker_thread sol_worker_thread;
 
 /**
- * @struct sol_worker_thread_config
  * @brief Worker thread functions and context data configuration.
  */
-struct sol_worker_thread_config {
+typedef struct sol_worker_thread_config {
 #ifndef SOL_NO_API_VERSION
 #define SOL_WORKER_THREAD_CONFIG_API_VERSION (1)
     /** must match SOL_WORKER_THREAD_CONFIG_API_VERSION in runtime */
@@ -106,7 +106,7 @@ struct sol_worker_thread_config {
      * done.
      */
     void (*feedback)(void *data);
-};
+} sol_worker_thread_config;
 
 /**
  * Create and run a worker thread.

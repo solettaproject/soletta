@@ -175,7 +175,7 @@ enum sol_http_status_code {
  * sol_http_client_request() or sol_http_client_request_with_interface()
  * or to create URIs, with sol_http_create_uri() and variants.
  */
-struct sol_http_params {
+typedef struct sol_http_params {
 #ifndef SOL_NO_API_VERSION
 #define SOL_HTTP_PARAM_API_VERSION (1)
     uint16_t api_version;
@@ -183,7 +183,7 @@ struct sol_http_params {
 
     struct sol_vector params; /**< vector of parameters, struct @ref sol_http_param_value */
     struct sol_arena *arena; /**< arena with copied parameter slices */
-};
+} sol_http_params;
 
 /**
  * @brief Used to rank content type priorities.
@@ -212,7 +212,7 @@ struct sol_http_content_type_priority {
  * It may be a key-value parameter, authentication (user-password),
  * or data.
  */
-struct sol_http_param_value {
+typedef struct sol_http_param_value {
     enum sol_http_param_type type;
     union {
         struct {
@@ -235,7 +235,7 @@ struct sol_http_param_value {
             struct sol_str_slice filename;
         } data;
     } value;
-};
+} sol_http_param_value;
 
 /**
  * @brief Handle for an HTTP response
@@ -245,7 +245,7 @@ struct sol_http_param_value {
  * definition of content type, like "text" or "application/json",
  * and the response content itself.
  */
-struct sol_http_response {
+typedef struct sol_http_response {
 #ifndef SOL_NO_API_VERSION
 #define SOL_HTTP_RESPONSE_API_VERSION (1)
     uint16_t api_version;
@@ -256,16 +256,16 @@ struct sol_http_response {
     struct sol_buffer content;
     struct sol_http_params param;
     int response_code;
-};
+} sol_http_response;
 
 /**
  * @brief Handle for an HTTP URL
  *
  * Uniform Resource Locator conforms to the following syntax:
  *
- * scheme:[//[user:password@]host[:port]][/]path[?query][#fragment]
+ * scheme:[//[user:password@]host[:port]][/]path[?query][\c \#fragment]
  */
-struct sol_http_url {
+typedef struct sol_http_url {
     struct sol_str_slice scheme;
     struct sol_str_slice user;
     struct sol_str_slice password;
@@ -274,7 +274,7 @@ struct sol_http_url {
     struct sol_str_slice query;
     struct sol_str_slice fragment;
     uint32_t port; /**< If set to 0 it'll be ignored */
-};
+} sol_http_url;
 
 #ifndef SOL_NO_API_VERSION
 /**

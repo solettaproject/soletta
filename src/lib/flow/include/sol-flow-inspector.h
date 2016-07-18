@@ -46,7 +46,7 @@ extern "C" {
  * This structure is used to setup the inspector with a set of routines that should
  * be called in specific point and actions that happens during the execution of a flow.
  */
-struct sol_flow_inspector {
+typedef struct sol_flow_inspector {
 #ifndef SOL_NO_API_VERSION
     uint16_t api_version; /**< @brief API version */
 #define SOL_FLOW_INSPECTOR_API_VERSION (1)
@@ -117,7 +117,7 @@ struct sol_flow_inspector {
      * @param packet The packet
      */
     void (*will_deliver_packet)(const struct sol_flow_inspector *inspector, const struct sol_flow_node *dst_node, uint16_t dst_port, uint16_t dst_conn_id, const struct sol_flow_packet *packet);
-};
+} sol_flow_inspector;
 
 /**
  * @brief Provide a set of inspecting routines to flow's runtime inspector.

@@ -46,17 +46,18 @@ extern "C" {
  */
 
 /**
- * @struct sol_flow_packet
+ * @typedef sol_flow_packet
  *
  * @brief A packet is a generic container for different kinds (types) of contents.
  */
 struct sol_flow_packet;
+typedef struct sol_flow_packet sol_flow_packet;
 
 /**
  * @brief A packet type defines what's the content of a packet and how it's stored and
  * retrieved.
  */
-struct sol_flow_packet_type {
+typedef struct sol_flow_packet_type {
 #ifndef SOL_NO_API_VERSION
 #define SOL_FLOW_PACKET_TYPE_API_VERSION (1)
     uint16_t api_version; /**< @brief API version number */
@@ -102,7 +103,7 @@ struct sol_flow_packet_type {
      * @param value Constant initial value
      * */
     struct sol_flow_packet *(*get_constant)(const struct sol_flow_packet_type *packet_type, const void *value);
-};
+} sol_flow_packet_type;
 
 /**
  * @brief Creates a packet.

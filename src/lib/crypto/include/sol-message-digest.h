@@ -80,10 +80,11 @@ extern "C" {
  */
 
 /**
- * @struct sol_message_digest
+ * @typedef sol_message_digest
  * @brief A handle for a message digest
  */
 struct sol_message_digest;
+typedef struct sol_message_digest sol_message_digest;
 
 /**
  * The message digest configuration to use when creating a new handle.
@@ -91,7 +92,7 @@ struct sol_message_digest;
  * @note Message digest follows the Soletta stream design pattern, which can be found here: @ref streams
  * @see sol_message_digest_new()
  */
-struct sol_message_digest_config {
+typedef struct sol_message_digest_config {
 #ifndef SOL_NO_API_VERSION
 #define SOL_MESSAGE_DIGEST_CONFIG_API_VERSION (1)
     /**
@@ -177,7 +178,7 @@ struct sol_message_digest_config {
      * @see sol_message_digest_feed()
      */
     size_t feed_size;
-};
+} sol_message_digest_config;
 
 /**
  * Create a new handle to feed the message to digest.

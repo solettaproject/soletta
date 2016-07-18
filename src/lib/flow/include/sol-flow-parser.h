@@ -48,16 +48,17 @@ extern "C" {
  */
 
 /**
- * @struct sol_flow_parser
+ * @typedef sol_flow_parser
  *
  * @brief Flow Parser handle.
  */
 struct sol_flow_parser;
+typedef struct sol_flow_parser sol_flow_parser;
 
 /**
  * @brief Flow Parser's client structure.
  */
-struct sol_flow_parser_client {
+typedef struct sol_flow_parser_client {
 #ifndef SOL_NO_API_VERSION
 #define SOL_FLOW_PARSER_CLIENT_API_VERSION (1)
     uint16_t api_version; /**< @brief API version */
@@ -78,7 +79,7 @@ struct sol_flow_parser_client {
      * @return @c 0 on success, error code (always negative) otherwise
      */
     int (*read_file)(void *data, const char *name, struct sol_buffer *buf);
-};
+} sol_flow_parser_client;
 
 /**
  * @brief Creates a new instance of @ref sol_flow_parser.

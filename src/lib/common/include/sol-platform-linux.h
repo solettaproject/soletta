@@ -171,13 +171,13 @@ int sol_platform_linux_mount(const char *dev, const char *mpoint, const char *fs
  * @see sol_platform_linux_uevent_subscribe()
  * @see sol_platform_linux_uevent_unsubscribe()
  */
-struct sol_uevent {
+typedef struct sol_uevent {
     struct sol_str_slice modalias; /**<  The alias */
     struct sol_str_slice action; /**< The uevent action */
     struct sol_str_slice subsystem; /**< The event subsystem*/
     struct sol_str_slice devtype; /**< The device type */
     struct sol_str_slice devname; /**< The device name */
-};
+} sol_uevent;
 
 /**
  * @brief Subscribe to monitor linux's uevent events

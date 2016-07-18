@@ -343,11 +343,12 @@ void sol_quit_with_code(int return_code);
 void sol_shutdown(void);
 
 /**
- * @struct sol_timeout
+ * @typedef sol_timeout
  *
  * @brief Handle for timers tracking the timeouts.
  */
 struct sol_timeout;
+typedef struct sol_timeout sol_timeout;
 
 /**
  * @brief Adds a function to be called periodically by the main loop.
@@ -381,13 +382,14 @@ struct sol_timeout *sol_timeout_add(uint32_t timeout_ms, bool (*cb)(void *data),
 bool sol_timeout_del(struct sol_timeout *handle);
 
 /**
- * @struct sol_idle
+ * @typedef sol_idle
  *
  * @brief Handle for idlers.
  *
  * This structure is used to help setup and control Idlers.
  */
 struct sol_idle;
+typedef struct sol_idle sol_idle;
 
 /**
  * @brief Adds a function to be called when the application goes idle.
@@ -477,10 +479,11 @@ enum sol_fd_flags {
 };
 
 /**
- * @struct sol_fd
+ * @typedef sol_fd
  * @brief A handle to a fd watcher
  */
 struct sol_fd;
+typedef struct sol_fd sol_fd;
 
 /**
  * @brief Adds a function to be called when the requested events are triggered by the
@@ -575,12 +578,13 @@ uint32_t sol_fd_get_flags(const struct sol_fd *handle);
 #ifdef SOL_MAINLOOP_FORK_WATCH_ENABLED
 
 /**
- * @struct sol_child_watch
+ * @typedef sol_child_watch
  * @brief Handle for child process.
  *
  * This structure is used to setup and control children process.
  */
 struct sol_child_watch;
+typedef struct sol_child_watch sol_child_watch;
 
 /**
  * @brief Watch for a child process' termination.
@@ -660,7 +664,7 @@ bool sol_child_watch_del(struct sol_child_watch *handle);
 /**
  * @brief Structure representing the type of a source of mainloop events.
  */
-struct sol_mainloop_source_type {
+typedef struct sol_mainloop_source_type {
 #ifndef SOL_NO_API_VERSION
 #define SOL_MAINLOOP_SOURCE_TYPE_API_VERSION (1)  /**< @brief Compile time API version to be checked during runtime */
     /**
@@ -748,13 +752,14 @@ struct sol_mainloop_source_type {
      * May be NULL.
      */
     void (*dispose)(void *data);
-};
+} sol_mainloop_source_type;
 
 /**
- * @struct sol_mainloop_source
+ * @typedef sol_mainloop_source
  * @brief Structure of a Source of mainloop events.
  */
 struct sol_mainloop_source;
+typedef struct sol_mainloop_source sol_mainloop_source;
 
 /**
  * @brief Create a new source of events to the main loop.
@@ -838,7 +843,7 @@ void *sol_mainloop_source_get_data(const struct sol_mainloop_source *handle);
 /**
  * @brief Structure representing a mainloop implementation (hooks).
  */
-struct sol_mainloop_implementation {
+typedef struct sol_mainloop_implementation {
 #ifndef SOL_NO_API_VERSION
 #define SOL_MAINLOOP_IMPLEMENTATION_API_VERSION (1)  /**< compile time API version to be checked during runtime */
     /**
@@ -1142,7 +1147,8 @@ struct sol_mainloop_implementation {
      * Must not be NULL.
      */
     void *(*source_get_data)(const void *handle);
-};
+} sol_mainloop_implementation;
+
 
 /**
  * Pointer to Soletta's internal mainloop implementation, that is the
@@ -1237,7 +1243,7 @@ void sol_set_args(int argc, char *argv[]);
  * the @c startup and @c shutdown callbacks of the application that
  * will be called by @ref SOL_MAIN_DEFAULT when appropriated.
  */
-struct sol_main_callbacks {
+typedef struct sol_main_callbacks {
 #ifndef SOL_NO_API_VERSION
 #define SOL_MAIN_CALLBACKS_API_VERSION (1)
     uint16_t api_version; /**< @brief API version */
@@ -1245,7 +1251,7 @@ struct sol_main_callbacks {
     uint16_t flags; /**< @brief Application flags */
     void (*startup)(void); /**< @brief Application @c startup function */
     void (*shutdown)(void); /**< @brief Application @c shutdown function */
-};
+} sol_main_callbacks;
 
 /**
  * @brief Helper function called by @ref SOL_MAIN. Shouldn't be called directly.

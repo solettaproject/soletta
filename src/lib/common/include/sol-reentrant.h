@@ -34,15 +34,13 @@ extern "C" {
  */
 
 /**
- * @struct sol_reentrant
- *
  * @brief Structure containing the flags for safely freeing a larger structure
  *
  * This structure is meant to be used inside larger structures which are
  * affected by calls to external callbacks that in turn end up calling library
  * APIs. The possibility of a double free is particularly likely in such cases.
  */
-struct sol_reentrant {
+typedef struct sol_reentrant {
     /**
      * @brief Structure is in use
      */
@@ -51,7 +49,7 @@ struct sol_reentrant {
      * @brief Structure is stale and should be freed as soon as possible
      */
     bool delete_me;
-};
+} sol_reentrant;
 
 /**
  * @brief Wraps a function call to an external callback

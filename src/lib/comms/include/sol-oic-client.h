@@ -46,16 +46,17 @@ extern "C" {
  */
 
 /**
- * @struct sol_oic_client
+ * @typedef sol_oic_client
  * @brief Opaque handler for an OIC client instance.
  *
  * It's created with sol_oic_client_new() and should be later
  * deleted with sol_oic_client_del()
  */
 struct sol_oic_client;
+typedef struct sol_oic_client sol_oic_client;
 
 /**
- * @struct sol_oic_pending
+ * @typedef sol_oic_pending
  * @brief Represents a pending OIC client call
  *
  * This can be used to cancel the pending call. Note that the context
@@ -65,6 +66,7 @@ struct sol_oic_client;
  *
  */
 struct sol_oic_pending;
+typedef struct sol_oic_pending sol_oic_pending;
 
 /**
  * @brief Structure defining an OIC resource. It's open to the API
@@ -72,7 +74,7 @@ struct sol_oic_pending;
  * are marked as const to emphasize that the user must not alter any
  * of them.
  */
-struct sol_oic_resource {
+typedef struct sol_oic_resource {
 #ifndef SOL_NO_API_VERSION
 #define SOL_OIC_RESOURCE_API_VERSION (1)
     uint16_t api_version; /**< @brief API version */
@@ -107,7 +109,7 @@ struct sol_oic_resource {
      * server is secure.
      */
     const bool secure;
-};
+} sol_oic_resource;
 
 /**
  * @brief Creates a new OIC client intance.

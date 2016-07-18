@@ -40,7 +40,7 @@ extern "C" {
  * @brief struct that describes the Linux micro module
  * @see SOL_PLATFORM_LINUX_MICRO_MODULE()
  */
-struct sol_platform_linux_micro_module {
+typedef struct sol_platform_linux_micro_module {
 #ifndef SOL_NO_API_VERSION
 #define SOL_PLATFORM_LINUX_MICRO_MODULE_API_VERSION (1) /**< Compile time API version to be checked during runtime */
     uint16_t api_version; /**< The API version */
@@ -104,7 +104,7 @@ struct sol_platform_linux_micro_module {
      * @return @c 0 on success @c -errno on error.
      */
     int (*stop_monitor)(const struct sol_platform_linux_micro_module *module, const char *service);
-};
+} sol_platform_linux_micro_module;
 
 /**
  * @brief Inform the service observers the current state of the @c service

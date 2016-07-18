@@ -45,7 +45,7 @@ extern "C" {
 /**
  * @brief Structure defining the API of a Pin Multiplexer module
  */
-struct sol_pin_mux {
+typedef struct sol_pin_mux {
 #ifndef SOL_NO_API_VERSION
 #define SOL_PIN_MUX_API_VERSION (2)
     uint16_t api_version; /**< @brief API version */
@@ -133,7 +133,7 @@ struct sol_pin_mux {
      */
     int (*pwm)(int device, int channel);
 
-};
+} sol_pin_mux;
 
 /**
  * @def SOL_PIN_MUX_DECLARE(_NAME, decl ...)

@@ -52,7 +52,7 @@ extern "C" {
  * callbacks returning an instance do so with a @c const modifier. The
  * user must never change these fields, ever.
  */
-struct sol_oic_platform_info {
+typedef struct sol_oic_platform_info {
 #ifndef SOL_NO_API_VERSION
 #define SOL_OIC_PLATFORM_INFO_API_VERSION (1)
     uint16_t api_version; /**< @brief API version */
@@ -110,7 +110,7 @@ struct sol_oic_platform_info {
      * @brief Current system time in the device
      */
     struct sol_str_slice system_time;
-};
+} sol_oic_platform_info;
 
 /**
  * @brief Flags to set when adding a new resource to a server.
@@ -172,7 +172,7 @@ enum sol_oic_resource_flag {
  * returning an instance do so with a @c const modifier. The user must
  * never change these fields, ever.
  */
-struct sol_oic_device_info {
+typedef struct sol_oic_device_info {
 #ifndef SOL_NO_API_VERSION
 #define SOL_OIC_DEVICE_INFO_API_VERSION (1)
     uint16_t api_version; /**< @brief API version */
@@ -194,7 +194,7 @@ struct sol_oic_device_info {
      * @brief Spec version of data model.
      */
     struct sol_str_slice data_model_version;
-};
+} sol_oic_device_info;
 
 /**
  * @brief field type of sol_oic_repr_field structure.
@@ -222,7 +222,7 @@ enum sol_oic_repr_type {
  * @see sol_oic_map_append()
  * @see SOL_OIC_MAP_LOOP()
  */
-struct sol_oic_repr_field {
+typedef struct sol_oic_repr_field {
     /**
      * @brief type of the data of this field.
      */
@@ -270,7 +270,7 @@ struct sol_oic_repr_field {
          */
         bool v_boolean;
     };
-};
+} sol_oic_repr_field;
 
 /**
  * @brief Helper macro to create a #sol_oic_repr_field.
@@ -370,7 +370,7 @@ struct sol_oic_repr_field {
     SOL_OIC_REPR_FIELD(key_, SOL_OIC_REPR_TYPE_DOUBLE, .v_double = (value_))
 
 /**
- * @struct sol_oic_map_writer
+ * @typedef sol_oic_map_writer
  *
  * @brief Opaque handler for an OIC packet map writer.
  *
@@ -381,6 +381,7 @@ struct sol_oic_repr_field {
  * @see sol_oic_client_resource_request()
  */
 struct sol_oic_map_writer;
+typedef struct sol_oic_map_writer sol_oic_map_writer;
 
 /**
  * @brief Used in @ref sol_oic_map_writer to state if the map has a content or not
@@ -427,32 +428,34 @@ enum sol_oic_map_type {
  *
  * @see SOL_OIC_MAP_LOOP.
  */
-struct sol_oic_map_reader {
+typedef struct sol_oic_map_reader {
     const void *parser;
     const void *ptr;
     const uint32_t remaining;
     const uint16_t extra;
     const uint8_t type;
     const uint8_t flags;
-};
+} sol_oic_map_reader;
 
 /**
- * @struct sol_oic_request
+ * @typedef sol_oic_request
  *
  * @brief Information about a client request.
  *
  * @see sol_oic_server_send_response
  */
 struct sol_oic_request;
+typedef struct sol_oic_request sol_oic_request;
 
 /**
- * @struct sol_oic_response
+ * @typedef sol_oic_response
  *
  * @brief Information about a server response.
  *
  * @see sol_oic_server_send_response
  */
 struct sol_oic_response;
+typedef struct sol_oic_response sol_oic_response;
 
 /**
  * @brief Possible reasons a @ref SOL_OIC_MAP_LOOP was terminated.

@@ -54,19 +54,20 @@ extern "C" {
  */
 
 /**
- * @struct sol_update_handle
+ * @typedef sol_update_handle
  *
  * @brief Handle returned by some sol_update* calls, so they can be cancelled
  * appropriately.
  */
 struct sol_update_handle;
+typedef struct sol_update_handle sol_update_handle;
 
 /**
  * @brief Contains update info got via @c sol_update_check call.
  *
  * @see sol_update_check
  */
-struct sol_update_info {
+typedef struct sol_update_info {
 #ifndef SOL_NO_API_VERSION
 #define SOL_UPDATE_INFO_API_VERSION (1)
     uint16_t api_version;
@@ -74,7 +75,7 @@ struct sol_update_info {
     const char *version; /**< @brief Current version of update file */
     uint64_t size; /**< @brief Size of update file. Useful to warn user about big downloads. */
     bool need_update; /**< @brief If version of update is newer than current, so the update is necessary. */
-};
+} sol_update_info;
 
 /**
  * @brief Check if there's an update to get.

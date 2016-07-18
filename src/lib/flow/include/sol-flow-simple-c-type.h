@@ -66,7 +66,7 @@
 /**
  * @brief @c Simple @c C event structure.
  */
-struct sol_flow_simple_c_type_event {
+typedef struct sol_flow_simple_c_type_event {
     /**
      * @brief Event type.
      *
@@ -86,7 +86,7 @@ struct sol_flow_simple_c_type_event {
     const char *port_name; /* @brief If type is one of SOL_FLOW_SIMPLE_C_TYPE_EVENT_TYPE_PORT_* events, the port name (copy of the string given to sol_flow_simple_c_type_new_full() */
     const struct sol_flow_node_options *options; /* @brief If type is SOL_FLOW_SIMPLE_C_TYPE_EVENT_TYPE_OPEN, the given options */
     const struct sol_flow_packet *packet; /* @brief If type is SOL_FLOW_SIMPLE_C_TYPE_EVENT_TYPE_PORT_IN_PROCESS, the incoming packet */
-};
+} sol_flow_simple_c_type_event;
 
 /**
  * @brief Input port identifier

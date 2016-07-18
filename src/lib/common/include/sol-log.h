@@ -411,11 +411,11 @@ enum sol_log_level {
 /**
  * @brief Structure containing the attributes of the domain used for logging.
  */
-struct sol_log_domain {
+typedef struct sol_log_domain {
     const char *color; /**< @brief Color to be used */
     const char *name; /**< @brief Domain name */
     uint8_t level; /**< @brief Maximum level to log for this domain */
-};
+} sol_log_domain;
 
 /**
  * @brief Global logging domain.
