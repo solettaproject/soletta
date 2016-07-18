@@ -134,6 +134,7 @@ struct sol_pin_mux {
     int (*pwm)(int device, int channel);
 
 };
+typedef struct sol_pin_mux sol_pin_mux;
 
 /**
  * @def SOL_PIN_MUX_DECLARE(_NAME, decl ...)

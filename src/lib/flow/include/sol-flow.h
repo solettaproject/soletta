@@ -78,6 +78,7 @@ struct sol_flow_port;
  * their output ports.
  */
 struct sol_flow_node;
+typedef struct sol_flow_node sol_flow_node;
 
 /**
  * @brief Creates a new node.
@@ -565,6 +566,7 @@ struct sol_flow_node_options {
     uint16_t sub_api; /**< @brief To version each subclass */
 #endif
 };
+typedef struct sol_flow_node_options sol_flow_node_options;
 
 /**
  * @brief Possible types for option attributes (or members).
@@ -619,6 +621,7 @@ struct sol_flow_node_named_options_member {
         double f; /**< @brief Value of a float member */
     };
 };
+typedef struct sol_flow_node_named_options_member sol_flow_node_named_options_member;
 
 /**
  * @brief Named options is an intermediate structure to handle Node Options parsing
@@ -629,6 +632,7 @@ struct sol_flow_node_named_options {
     struct sol_flow_node_named_options_member *members; /**< @brief List of option members */
     uint16_t count; /**< @brief Number of members */
 };
+typedef struct sol_flow_node_named_options sol_flow_node_named_options;
 
 /**
  * @brief Creates a new Node Options.
@@ -707,6 +711,7 @@ struct sol_flow_port_description {
      */
     bool required;
 };
+typedef struct sol_flow_port_description sol_flow_port_description;
 
 /**
  * @brief Description object used for introspection of Node options members.
@@ -731,6 +736,7 @@ struct sol_flow_node_options_member_description {
     uint16_t size; /**< @brief Option member's size inside the final options blob for a node */
     bool required; /**< @brief Whether the option member is mandatory or not when creating a node */
 };
+typedef struct sol_flow_node_options_member_description sol_flow_node_options_member_description;
 
 /**
  * @brief Description object used for introspection of Node options.
@@ -743,6 +749,7 @@ struct sol_flow_node_options_description {
 #endif
     bool required; /**< @brief If true then options must be given for the node (if not, the node has no parameters) */
 };
+typedef struct sol_flow_node_options_description sol_flow_node_options_description;
 
 /**
  * @brief Description object used for introspection of Node types.
@@ -785,6 +792,7 @@ struct sol_flow_node_type_description {
     const struct sol_flow_port_description *const *ports_out; /**< @brief @c NULL terminated output ports array */
     const struct sol_flow_node_options_description *options; /**< @brief Node options */
 };
+typedef struct sol_flow_node_type_description sol_flow_node_type_description;
 #endif
 
 /**
@@ -857,6 +865,7 @@ struct sol_flow_node_type {
     const struct sol_flow_node_type_description *description; /**< @brief Pointer to node's description */
 #endif
 };
+typedef struct sol_flow_node_type sol_flow_node_type;
 
 #ifdef SOL_FLOW_NODE_TYPE_DESCRIPTION_ENABLED
 /**
@@ -995,6 +1004,7 @@ struct sol_flow_node_container_type {
      */
     void (*remove)(struct sol_flow_node *container, struct sol_flow_node *node);
 };
+typedef struct sol_flow_node_container_type sol_flow_node_container_type;
 
 /**
  * @brief Node's Output port structure.
@@ -1016,6 +1026,7 @@ struct sol_flow_port_type_out {
      */
     int (*disconnect)(struct sol_flow_node *node, void *data, uint16_t port, uint16_t conn_id);
 };
+typedef struct sol_flow_port_type_out sol_flow_port_type_out;
 
 /**
  * @brief Node's Input port structure.
@@ -1034,6 +1045,7 @@ struct sol_flow_port_type_in {
     int (*connect)(struct sol_flow_node *node, void *data, uint16_t port, uint16_t conn_id); /**< member function issued every time a new connection is made to the port */
     int (*disconnect)(struct sol_flow_node *node, void *data, uint16_t port, uint16_t conn_id); /**< member function issued every time a connection is unmade on the port */
 };
+typedef struct sol_flow_port_type_in sol_flow_port_type_in;
 
 /**
  * @def sol_flow_get_node_type(_mod, _type, _var)

@@ -54,6 +54,7 @@ extern "C" {
  * deleted with sol_http_server_del()
  */
 struct sol_http_server;
+typedef struct sol_http_server sol_http_server;
 
 /**
  * @struct sol_http_server_config
@@ -77,6 +78,7 @@ struct sol_http_server_config {
         const struct sol_cert *key;
     } security;
 };
+typedef struct sol_http_server_config sol_http_server_config;
 
 /**
  * @struct sol_http_request
@@ -91,6 +93,7 @@ struct sol_http_server_config {
  * A response to a request can be send with sol_http_server_send_response()
  */
 struct sol_http_request;
+typedef struct sol_http_request sol_http_request;
 
 /**
  * @struct sol_http_progressive_response
@@ -103,6 +106,7 @@ struct sol_http_request;
  * To delete it use sol_http_progressive_response_del().
  */
 struct sol_http_progressive_response;
+typedef struct sol_http_progressive_response sol_http_progressive_response;
 
 /**
  * @brief Creates an HTTP server, binding on all interfaces
@@ -328,6 +332,7 @@ struct sol_http_server_progressive_config {
      */
     size_t feed_size;
 };
+typedef struct sol_http_server_progressive_config sol_http_server_progressive_config;
 
 /**
  * @brief Send the response and keep connection alive to request given in the

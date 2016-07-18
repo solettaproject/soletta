@@ -52,6 +52,7 @@ struct sol_reentrant {
      */
     bool delete_me;
 };
+typedef struct sol_reentrant sol_reentrant;
 
 /**
  * @brief Wraps a function call to an external callback

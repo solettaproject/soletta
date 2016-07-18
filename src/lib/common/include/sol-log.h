@@ -416,6 +416,7 @@ struct sol_log_domain {
     const char *name; /**< @brief Domain name */
     uint8_t level; /**< @brief Maximum level to log for this domain */
 };
+typedef struct sol_log_domain sol_log_domain;
 
 /**
  * @brief Global logging domain.

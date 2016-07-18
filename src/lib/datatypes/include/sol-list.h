@@ -63,6 +63,7 @@ struct sol_list {
     struct sol_list *next; /**< @brief Link to the next node in the list */
     struct sol_list *prev; /**< @brief Link to the previous node in the list */
 };
+typedef struct sol_list sol_list;
 
 /**
  * @def SOL_LIST_INIT

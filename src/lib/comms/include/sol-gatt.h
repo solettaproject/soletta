@@ -131,6 +131,7 @@ enum sol_gatt_desc_flags {
  * is complete.
  */
 struct sol_gatt_pending;
+typedef struct sol_gatt_pending sol_gatt_pending;
 
 /**
  * @brief Returns the attribute referenced by a pending operation
@@ -175,6 +176,7 @@ struct sol_gatt_attr {
 
     void *_priv;
 };
+typedef struct sol_gatt_attr sol_gatt_attr;
 
 /**
  * @brief Returns a response to an asynchronous operation

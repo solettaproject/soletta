@@ -82,6 +82,7 @@ struct sol_bt_uuid {
         uint8_t val[0];
     };
 };
+typedef struct sol_bt_uuid sol_bt_uuid;
 
 /**
  * @brief Convert a string to a UUID.
@@ -124,6 +125,7 @@ bool sol_bt_uuid_eq(const struct sol_bt_uuid *u1, const struct sol_bt_uuid *u2);
  * managed by sol_bt_conn_ref()/sol_bt_conn_unref().
  */
 struct sol_bt_conn;
+typedef struct sol_bt_conn sol_bt_conn;
 
 /**
  * @brief Increases the reference count of a connection.
@@ -200,6 +202,7 @@ int sol_bt_disconnect(struct sol_bt_conn *conn);
  * keep Bluetooth turned off if it's not used.
  */
 struct sol_bt_session;
+typedef struct sol_bt_session sol_bt_session;
 
 /**
  * @brief Enables the local Bluetooth controller.
@@ -267,6 +270,7 @@ struct sol_bt_device_info {
      */
     bool in_range;
 };
+typedef struct sol_bt_device_info sol_bt_device_info;
 
 /**
  * @brief Over which transport should a scan be performed.
@@ -307,6 +311,7 @@ enum sol_bt_transport sol_bt_transport_from_str(const char *str);
  * Represents a pending scan session, @see sol_bt_start_scan().
  */
 struct sol_bt_scan_pending;
+typedef struct sol_bt_scan_pending sol_bt_scan_pending;
 
 /**
  * @brief Start scanning for devices.

@@ -107,6 +107,7 @@ struct sol_update {
      */
     void (*shutdown)(void);
 };
+typedef struct sol_update sol_update;
 
 /**
  * @def SOL_UPDATE_DECLARE(_NAME, decl ...)

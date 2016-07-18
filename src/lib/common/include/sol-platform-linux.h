@@ -178,6 +178,7 @@ struct sol_uevent {
     struct sol_str_slice devtype; /**< The device type */
     struct sol_str_slice devname; /**< The device name */
 };
+typedef struct sol_uevent sol_uevent;
 
 /**
  * @brief Subscribe to monitor linux's uevent events

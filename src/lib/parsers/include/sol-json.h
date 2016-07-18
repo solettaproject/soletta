@@ -64,6 +64,7 @@ struct sol_json_scanner {
     const char *mem_end; /**< @brief End of this portion of the JSON document. */
     const char *current; /**< @brief Current point in the JSON document that needs to be processed. */
 };
+typedef struct sol_json_scanner sol_json_scanner;
 
 /**
  * @brief Type describing a JSON token
@@ -74,6 +75,7 @@ struct sol_json_token {
     const char *start; /**< @brief Token start */
     const char *end; /**< @brief Token end. Non-inclusive */
 };
+typedef struct sol_json_token sol_json_token;
 
 /**
  * @brief Token type enumeration.
@@ -950,6 +952,7 @@ struct sol_json_path_scanner {
      */
     const char *current;
 };
+typedef struct sol_json_path_scanner sol_json_path_scanner;
 
 /**
  * @brief Get the element referenced by the JSON Path @a path in a JSON Object

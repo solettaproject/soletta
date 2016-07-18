@@ -51,6 +51,7 @@ extern "C" {
  * @brief A packet is a generic container for different kinds (types) of contents.
  */
 struct sol_flow_packet;
+typedef struct sol_flow_packet sol_flow_packet;
 
 /**
  * @brief A packet type defines what's the content of a packet and how it's stored and
@@ -103,6 +104,7 @@ struct sol_flow_packet_type {
      * */
     struct sol_flow_packet *(*get_constant)(const struct sol_flow_packet_type *packet_type, const void *value);
 };
+typedef struct sol_flow_packet_type sol_flow_packet_type;
 
 /**
  * @brief Creates a packet.

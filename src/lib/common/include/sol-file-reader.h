@@ -35,6 +35,7 @@ extern "C" {
  * @brief Opaque handler for a file reader.
  */
 struct sol_file_reader;
+typedef struct sol_file_reader sol_file_reader;
 
 /**
  * @brief Open a file using its filename.

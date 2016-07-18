@@ -61,6 +61,7 @@ extern "C" {
  * @see sol_gpio_write()
  */
 struct sol_gpio;
+typedef struct sol_gpio sol_gpio;
 
 /**
  * @brief Possible values for the direction of a GPIO.
@@ -236,6 +237,7 @@ struct sol_gpio_config {
         } out;
     };
 };
+typedef struct sol_gpio_config sol_gpio_config;
 
 /**
  * @brief Converts a string GPIO direction to sol_gpio_direction.

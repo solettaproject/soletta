@@ -78,6 +78,7 @@ extern "C" {
  * @see sol_network_hostname_pending_cancel()
  */
 struct sol_network_hostname_pending;
+typedef struct sol_network_hostname_pending sol_network_hostname_pending;
 
 /**
  * @brief Type of events generated for a network link.
@@ -152,6 +153,7 @@ struct sol_network_link_addr {
     } addr; /**< @brief The address itself */
     uint16_t port; /**< @brief The port associed with the IP address */
 };
+typedef struct sol_network_link_addr sol_network_link_addr;
 
 /**
  * @brief Structure to represent a network link.
@@ -174,6 +176,7 @@ struct sol_network_link {
      **/
     struct sol_vector addrs;
 };
+typedef struct sol_network_link sol_network_link;
 
 #ifndef SOL_NO_API_VERSION
 /**

@@ -119,6 +119,7 @@ struct sol_flow_metatype_context {
         const struct sol_flow_metatype_context *ctx,
         struct sol_flow_node_type *type);
 };
+typedef struct sol_flow_metatype_context sol_flow_metatype_context;
 
 /**
  * @brief Struct that describes the meta type ports.
@@ -136,6 +137,7 @@ struct sol_flow_metatype_port_description {
     int array_size; /**< If the port is an array this field should be > 0. */
     int idx; /**< The port index. */
 };
+typedef struct sol_flow_metatype_port_description sol_flow_metatype_port_description;
 
 /**
  * @brief Struct that describes the meta type options.
@@ -151,6 +153,7 @@ struct sol_flow_metatype_option_description {
     char *name; /**< The option name. */
     char *data_type; /**< The option type (int, float, blob and etc). */
 };
+typedef struct sol_flow_metatype_option_description sol_flow_metatype_option_description;
 
 /**
  * @brief A callback used to create the meta type itself.
@@ -321,6 +324,7 @@ struct sol_flow_metatype {
     sol_flow_metatype_ports_description_func ports_description; /**< A callback used to fetch the meta type port description. */
     sol_flow_metatype_options_description_func options_description; /**< A callback used to fetch the meta type options description. */
 };
+typedef struct sol_flow_metatype sol_flow_metatype;
 
 #ifdef SOL_FLOW_METATYPE_MODULE_EXTERNAL
 /**

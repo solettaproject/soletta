@@ -60,6 +60,7 @@ extern "C" {
  * appropriately.
  */
 struct sol_update_handle;
+typedef struct sol_update_handle sol_update_handle;
 
 /**
  * @brief Contains update info got via @c sol_update_check call.
@@ -75,6 +76,7 @@ struct sol_update_info {
     uint64_t size; /**< @brief Size of update file. Useful to warn user about big downloads. */
     bool need_update; /**< @brief If version of update is newer than current, so the update is necessary. */
 };
+typedef struct sol_update_info sol_update_info;
 
 /**
  * @brief Check if there's an update to get.

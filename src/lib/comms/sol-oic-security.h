@@ -27,6 +27,7 @@
 #define MACHINE_ID_LEN 16
 
 struct sol_oic_security;
+typedef struct sol_oic_security sol_oic_security;
 
 struct sol_oic_security *sol_oic_server_security_add(
     struct sol_coap_server *server, struct sol_coap_server *server_dtls);

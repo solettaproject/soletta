@@ -129,6 +129,7 @@ struct sol_direction_vector {
     double min; /**< @brief Minimum value of a coordinate for all axis */
     double max; /**< @brief Maximum value of a coordinate for all axis */
 };
+typedef struct sol_direction_vector sol_direction_vector;
 
 /**
  * @brief Checks the ranges of @c var0 and @c var1 for equality.
@@ -148,6 +149,7 @@ struct sol_location {
     double lon; /**< @brief Longitude */
     double alt; /**< @brief Altitude */
 };
+typedef struct sol_location sol_location;
 
 /**
  * @brief Data type to describe a RGB color.
@@ -160,6 +162,7 @@ struct sol_rgb {
     uint32_t green_max; /**< @brief Green component maximum value */
     uint32_t blue_max; /**< @brief Blue component maximum value */
 };
+typedef struct sol_rgb sol_rgb;
 
 /**
  * @brief Checks the ranges of @c var0 and @c var1 for equality.
@@ -190,6 +193,7 @@ struct sol_drange {
     double max; /**< @brief Range maximum value */
     double step; /**< @brief Range step */
 };
+typedef struct sol_drange sol_drange;
 
 /**
  * @brief Data type describing a spec for Double ranges.
@@ -201,6 +205,7 @@ struct sol_drange_spec {
     double max; /**< @brief Range maximum value */
     double step; /**< @brief Range step */
 };
+typedef struct sol_drange_spec sol_drange_spec;
 
 /**
  * @brief Helper macro to initialize a double range with default values.
@@ -330,6 +335,7 @@ struct sol_irange {
     int32_t max; /**< @brief Range maximum value */
     int32_t step; /**< @brief Range step */
 };
+typedef struct sol_irange sol_irange;
 
 /**
  * @brief Data type describing a spec for Integer ranges.
@@ -341,6 +347,7 @@ struct sol_irange_spec {
     int32_t max; /**< @brief Range maximum value */
     int32_t step; /**< @brief Range step */
 };
+typedef struct sol_irange_spec sol_irange_spec;
 
 /**
  * @brief Helper macro to initialize an integer range with default values.
@@ -461,6 +468,7 @@ bool sol_irange_eq(const struct sol_irange *var0, const struct sol_irange *var1)
 int sol_irange_compose(const struct sol_irange_spec *spec, int32_t value, struct sol_irange *result);
 
 struct sol_blob_type;
+typedef struct sol_blob_type sol_blob_type;
 
 /**
  * @brief Data type describing the default blob implementation.
@@ -472,6 +480,7 @@ struct sol_blob {
     size_t size; /**< @brief Blob size */
     uint16_t refcnt; /**< @brief Blob reference counter */
 };
+typedef struct sol_blob sol_blob;
 
 /**
  * @brief Data type describing a blob type.
@@ -487,6 +496,7 @@ struct sol_blob_type {
 #endif
     void (*free)(struct sol_blob *blob); /**< @brief Callback to free an instance */
 };
+typedef struct sol_blob_type sol_blob_type;
 
 /**
  * @brief Blob type object for the default implementation.
@@ -630,6 +640,7 @@ struct sol_key_value {
     const char *key; /**< @brief Pair's key */
     const char *value; /**< @brief Pair's value */
 };
+typedef struct sol_key_value sol_key_value;
 
 /**
  * @}

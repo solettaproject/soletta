@@ -54,6 +54,7 @@ struct sol_flow_static_node_spec {
     const char *name; /**< @brief Name for the specific type's instance */
     const struct sol_flow_node_options *opts; /**< @brief Options for the specific type's instance */
 };
+typedef struct sol_flow_static_node_spec sol_flow_static_node_spec;
 
 /**
  * @brief Structure for the specification of a connection.
@@ -64,6 +65,7 @@ struct sol_flow_static_conn_spec {
     uint16_t dst; /**< @brief Destination node index */
     uint16_t dst_port; /**< @brief Destination node port index */
 };
+typedef struct sol_flow_static_conn_spec sol_flow_static_conn_spec;
 
 /**
  * @brief Structure for the specification of node ports
@@ -72,6 +74,7 @@ struct sol_flow_static_port_spec {
     uint16_t node; /**< @brief Node index */
     uint16_t port; /**< @brief Port index */
 };
+typedef struct sol_flow_static_port_spec sol_flow_static_port_spec;
 
 /* Use these guards as the last element of the spec arrays. */
 
@@ -156,6 +159,7 @@ struct sol_flow_static_spec {
      */
     void (*dispose)(const void *type_data);
 };
+typedef struct sol_flow_static_spec sol_flow_static_spec;
 
 /**
  * @brief Creates a new "static flow" node.

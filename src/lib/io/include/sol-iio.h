@@ -48,6 +48,7 @@ extern "C" {
  * @see sol_iio_device_start_buffer()
  */
 struct sol_iio_device;
+typedef struct sol_iio_device sol_iio_device;
 
 /**
  * @struct sol_iio_channel
@@ -59,6 +60,7 @@ struct sol_iio_device;
  * @see SOL_IIO_CHANNEL_CONFIG_INIT()
  */
 struct sol_iio_channel;
+typedef struct sol_iio_channel sol_iio_channel;
 
 /**
  * @brief A configuration struct for an IIO device
@@ -76,6 +78,7 @@ struct sol_iio_config {
     int buffer_size; /**< The size of reading buffer. 0: use device default; -1: disable buffer and readings will be performed on channel files on sysfs. */
     int sampling_frequency; /**< Device sampling frequency. -1 uses device default */
 };
+typedef struct sol_iio_config sol_iio_config;
 
 /**
  * @brief A configuration struct for an IIO channel
@@ -91,6 +94,7 @@ struct sol_iio_channel_config {
     int offset; /**< Channel offset, to be added to raw readings. Some devices share offset among all channels, so changing one will change all. If, in this case, different channels set different offsets the result is unknown. */
     bool use_custom_offset; /**< If true, will use user defined offset on member #offset of this struct */
 };
+typedef struct sol_iio_channel_config sol_iio_channel_config;
 
 /**
  * @brief Macro that may be used for initialized a @ref sol_iio_channel_config

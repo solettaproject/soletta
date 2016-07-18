@@ -52,6 +52,7 @@ extern "C" {
  * @see sol_uart_feed()
  */
 struct sol_uart;
+typedef struct sol_uart sol_uart;
 
 /**
  * @brief Baud rate is the number of times the signal can switch states in one second.
@@ -149,6 +150,7 @@ struct sol_uart_config {
     enum sol_uart_stop_bits stop_bits; /**< The stop bits value */
     bool flow_control; /**< Enables software flow control(XOFF and XON) */
 };
+typedef struct sol_uart_config sol_uart_config;
 
 /**
  * @brief Converts a string UART baudRate to sol_uart_baud_rate

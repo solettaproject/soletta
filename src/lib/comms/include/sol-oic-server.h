@@ -47,6 +47,7 @@ extern "C" {
  * @brief Opaque handler for a server resource
  */
 struct sol_oic_server_resource;
+typedef struct sol_oic_server_resource sol_oic_server_resource;
 
 /**
  * @struct sol_oic_resource_type
@@ -152,6 +153,7 @@ struct sol_oic_resource_type {
      */
         del;
 };
+typedef struct sol_oic_resource_type sol_oic_resource_type;
 
 /**
  * @brief Add resource to OIC server.

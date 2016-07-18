@@ -111,6 +111,7 @@ struct sol_oic_platform_info {
      */
     struct sol_str_slice system_time;
 };
+typedef struct sol_oic_platform_info sol_oic_platform_info;
 
 /**
  * @brief Flags to set when adding a new resource to a server.
@@ -195,6 +196,7 @@ struct sol_oic_device_info {
      */
     struct sol_str_slice data_model_version;
 };
+typedef struct sol_oic_device_info sol_oic_device_info;
 
 /**
  * @brief field type of sol_oic_repr_field structure.
@@ -271,6 +273,7 @@ struct sol_oic_repr_field {
         bool v_boolean;
     };
 };
+typedef struct sol_oic_repr_field sol_oic_repr_field;
 
 /**
  * @brief Helper macro to create a #sol_oic_repr_field.
@@ -381,6 +384,7 @@ struct sol_oic_repr_field {
  * @see sol_oic_client_resource_request()
  */
 struct sol_oic_map_writer;
+typedef struct sol_oic_map_writer sol_oic_map_writer;
 
 /**
  * @brief Used in @ref sol_oic_map_writer to state if the map has a content or not
@@ -435,6 +439,7 @@ struct sol_oic_map_reader {
     const uint8_t type;
     const uint8_t flags;
 };
+typedef struct sol_oic_map_reader sol_oic_map_reader;
 
 /**
  * @struct sol_oic_request
@@ -444,6 +449,7 @@ struct sol_oic_map_reader {
  * @see sol_oic_server_send_response
  */
 struct sol_oic_request;
+typedef struct sol_oic_request sol_oic_request;
 
 /**
  * @struct sol_oic_response
@@ -453,6 +459,7 @@ struct sol_oic_request;
  * @see sol_oic_server_send_response
  */
 struct sol_oic_response;
+typedef struct sol_oic_response sol_oic_response;
 
 /**
  * @brief Possible reasons a @ref SOL_OIC_MAP_LOOP was terminated.

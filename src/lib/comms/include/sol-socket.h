@@ -39,6 +39,7 @@ extern "C" {
  * @brief Opaque handler for a socket
  */
 struct sol_socket;
+typedef struct sol_socket sol_socket;
 
 /**
  * @struct sol_socket_options
@@ -84,6 +85,7 @@ struct sol_socket_options {
      */
     const void *data;
 };
+typedef struct sol_socket_options sol_socket_options;
 
 /**
  * @struct sol_socket_options
@@ -120,6 +122,7 @@ struct sol_socket_ip_options {
      */
     bool reuse_addr;
 };
+typedef struct sol_socket_ip_options sol_socket_ip_options;
 
 /**
  * @brief Structure to represent a socket class.
@@ -219,6 +222,7 @@ struct sol_socket_type {
      */
     int (*bind)(struct sol_socket *s, const struct sol_network_link_addr *addr);
 };
+typedef struct sol_socket_type sol_socket_type;
 
 /**
  * @brief Structure to represent a socket.
@@ -228,6 +232,7 @@ struct sol_socket_type {
 struct sol_socket {
     const struct sol_socket_type *type;
 };
+typedef struct sol_socket sol_socket;
 
 /**
  * @brief Creates an endpoint for communication.

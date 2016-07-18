@@ -130,6 +130,7 @@ enum sol_mqtt_conn_status {
  * sol_mqtt_connect() API.
  */
 struct sol_mqtt;
+typedef struct sol_mqtt sol_mqtt;
 
 /**
  * @struct sol_mqtt_message
@@ -173,6 +174,7 @@ struct sol_mqtt_message {
      */
     bool retain;
 };
+typedef struct sol_mqtt_message sol_mqtt_message;
 
 /**
  * @struct sol_mqtt_handlers
@@ -267,6 +269,7 @@ struct sol_mqtt_handlers {
      */
     void (*unsubscribe) (void *data, struct sol_mqtt *mqtt);
 };
+typedef struct sol_mqtt_handlers sol_mqtt_handlers;
 
 /**
  * @struct sol_mqtt_config
@@ -350,6 +353,7 @@ struct sol_mqtt_config {
      */
     const struct sol_mqtt_handlers handlers;
 };
+typedef struct sol_mqtt_config sol_mqtt_config;
 
 /**
  * @brief Connect to a MQTT broker

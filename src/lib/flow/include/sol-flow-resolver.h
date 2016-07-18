@@ -73,6 +73,7 @@ struct sol_flow_resolver {
      */
     int (*resolve)(void *data, const char *id, struct sol_flow_node_type const **type, struct sol_flow_node_named_options *named_opts);
 };
+typedef struct sol_flow_resolver sol_flow_resolver;
 
 /**
  * @brief The default resolver set at compile time.

@@ -52,6 +52,7 @@ extern "C" {
  * sol_mavlink_connect() API.
  */
 struct sol_mavlink;
+typedef struct sol_mavlink sol_mavlink;
 
 /**
  * @enum sol_mavlink_mode
@@ -186,6 +187,7 @@ struct sol_mavlink_position {
     /** Local Z position of this position in the local coordinate frame */
     float z;
 };
+typedef struct sol_mavlink_position sol_mavlink_position;
 
 /**
  * @struct sol_mavlink_handlers
@@ -281,6 +283,7 @@ struct sol_mavlink_handlers {
      */
     void (*mission_reached) (void *data, struct sol_mavlink *mavlink);
 };
+typedef struct sol_mavlink_handlers sol_mavlink_handlers;
 
 /**
  * @struct sol_mavlink_config
@@ -306,6 +309,7 @@ struct sol_mavlink_config {
      */
     int baud_rate;
 };
+typedef struct sol_mavlink_config sol_mavlink_config;
 
 /**
  * @brief Connect to a mavlink server
