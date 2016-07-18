@@ -216,12 +216,12 @@ calamari_7seg_child_opts_set(const struct sol_flow_node_type *type,
         [SEG_DATA] = calamari_7seg_opts->data_pin
     };
 
+    if (child_index == SEG_CTL || child_index > SEG_DATA)
+        return 0;
+
     SOL_FLOW_NODE_OPTIONS_SUB_API_CHECK(child_opts,
         SOL_FLOW_NODE_TYPE_GPIO_WRITER_OPTIONS_API_VERSION,
         -EINVAL);
-
-    if (child_index == SEG_CTL || child_index > SEG_DATA)
-        return 0;
 
     gpio_opts->raw = true;
     gpio_opts->pin = pins[child_index];
@@ -570,13 +570,13 @@ calamari_rgb_child_opts_set(const struct sol_flow_node_type *type,
         [RGB_LED_BLUE] = calamari_rgb_opts->blue_pin,
     };
 
-    SOL_FLOW_NODE_OPTIONS_SUB_API_CHECK(child_opts,
-        SOL_FLOW_NODE_TYPE_GPIO_WRITER_OPTIONS_API_VERSION,
-        -EINVAL);
-
     // There is nothing to do for node 0, which is rgb-ctl
     if (child_index == RGB_LED_CTL || child_index > RGB_LED_BLUE)
         return 0;
+
+    SOL_FLOW_NODE_OPTIONS_SUB_API_CHECK(child_opts,
+        SOL_FLOW_NODE_TYPE_GPIO_WRITER_OPTIONS_API_VERSION,
+        -EINVAL);
 
     gpio_opts->raw = true;
     gpio_opts->pin = pins[child_index];
