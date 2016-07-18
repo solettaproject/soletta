@@ -57,16 +57,6 @@ struct sol_flow_packet;
 struct sol_flow_packet_type;
 
 /**
- * @struct sol_flow_port
- *
- * @brief A port is an entry point for communication between nodes.
- *
- * It can be used as either input or output. In a flow, packets of
- * information are send through connections from output to input ports.
- */
-struct sol_flow_port;
-
-/**
  * @struct sol_flow_node
  *
  * @brief A node is an entity that has input/output ports.
