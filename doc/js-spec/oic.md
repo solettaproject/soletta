@@ -3,7 +3,7 @@ IoT Web API
 
 Abstract
 --------
-This document presents a JavaScript API for [OIC](http://www.openinterconnect.org/) [Core Specification](http://openinterconnect.org/developer-resources/specs/).
+This document presents a JavaScript API for [OIC](http://www.openinterconnect.org/) [Core Specification](http://openinterconnect.org/resources/specifications/).
 
 Introduction
 ------------
