@@ -269,7 +269,6 @@ sol_socket_ip_default_new(const struct sol_socket_options *options)
         .set_read_monitor = sol_socket_contiki_set_read_monitor,
         .del = sol_socket_contiki_del
     };
-    bool ret;
     int r = 0;
 
     SOL_INT_CHECK_ERRNO(opts->family, != SOL_NETWORK_FAMILY_INET6,
