@@ -163,6 +163,7 @@ ifeq (yyy,$(HAVE_DOXYGEN)$(HAVE_BZIP2)$(HAVE_TAR))
 $(DOXYGEN_GENERATED): $(DOXYGEN_RESOURCES) $(shell find $(top_srcdir)src/ -name '*.h' -type f)
 	$(Q)$(MKDIR) -p $(build_doxygen_targetdir)
 	$(Q)$(RM) $(build_doxygen_logfile)
+	$(Q)$(RM) $(build_doxygen_success)
 	$(Q)$(RM) -rf $(build_doxygen_targetdir)/*
 	$(Q) cat $(top_srcdir)doc/doxygen/examples_head.dox >> $(build_doxygen_targetdir)/examples.dox
 	$(Q) find $(top_srcdir)src/samples -type f -name *.c -printf "@example %h/%f\n" | sort >> $(build_doxygen_targetdir)/examples.dox
@@ -171,6 +172,7 @@ $(DOXYGEN_GENERATED): $(DOXYGEN_RESOURCES) $(shell find $(top_srcdir)src/ -name 
 	$(Q) test `du $(build_doxygen_logfile) | cut -f1` -eq 0 || (echo "Failed to build doc" && cat $(build_doxygen_logfile) && exit 1)
 	$(Q) cd $(build_doxygen_targetdir)/html/; for i in `find . -name "_2src*.html"`; do mv $$i $${i#./_2}; done
 	$(Q) cd $(build_doxygen_targetdir)/html/; find . -name "*.html" -exec sed -i -e 's/_2src/src/g' {} \;
+	$(Q) touch $(build_doxygen_success)
 
 
 $(build_doxygendir)$(PACKAGE_DOCNAME).tar.bz2: $(DOXYGEN_GENERATED)
