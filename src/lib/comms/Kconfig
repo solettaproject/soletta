@@ -203,7 +203,7 @@ config HTTP_SERVER_PORT
 config MQTT
 	bool "MQTT"
 	default y
-    depends on NETWORK && HAVE_MOSQUITTO
+    depends on NETWORK && FEATURE_MQTT
     help
             MQTT is a machine-to-machine (M2M)/"Internet of Things"
             connectivity protocol. It was designed as an extremely

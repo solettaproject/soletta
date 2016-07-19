@@ -55,6 +55,9 @@ config FEATURE_HW_SPI
 config FEATURE_HW_UART
     bool
 
+config FEATURE_MQTT
+    bool
+
 config FEATURE_NETWORK
     bool
 

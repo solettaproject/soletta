@@ -18,6 +18,7 @@ config LINUX
     select FEATURE_HW_PWM
     select FEATURE_HW_SPI
     select FEATURE_HW_UART
+    select FEATURE_MQTT if HAVE_MOSQUITTO
     select FEATURE_NETWORK
     select FEATURE_OIC
     select FEATURE_PIN_MUX
