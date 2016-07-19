@@ -89,13 +89,11 @@ extern "C" {
     SOL_MEMMAP_ENTRY_BIT_SIZE(_name, _offset, 1, _bit_offset, 1)
 
 /**
- * @struct sol_memmap_map
- *
  * @brief Memory map basic struct.
  *
  * This struct holds informations about a memory map.
  */
-struct sol_memmap_map {
+typedef struct sol_memmap_map {
     uint8_t version; /**< Version of map. Functions will refuse to read/write on storage if this version and the one storad differs */
     const char *path; /**< Where to find the storage. On Linux, it is
                        * the file mapping the storage, like @c
@@ -122,21 +120,19 @@ struct sol_memmap_map {
     uint32_t timeout; /**< Timeout, in milliseconds, of writing operations. After a write is requested, a timer will run and group all
                        * writing operations until it expires, when real writing will be performed */
     const struct sol_str_table_ptr *entries; /**< Entries on map, containing name, offset and size */ /* Memory trick in place, must be last on struct*/
-};
+} sol_memmap_map;
 
 /**
- * @struct sol_memmap_entry
- *
  * @brief A memory map entry.
  *
  * @see sol_memmap_map
  */
-struct sol_memmap_entry {
+typedef struct sol_memmap_entry {
     size_t offset; /**< Offset of this entry on storage, in bytes. If zero, it will be calculated from previous entry on @c entries array */
     size_t size; /**< Total size of this entry on storage, in bytes. */
     uint32_t bit_size; /**< Total size of this entry on storage, in bits. Must be up to <tt>size * 8</tt>. If zero, it will be assumed as <tt>size * 8</tt>. Note that this will be ignored if @c size is greater than 8. */
     uint8_t bit_offset; /**< Bit offset on first byte. Note that this will be ignored if @c size is greater than 8. */
-};
+} sol_memmap_entry;
 
 /**
  * @brief Writes buffer contents to storage.

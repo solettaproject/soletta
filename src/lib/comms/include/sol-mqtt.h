@@ -119,7 +119,7 @@ enum sol_mqtt_conn_status {
 };
 
 /**
- * @struct sol_mqtt
+ * @typedef sol_mqtt
  *
  * @brief MQTT Object
  *
@@ -130,16 +130,15 @@ enum sol_mqtt_conn_status {
  * sol_mqtt_connect() API.
  */
 struct sol_mqtt;
+typedef struct sol_mqtt sol_mqtt;
 
 /**
- * @struct sol_mqtt_message
- *
  * @brief MQTT Message
  *
  * This object is the abstraction of a MQTT message and is the base for
  * publishing and receiving data to/from the broker.
  */
-struct sol_mqtt_message {
+typedef struct sol_mqtt_message {
 #ifndef SOL_NO_API_VERSION
 #define SOL_MQTT_MESSAGE_API_VERSION (1)
     /**
@@ -172,14 +171,12 @@ struct sol_mqtt_message {
      * If true, the message will be retained by the broker
      */
     bool retain;
-};
+} sol_mqtt_message;
 
 /**
- * @struct sol_mqtt_handlers
- *
  * @brief MQTT callback handlers
  */
-struct sol_mqtt_handlers {
+typedef struct sol_mqtt_handlers {
 #ifndef SOL_NO_API_VERSION
 #define SOL_MQTT_HANDLERS_API_VERSION (1)
     /**
@@ -266,14 +263,12 @@ struct sol_mqtt_handlers {
      * Callback called when a unsubscribe request has been processed.
      */
     void (*unsubscribe) (void *data, struct sol_mqtt *mqtt);
-};
+} sol_mqtt_handlers;
 
 /**
- * @struct sol_mqtt_config
- *
  * @brief Server Configuration
  */
-struct sol_mqtt_config {
+typedef struct sol_mqtt_config {
 #ifndef SOL_NO_API_VERSION
 #define SOL_MQTT_CONFIG_API_VERSION (1)
     /**
@@ -349,7 +344,7 @@ struct sol_mqtt_config {
      * Handlers to be used with this connection
      */
     const struct sol_mqtt_handlers handlers;
-};
+} sol_mqtt_config;
 
 /**
  * @brief Connect to a MQTT broker

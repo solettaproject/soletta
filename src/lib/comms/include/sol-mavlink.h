@@ -41,7 +41,7 @@ extern "C" {
  */
 
 /**
- * @struct sol_mavlink
+ * @typedef sol_mavlink
  *
  * @brief Mavlink Object
  *
@@ -52,6 +52,7 @@ extern "C" {
  * sol_mavlink_connect() API.
  */
 struct sol_mavlink;
+typedef struct sol_mavlink sol_mavlink;
 
 /**
  * @enum sol_mavlink_mode
@@ -163,11 +164,9 @@ enum sol_mavlink_mode {
 };
 
 /**
- * @struct sol_mavlink_position
- *
  * @brief Mavlink position structure
  */
-struct sol_mavlink_position {
+typedef struct sol_mavlink_position {
     /** Latitude in degrees */
     float latitude;
 
@@ -185,14 +184,12 @@ struct sol_mavlink_position {
 
     /** Local Z position of this position in the local coordinate frame */
     float z;
-};
+} sol_mavlink_position;
 
 /**
- * @struct sol_mavlink_handlers
- *
  * @brief Mavlink callback handlers
  */
-struct sol_mavlink_handlers {
+typedef struct sol_mavlink_handlers {
 #ifndef SOL_NO_API_VERSION
 #define SOL_MAVLINK_HANDLERS_API_VERSION (1)
     /**
@@ -280,14 +277,12 @@ struct sol_mavlink_handlers {
      * destination.
      */
     void (*mission_reached) (void *data, struct sol_mavlink *mavlink);
-};
+} sol_mavlink_handlers;
 
 /**
- * @struct sol_mavlink_config
- *
  * @brief Server Configuration
  */
-struct sol_mavlink_config {
+typedef struct sol_mavlink_config {
 #ifndef SOL_NO_API_VERSION
 #define SOL_MAVLINK_CONFIG_API_VERSION (1)
     /**
@@ -305,7 +300,7 @@ struct sol_mavlink_config {
      * In case of serial protocol set the baud_rate, default set to 115200.
      */
     int baud_rate;
-};
+} sol_mavlink_config;
 
 /**
  * @brief Connect to a mavlink server

@@ -43,13 +43,14 @@ extern "C" {
  */
 
 /**
- * @struct sol_spi
+ * @typedef sol_spi
  * @brief A handle to a SPI bus
  * @see sol_spi_open()
  * @see sol_spi_close()
  * @see sol_spi_transfer()
  */
 struct sol_spi;
+typedef struct sol_spi sol_spi;
 
 /**
  * @brief SPI Transfer Modes.
@@ -85,7 +86,7 @@ enum sol_spi_mode {
  *
  * @see sol_spi_open()
  */
-struct sol_spi_config {
+typedef struct sol_spi_config {
 #ifndef SOL_NO_API_VERSION
 #define SOL_SPI_CONFIG_API_VERSION (1)
     uint16_t api_version; /**< The API version. */
@@ -94,7 +95,7 @@ struct sol_spi_config {
     enum sol_spi_mode mode; /**< The SPI operation mode */
     uint32_t frequency; /**< Clock frequency in Hz */
     uint8_t bits_per_word; /**< Number of bits per word */
-};
+} sol_spi_config;
 
 /**
  * @brief Converts a string SPI mode name to sol_spi_mode

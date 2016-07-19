@@ -66,7 +66,7 @@ extern "C" {
 #define SOL_BLUETOOTH_ADDR_STRLEN 18
 
 /**
- * @struct sol_network_hostname_pending
+ * @typedef sol_network_hostname_pending
  *
  * @brief A handle returned by sol_network_get_hostname_address_info()
  *
@@ -78,6 +78,7 @@ extern "C" {
  * @see sol_network_hostname_pending_cancel()
  */
 struct sol_network_hostname_pending;
+typedef struct sol_network_hostname_pending sol_network_hostname_pending;
 
 /**
  * @brief Type of events generated for a network link.
@@ -140,7 +141,7 @@ enum sol_network_bt_addr_type {
 /**
  * @brief Structure to represent a network address, both IPv6 and IPv4 are valid.
  */
-struct sol_network_link_addr {
+typedef struct sol_network_link_addr {
     enum sol_network_family family; /**< @brief IPv4 or IPv6 family */
     union {
         uint8_t in[4];
@@ -151,7 +152,7 @@ struct sol_network_link_addr {
         };
     } addr; /**< @brief The address itself */
     uint16_t port; /**< @brief The port associed with the IP address */
-};
+} sol_network_link_addr;
 
 /**
  * @brief Structure to represent a network link.
@@ -161,7 +162,7 @@ struct sol_network_link_addr {
  * index (the value used by the SO to identify the link) and its
  * address @ref sol_network_link_addr.
  */
-struct sol_network_link {
+typedef struct sol_network_link {
 #ifndef SOL_NO_API_VERSION
 #define SOL_NETWORK_LINK_API_VERSION (1)
     uint16_t api_version; /**< @brief API version */
@@ -173,7 +174,7 @@ struct sol_network_link {
      * @see sol_network_link_addr
      **/
     struct sol_vector addrs;
-};
+} sol_network_link;
 
 #ifndef SOL_NO_API_VERSION
 /**

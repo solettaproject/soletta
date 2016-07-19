@@ -122,7 +122,7 @@ enum sol_gatt_desc_flags {
 };
 
 /**
- * @struct sol_gatt_pending
+ * @typedef sol_gatt_pending
  * @brief Represents a pending request
  *
  * So a response to a GATT operation can be returned asynchronously,
@@ -131,6 +131,7 @@ enum sol_gatt_desc_flags {
  * is complete.
  */
 struct sol_gatt_pending;
+typedef struct sol_gatt_pending sol_gatt_pending;
 
 /**
  * @brief Returns the attribute referenced by a pending operation
@@ -145,7 +146,7 @@ const struct sol_gatt_attr *sol_gatt_pending_get_attr(
 /**
  * @brief Representation of a GATT Attribute
  */
-struct sol_gatt_attr {
+typedef struct sol_gatt_attr {
     struct sol_bt_uuid uuid;
     enum sol_gatt_attr_type type;
     uint16_t flags;
@@ -174,7 +175,7 @@ struct sol_gatt_attr {
     void *user_data;
 
     void *_priv;
-};
+} sol_gatt_attr;
 
 /**
  * @brief Returns a response to an asynchronous operation

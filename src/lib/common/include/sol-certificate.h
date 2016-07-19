@@ -38,13 +38,14 @@ extern "C" {
  */
 
 /**
- * @struct sol_cert
+ * @typedef sol_cert
  *
  * @brief Certificate handler
  *
  * This object is the abstraction of certificate.
  */
 struct sol_cert;
+typedef struct sol_cert sol_cert;
 
 /**
  * @brief Load a certificate from an id

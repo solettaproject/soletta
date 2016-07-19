@@ -42,20 +42,19 @@ extern "C" {
  */
 
 /**
- * @struct sol_oic_server_resource
+ * @typedef sol_oic_server_resource
  *
  * @brief Opaque handler for a server resource
  */
 struct sol_oic_server_resource;
+typedef struct sol_oic_server_resource sol_oic_server_resource;
 
 /**
- * @struct sol_oic_resource_type
- *
  * @brief structure defining the type of a resource.
  *
  * @see sol_oic_server_register_resource
  */
-struct sol_oic_resource_type {
+typedef struct sol_oic_resource_type {
 #ifndef SOL_NO_API_VERSION
 #define SOL_OIC_RESOURCE_TYPE_API_VERSION (1)
     uint16_t api_version; /**< @brief API version */
@@ -151,7 +150,7 @@ struct sol_oic_resource_type {
      * @see sol_oic_server_send_response
      */
         del;
-};
+} sol_oic_resource_type;
 
 /**
  * @brief Add resource to OIC server.

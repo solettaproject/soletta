@@ -50,7 +50,7 @@ extern "C" {
  */
 
 /**
- * @struct sol_gpio
+ * @typedef sol_gpio
  * @brief A handle to a GPIO
  *
  * @see sol_gpio_open_by_label()
@@ -61,6 +61,7 @@ extern "C" {
  * @see sol_gpio_write()
  */
 struct sol_gpio;
+typedef struct sol_gpio sol_gpio;
 
 /**
  * @brief Possible values for the direction of a GPIO.
@@ -146,7 +147,7 @@ enum sol_gpio_drive {
  * If there's a need to change any of these parameters, the GPIO must be closed
  * and opened again with a new configuration.
  */
-struct sol_gpio_config {
+typedef struct sol_gpio_config {
 #ifndef SOL_NO_API_VERSION
 #define SOL_GPIO_CONFIG_API_VERSION (1)
     uint16_t api_version; /**< The API version */
@@ -235,7 +236,7 @@ struct sol_gpio_config {
             bool value;
         } out;
     };
-};
+} sol_gpio_config;
 
 /**
  * @brief Converts a string GPIO direction to sol_gpio_direction.

@@ -51,7 +51,7 @@ extern "C" {
 /**
  * @brief Resolver's structure.
  */
-struct sol_flow_resolver {
+typedef struct sol_flow_resolver {
 #ifndef SOL_NO_API_VERSION
 #define SOL_FLOW_RESOLVER_API_VERSION (1) /**< @brief Current API version number */
     uint16_t api_version; /**< @brief API version number */
@@ -72,7 +72,7 @@ struct sol_flow_resolver {
      * @return @c 0 in case of success, error code (always negative) otherwise
      */
     int (*resolve)(void *data, const char *id, struct sol_flow_node_type const **type, struct sol_flow_node_named_options *named_opts);
-};
+} sol_flow_resolver;
 
 /**
  * @brief The default resolver set at compile time.

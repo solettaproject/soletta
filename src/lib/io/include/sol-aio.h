@@ -41,7 +41,7 @@ extern "C" {
  */
 
 /**
- * @struct sol_aio
+ * @typedef sol_aio
  * @brief AIO handle structure
  * @see sol_aio_open_by_label()
  * @see sol_aio_open()
@@ -51,14 +51,16 @@ extern "C" {
  * @see sol_aio_pending_cancel()
  */
 struct sol_aio;
+typedef struct sol_aio sol_aio;
 
 /**
- * @struct sol_aio_pending
+ * @typedef sol_aio_pending
  * @brief AIO pending operation handle structure
  * @see sol_aio_get_value()
  * @see sol_aio_pending_cancel()
  */
 struct sol_aio_pending;
+typedef struct sol_aio_pending sol_aio_pending;
 
 /**
  * @brief Open the given board @c pin by its label to be used as Analog I/O.

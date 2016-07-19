@@ -59,21 +59,21 @@ extern "C" {
 /**
  * @brief Structure to track a JSON document (or a portion of it) being parsed.
  */
-struct sol_json_scanner {
+typedef struct sol_json_scanner {
     const char *mem; /**< @brief Start of this portion of the JSON document. */
     const char *mem_end; /**< @brief End of this portion of the JSON document. */
     const char *current; /**< @brief Current point in the JSON document that needs to be processed. */
-};
+} sol_json_scanner;
 
 /**
  * @brief Type describing a JSON token
  *
  * Used to point and delimit JSON element while parsing a JSON document.
  */
-struct sol_json_token {
+typedef struct sol_json_token {
     const char *start; /**< @brief Token start */
     const char *end; /**< @brief Token end. Non-inclusive */
-};
+} sol_json_token;
 
 /**
  * @brief Token type enumeration.
@@ -955,8 +955,6 @@ int sol_json_object_get_value_by_key(struct sol_json_scanner *scanner, const str
 int sol_json_array_get_at_index(struct sol_json_scanner *scanner, uint16_t i, struct sol_json_token *value);
 
 /**
- * @struct sol_json_path_scanner
- *
  * @brief Scanner used to go through segments of a JSON Path.
  *
  * @note JSONPath syntax is available at http://goessner.net/articles/JsonPath/.
@@ -965,7 +963,7 @@ int sol_json_array_get_at_index(struct sol_json_scanner *scanner, uint16_t i, st
  * @see sol_json_path_get_next_segment()
  * @see SOL_JSON_PATH_FOREACH()
  */
-struct sol_json_path_scanner {
+typedef struct sol_json_path_scanner {
     const char *path; /**< @brief The JSONPath string. */
     const char *end; /**< @brief Points to last character from path. */
     /**
@@ -973,7 +971,7 @@ struct sol_json_path_scanner {
      * next segment.
      */
     const char *current;
-};
+} sol_json_path_scanner;
 
 /**
  * @brief Get the element referenced by the JSON Path @a path in a JSON Object

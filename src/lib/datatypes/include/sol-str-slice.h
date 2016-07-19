@@ -78,15 +78,13 @@ extern "C" {
 #define SOL_STR_SLICE_PRINT(_s) (int)(_s).len, (_s).data
 
 /**
- * @struct sol_str_slice
- *
  * @brief String slice type
  *
  */
-struct sol_str_slice {
+typedef struct sol_str_slice {
     size_t len; /**< @brief Slice length */
     const char *data; /**< @brief Slice data */
-};
+} sol_str_slice;
 
 /**
  * @brief Checks if the content of the slice is equal to the string.
