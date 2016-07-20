@@ -30,6 +30,20 @@ extern "C" {
 #endif
 
 /**
+ * @file
+ * @brief Routines to manage connections.
+ */
+
+/**
+ * @defgroup NetCtl NetCtl
+ * @ingroup Comms
+ *
+ * API that should be used to manage device connections.
+ *
+ * @{
+ */
+
+/**
  * @typedef sol_netctl_service
  *
  * @brief service struct
@@ -504,6 +518,10 @@ const char *sol_netctl_service_state_to_str(enum sol_netctl_service_state state)
     SOL_ATTR_WARN_UNUSED_RESULT
 #endif
     ;
+
+/**
+ * @}
+ */
 
 #ifdef __cplusplus
 }
