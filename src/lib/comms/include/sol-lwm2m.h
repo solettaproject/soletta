@@ -58,6 +58,8 @@ extern "C" {
  * - Data encryption.
  * - Access rights.
  *
+ * @warning Experimental API. Changes are expected in future releases.
+ *
  * @{
  */
 

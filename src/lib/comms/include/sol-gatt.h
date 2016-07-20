@@ -42,6 +42,7 @@ extern "C" {
  *
  * @brief API to handle the GATT protocol.
  *
+ * @warning Experimental API. Changes are expected in future releases.
  *
  * @{
  */

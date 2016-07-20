@@ -44,6 +44,7 @@ extern "C" {
  *
  * @brief API to handle Bluetooth technology communications.
  *
+ * @warning Experimental API. Changes are expected in future releases.
  *
  * @{
  */

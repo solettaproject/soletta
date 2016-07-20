@@ -40,6 +40,8 @@ extern "C" {
  *
  * API that should be used to manage device connections.
  *
+ * @warning Experimental API. Changes are expected in future releases.
+ *
  * @{
  */
 

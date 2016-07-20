@@ -37,6 +37,8 @@ extern "C" {
  * small unmanned vehicles. It is designed as a header-only message marshaling
  * library.
  *
+ * @warning Experimental API. Changes are expected in future releases.
+ *
  * @{
  */
 
