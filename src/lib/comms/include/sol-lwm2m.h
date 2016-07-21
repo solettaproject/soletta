@@ -52,11 +52,9 @@ extern "C" {
  * - TLV format.
  *
  * Unsupported features for now:
- * - Bootstrap.
  * - LWM2M JSON.
  * - Queue Mode operation (only 'U' is supported for now).
  * - Data encryption.
- * - Access rights.
  *
  * @warning Experimental API. Changes are expected in future releases.
  *
@@ -369,17 +367,56 @@ typedef struct sol_lwm2m_resource {
     /** @brief The resource data array len */
     uint16_t data_len;
     /** @brief The resource data array */
-    union sol_lwm2m_resource_data {
-        /** @brief The resource is opaque or an string */
-        struct sol_blob *blob;
-        /** @brief The resource is a integer value */
-        int64_t integer;
-        /** @brief The resource is a float value */
-        double fp;
-        /** @brief The resource is a bool value */
-        bool b;
+    struct sol_lwm2m_resource_data {
+        uint16_t id;
+        union {
+            /** @brief The resource is opaque or an string */
+            struct sol_blob *blob;
+            /** @brief The resource is a integer value */
+            int64_t integer;
+            /** @brief The resource is a float value */
+            double fp;
+            /** @brief The resource is a bool value */
+            bool b;
+        } content;
     } *data;
 } sol_lwm2m_resource;
+
+/**
+ * @brief Enum that represents the Access Control Rights.
+ *
+ * Setting each bit means the LWM2M Server has the access right for that operation.
+ */
+enum sol_lwm2m_acl_rights {
+    /**
+     * No bit is set (No access rights for any operation)
+     */
+    SOL_LWM2M_ACL_NONE = 0,
+    /**
+     * 1st lsb: R (Read, Observe, Discover, Write Attributes)
+     */
+    SOL_LWM2M_ACL_READ = 1,
+    /**
+     * 2nd lsb: W (Write)
+     */
+    SOL_LWM2M_ACL_WRITE = 2,
+    /**
+     * 3rd lsb: E (Execute)
+     */
+    SOL_LWM2M_ACL_EXECUTE = 4,
+    /**
+     * 4th lsb: D (Delete)
+     */
+    SOL_LWM2M_ACL_DELETE = 8,
+    /**
+     * 5th lsb: C (Create)
+     */
+    SOL_LWM2M_ACL_CREATE = 16,
+    /**
+     * All 5 lsbs: Full Access Rights
+     */
+    SOL_LWM2M_ACL_ALL = 31
+};
 
 /**
  * @brief Convinent macro to initialize a LWM2M resource.
@@ -390,15 +427,33 @@ typedef struct sol_lwm2m_resource {
  * @param ret_value_ The return value of sol_lwm2m_resource_init()
  * @param resource_ The resource to be initialized.
  * @param id_ The resource id.
- * @param data_type_ The resource data type.
+ * @param type_ The resource type.
  * @param resource_len_ The resource data size.
+ * @param data_type_ The resource data type.
  * @param ... The LWM2M resource data, respecting the table according to the resource type.
  * @see sol_lwm2m_resource_init()
  */
-#define SOL_LWM2M_RESOURCE_INIT(ret_value_, resource_, id_, resource_len_, data_type_, ...) \
+#define SOL_LWM2M_RESOURCE_INIT(ret_value_, resource_, id_, type_, resource_len_, data_type_, ...) \
     do { \
         SOL_SET_API_VERSION((resource_)->api_version = SOL_LWM2M_RESOURCE_API_VERSION; ) \
-        (ret_value_) = sol_lwm2m_resource_init((resource_), (id_), (resource_len_), (data_type_), __VA_ARGS__); \
+        (ret_value_) = sol_lwm2m_resource_init((resource_), (id_), (type_), (resource_len_), (data_type_), __VA_ARGS__); \
+    } while (0)
+
+/**
+ * @brief A helper macro to init SINGLE resources.
+ *
+ *
+ * @param ret_value_ The return value of sol_lwm2m_resource_init()
+ * @param resource_ The resource to be initialized.
+ * @param id_ The resource id.
+ * @param data_type_ The resource data type.
+ * @param value_ The LWM2M resource data, respecting the table according to the resource type.
+ * @see sol_lwm2m_resource_init()
+ */
+#define SOL_LWM2M_RESOURCE_SINGLE_INIT(ret_value_, resource_, id_, data_type_, value_) \
+    do { \
+        SOL_SET_API_VERSION((resource_)->api_version = SOL_LWM2M_RESOURCE_API_VERSION; ) \
+        (ret_value_) = sol_lwm2m_resource_init((resource_), (id_), SOL_LWM2M_RESOURCE_TYPE_SINGLE, 1, (data_type_), value_); \
     } while (0)
 
 /**
@@ -425,10 +480,10 @@ typedef struct sol_lwm2m_resource {
  * @see SOL_TYPE_CHECK()
  * @note This can be safely used for @ref SOL_LWM2M_RESOURCE_DATA_TYPE_TIME
  */
-#define SOL_LWM2M_RESOURCE_INT_INIT(ret_value_, resource_, id_, value_) \
+#define SOL_LWM2M_RESOURCE_SINGLE_INT_INIT(ret_value_, resource_, id_, value_) \
     do { \
         SOL_SET_API_VERSION((resource_)->api_version = SOL_LWM2M_RESOURCE_API_VERSION; ) \
-        (ret_value_) = sol_lwm2m_resource_init((resource_), (id_), 1, SOL_LWM2M_RESOURCE_DATA_TYPE_INT, SOL_TYPE_CHECK(int64_t, (value_))); \
+        (ret_value_) = sol_lwm2m_resource_init((resource_), (id_), SOL_LWM2M_RESOURCE_TYPE_SINGLE, 1, SOL_LWM2M_RESOURCE_DATA_TYPE_INT, SOL_TYPE_CHECK(int64_t, (value_))); \
     } while (0)
 
 
@@ -730,8 +785,9 @@ void sol_lwm2m_resource_clear(struct sol_lwm2m_resource *resource);
  *
  * @param resource The resource to be initialized.
  * @param id The resource id.
- * @param data_type The resource data type.
+ * @param type The resource type.
  * @param resource_len The resource data size.
+ * @param data_type The resource data type.
  * @param ... The LWM2M resource data, respecting the table according to the resource data type.
  * @return 0 on success, negative errno on error.
  * @see sol_lwm2m_resource_clear()
@@ -741,8 +797,32 @@ void sol_lwm2m_resource_clear(struct sol_lwm2m_resource *resource);
  * before calling this function.
  */
 int sol_lwm2m_resource_init(struct sol_lwm2m_resource *resource,
-    uint16_t id, uint16_t resource_len,
+    uint16_t id, enum sol_lwm2m_resource_type type, uint16_t resource_len,
     enum sol_lwm2m_resource_data_type data_type, ...);
+
+/**
+ * @brief Initializes a LWM2M resource of type multiple using a @c sol_vector.
+ *
+ * This function makes it easier to init a LWM2M resource of type multiple,
+ * dynamically setting the amount of Resource Instances desired.
+ * The last argument is a @c sol_vector holding elements of type
+ * @c sol_lwm2m_resource_data, each element carrying the Resource Instance ID
+ * and related Resource Instance value.
+ *
+ * @param resource The resource to be initialized.
+ * @param id The resource id.
+ * @param data_type The resource data type.
+ * @param res_instances The list of Resource Instances. Each Resource Instance value must respect the table according to the resource data type.
+ * @return 0 on success, negative errno on error.
+ * @see sol_lwm2m_resource_clear()
+ * @see sol_lwm2m_resource_init()
+ *
+ * @note The LWM2M resource api_version must be set,
+ * before calling this function.
+ */
+int sol_lwm2m_resource_init_vector(struct sol_lwm2m_resource *resource,
+    uint16_t id, enum sol_lwm2m_resource_data_type data_type,
+    struct sol_vector *res_instances);
 
 /**
  * @brief Creates a new LWM2M bootstrap server.

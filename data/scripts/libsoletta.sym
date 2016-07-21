@@ -116,6 +116,7 @@ global:
         sol_coap_header_set_type;
         sol_coap_header_set_version;
         sol_coap_notify;
+        sol_coap_notify_by_callback;
         sol_coap_packet_add_uri_path_option;
         sol_coap_packet_debug;
         sol_coap_packet_get_payload;
@@ -517,6 +518,7 @@ global:
         sol_lwm2m_parse_tlv;
         sol_lwm2m_resource_clear;
         sol_lwm2m_resource_init;
+        sol_lwm2m_resource_init_vector;
         sol_lwm2m_server_add_observer;
         sol_lwm2m_server_add_registration_monitor;
         sol_lwm2m_server_create_object_instance;
