@@ -199,7 +199,7 @@ create_location_obj(struct sol_lwm2m_server *server,
        It sets only the mandatory fields.
        The coordinates are the position of the Eiffel tower.
      */
-    SOL_LWM2M_RESOURCE_INIT(r, &res[0], LATITUDE_ID, 1,
+    SOL_LWM2M_RESOURCE_SINGLE_INIT(r, &res[0], LATITUDE_ID,
         SOL_LWM2M_RESOURCE_DATA_TYPE_STRING, &lat);
 
     if (r < 0) {
@@ -207,7 +207,7 @@ create_location_obj(struct sol_lwm2m_server *server,
         return;
     }
 
-    SOL_LWM2M_RESOURCE_INIT(r, &res[1], LONGITUDE_ID, 1,
+    SOL_LWM2M_RESOURCE_SINGLE_INIT(r, &res[1], LONGITUDE_ID,
         SOL_LWM2M_RESOURCE_DATA_TYPE_STRING, &longi);
 
     if (r < 0) {
@@ -215,7 +215,7 @@ create_location_obj(struct sol_lwm2m_server *server,
         return;
     }
 
-    SOL_LWM2M_RESOURCE_INIT(r, &res[2], TIMESTAMP_ID, 1,
+    SOL_LWM2M_RESOURCE_SINGLE_INIT(r, &res[2], TIMESTAMP_ID,
         SOL_LWM2M_RESOURCE_DATA_TYPE_TIME,
         (int64_t)time(NULL));
 
