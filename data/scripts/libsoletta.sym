@@ -116,6 +116,7 @@ global:
         sol_coap_header_set_type;
         sol_coap_header_set_version;
         sol_coap_notify;
+        sol_coap_notify_by_callback;
         sol_coap_packet_add_uri_path_option;
         sol_coap_packet_debug;
         sol_coap_packet_get_payload;

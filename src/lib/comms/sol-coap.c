@@ -969,69 +969,132 @@ find_context(struct sol_coap_server *server, const struct sol_coap_resource *res
     return NULL;
 }
 
-SOL_API int
-sol_coap_notify(struct sol_coap_server *server,
-    struct sol_coap_resource *resource, struct sol_coap_packet *pkt)
+static int
+sol_coap_notify_full(struct sol_coap_server *server,
+    struct sol_coap_resource *resource, struct sol_coap_packet *pkt,
+    int (*cb)(void *cb_data, struct sol_coap_server *server,
+    struct sol_coap_resource *resource, struct sol_network_link_addr *addr,
+    struct sol_coap_packet **pkt),
+    const void *cb_data)
 {
     struct resource_observer *o;
     struct resource_context *c;
     struct sol_coap_packet *header;
     uint16_t i;
-    int r = -EINVAL;
+    int r = 0;
 
-    SOL_NULL_CHECK(pkt, -EINVAL);
-    SOL_NULL_CHECK_GOTO(server, error_pkt);
-    SOL_NULL_CHECK_GOTO(resource, error_pkt);
+    SOL_NULL_CHECK(server, -EINVAL);
+    SOL_NULL_CHECK(resource, -EINVAL);
 
-    COAP_RESOURCE_CHECK_API_GOTO(error_pkt);
+    COAP_RESOURCE_CHECK_API(-EINVAL);
 
     c = find_context(server, resource);
     if (!c) {
-        SOL_WRN("Context not found for expecified resource");
-        r = -ENOENT;
-        goto error_pkt;
+        SOL_WRN("Context not found for specified resource");
+        return -ENOENT;
     }
 
-    r = 0;
     SOL_PTR_VECTOR_FOREACH_IDX (&c->observers, o, i) {
         uint8_t type, code;
 
-        header = sol_coap_packet_new(NULL);
-        if (!header) {
-            r = -ENOMEM;
-            goto error_pkt;
+        if (cb) {
+            struct sol_coap_packet *cb_pkt = NULL;
+
+            r = cb((void *)cb_data, server, resource, &o->cliaddr, &cb_pkt);
+            if (r < 0 && r != -EPERM) {
+                SOL_WRN("Error creating notification packet. Reason: %d", r);
+                sol_coap_packet_unref(cb_pkt);
+                return r;
+            } else if (r == -EPERM) {
+                SOL_BUFFER_DECLARE_STATIC(addr, SOL_NETWORK_INET_ADDR_STR_LEN);
+
+                sol_network_link_addr_to_str(&o->cliaddr, &addr);
+                SOL_WRN("Observer at %.*s is not authorized for CoAP Resource %p",
+                    SOL_STR_SLICE_PRINT(sol_buffer_get_slice(&addr)), resource);
+                continue;
+            }
+
+            r = sol_coap_header_set_token(cb_pkt, o->token, o->tkl);
+            if (r < 0) {
+                SOL_WRN("Could not set token %p for packet %p. Reason %d",
+                    o->token, cb_pkt, r);
+                sol_coap_packet_unref(cb_pkt);
+                return r;
+            }
+
+            r = enqueue_packet(server, cb_pkt, NULL, &o->cliaddr);
+            if (r < 0) {
+                SOL_BUFFER_DECLARE_STATIC(addr, SOL_NETWORK_INET_ADDR_STR_LEN);
+
+                sol_network_link_addr_to_str(&o->cliaddr, &addr);
+                SOL_WRN("Failed to enqueue packet %p to %.*s", cb_pkt,
+                    SOL_STR_SLICE_PRINT(sol_buffer_get_slice(&addr)));
+
+                sol_coap_packet_unref(cb_pkt);
+                return r;
+            }
+
+            sol_coap_packet_unref(cb_pkt);
+        } else {
+            header = sol_coap_packet_new(NULL);
+            SOL_NULL_CHECK(header, -ENOMEM);
+
+            sol_coap_header_get_code(pkt, &code);
+            r = sol_coap_header_set_code(header, code);
+            SOL_INT_CHECK_GOTO(r, < 0, err_header);
+            sol_coap_header_get_type(pkt, &type);
+            r = sol_coap_header_set_type(header, type);
+            SOL_INT_CHECK_GOTO(r, < 0, err_header);
+            r = sol_coap_header_set_token(header, o->token, o->tkl);
+            SOL_INT_CHECK_GOTO(r, < 0, err_header);
+
+            r = enqueue_packet(server, pkt, header, &o->cliaddr);
+            if (r < 0) {
+                SOL_BUFFER_DECLARE_STATIC(addr, SOL_NETWORK_INET_ADDR_STR_LEN);
+
+                sol_network_link_addr_to_str(&o->cliaddr, &addr);
+                SOL_WRN("Failed to enqueue packet %p to %.*s", header,
+                    SOL_STR_SLICE_PRINT(sol_buffer_get_slice(&addr)));
+                goto err_header;
+            }
+
+            sol_coap_packet_unref(header);
         }
-
-        sol_coap_header_get_code(pkt, &code);
-        r = sol_coap_header_set_code(header, code);
-        SOL_INT_CHECK_GOTO(r, < 0, err);
-        sol_coap_header_get_type(pkt, &type);
-        r = sol_coap_header_set_type(header, type);
-        SOL_INT_CHECK_GOTO(r, < 0, err);
-        r = sol_coap_header_set_token(header, o->token, o->tkl);
-        SOL_INT_CHECK_GOTO(r, < 0, err);
-
-        r = enqueue_packet(server, pkt, header, &o->cliaddr);
-        if (r < 0) {
-            SOL_BUFFER_DECLARE_STATIC(addr, SOL_NETWORK_INET_ADDR_STR_LEN);
-
-            sol_network_link_addr_to_str(&o->cliaddr, &addr);
-            SOL_WRN("Failed to enqueue packet %p to %.*s", header,
-                SOL_STR_SLICE_PRINT(sol_buffer_get_slice(&addr)));
-            goto error_pkt;
-        }
-
-        sol_coap_packet_unref(header);
     }
 
-    sol_coap_packet_unref(pkt);
     return r;
 
-err:
+err_header:
     sol_coap_packet_unref(header);
-error_pkt:
-    sol_coap_packet_unref(pkt);
     return r;
+}
+
+SOL_API int
+sol_coap_notify(struct sol_coap_server *server,
+    struct sol_coap_resource *resource, struct sol_coap_packet *pkt)
+{
+    int r;
+
+    SOL_NULL_CHECK(pkt, -EINVAL);
+
+    r = sol_coap_notify_full(server, resource, pkt, NULL, NULL);
+
+    sol_coap_packet_unref(pkt);
+
+    return r;
+}
+
+SOL_API int
+sol_coap_notify_by_callback(struct sol_coap_server *server,
+    struct sol_coap_resource *resource,
+    int (*cb)(void *cb_data, struct sol_coap_server *server,
+    struct sol_coap_resource *resource, struct sol_network_link_addr *addr,
+    struct sol_coap_packet **pkt),
+    const void *cb_data)
+{
+    SOL_NULL_CHECK(cb, -EINVAL);
+
+    return sol_coap_notify_full(server, resource, NULL, cb, cb_data);
 }
 
 SOL_API struct sol_coap_packet *

@@ -760,6 +760,33 @@ int sol_coap_notify(struct sol_coap_server *server,
     struct sol_coap_resource *resource, struct sol_coap_packet *pkt);
 
 /**
+ * @brief Sends the notification packet returned by a callback
+ * to all registered observers.
+ *
+ * Sends the notification @c pkt to all the registered observers for the
+ * resource @a resource, setting the correct token for each instance. The @c pkt
+ * will be filled by a callback @c cb given to this function, probably based on the
+ * observer's address and/or any other used data.
+ *
+ * @param server The server through which the notifications will be sent.
+ * @param resource The resource the notification is about.
+ * @param cb A callback that is used to create the @c pkt - @c data User data; @c server The server through which the notifications will be sent; @c resource The resource the notification is about; @c addr The address of the observer; @c pkt The pkt to be filled.
+ * @param cb_data The user data to @c cb.
+ *
+ * @return 0 on success, -errno on failure.
+ *
+ * @see sol_coap_notify()
+ * @see sol_coap_send_packet()
+ * @see sol_coap_send_packet_with_reply()
+ */
+int sol_coap_notify_by_callback(struct sol_coap_server *server,
+    struct sol_coap_resource *resource,
+    int (*cb)(void *cb_data, struct sol_coap_server *server,
+    struct sol_coap_resource *resource, struct sol_network_link_addr *addr,
+    struct sol_coap_packet **pkt),
+    const void *cb_data);
+
+/**
  * @brief Register a #sol_coap_resource with the server.
  *
  * Registers the given resource with the server, in order to be able to
