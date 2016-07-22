@@ -1,0 +1,125 @@
+{
+  "$schema": "http://solettaproject.github.io/soletta/schemas/node-type-genspec.schema",
+  "name": "netctl",
+  "meta": {
+    "author": "Intel Corporation",
+    "license": "Apache-2.0",
+    "version": "1"
+  },
+  "types": [
+    {
+      "category": "netctl",
+      "description": "Send list of all network services attached to board.",
+      "methods": {
+        "open": "open_list_services",
+        "close": "close_list_services"
+      },
+      "name": "netctl/list-services",
+      "out_ports": [
+        {
+          "data_type": "string",
+          "description": "Send service names that are new.",
+          "name": "ADDED"
+        },
+        {
+          "data_type": "string",
+          "description": "Send service names that are removed.",
+          "name": "REMOVED"
+        }
+      ]
+    },
+    {
+      "category": "netctl",
+      "description": "Connect or disconnect to one available network access point.",
+      "in_ports": [
+        {
+          "data_type": "any",
+          "description": "Trigger to emit an output packet with current state",
+          "methods": {
+            "process": "get_service_state"
+          },
+          "name": "TRIGGER"
+        },
+        {
+          "data_type": "any",
+          "description": "Trigger to connect to network service.",
+          "methods": {
+            "process": "connect_service_name"
+          },
+          "name": "CONNECT"
+        },
+        {
+          "data_type": "any",
+          "description": "Trigger to disconnect to network service.",
+          "methods": {
+            "process": "disconnect_service_name"
+          },
+          "name": "DISCONNECT"
+        },
+        {
+          "data_type": "string",
+          "description": "set network service name to use.",
+          "methods": {
+            "process": "set_service_name"
+          },
+          "name": "NAME"
+        }
+      ],
+      "methods": {
+        "open": "open_network_service",
+        "close": "close_network_service"
+      },
+      "name": "netctl/service",
+      "options": {
+        "members": [
+          {
+            "data_type": "string",
+            "default": null,
+            "description": "Refer to netctl/list-services on how to get the service name",
+            "name": "name"
+          }
+        ],
+        "version": 1
+      },
+      "out_ports": [
+        {
+          "data_type": "string",
+          "description": "Output network services connection status.",
+          "name": "OUT"
+        },
+        {
+          "data_type": "boolean",
+          "description": "Emits true if the device has a verified connection to the internet, false otherwise.",
+          "name": "ONLINE"
+        }
+      ],
+      "private_data_type": "network_service_data"
+    },
+    {
+      "category": "netctl",
+      "description": "Sets the global connection state to offline",
+      "in_ports": [
+        {
+          "data_type": "boolean",
+          "description": "turn on or off the radios",
+          "methods": {
+            "process": "enable_process"
+          },
+          "name": "ENABLED"
+        }
+      ],
+      "methods": {
+        "open": "open_network_radio",
+        "close": "close_network_radio"
+      },
+      "name": "netctl/radio-offline",
+      "out_ports": [
+        {
+          "data_type": "boolean",
+          "description": "the actual state of the radios. If true, radios are online",
+          "name": "OUT"
+        }
+      ]
+    }
+  ]
+}
