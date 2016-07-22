@@ -20,6 +20,7 @@
 
 #include <stdbool.h>
 #include <stdint.h>
+#include <string.h>
 #include <sol-network.h>
 #include <sol-buffer.h>
 #include <sol-vector.h>
@@ -520,6 +521,37 @@ const char *sol_netctl_service_state_to_str(enum sol_netctl_service_state state)
     SOL_ATTR_WARN_UNUSED_RESULT
 #endif
     ;
+
+/**
+ * @brief get so_netctl_service structure from serivce name.
+ *
+ * This function return sol_netctl_service structure by a string service name.
+ *
+ * @see sol_netctl_find_service_by_name.
+ *
+ * @param service_name Pointer to service name
+ *
+ * @return data structure of the sol_netctl_service.
+ */
+static inline struct sol_netctl_service *
+sol_netctl_find_service_by_name(const char *service_name)
+{
+    const struct sol_ptr_vector *service_list;
+    struct sol_netctl_service *service;
+    const char *name;
+    uint16_t i;
+
+    service_list = sol_netctl_get_services();
+    if (!service_list)
+        return NULL;
+
+    SOL_PTR_VECTOR_FOREACH_IDX (service_list, service, i) {
+        name = sol_netctl_service_get_name(service);
+        if (name && strcmp(name, service_name) == 0)
+            return service;
+    }
+    return NULL;
+}
 
 /**
  * @brief get so_netctl_service structure from serivce name.
