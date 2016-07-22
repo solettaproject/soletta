@@ -24,6 +24,7 @@
 #include <sol-vector.h>
 #include <sol-str-slice.h>
 #include <sol-buffer.h>
+#include <sol-util.h>
 
 #ifdef __cplusplus
 extern "C" {
@@ -234,31 +235,66 @@ static inline bool
 sol_network_link_addr_eq(const struct sol_network_link_addr *a,
     const struct sol_network_link_addr *b)
 {
-    const uint8_t *addr_a, *addr_b;
     size_t bytes;
 
-    if (a->family != b->family)
-        return false;
+    if (a->family == b->family) {
+        const uint8_t *addr_a, *addr_b;
 
-    if (a->family == SOL_NETWORK_FAMILY_INET) {
-        addr_a = a->addr.in;
-        addr_b = b->addr.in;
-        bytes = sizeof(a->addr.in);
-    } else if (a->family == SOL_NETWORK_FAMILY_INET6) {
-        addr_a = a->addr.in6;
-        addr_b = b->addr.in6;
-        bytes = sizeof(a->addr.in6);
-    } else if (a->family == SOL_NETWORK_FAMILY_BLUETOOTH) {
-        if (a->addr.bt_type != b->addr.bt_type)
+        if (a->family == SOL_NETWORK_FAMILY_INET) {
+            addr_a = a->addr.in;
+            addr_b = b->addr.in;
+            bytes = sizeof(a->addr.in);
+        } else if (a->family == SOL_NETWORK_FAMILY_INET6) {
+            addr_a = a->addr.in6;
+            addr_b = b->addr.in6;
+            bytes = sizeof(a->addr.in6);
+        } else if (a->family == SOL_NETWORK_FAMILY_BLUETOOTH) {
+            if (a->addr.bt_type != b->addr.bt_type)
+                return false;
+
+            addr_a = a->addr.bt_addr;
+            addr_b = b->addr.bt_addr;
+            bytes = sizeof(a->addr.bt_addr);
+        } else
             return false;
+        return !memcmp(addr_a, addr_b, bytes);
+    }
 
-        addr_a = a->addr.bt_addr;
-        addr_b = b->addr.bt_addr;
-        bytes = sizeof(a->addr.bt_addr);
-    } else
-        return false;
+    if ((a->family == SOL_NETWORK_FAMILY_INET &&
+         b->family == SOL_NETWORK_FAMILY_INET6) ||
+        (a->family == SOL_NETWORK_FAMILY_INET6 &&
+         b->family == SOL_NETWORK_FAMILY_INET)) {
 
-    return !memcmp(addr_a, addr_b, bytes);
+        struct ipv6_map_prefix {
+            const uint8_t zeroes[10];
+            const uint16_t ones;
+        } __attribute__ ((packed)) prefix = {
+            { 0 }, sol_util_be16_to_cpu(0xffff)
+        };
+        const uint8_t *addr_ipv6, *addr_ipv4;
+
+
+        if (a->family == SOL_NETWORK_FAMILY_INET6) {
+            addr_ipv6 = a->addr.in6;
+            addr_ipv4 = b->addr.in;
+        } else {
+            addr_ipv6 = b->addr.in6;
+            addr_ipv4 = a->addr.in;
+        }
+
+        bytes = sizeof(a->addr.in);
+
+        /**
+           An IPv6 is Mapped into v4 when:
+           * First 80 bits are zero
+           * The next 16 bits are 0xffff
+         */
+        if (!memcmp(addr_ipv6, &prefix, sizeof(struct ipv6_map_prefix)) &&
+            !memcmp(addr_ipv6 + 12, addr_ipv4, bytes))
+            return true;
+    }
+
+    return false;
 }
 
 /**
