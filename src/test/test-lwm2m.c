@@ -24,6 +24,8 @@
 #include "test.h"
 #include "sol-util.h"
 #include "sol-lwm2m.h"
+#include "sol-lwm2m-client.h"
+#include "sol-lwm2m-server.h"
 #include "sol-mainloop.h"
 #include "sol-coap.h"
 #include "sol-util.h"
