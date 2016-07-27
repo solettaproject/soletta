@@ -23,7 +23,7 @@
    with the lwm2m-sample-server.
  */
 
-#include "sol-lwm2m.h"
+#include "sol-lwm2m-bs-server.h"
 #include "sol-mainloop.h"
 #include "sol-vector.h"
 #include "sol-util.h"

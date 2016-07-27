@@ -140,7 +140,10 @@ obj-networking-$(MAVLINK)-extra-cflags += \
 	-Wno-declaration-after-statement
 
 obj-networking-$(LWM2M) += \
-	sol-lwm2m.o
+    sol-lwm2m-common.o \
+    sol-lwm2m-client.o \
+    sol-lwm2m-server.o \
+    sol-lwm2m-bs-server.o
 
 obj-bluetooth-$(BLUETOOTH) += \
 	sol-bluetooth.o
@@ -188,4 +191,7 @@ headers-$(MAVLINK) += \
 	include/sol-mavlink.h
 
 headers-$(LWM2M) += \
-    include/sol-lwm2m.h
+    include/sol-lwm2m.h \
+    include/sol-lwm2m-client.h \
+    include/sol-lwm2m-server.h \
+    include/sol-lwm2m-bs-server.h

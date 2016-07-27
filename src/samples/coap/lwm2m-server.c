@@ -23,7 +23,7 @@
    After that, it will observe the location object.
  */
 
-#include "sol-lwm2m.h"
+#include "sol-lwm2m-server.h"
 #include "sol-mainloop.h"
 #include "sol-vector.h"
 #include "sol-util.h"
