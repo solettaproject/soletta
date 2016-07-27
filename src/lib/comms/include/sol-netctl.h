@@ -552,6 +552,10 @@ sol_netctl_find_service_by_name(const char *service_name)
     return NULL;
 }
 
+/**
+ * @}
+ */
+
 #ifdef __cplusplus
 }
 #endif
