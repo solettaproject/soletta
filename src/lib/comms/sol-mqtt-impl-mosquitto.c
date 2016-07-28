@@ -419,7 +419,7 @@ sol_mqtt_connect(const struct sol_mqtt_config *config)
         goto error;
     }
 
-    mqtt->socket_watch = sol_fd_add(mqtt->socket_fd, SOL_FD_FLAGS_IN | SOL_FD_FLAGS_PRI,
+    mqtt->socket_watch = sol_fd_add(mqtt->socket_fd, SOL_FD_FLAGS_IN | SOL_FD_FLAGS_PRI | SOL_FD_FLAGS_OUT,
         sol_mqtt_event_loop, mqtt);
     SOL_NULL_CHECK_GOTO(mqtt->socket_watch, error);
 
