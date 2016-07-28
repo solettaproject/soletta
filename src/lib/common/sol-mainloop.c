@@ -129,6 +129,22 @@ sol_ipm_shutdown(void)
 }
 #endif
 
+#ifdef LWM2M
+extern int sol_lwm2m_common_init(void);
+extern void sol_lwm2m_common_shutdown(void);
+#else
+static inline int
+sol_lwm2m_common_init(void)
+{
+    return 0;
+}
+
+static inline void
+sol_lwm2m_common_shutdown(void)
+{
+}
+#endif
+
 static const struct sol_mainloop_implementation _sol_mainloop_implementation_default = {
     SOL_SET_API_VERSION(.api_version = SOL_MAINLOOP_IMPLEMENTATION_API_VERSION, )
     .init = sol_mainloop_impl_init,
@@ -218,12 +234,18 @@ sol_init(void)
     if (r < 0)
         goto ipm_error;
 
+    r = sol_lwm2m_common_init();
+    if (r < 0)
+        goto lwm2m_common_error;
+
     SOL_DBG("Soletta %s on %s-%s initialized",
         sol_platform_get_sw_version(), BASE_OS,
         sol_platform_get_os_version());
 
     return 0;
 
+lwm2m_common_error:
+    sol_ipm_shutdown();
 ipm_error:
     sol_update_shutdown();
 update_error:
@@ -301,6 +323,7 @@ sol_shutdown(void)
         return;
 
     SOL_DBG("shutdown");
+    sol_lwm2m_common_shutdown();
     sol_ipm_shutdown();
     sol_update_shutdown();
     sol_comms_shutdown();
