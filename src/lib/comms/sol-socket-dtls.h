@@ -40,7 +40,8 @@ struct sol_socket_dtls_credential_cb {
     int (*init)(const void *data);
     void (*clear)(void *creds);
 
-    ssize_t (*get_id)(const void *creds, char *id, size_t id_len);
+    ssize_t (*get_id)(const void *creds, struct sol_network_link_addr *addr,
+        char *id, size_t id_len);
     ssize_t (*get_psk)(const void *creds, struct sol_str_slice id,
         char *psk, size_t psk_len);
 };

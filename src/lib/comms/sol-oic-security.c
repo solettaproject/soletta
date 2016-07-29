@@ -96,7 +96,8 @@ creds_get_psk(const void *data, struct sol_str_slice id,
 }
 
 static ssize_t
-creds_get_id(const void *data, char *id, size_t id_len)
+creds_get_id(const void *data, struct sol_network_link_addr *addr,
+    char *id, size_t id_len)
 {
     const uint8_t *machine_id = sol_platform_get_machine_id_as_bytes();
     size_t len = SOL_DTLS_PSK_ID_LEN;
