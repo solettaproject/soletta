@@ -627,7 +627,9 @@ main(int argc, char *argv[])
     r = sol_init();
     ASSERT(!r);
 
-    server = sol_lwm2m_server_new(SOL_LWM2M_DEFAULT_SERVER_PORT);
+    server = sol_lwm2m_server_new(SOL_LWM2M_DEFAULT_SERVER_PORT_COAP,
+        SOL_LWM2M_DEFAULT_SERVER_PORT_DTLS,
+        SOL_LWM2M_SECURITY_MODE_NO_SEC, NULL);
     ASSERT(server != NULL);
 
     r = sol_lwm2m_server_add_registration_monitor(server, registration_event_cb,
