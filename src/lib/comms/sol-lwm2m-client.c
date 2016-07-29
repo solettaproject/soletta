@@ -170,6 +170,10 @@ obj_instance_clear(struct sol_lwm2m_client *client, struct obj_ctx *obj_ctx,
         if (!client->removed && res_ctx->res) {
             sol_coap_server_unregister_resource(client->coap_server,
                 res_ctx->res);
+
+            if (client->security)
+                sol_coap_server_unregister_resource(client->dtls_server,
+                    res_ctx->res);
         }
         free(res_ctx->res);
         free(res_ctx->str_id);
@@ -178,6 +182,10 @@ obj_instance_clear(struct sol_lwm2m_client *client, struct obj_ctx *obj_ctx,
     if (!client->removed && obj_instance->instance_res) {
         sol_coap_server_unregister_resource(client->coap_server,
             obj_instance->instance_res);
+
+        if (client->security)
+            sol_coap_server_unregister_resource(client->dtls_server,
+                obj_instance->instance_res);
     }
     free(obj_instance->instance_res);
     free(obj_instance->str_id);
@@ -265,6 +273,12 @@ setup_resources_ctx(struct sol_lwm2m_client *client, struct obj_ctx *obj_ctx,
             r = sol_coap_server_register_resource(client->coap_server,
                 res_ctx->res, client);
             SOL_INT_CHECK_GOTO(r, < 0, err_exit);
+
+            if (client->security) {
+                r = sol_coap_server_register_resource(client->dtls_server,
+                    res_ctx->res, client);
+                SOL_INT_CHECK(r, < 0, r);
+            }
         }
     }
 
@@ -275,6 +289,11 @@ err_exit:
         if (res_ctx->res) {
             sol_coap_server_unregister_resource(client->coap_server,
                 res_ctx->res);
+
+            if (client->security)
+                sol_coap_server_unregister_resource(client->dtls_server,
+                    res_ctx->res);
+
             free(res_ctx->res);
         }
         free(res_ctx->str_id);
@@ -324,6 +343,12 @@ setup_instance_resource(struct sol_lwm2m_client *client,
         r = sol_coap_server_register_resource(client->coap_server,
             obj_instance->instance_res, client);
         SOL_INT_CHECK_GOTO(r, < 0, err_register);
+
+        if (client->security) {
+            r = sol_coap_server_register_resource(client->dtls_server,
+                obj_instance->instance_res, client);
+            SOL_INT_CHECK(r, < 0, r);
+        }
     }
 
     r = setup_resources_ctx(client, obj_ctx, obj_instance, register_with_coap);
@@ -334,6 +359,10 @@ setup_instance_resource(struct sol_lwm2m_client *client,
 err_resources:
     sol_coap_server_unregister_resource(client->coap_server,
         obj_instance->instance_res);
+
+    if (client->security)
+        sol_coap_server_unregister_resource(client->dtls_server,
+            obj_instance->instance_res);
 err_register:
     free(obj_instance->instance_res);
     obj_instance->instance_res = NULL;
@@ -1154,8 +1183,7 @@ notification_cb(void *data, struct sol_coap_server *server,
 
     r = get_server_id_by_link_addr(&ctx->client->connections, addr, &server_id);
     SOL_INT_CHECK_GOTO(r, < 0, err_exit);
-
-    *pkt = sol_coap_packet_new_notification(ctx->client->coap_server, resource);
+    *pkt = sol_coap_packet_new_notification(server, resource);
     SOL_NULL_CHECK(*pkt, false);
 
     r = sol_coap_header_set_type(*pkt, SOL_COAP_MESSAGE_TYPE_CON);
@@ -1363,10 +1391,16 @@ handle_resource(void *data, struct sol_coap_server *server,
         goto exit;
     }
 
-    if (client->supports_access_control) {
-        r = get_server_id_by_link_addr(&client->connections, cliaddr, &server_id);
-        header_code = SOL_COAP_RESPONSE_CODE_INTERNAL_ERROR;
-        SOL_INT_CHECK_GOTO(r, < 0, exit);
+    r = get_server_id_by_link_addr(&client->connections, cliaddr, &server_id);
+    header_code = SOL_COAP_RESPONSE_CODE_INTERNAL_ERROR;
+    SOL_INT_CHECK_GOTO(r, < 0, exit);
+
+    if (path_size >= 1 && !client->is_bootstrapping &&
+        obj_ctx->obj->id == SECURITY_OBJECT_ID) {
+        SOL_WRN("Only the Bootstrap Server is allowed to access the Security Object."
+            " Server ID %" PRId64 " trying to access it", server_id);
+        header_code = SOL_COAP_RESPONSE_CODE_UNAUTHORIZED;
+        goto exit;
     }
 
     switch (method) {
@@ -1581,7 +1615,6 @@ sol_lwm2m_client_new(const char *name, const char *path, const char *sms,
 
         if (obj_ctx->obj->id == ACCESS_CONTROL_OBJECT_ID) {
             client->supports_access_control = true;
-            client->need_to_setup_access_control = true;
         }
     }
 
@@ -1596,12 +1629,28 @@ sol_lwm2m_client_new(const char *name, const char *path, const char *sms,
     client->coap_server = sol_coap_server_new(&servaddr, false);
     SOL_NULL_CHECK_GOTO(client->coap_server, err_coap);
 
+    client->dtls_server = sol_coap_server_new(&servaddr, true);
+    if (!client->dtls_server) {
+        if (errno == ENOSYS) {
+            SOL_INF("DTLS support not built in, LWM2M client"
+                " running only \"NoSec\" security mode");
+        } else {
+            SOL_WRN("DTLS server could not be created for LWM2M client: %s",
+                sol_util_strerrora(errno));
+            goto err_dtls;
+        }
+    }
+
     sol_monitors_init(&client->bootstrap, NULL);
+
+    client->first_time_starting = true;
 
     client->user_data = data;
 
     return client;
 
+err_dtls:
+    sol_coap_server_unref(client->coap_server);
 err_coap:
     free(client->sms);
 err_sms:
@@ -1683,6 +1732,12 @@ sol_lwm2m_client_del(struct sol_lwm2m_client *client)
 
     sol_coap_server_unref(client->coap_server);
 
+    if (client->dtls_server)
+        sol_coap_server_unref(client->dtls_server);
+
+    if (client->security)
+        sol_lwm2m_client_security_del(client->security);
+
     SOL_VECTOR_FOREACH_IDX (&client->objects, ctx, i)
         obj_ctx_clear(client, ctx);
 
@@ -1724,7 +1779,7 @@ sol_lwm2m_client_add_object_instance(struct sol_lwm2m_client *client,
     SOL_INT_CHECK_GOTO(r, < 0, err_exit);
 
     if (client->supports_access_control &&
-        ctx->obj->id != SECURITY_SERVER_OBJECT_ID &&
+        ctx->obj->id != SECURITY_OBJECT_ID &&
         ctx->obj->id != ACCESS_CONTROL_OBJECT_ID) {
         //Since this API is expected to be used only in Factory Bootstrap mode,
         // the owner of this Access Control Object Instance will be the
@@ -2014,7 +2069,8 @@ register_with_server(struct sol_lwm2m_client *client,
     SOL_DBG("Connecting with LWM2M server - binding '%.*s' -"
         "lifetime '%" PRId64 "'", SOL_STR_SLICE_PRINT(sol_str_slice_from_blob(binding)),
         conn_ctx->lifetime);
-    r = sol_coap_send_packet_with_reply(client->coap_server,
+    r = sol_coap_send_packet_with_reply(
+        conn_ctx->secure ? client->dtls_server : client->coap_server,
         pkt,
         sol_vector_get_no_check(&conn_ctx->server_addr_list,
         conn_ctx->addr_list_idx),
@@ -2095,7 +2151,7 @@ bootstrap_with_server(struct sol_lwm2m_client *client,
     ADD_QUERY("ep", "%s", client->name);
 
     SOL_DBG("Sending Bootstrap Request to LWM2M Bootstrap Server");
-    r = sol_coap_send_packet_with_reply(client->coap_server,
+    r = sol_coap_send_packet_with_reply(client->dtls_server,
         pkt,
         sol_vector_get_no_check(&conn_ctx->server_addr_list,
         conn_ctx->addr_list_idx), bootstrap_request_reply, conn_ctx);
@@ -2144,7 +2200,7 @@ err_exit:
 
 static struct server_conn_ctx *
 server_connection_ctx_new(struct sol_lwm2m_client *client,
-    const struct sol_str_slice str_addr, int64_t server_id)
+    const struct sol_str_slice str_addr, int64_t server_id, bool secure)
 {
     struct server_conn_ctx *conn_ctx;
     struct sol_http_url uri;
@@ -2153,6 +2209,14 @@ server_connection_ctx_new(struct sol_lwm2m_client *client,
     r = sol_http_split_uri(str_addr, &uri);
     SOL_INT_CHECK(r, < 0, NULL);
 
+    SOL_NULL_CHECK(&uri.scheme, NULL);
+    if (sol_str_slice_str_case_eq(uri.scheme, "coaps"))
+        SOL_EXP_CHECK(!secure, NULL);
+    else if (sol_str_slice_str_case_eq(uri.scheme, "coap"))
+        SOL_EXP_CHECK(secure, NULL);
+    else
+        return NULL;
+
     conn_ctx = calloc(1, sizeof(struct server_conn_ctx));
     SOL_NULL_CHECK(conn_ctx, NULL);
 
@@ -2160,11 +2224,15 @@ server_connection_ctx_new(struct sol_lwm2m_client *client,
     SOL_INT_CHECK_GOTO(r, < 0, err_append);
     conn_ctx->client = client;
     conn_ctx->server_id = server_id;
+    conn_ctx->secure = secure;
     sol_vector_init(&conn_ctx->server_addr_list,
         sizeof(struct sol_network_link_addr));
 
     if (!uri.port)
-        conn_ctx->port = SOL_LWM2M_DEFAULT_SERVER_PORT;
+        if (secure)
+            conn_ctx->port = SOL_LWM2M_DEFAULT_SERVER_PORT_DTLS;
+        else
+            conn_ctx->port = SOL_LWM2M_DEFAULT_SERVER_PORT_COAP;
     else
         conn_ctx->port = uri.port;
 
@@ -2283,16 +2351,16 @@ client_bootstrap(void *data)
     //Try client-initiated bootstrap:
     conn_ctx = server_connection_ctx_new(client,
         sol_str_slice_from_blob(client->bootstrap_ctx.server_uri),
-        DEFAULT_SHORT_SERVER_ID);
+        DEFAULT_SHORT_SERVER_ID, true);
 
     if (!conn_ctx) {
         SOL_WRN("Could not perform Client-initiated Bootstrap with server %.*s",
             SOL_STR_SLICE_PRINT(sol_str_slice_from_blob(client->bootstrap_ctx.server_uri)));
 
-        if (sol_coap_server_set_unknown_resource_handler(client->coap_server,
+        if (sol_coap_server_set_unknown_resource_handler(client->dtls_server,
             NULL, client) < 0)
             SOL_WRN("Could not unregister Bootstrap Unknown resource for client.");
-        if (sol_coap_server_unregister_resource(client->coap_server,
+        if (sol_coap_server_unregister_resource(client->dtls_server,
             &bootstrap_finish_interface) < 0)
             SOL_WRN("Could not unregister Bootstrap Finish resource for client.");
     }
@@ -2323,7 +2391,7 @@ setup_access_control_object_instance_for_instance(
     // Access Control Object Instances, and Security Object Instances
     // can only be managed by Bootstrap Servers, so there's no sense in
     // creating Access Control Object Instances or ACLs for them
-    if (target_object_id == SECURITY_SERVER_OBJECT_ID ||
+    if (target_object_id == SECURITY_OBJECT_ID ||
         target_object_id == ACCESS_CONTROL_OBJECT_ID) {
         return 0;
     }
@@ -2439,7 +2507,7 @@ setup_access_control_object_instances(struct sol_lwm2m_client *client)
     SOL_VECTOR_FOREACH_IDX (&client->objects, obj_ctx, i) {
         //No one is allowed to 'C'reate Security Objects, Server Objects,
         // and Access Control Objects
-        if (obj_ctx->obj->id != SECURITY_SERVER_OBJECT_ID &&
+        if (obj_ctx->obj->id != SECURITY_OBJECT_ID &&
             obj_ctx->obj->id != SERVER_OBJECT_ID &&
             obj_ctx->obj->id != ACCESS_CONTROL_OBJECT_ID) {
             SOL_SET_API_VERSION(res.api_version = SOL_LWM2M_RESOURCE_API_VERSION; )
@@ -2495,15 +2563,20 @@ sol_lwm2m_client_start(struct sol_lwm2m_client *client)
 
     SOL_NULL_CHECK(client, -EINVAL);
 
-    if (client->supports_access_control &&
-        client->need_to_setup_access_control) {
-        r = setup_access_control_object_instances(client);
-        SOL_INT_CHECK_GOTO(r, < 0, err_access_control);
-
-        client->need_to_setup_access_control = false;
+    if (!client->first_time_starting && client->security) {
+        sol_lwm2m_client_security_del(client->security);
+        client->security = NULL;
     }
 
-    ctx = find_object_ctx_by_id(client, SECURITY_SERVER_OBJECT_ID);
+    if (client->supports_access_control &&
+        client->first_time_starting) {
+        r = setup_access_control_object_instances(client);
+        SOL_INT_CHECK_GOTO(r, < 0, err_access_control);
+    }
+
+    client->first_time_starting = false;
+
+    ctx = find_object_ctx_by_id(client, SECURITY_OBJECT_ID);
     if (!ctx) {
         SOL_WRN("LWM2M Security object not provided!");
         return -ENOENT;
@@ -2516,10 +2589,48 @@ sol_lwm2m_client_start(struct sol_lwm2m_client *client)
 
     //Try to register with all available [non-bootstrap] servers
     SOL_VECTOR_FOREACH_IDX (&ctx->instances, instance, i) {
+        bool secure = true;
+        //Setup DTLS parameters
         r = read_resources(client, ctx, instance, res, 1,
-            SECURITY_SERVER_IS_BOOTSTRAP);
+            SECURITY_SECURITY_MODE);
         SOL_INT_CHECK_GOTO(r, < 0, err_exit);
 
+        switch (res[0].data[0].content.integer) {
+        case SOL_LWM2M_SECURITY_MODE_PRE_SHARED_KEY:
+            client->security = sol_lwm2m_client_security_add(client,
+                SOL_LWM2M_SECURITY_MODE_PRE_SHARED_KEY);
+            if (!client->security) {
+                r = -errno;
+                SOL_ERR("Could not enable Pre-Shared Key security mode for LWM2M client");
+                goto err_clear_1;
+            } else {
+                SOL_DBG("Using Pre-Shared Key security mode");
+            }
+            break;
+        case SOL_LWM2M_SECURITY_MODE_RAW_PUBLIC_KEY:
+            SOL_WRN("Raw Public Key security mode is not supported yet.");
+            r = -ENOTSUP;
+            goto err_clear_1;
+        case SOL_LWM2M_SECURITY_MODE_CERTIFICATE:
+            SOL_WRN("Certificate security mode is not supported yet.");
+            r = -ENOTSUP;
+            goto err_clear_1;
+        case SOL_LWM2M_SECURITY_MODE_NO_SEC:
+            secure = false;
+            SOL_DBG("Using NoSec Security Mode (No DTLS).");
+            break;
+        default:
+            SOL_WRN("Unknown DTLS [Security Mode] Resource from Security Object: %"
+                PRId64, res[0].data[0].content.integer);
+            r = -EINVAL;
+            goto err_clear_1;
+        }
+
+        sol_lwm2m_resource_clear(&res[0]);
+
+        r = read_resources(client, ctx, instance, res, 1,
+            SECURITY_IS_BOOTSTRAP);
+        SOL_INT_CHECK_GOTO(r, < 0, err_exit);
         //Is it a bootstap?
         if (!res[0].data[0].content.b) {
             sol_lwm2m_resource_clear(&res[0]);
@@ -2528,7 +2639,7 @@ sol_lwm2m_client_start(struct sol_lwm2m_client *client)
             SOL_INT_CHECK_GOTO(r, < 0, err_exit);
 
             conn_ctx = server_connection_ctx_new(client, sol_str_slice_from_blob(res[0].data[0].content.blob),
-                res[1].data[0].content.integer);
+                res[1].data[0].content.integer, secure);
             r = -ENOMEM;
             SOL_NULL_CHECK_GOTO(conn_ctx, err_clear_2);
             has_server = true;
@@ -2549,16 +2660,16 @@ sol_lwm2m_client_start(struct sol_lwm2m_client *client)
 
         r = read_resources(client, ctx,
             sol_vector_get_no_check(&ctx->instances, bootstrap_account_idx), res, 3,
-            SECURITY_SERVER_URI, SECURITY_SERVER_CLIENT_HOLD_OFF_TIME,
-            SECURITY_SERVER_BOOTSTRAP_SERVER_ACCOUNT_TIMEOUT);
+            SECURITY_SERVER_URI, SECURITY_CLIENT_HOLD_OFF_TIME,
+            SECURITY_BOOTSTRAP_SERVER_ACCOUNT_TIMEOUT);
 
         //Create '/bs' CoAP resource to receive Bootstrap Finish notification
-        r = sol_coap_server_register_resource(client->coap_server,
+        r = sol_coap_server_register_resource(client->dtls_server,
             &bootstrap_finish_interface, client);
         SOL_INT_CHECK_GOTO(r, < 0, err_clear_3);
 
         //Create unknown CoAP resource to handle Bootstrap Write and Bootstrap Delete
-        r = sol_coap_server_set_unknown_resource_handler(client->coap_server,
+        r = sol_coap_server_set_unknown_resource_handler(client->dtls_server,
             &handle_unknown_bootstrap_resource, client);
         SOL_INT_CHECK_GOTO(r, < 0, err_unregister_bs);
 
@@ -2583,15 +2694,33 @@ sol_lwm2m_client_start(struct sol_lwm2m_client *client)
             ctx->obj_res, client);
         SOL_INT_CHECK(r, < 0, r);
 
+        if (client->security) {
+            r = sol_coap_server_register_resource(client->dtls_server,
+                ctx->obj_res, client);
+            SOL_INT_CHECK(r, < 0, r);
+        }
+
         SOL_VECTOR_FOREACH_IDX (&ctx->instances, instance, j) {
             r = sol_coap_server_register_resource(client->coap_server,
                 instance->instance_res, client);
             SOL_INT_CHECK(r, < 0, r);
 
+            if (client->security) {
+                r = sol_coap_server_register_resource(client->dtls_server,
+                    instance->instance_res, client);
+                SOL_INT_CHECK(r, < 0, r);
+            }
+
             SOL_VECTOR_FOREACH_IDX (&instance->resources_ctx, res_ctx, k) {
                 r = sol_coap_server_register_resource(client->coap_server,
                     res_ctx->res, client);
                 SOL_INT_CHECK(r, < 0, r);
+
+                if (client->security) {
+                    r = sol_coap_server_register_resource(client->dtls_server,
+                        res_ctx->res, client);
+                    SOL_INT_CHECK(r, < 0, r);
+                }
             }
         }
     }
@@ -2609,15 +2738,16 @@ err_access_control:
         sol_vector_clear(&ctx->instances);
     }
 err_unregister_unknown:
-    if (sol_coap_server_set_unknown_resource_handler(client->coap_server, NULL, client) < 0)
+    if (sol_coap_server_set_unknown_resource_handler(client->dtls_server, NULL, client) < 0)
         SOL_WRN("Could not unregister Bootstrap Unknown resource for client.");
 err_unregister_bs:
-    if (sol_coap_server_unregister_resource(client->coap_server, &bootstrap_finish_interface) < 0)
+    if (sol_coap_server_unregister_resource(client->dtls_server, &bootstrap_finish_interface) < 0)
         SOL_WRN("Could not unregister Bootstrap Finish resource for client.");
 err_clear_3:
     sol_lwm2m_resource_clear(&res[2]);
 err_clear_2:
     sol_lwm2m_resource_clear(&res[1]);
+err_clear_1:
     sol_lwm2m_resource_clear(&res[0]);
 err_exit:
     return r;
@@ -2632,7 +2762,8 @@ send_client_delete_request(struct sol_lwm2m_client *client,
 
     //Did not receive reply yet.
     if (!conn_ctx->location) {
-        r = sol_coap_cancel_send_packet(client->coap_server,
+        r = sol_coap_cancel_send_packet(
+            conn_ctx->secure ? client->dtls_server : client->coap_server,
             conn_ctx->pending_pkt,
             sol_vector_get_no_check(&conn_ctx->server_addr_list,
             conn_ctx->addr_list_idx));
@@ -2652,7 +2783,8 @@ send_client_delete_request(struct sol_lwm2m_client *client,
         conn_ctx->location, strlen(conn_ctx->location));
     SOL_INT_CHECK_GOTO(r, < 0, err_exit);
 
-    return sol_coap_send_packet(client->coap_server, pkt,
+    return sol_coap_send_packet(
+        conn_ctx->secure ? client->dtls_server : client->coap_server, pkt,
         sol_vector_get_no_check(&conn_ctx->server_addr_list,
         conn_ctx->addr_list_idx));
 
@@ -2681,7 +2813,8 @@ sol_lwm2m_client_stop(struct sol_lwm2m_client *client)
         }
 
         if (conn_ctx->pending_pkt) {
-            r = sol_coap_cancel_send_packet(client->coap_server,
+            r = sol_coap_cancel_send_packet(
+                conn_ctx->secure ? client->dtls_server : client->coap_server,
                 conn_ctx->pending_pkt,
                 sol_vector_get_no_check(&conn_ctx->server_addr_list,
                 conn_ctx->addr_list_idx));
@@ -2697,15 +2830,33 @@ sol_lwm2m_client_stop(struct sol_lwm2m_client *client)
                 ctx->obj_res);
             SOL_INT_CHECK(r, < 0, r);
 
+            if (client->security) {
+                r = sol_coap_server_unregister_resource(client->dtls_server,
+                    ctx->obj_res);
+                SOL_INT_CHECK(r, < 0, r);
+            }
+
             SOL_VECTOR_FOREACH_IDX (&ctx->instances, instance, j) {
                 r = sol_coap_server_unregister_resource(client->coap_server,
                     instance->instance_res);
                 SOL_INT_CHECK(r, < 0, r);
 
+                if (client->security) {
+                    r = sol_coap_server_unregister_resource(client->dtls_server,
+                        instance->instance_res);
+                    SOL_INT_CHECK(r, < 0, r);
+                }
+
                 SOL_VECTOR_FOREACH_IDX (&instance->resources_ctx, res_ctx, k) {
                     r = sol_coap_server_unregister_resource(client->coap_server,
                         res_ctx->res);
                     SOL_INT_CHECK(r, < 0, r);
+
+                    if (client->security) {
+                        r = sol_coap_server_unregister_resource(client->dtls_server,
+                            res_ctx->res);
+                        SOL_INT_CHECK(r, < 0, r);
+                    }
                 }
             }
         }
@@ -2816,6 +2967,12 @@ sol_lwm2m_client_notify(struct sol_lwm2m_client *client, const char **paths)
                 notification_cb, &ctx);
             SOL_INT_CHECK_GOTO(r, < 0, err_exit);
 
+            if (client->security) {
+                r = sol_coap_notify_by_callback(client->dtls_server, obj_ctx->obj_res,
+                    notification_cb, &ctx);
+                SOL_INT_CHECK_GOTO(r, < 0, err_exit);
+            }
+
             r = sol_ptr_vector_append(&already_sent, obj_ctx);
             SOL_INT_CHECK_GOTO(r, < 0, err_exit);
         }
@@ -2826,6 +2983,12 @@ sol_lwm2m_client_notify(struct sol_lwm2m_client *client, const char **paths)
                 notification_cb, &ctx);
             SOL_INT_CHECK_GOTO(r, < 0, err_exit);
 
+            if (client->security) {
+                r = sol_coap_notify_by_callback(client->dtls_server, obj_instance->instance_res,
+                    notification_cb, &ctx);
+                SOL_INT_CHECK_GOTO(r, < 0, err_exit);
+            }
+
             r = sol_ptr_vector_append(&already_sent, obj_instance);
             SOL_INT_CHECK_GOTO(r, < 0, err_exit);
         }
@@ -2834,6 +2997,12 @@ sol_lwm2m_client_notify(struct sol_lwm2m_client *client, const char **paths)
         r = sol_coap_notify_by_callback(client->coap_server, res_ctx->res,
             notification_cb, &ctx);
         SOL_INT_CHECK_GOTO(r, < 0, err_exit);
+
+        if (client->security) {
+            r = sol_coap_notify_by_callback(client->dtls_server, res_ctx->res,
+                notification_cb, &ctx);
+            SOL_INT_CHECK_GOTO(r, < 0, err_exit);
+        }
     }
 
     sol_ptr_vector_clear(&already_sent);
