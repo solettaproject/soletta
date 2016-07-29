@@ -41,13 +41,6 @@
 
 SOL_LOG_INTERNAL_DECLARE_STATIC(_lwm2m_bs_server_domain, "lwm2m-bs-server");
 
-struct sol_lwm2m_bootstrap_server {
-    struct sol_coap_server *coap;
-    struct sol_ptr_vector clients;
-    struct sol_monitors bootstrap;
-    const char **known_clients;
-};
-
 struct sol_lwm2m_bootstrap_client_info {
     char *name;
     struct sol_network_link_addr cliaddr;

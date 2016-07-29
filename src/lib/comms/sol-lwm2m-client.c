@@ -64,57 +64,6 @@ struct resource_ctx {
     uint16_t id;
 };
 
-struct obj_instance {
-    uint16_t id;
-    bool should_delete;
-    char *str_id;
-    const void *data;
-    struct sol_vector resources_ctx;
-    struct sol_coap_resource *instance_res;
-};
-
-struct obj_ctx {
-    const struct sol_lwm2m_object *obj;
-    char *str_id;
-    struct sol_vector instances;
-    struct sol_coap_resource *obj_res;
-};
-
-struct sol_lwm2m_client {
-    struct sol_coap_server *coap_server;
-    struct lifetime_ctx lifetime_ctx;
-    struct sol_ptr_vector connections;
-    struct sol_vector objects;
-    struct sol_monitors bootstrap;
-    struct {
-        struct sol_timeout *timeout;
-        struct sol_blob *server_uri;
-    } bootstrap_ctx;
-    const void *user_data;
-    uint16_t splitted_path_len;
-    char *name;
-    char **splitted_path;
-    char *sms;
-    bool running;
-    bool removed;
-    bool is_bootstrapping;
-    bool supports_access_control;
-    bool need_to_setup_access_control;
-};
-
-struct server_conn_ctx {
-    struct sol_network_hostname_pending *hostname_handle;
-    struct sol_lwm2m_client *client;
-    struct sol_vector server_addr_list;
-    struct sol_coap_packet *pending_pkt; //Pending registration or bootstrap reply
-    int64_t server_id;
-    int64_t lifetime;
-    uint16_t port;
-    uint16_t addr_list_idx;
-    time_t registration_time;
-    char *location;
-};
-
 static bool lifetime_client_timeout(void *data);
 static int register_with_server(struct sol_lwm2m_client *client,
     struct server_conn_ctx *conn_ctx, bool is_update);
@@ -129,10 +78,6 @@ static int setup_access_control_object_instance_for_instance(
     struct sol_lwm2m_resource *acl_res, bool register_with_coap);
 static int setup_access_control_object_instances(
     struct sol_lwm2m_client *client);
-static int
-read_resources(struct sol_lwm2m_client *client,
-    struct obj_ctx *obj_ctx, struct obj_instance *instance,
-    struct sol_lwm2m_resource *res, size_t res_len, ...);
 
 static void
 dispatch_bootstrap_event_to_client(struct sol_lwm2m_client *client,
@@ -197,20 +142,6 @@ extract_path(struct sol_lwm2m_client *client, struct sol_coap_packet *req,
 
     *path_size = j;
     return 0;
-}
-
-static struct obj_ctx *
-find_object_ctx_by_id(struct sol_lwm2m_client *client, uint16_t id)
-{
-    uint16_t i;
-    struct obj_ctx *ctx;
-
-    SOL_VECTOR_FOREACH_IDX (&client->objects, ctx, i) {
-        if (ctx->obj->id == id)
-            return ctx;
-    }
-
-    return NULL;
 }
 
 static struct obj_instance *
@@ -420,15 +351,6 @@ clear_bootstrap_ctx(struct sol_lwm2m_client *client)
         client->bootstrap_ctx.timeout = NULL;
         client->bootstrap_ctx.server_uri = NULL;
     }
-}
-
-static void
-clear_resource_array(struct sol_lwm2m_resource *array, uint16_t len)
-{
-    uint16_t i;
-
-    for (i = 0; i < len; i++)
-        sol_lwm2m_resource_clear(&array[i]);
 }
 
 /* Returns 1 if authorized; 0 if unauthorized and < 0 if error */
@@ -1192,25 +1114,6 @@ err_exit:
 }
 
 static int
-get_server_id_by_link_addr(const struct sol_ptr_vector *connections,
-    const struct sol_network_link_addr *cliaddr, int64_t *server_id)
-{
-    struct server_conn_ctx *conn_ctx;
-    struct sol_network_link_addr *server_addr;
-    uint16_t i;
-
-    SOL_PTR_VECTOR_FOREACH_IDX (connections, conn_ctx, i) {
-        server_addr = sol_vector_get_no_check(&conn_ctx->server_addr_list, conn_ctx->addr_list_idx);
-        if (sol_network_link_addr_eq(cliaddr, server_addr)) {
-            *server_id = conn_ctx->server_id;
-            return 0;
-        }
-    }
-
-    return -ENOENT;
-}
-
-static int
 notification_cb(void *data, struct sol_coap_server *server,
     struct sol_coap_resource *resource, struct sol_network_link_addr *addr,
     struct sol_coap_packet **pkt)
@@ -1815,48 +1718,6 @@ sol_lwm2m_client_add_object_instance(struct sol_lwm2m_client *client,
 
 err_exit:
     sol_vector_del_element(&ctx->instances, instance);
-    return r;
-}
-
-static int
-read_resources(struct sol_lwm2m_client *client,
-    struct obj_ctx *obj_ctx, struct obj_instance *instance,
-    struct sol_lwm2m_resource *res, size_t res_len, ...)
-{
-    size_t i;
-    int r = 0;
-    va_list ap;
-
-    SOL_NULL_CHECK(obj_ctx->obj->read, -ENOTSUP);
-
-    va_start(ap, res_len);
-
-    // The va_list contains the resources IDs that should be read.
-    for (i = 0; i < res_len; i++) {
-        r = obj_ctx->obj->read((void *)instance->data,
-            (void *)client->user_data, client, instance->id,
-            (uint16_t)va_arg(ap, int), &res[i]);
-
-        if (r == -ENOENT) {
-            res[i].data_len = 0;
-            res[i].data = NULL;
-            continue;
-        }
-
-        LWM2M_RESOURCE_CHECK_API_GOTO(res[i], err_exit_api);
-        SOL_INT_CHECK_GOTO(r, < 0, err_exit);
-    }
-
-    va_end(ap);
-    return 0;
-
-#ifndef SOL_NO_API_VERSION
-err_exit_api:
-    r = -EINVAL;
-#endif
-err_exit:
-    clear_resource_array(res, i);
-    va_end(ap);
     return r;
 }
 

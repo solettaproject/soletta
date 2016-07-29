@@ -145,6 +145,87 @@ struct sol_lwm2m_client_object {
     uint16_t id;
 };
 
+struct server_conn_ctx {
+    struct sol_network_hostname_pending *hostname_handle;
+    struct sol_lwm2m_client *client;
+    struct sol_vector server_addr_list;
+    struct sol_coap_packet *pending_pkt; //Pending registration or bootstrap reply
+    int64_t server_id;
+    int64_t lifetime;
+    uint16_t port;
+    uint16_t addr_list_idx;
+    time_t registration_time;
+    char *location;
+};
+
+struct obj_instance {
+    uint16_t id;
+    bool should_delete;
+    char *str_id;
+    const void *data;
+    struct sol_vector resources_ctx;
+    struct sol_coap_resource *instance_res;
+};
+
+struct obj_ctx {
+    const struct sol_lwm2m_object *obj;
+    char *str_id;
+    struct sol_vector instances;
+    struct sol_coap_resource *obj_res;
+};
+
+struct sol_lwm2m_client {
+    struct sol_coap_server *coap_server;
+    struct lifetime_ctx lifetime_ctx;
+    struct sol_ptr_vector connections;
+    struct sol_vector objects;
+    struct sol_monitors bootstrap;
+    struct {
+        struct sol_timeout *timeout;
+        struct sol_blob *server_uri;
+    } bootstrap_ctx;
+    const void *user_data;
+    uint16_t splitted_path_len;
+    char *name;
+    char **splitted_path;
+    char *sms;
+    bool running;
+    bool removed;
+    bool is_bootstrapping;
+    bool supports_access_control;
+    bool need_to_setup_access_control;
+};
+
+struct sol_lwm2m_server {
+    struct sol_coap_server *coap;
+    struct sol_ptr_vector clients;
+    struct sol_ptr_vector clients_to_delete;
+    struct sol_monitors registration;
+    struct sol_ptr_vector observers;
+    struct lifetime_ctx lifetime_ctx;
+};
+
+struct sol_lwm2m_bootstrap_server {
+    struct sol_coap_server *coap;
+    struct sol_ptr_vector clients;
+    struct sol_monitors bootstrap;
+    const char **known_clients;
+};
+
+int
+read_resources(struct sol_lwm2m_client *client,
+    struct obj_ctx *obj_ctx, struct obj_instance *instance,
+    struct sol_lwm2m_resource *res, size_t res_len, ...);
+
+struct obj_ctx *
+find_object_ctx_by_id(struct sol_lwm2m_client *client, uint16_t id);
+
+void
+clear_resource_array(struct sol_lwm2m_resource *array, uint16_t len);
+
+int get_server_id_by_link_addr(const struct sol_ptr_vector *connections,
+    const struct sol_network_link_addr *cliaddr, int64_t *server_id);
+
 void
 send_ack_if_needed(struct sol_coap_server *coap, struct sol_coap_packet *msg,
     const struct sol_network_link_addr *cliaddr);
