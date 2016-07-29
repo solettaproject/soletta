@@ -276,7 +276,7 @@ init_dtls_if_needed(void)
 
 /* Called whenever the wrapped socket can be read. This receives a packet
  * from that socket, and passes to TinyDTLS. When it's done decrypting
- * the payload, dtls_handle_message() will call sol_dtls_read(), which
+ * the payload, dtls_handle_message() will call call_user_read_cb(), which
  * in turn will call the user callback with the decrypted data. */
 static bool
 read_encrypted(void *data, struct sol_socket *wrapped)
@@ -348,10 +348,10 @@ no_item:
 }
 
 /* Called whenever the wrapped socket can be written to. This gets the
- * unencrypted data previously set with sol_socket_sendmsg() and cached in
+ * unencrypted data previously set with sol_socket_dtls_sendmsg() and cached in
  * the sol_socket_dtls struct, passes through TinyDTLS, and when it's done
- * encrypting the payload, it calls sol_socket_sendmsg() to finally pass it
- * to the wire.  */
+ * encrypting the payload, it calls write_encrypted() to finally pass it to
+ * the wire through sol_socket_sendmsg().  */
 static bool
 encrypt_payload(struct sol_socket_dtls *s)
 {
@@ -610,12 +610,19 @@ get_psk_info(struct dtls_context_t *ctx, const session_t *session,
     }
 
     if (type == DTLS_PSK_IDENTITY || type == DTLS_PSK_HINT) {
+        struct sol_network_link_addr addr;
+
         SOL_DBG("Server asked for PSK %s with %zu bytes, have %d",
             type == DTLS_PSK_IDENTITY ? "identity" : "hint",
             result_len, SOL_DTLS_PSK_ID_LEN);
 
-        len = socket->credentials->get_id(socket->credentials->data, result,
-            result_len);
+        if (from_sockaddr(&session->addr.sa, session->size, &addr) < 0) {
+            SOL_DBG("Could not get link address from session");
+            return -EINVAL;
+        }
+
+        len = socket->credentials->get_id(socket->credentials->data, &addr,
+            result, result_len);
         if (len != SOL_DTLS_PSK_ID_LEN) {
             SOL_DBG("Not enough space to write key ID");
             r = dtls_alert_fatal_create(DTLS_ALERT_INTERNAL_ERROR);
