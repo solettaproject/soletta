@@ -46,15 +46,17 @@ extern "C" {
  * @brief Routines that handle the LWM2M protocol.
  *
  * Supported features:
+ * - Bootstrap interface.
  * - Registration interface.
  * - Management interface.
  * - Observation interface.
  * - TLV format.
+ * - Data Access Control.
+ * - CoAP Data Encryption.
  *
  * Unsupported features for now:
  * - LWM2M JSON.
  * - Queue Mode operation (only 'U' is supported for now).
- * - Data encryption.
  *
  * @warning Experimental API. Changes are expected in future releases.
  *
@@ -131,6 +133,41 @@ enum sol_lwm2m_binding_mode {
      * It was not possible to determine the client binding.
      */
     SOL_LWM2M_BINDING_MODE_UNKNOWN = -1,
+};
+
+/**
+ * @brief Enum that represents the UDP Security Mode.
+ *
+ * @note Only Pre-Shared Key and NoSec modes are currently supported.
+ */
+enum sol_lwm2m_security_mode {
+    /**
+     * Pre-Shared Key security mode with Cipher Suite TLS_PSK_WITH_AES_128_CCM_8
+     * In this case, the following Resource IDs have to be filled as well:
+     * /3 "Public Key or Identity":    PSK Identity [16 bytes; UTF-8 String];
+     * /5 "Secret Key":                PSK [128-bit AES Key; 16 Opaque bytes];
+     */
+    SOL_LWM2M_SECURITY_MODE_PRE_SHARED_KEY = 0,
+    /**
+     * Raw Public Key security mode with Cipher Suite TLS_ECDHE_ECDSA_WITH_AES_128_CCM_8
+     * In this case, the following Resource IDs have to be filled as well:
+     * /3 "Public Key or Identity":                    Client's Raw Public Key [256-bit ECC key; 32 Opaque bytes];
+     * /4 "Server Public Key or Identity Resource":    [Expected] Server's Raw Public Key [256-bit ECC key; 32 Opaque bytes];
+     * /5 "Secret Key":                                Client's Private Key [256-bit ECC key; 32 Opaque bytes];
+     */
+    SOL_LWM2M_SECURITY_MODE_RAW_PUBLIC_KEY = 1,
+    /**
+     * Certificate security mode with Cipher Suite TLS_ECDHE_ECDSA_WITH_AES_128_CCM_8
+     * In this case, the following Resource IDs have to be filled as well:
+     * /3 "Public Key or Identity":                    X.509v3 Certificate [Opaque];
+     * /4 "Server Public Key or Identity Resource":    [Expected] Server's X.509v3 Certificate [Opaque];
+     * /5 "Secret Key":                                Client's Private Key [256-bit ECC key; 32 Opaque bytes];
+     */
+    SOL_LWM2M_SECURITY_MODE_CERTIFICATE = 2,
+    /**
+     * No security ("NoSec") mode (CoAP without DTLS)
+     */
+    SOL_LWM2M_SECURITY_MODE_NO_SEC = 3
 };
 
 /**
