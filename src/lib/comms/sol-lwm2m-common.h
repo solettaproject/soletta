@@ -217,6 +217,8 @@ struct sol_lwm2m_bootstrap_server {
     struct sol_coap_server *coap;
     struct sol_ptr_vector clients;
     struct sol_monitors bootstrap;
+    struct sol_lwm2m_security *security;
+    struct sol_vector *known_psks;
     const char **known_clients;
 };
 

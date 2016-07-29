@@ -60,10 +60,13 @@ typedef struct sol_lwm2m_bootstrap_client_info sol_lwm2m_bootstrap_client_info;
  *
  * @param port The UDP port to be used.
  * @param known_clients An array with the name of all clients this server has Bootstrap Information for.
+ * @param sec_mode The DTLS Security Mode to be used.
+ * @param known_psks The Clients' Pre-Shared Keys this Bootstrap Server has previous knowledge of.
  * @return The LWM2M bootstrap server or @c NULL on error.
  */
 struct sol_lwm2m_bootstrap_server *sol_lwm2m_bootstrap_server_new(uint16_t port,
-    const char **known_clients);
+    const char **known_clients, enum sol_lwm2m_security_mode sec_mode,
+    struct sol_vector *known_psks);
 
 /**
  * @brief Adds a bootstrap request monitor to the server.
