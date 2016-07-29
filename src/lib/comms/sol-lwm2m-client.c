@@ -30,6 +30,7 @@
 #include "sol-lwm2m.h"
 #include "sol-lwm2m-common.h"
 #include "sol-lwm2m-client.h"
+#include "sol-lwm2m-security.h"
 #include "sol-macros.h"
 #include "sol-mainloop.h"
 #include "sol-monitors.h"
