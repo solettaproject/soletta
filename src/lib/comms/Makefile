@@ -143,7 +143,8 @@ obj-networking-$(LWM2M) += \
     sol-lwm2m-common.o \
     sol-lwm2m-client.o \
     sol-lwm2m-server.o \
-    sol-lwm2m-bs-server.o
+    sol-lwm2m-bs-server.o \
+    sol-lwm2m-security.o
 
 obj-bluetooth-$(BLUETOOTH) += \
 	sol-bluetooth.o

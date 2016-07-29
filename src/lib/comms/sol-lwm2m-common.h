@@ -19,6 +19,7 @@
 #pragma once
 
 #include "sol-lwm2m.h"
+#include "sol-lwm2m-security.h"
 #include "sol-monitors.h"
 
 #define LWM2M_BOOTSTRAP_QUERY_PARAMS (1)
