@@ -17,7 +17,7 @@
  */
 
 /*
-   To run: ./lwm2m-sample-server
+   To run: ./lwm2m-sample-server [-c PORT] [-d PORT] [-s SEC_MODE]
    For every LWM2M client that connects with the server, the server will
    try to create an LWM2M location object if it does not exist.
    After that, it will observe the location object.
@@ -31,6 +31,7 @@
 #include <stdio.h>
 #include <stdbool.h>
 #include <errno.h>
+#include <unistd.h>
 
 #define LOCATION_OBJ_ID (6)
 #define LONGITUDE_ID (1)
@@ -277,17 +278,85 @@ registration_cb(void *data,
     }
 }
 
+//FIXME: UNSEC: Hardcoded Crypto Keys
+static struct sol_blob psk_id_0 = {
+    .type = &SOL_BLOB_TYPE_NO_FREE,
+    .parent = NULL,
+    .mem = (void *)"cli1",
+    .size = sizeof("cli1") - 1,
+    .refcnt = 1
+};
+
+static struct sol_blob psk_key_0 = {
+    .type = &SOL_BLOB_TYPE_NO_FREE,
+    .parent = NULL,
+    .mem = (void *)"0123456789ABCDEF",
+    .size = sizeof("0123456789ABCDEF") - 1,
+    .refcnt = 1
+};
+
 int
 main(int argc, char *argv[])
 {
     struct sol_lwm2m_server *server;
-    uint16_t port = SOL_LWM2M_DEFAULT_SERVER_PORT;
+    uint16_t coap_port = SOL_LWM2M_DEFAULT_SERVER_PORT_COAP;
+    uint16_t dtls_port = SOL_LWM2M_DEFAULT_SERVER_PORT_DTLS;
     int r;
+    enum sol_lwm2m_security_mode sec_mode = SOL_LWM2M_SECURITY_MODE_NO_SEC;
+    char usage[256];
+    struct sol_lwm2m_security_psk *psk;
+    struct sol_vector known_keys = { };
 
-    printf("Using the default LWM2M port (%" PRIu16 ")\n", port);
+    snprintf(usage, sizeof(usage),
+        "Usage: ./lwm2m-sample-server [-c PORT] [-d PORT] [-s SEC_MODE]\n"
+        "Where default CoAP PORT=%d, default DTLS PORT=%d"
+        " and SEC_MODE is an integer as per:\n"
+        "\tPRE_SHARED_KEY=%d\n"
+        "\tRAW_PUBLIC_KEY=%d\n"
+        "\tCERTIFICATE=%d\n"
+        "\tNO_SEC=%d (default)\n",
+        SOL_LWM2M_DEFAULT_SERVER_PORT_COAP,
+        SOL_LWM2M_DEFAULT_SERVER_PORT_DTLS,
+        SOL_LWM2M_SECURITY_MODE_PRE_SHARED_KEY,
+        SOL_LWM2M_SECURITY_MODE_RAW_PUBLIC_KEY,
+        SOL_LWM2M_SECURITY_MODE_CERTIFICATE,
+        SOL_LWM2M_SECURITY_MODE_NO_SEC);
+
+    while ((r = getopt(argc, argv, "c:d:s:")) != -1) {
+        switch (r) {
+        case 'c':
+            coap_port = atoi(optarg);
+            break;
+        case 'd':
+            dtls_port = atoi(optarg);
+            break;
+        case 's':
+            sec_mode = atoi(optarg);
+            if (sec_mode < 0 || sec_mode > 3) {
+                fprintf(stderr, "%s", usage);
+                return -1;
+            }
+            break;
+        default:
+            fprintf(stderr, "%s", usage);
+            return -1;
+        }
+    }
+
+    printf("Using LWM2M port %" PRIu16 " for CoAP", coap_port);
+    if (sec_mode != SOL_LWM2M_SECURITY_MODE_NO_SEC)
+        printf(" and port %" PRIu16 " for DTLS", dtls_port);
+    printf("\n");
     sol_init();
 
-    server = sol_lwm2m_server_new(port);
+    if (sec_mode == SOL_LWM2M_SECURITY_MODE_PRE_SHARED_KEY) {
+        sol_vector_init(&known_keys, sizeof(struct sol_lwm2m_security_psk));
+        psk = sol_vector_append(&known_keys);
+        psk->id = &psk_id_0;
+        psk->key = &psk_key_0;
+    }
+
+    server = sol_lwm2m_server_new(coap_port, dtls_port, sec_mode, &known_keys);
     if (!server) {
         r = -1;
         fprintf(stderr, "Could not create the LWM2M server\n");
@@ -307,6 +376,7 @@ main(int argc, char *argv[])
 exit_del:
     sol_lwm2m_server_del(server);
 exit:
+    sol_vector_clear(&known_keys);
     sol_shutdown();
     return r;
 }
