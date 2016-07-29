@@ -211,6 +211,9 @@ struct sol_lwm2m_server {
     struct sol_monitors registration;
     struct sol_ptr_vector observers;
     struct lifetime_ctx lifetime_ctx;
+    struct sol_coap_server *dtls_server;
+    struct sol_lwm2m_security *security;
+    struct sol_vector known_psks;
 };
 
 struct sol_lwm2m_bootstrap_server {

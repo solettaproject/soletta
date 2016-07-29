@@ -30,6 +30,7 @@
 #include "sol-lwm2m.h"
 #include "sol-lwm2m-common.h"
 #include "sol-lwm2m-server.h"
+#include "sol-lwm2m-security.h"
 #include "sol-macros.h"
 #include "sol-mainloop.h"
 #include "sol-monitors.h"
@@ -43,6 +44,7 @@ SOL_LOG_INTERNAL_DECLARE_STATIC(_lwm2m_server_domain, "lwm2m-server");
 
 struct sol_lwm2m_client_info {
     struct sol_ptr_vector objects;
+    bool secure;
     char *name;
     char *location;
     char *sms;
@@ -132,7 +134,9 @@ remove_all_observer_entries_from_client(struct sol_lwm2m_server *server,
         if (entry->cinfo == cinfo) {
             token = entry->token;
             entry->removed = true;
-            sol_coap_unobserve_by_token(server->coap, &cinfo->cliaddr,
+            sol_coap_unobserve_by_token(
+                cinfo->secure ? cinfo->server->dtls_server : cinfo->server->coap,
+                &cinfo->cliaddr,
                 (uint8_t *)&token, sizeof(token));
         }
     }
@@ -149,7 +153,8 @@ remove_client(struct sol_lwm2m_client_info *cinfo, bool del)
     if (r < 0)
         SOL_WRN("Could not remove the client %s from the clients list",
             cinfo->name);
-    r = sol_coap_server_unregister_resource(cinfo->server->coap,
+    r = sol_coap_server_unregister_resource(
+        cinfo->secure ? cinfo->server->dtls_server : cinfo->server->coap,
         &cinfo->resource);
     if (r < 0)
         SOL_WRN("Could not unregister coap resource for the client: %s",
@@ -657,9 +662,13 @@ registration_request(void *data, struct sol_coap_server *coap,
         remove_client(old_cinfo, true);
     }
 
-    r = sol_coap_server_register_resource(server->coap, &cinfo->resource,
+    //Register CoAP Resource at the CoAP Server in which the Registration Request
+    // was made; which can be either server->coap or server->dtls_server
+    r = sol_coap_server_register_resource(coap, &cinfo->resource,
         cinfo);
     SOL_INT_CHECK_GOTO(r, < 0, err_exit_del_client);
+
+    cinfo->secure = sol_coap_server_is_secure(coap);
 
     r = sol_ptr_vector_append(&server->clients, cinfo);
     SOL_INT_CHECK_GOTO(r, < 0, err_exit_unregister);
@@ -678,9 +687,10 @@ registration_request(void *data, struct sol_coap_server *coap,
     SOL_INT_CHECK_GOTO(r, < 0, err_exit_unregister);
 
     SOL_DBG("Client %s registered. Location: %s, SMS: %s, binding: %u,"
-        " lifetime: %" PRIu32 " objects paths: %s",
+        " lifetime: %" PRIu32 " objects paths: %s%s",
         cinfo->name, cinfo->location, cinfo->sms,
-        cinfo->binding, cinfo->lifetime, cinfo->objects_path);
+        cinfo->binding, cinfo->lifetime, cinfo->objects_path,
+        cinfo->secure ? " (secure)" : "");
 
     r = sol_coap_send_packet(coap, response, cliaddr);
     dispatch_registration_event(server, cinfo,
@@ -688,7 +698,7 @@ registration_request(void *data, struct sol_coap_server *coap,
     return r;
 
 err_exit_unregister:
-    if (sol_coap_server_unregister_resource(server->coap, &cinfo->resource) < 0)
+    if (sol_coap_server_unregister_resource(coap, &cinfo->resource) < 0)
         SOL_WRN("Could not unregister resource for client: %s", cinfo->name);
 err_exit_del_client:
     client_info_del(cinfo);
@@ -802,20 +812,68 @@ observer_entry_del_monitor(struct observer_entry *entry,
 }
 
 SOL_API struct sol_lwm2m_server *
-sol_lwm2m_server_new(uint16_t port)
+sol_lwm2m_server_new(uint16_t coap_port, uint16_t dtls_port,
+    enum sol_lwm2m_security_mode sec_mode, struct sol_vector *known_psks)
 {
     struct sol_lwm2m_server *server;
-    struct sol_network_link_addr servaddr = { .family = SOL_NETWORK_FAMILY_INET6,
-                                              .port = port };
+    struct sol_network_link_addr servaddr_coap = { .family = SOL_NETWORK_FAMILY_INET6,
+                                                   .port = coap_port };
+    struct sol_network_link_addr servaddr_dtls = { .family = SOL_NETWORK_FAMILY_INET6,
+                                                   .port = dtls_port };
     int r;
+    const char *sec_mode_str;
+    struct sol_lwm2m_security_psk *psk, *given_psk;
+    uint16_t i;
 
     SOL_LOG_INTERNAL_INIT_ONCE;
+
+    switch (sec_mode) {
+    case SOL_LWM2M_SECURITY_MODE_PRE_SHARED_KEY:
+        SOL_NULL_CHECK(known_psks, NULL);
+        sec_mode_str = "Pre-Shared Key";
+        break;
+    case SOL_LWM2M_SECURITY_MODE_RAW_PUBLIC_KEY:
+        sec_mode_str = "Raw Public Key";
+        SOL_WRN("Raw Public Key security mode is not supported yet.");
+        return NULL;
+    case SOL_LWM2M_SECURITY_MODE_CERTIFICATE:
+        sec_mode_str = "Certificate";
+        SOL_WRN("Certificate security mode is not supported yet.");
+        return NULL;
+    case SOL_LWM2M_SECURITY_MODE_NO_SEC:
+        sec_mode_str = "NoSec";
+        SOL_DBG("Using NoSec Security Mode (No DTLS).");
+        break;
+    default:
+        SOL_WRN("Unknown DTLS Security Mode: %d", sec_mode);
+        return NULL;
+    }
 
     server = calloc(1, sizeof(struct sol_lwm2m_server));
     SOL_NULL_CHECK(server, NULL);
 
-    server->coap = sol_coap_server_new(&servaddr, false);
+    server->coap = sol_coap_server_new(&servaddr_coap, false);
     SOL_NULL_CHECK_GOTO(server->coap, err_coap);
+
+    if (sec_mode != SOL_LWM2M_SECURITY_MODE_NO_SEC) {
+        if (sec_mode == SOL_LWM2M_SECURITY_MODE_PRE_SHARED_KEY) {
+            sol_vector_init(&server->known_psks, sizeof(sol_lwm2m_security_psk));
+
+            SOL_VECTOR_FOREACH_IDX (known_psks, given_psk, i) {
+                psk = sol_vector_append(&server->known_psks);
+                SOL_NULL_CHECK_GOTO(psk, err_psk);
+                psk->id = sol_blob_ref(given_psk->id);
+                psk->key = sol_blob_ref(given_psk->key);
+            }
+        }
+
+        server->dtls_server = sol_coap_server_new(&servaddr_dtls, true);
+        SOL_NULL_CHECK_GOTO(server->dtls_server, err_dtls);
+
+        server->security = sol_lwm2m_server_security_add(server, sec_mode);
+        SOL_NULL_CHECK_GOTO(server->security, err_security);
+        SOL_DBG("Using %s security mode", sec_mode_str);
+    }
 
     sol_ptr_vector_init(&server->clients);
     sol_ptr_vector_init(&server->clients_to_delete);
@@ -824,12 +882,35 @@ sol_lwm2m_server_new(uint16_t port)
 
     r = sol_coap_server_register_resource(server->coap,
         &registration_interface, server);
-    SOL_INT_CHECK_GOTO(r, < 0, err_register);
+    SOL_INT_CHECK_GOTO(r, < 0, err_register_coap);
+
+    if (server->security) {
+        r = sol_coap_server_register_resource(server->dtls_server,
+            &registration_interface, server);
+        SOL_INT_CHECK_GOTO(r, < 0, err_register_dtls);
+    }
 
     return server;
 
-err_register:
+err_register_dtls:
+    if (sol_coap_server_unregister_resource(server->coap, &registration_interface) < 0)
+        SOL_WRN("Could not unregister resource for"
+            " Registration Interface at insecure CoAP Server");
+err_register_coap:
+    if (sec_mode != SOL_LWM2M_SECURITY_MODE_NO_SEC)
+        sol_lwm2m_server_security_del(server->security);
+err_security:
+    sol_coap_server_unref(server->dtls_server);
+err_dtls:
     sol_coap_server_unref(server->coap);
+err_psk:
+    if (sec_mode == SOL_LWM2M_SECURITY_MODE_PRE_SHARED_KEY) {
+        SOL_VECTOR_FOREACH_IDX (&server->known_psks, psk, i) {
+            sol_blob_unref(psk->id);
+            sol_blob_unref(psk->key);
+        }
+        sol_vector_clear(&server->known_psks);
+    }
 err_coap:
     free(server);
     return NULL;
@@ -848,6 +929,20 @@ sol_lwm2m_server_del(struct sol_lwm2m_server *server)
         entry->removed = true;
 
     sol_coap_server_unref(server->coap);
+
+    if (server->security) {
+        sol_coap_server_unref(server->dtls_server);
+        sol_lwm2m_server_security_del(server->security);
+        if (&server->known_psks) {
+            struct sol_lwm2m_security_psk *psk;
+
+            SOL_VECTOR_FOREACH_IDX (&server->known_psks, psk, i) {
+                sol_blob_unref(psk->id);
+                sol_blob_unref(psk->key);
+            }
+            sol_vector_clear(&server->known_psks);
+        }
+    }
 
     SOL_PTR_VECTOR_FOREACH_IDX (&server->clients, cinfo, i)
         client_info_del(cinfo);
@@ -1067,7 +1162,9 @@ sol_lwm2m_server_add_observer(struct sol_lwm2m_server *server,
         client->objects_path, path, &obs, &entry->token, NULL, NULL, NULL, NULL, 0, NULL, &pkt);
     SOL_INT_CHECK(r, < 0, r);
 
-    return sol_coap_send_packet_with_reply(server->coap, pkt, &client->cliaddr,
+    return sol_coap_send_packet_with_reply(
+        client->secure ? client->server->dtls_server : client->server->coap,
+        pkt, &client->cliaddr,
         observation_request_reply, entry);
 }
 
@@ -1104,7 +1201,9 @@ sol_lwm2m_server_del_observer(struct sol_lwm2m_server *server,
     entry->removed = true;
     token = entry->token;
 
-    return sol_coap_unobserve_by_token(server->coap, &entry->cinfo->cliaddr,
+    return sol_coap_unobserve_by_token(
+        client->secure ? client->server->dtls_server : client->server->coap,
+        &entry->cinfo->cliaddr,
         (uint8_t *)&token, sizeof(token));
 }
 
@@ -1170,7 +1269,9 @@ send_management_packet(struct sol_lwm2m_server *server,
     SOL_INT_CHECK(r, < 0, r);
 
     if (!cb)
-        return sol_coap_send_packet(server->coap, pkt, &client->cliaddr);
+        return sol_coap_send_packet(
+            client->secure ? client->server->dtls_server : client->server->coap,
+            pkt, &client->cliaddr);
 
     ctx = malloc(sizeof(struct management_ctx));
     SOL_NULL_CHECK_GOTO(ctx, err_exit);
@@ -1183,7 +1284,9 @@ send_management_packet(struct sol_lwm2m_server *server,
     ctx->data = data;
     ctx->cb = cb;
 
-    return sol_coap_send_packet_with_reply(server->coap, pkt, &client->cliaddr,
+    return sol_coap_send_packet_with_reply(
+        client->secure ? client->server->dtls_server : client->server->coap,
+        pkt, &client->cliaddr,
         management_reply, ctx);
 
 err_exit:

@@ -84,10 +84,15 @@ enum sol_lwm2m_registration_event {
  *
  * The server will be immediately operational and waiting for connections.
  *
- * @param port The UDP port to be used.
+ * @param coap_port The UDP port to be used for the NoSec CoAP Server.
+ * @param dtls_port The UDP port to be used for the Secure DTLS Server.
+ * @param sec_mode The DTLS Security Mode to be used for the Secure CoAP Server.
+ * @param known_psks The Clients' Pre-Shared Keys this Server has previous knowledge of.
  * @return The LWM2M server or @c NULL on error.
  */
-struct sol_lwm2m_server *sol_lwm2m_server_new(uint16_t port);
+struct sol_lwm2m_server *sol_lwm2m_server_new(uint16_t coap_port,
+    uint16_t dtls_port, enum sol_lwm2m_security_mode sec_mode,
+    struct sol_vector *known_psks);
 
 /**
  * @brief Adds a registration monitor.
