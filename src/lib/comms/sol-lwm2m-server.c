@@ -41,15 +41,6 @@
 
 SOL_LOG_INTERNAL_DECLARE_STATIC(_lwm2m_server_domain, "lwm2m-server");
 
-struct sol_lwm2m_server {
-    struct sol_coap_server *coap;
-    struct sol_ptr_vector clients;
-    struct sol_ptr_vector clients_to_delete;
-    struct sol_monitors registration;
-    struct sol_ptr_vector observers;
-    struct lifetime_ctx lifetime_ctx;
-};
-
 struct sol_lwm2m_client_info {
     struct sol_ptr_vector objects;
     char *name;
