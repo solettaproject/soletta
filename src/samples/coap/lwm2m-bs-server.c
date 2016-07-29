@@ -17,10 +17,10 @@
  */
 
 /*
-   To run: ./lwm2m-sample-bs-server
+   To run: ./lwm2m-sample-bs-server [-p PORT] [-s SEC_MODE]
    For every LWM2M client that connects with the bootstrap server, the bootstrap
    server will send bootstrap information in order for that client to connect
-   with the lwm2m-sample-server.
+   with the lwm2m-sample-server (through DTLS).
  */
 
 #include "sol-lwm2m-bs-server.h"
@@ -31,6 +31,7 @@
 #include <stdio.h>
 #include <stdbool.h>
 #include <errno.h>
+#include <unistd.h>
 
 #define LIFETIME (60)
 
@@ -40,20 +41,30 @@
 #define SERVER_OBJ_BINDING_RES_ID (7)
 #define SERVER_OBJ_REGISTRATION_UPDATE_RES_ID (8)
 
-#define SECURITY_SERVER_OBJ_ID (0)
-#define SECURITY_SERVER_SERVER_URI_RES_ID (0)
-#define SECURITY_SERVER_IS_BOOTSTRAP_RES_ID (1)
-#define SECURITY_SERVER_SERVER_ID_RES_ID (10)
-#define SECURITY_SERVER_CLIENT_HOLD_OFF_TIME_RES_ID (11)
-#define SECURITY_SERVER_BOOTSTRAP_SERVER_ACCOUNT_TIMEOUT_RES_ID (12)
+#define ACCESS_CONTROL_OBJ_ID (2)
+#define ACCESS_CONTROL_OBJ_OBJECT_RES_ID (0)
+#define ACCESS_CONTROL_OBJ_INSTANCE_RES_ID (1)
+#define ACCESS_CONTROL_OBJ_ACL_RES_ID (2)
+#define ACCESS_CONTROL_OBJ_OWNER_RES_ID (3)
+
+#define SECURITY_OBJ_ID (0)
+#define SECURITY_SERVER_URI_RES_ID (0)
+#define SECURITY_IS_BOOTSTRAP_RES_ID (1)
+#define SECURITY_SECURITY_MODE_RES_ID (2)
+#define SECURITY_PUBLIC_KEY_OR_IDENTITY_RES_ID (3)
+#define SECURITY_SERVER_PUBLIC_KEY_RES_ID (4)
+#define SECURITY_SECRET_KEY_RES_ID (5)
+#define SECURITY_SERVER_ID_RES_ID (10)
+#define SECURITY_CLIENT_HOLD_OFF_TIME_RES_ID (11)
+#define SECURITY_BOOTSTRAP_SERVER_ACCOUNT_TIMEOUT_RES_ID (12)
 
 const char *known_clients[] = { "cli1", "cli2", NULL };
 
 static struct sol_blob server_one_addr = {
     .type = &SOL_BLOB_TYPE_NO_FREE,
     .parent = NULL,
-    .mem = (void *)"coap://localhost:5683",
-    .size = sizeof("coap://localhost:5683") - 1,
+    .mem = (void *)"coaps://localhost:5684",
+    .size = sizeof("coaps://localhost:5684") - 1,
     .refcnt = 1
 };
 
@@ -62,6 +73,23 @@ static struct sol_blob binding = {
     .parent = NULL,
     .mem = (void *)"U",
     .size = sizeof("U") - 1,
+    .refcnt = 1
+};
+
+//FIXME: UNSEC: Hardcoded Crypto Keys
+static struct sol_blob psk_id_0 = {
+    .type = &SOL_BLOB_TYPE_NO_FREE,
+    .parent = NULL,
+    .mem = (void *)"cli1",
+    .size = sizeof("cli1") - 1,
+    .refcnt = 1
+};
+
+static struct sol_blob psk_key_0 = {
+    .type = &SOL_BLOB_TYPE_NO_FREE,
+    .parent = NULL,
+    .mem = (void *)"0123456789ABCDEF",
+    .size = sizeof("0123456789ABCDEF") - 1,
     .refcnt = 1
 };
 
@@ -252,7 +280,7 @@ delete_all_cb(void *data,
     const char *name = sol_lwm2m_bootstrap_client_info_get_name(bs_cinfo);
     int r;
     uint16_t i;
-    struct sol_lwm2m_resource sec_server_one[3];
+    struct sol_lwm2m_resource sec_server_one[6];
 
     if (response_code != SOL_COAP_RESPONSE_CODE_DELETED) {
         fprintf(stderr, "The client %s could not delete the object at %s.\n",
@@ -263,19 +291,37 @@ delete_all_cb(void *data,
     printf("The client %s deleted the object at %s.\n", name, path);
 
     // Server One's Security Object
-    SOL_LWM2M_RESOURCE_SINGLE_INIT(r, &sec_server_one[0], SECURITY_SERVER_SERVER_URI_RES_ID,
+    SOL_LWM2M_RESOURCE_SINGLE_INIT(r, &sec_server_one[0], SECURITY_SERVER_URI_RES_ID,
         SOL_LWM2M_RESOURCE_DATA_TYPE_STRING, &server_one_addr);
     if (r < 0) {
         fprintf(stderr, "Could not init Security Object's [Server URI] resource\n");
         return;
     }
-    SOL_LWM2M_RESOURCE_SINGLE_INIT(r, &sec_server_one[1], SECURITY_SERVER_IS_BOOTSTRAP_RES_ID,
+    SOL_LWM2M_RESOURCE_SINGLE_INIT(r, &sec_server_one[1], SECURITY_IS_BOOTSTRAP_RES_ID,
         SOL_LWM2M_RESOURCE_DATA_TYPE_BOOL, false);
     if (r < 0) {
         fprintf(stderr, "Could not init Security Object's [Bootstrap Server] resource\n");
         return;
     }
-    SOL_LWM2M_RESOURCE_SINGLE_INT_INIT(r, &sec_server_one[2], SECURITY_SERVER_SERVER_ID_RES_ID, 102);
+    SOL_LWM2M_RESOURCE_SINGLE_INT_INIT(r, &sec_server_one[2],
+        SECURITY_SECURITY_MODE_RES_ID, SOL_LWM2M_SECURITY_MODE_PRE_SHARED_KEY);
+    if (r < 0) {
+        fprintf(stderr, "Could not init Security Object's [Security Mode] resource\n");
+        return;
+    }
+    SOL_LWM2M_RESOURCE_SINGLE_INIT(r, &sec_server_one[3], SECURITY_PUBLIC_KEY_OR_IDENTITY_RES_ID,
+        SOL_LWM2M_RESOURCE_DATA_TYPE_STRING, &psk_id_0);
+    if (r < 0) {
+        fprintf(stderr, "Could not init Security Object's [Public Key or Identity] resource\n");
+        return;
+    }
+    SOL_LWM2M_RESOURCE_SINGLE_INIT(r, &sec_server_one[4], SECURITY_SECRET_KEY_RES_ID,
+        SOL_LWM2M_RESOURCE_DATA_TYPE_STRING, &psk_key_0);
+    if (r < 0) {
+        fprintf(stderr, "Could not init Security Object's [Secret Key] resource\n");
+        return;
+    }
+    SOL_LWM2M_RESOURCE_SINGLE_INT_INIT(r, &sec_server_one[5], SECURITY_SERVER_ID_RES_ID, 102);
     if (r < 0) {
         fprintf(stderr, "Could not init Security Object's [Short Server ID] resource\n");
         return;
@@ -308,17 +354,72 @@ bootstrap_cb(void *data,
     }
 }
 
+static struct sol_blob psk_bs_id = {
+    .type = &SOL_BLOB_TYPE_NO_FREE,
+    .parent = NULL,
+    .mem = (void *)"cli1-bs",
+    .size = sizeof("cli1-bs") - 1,
+    .refcnt = 1
+};
+
+static struct sol_blob psk_bs_key = {
+    .type = &SOL_BLOB_TYPE_NO_FREE,
+    .parent = NULL,
+    .mem = (void *)"FEDCBA9876543210",
+    .size = sizeof("FEDCBA9876543210") - 1,
+    .refcnt = 1
+};
+
 int
 main(int argc, char *argv[])
 {
     struct sol_lwm2m_bootstrap_server *server;
     uint16_t port = 5783;
     int r;
+    enum sol_lwm2m_security_mode sec_mode = SOL_LWM2M_SECURITY_MODE_PRE_SHARED_KEY;
+    char usage[256];
+    struct sol_lwm2m_security_psk *psk;
+    struct sol_vector known_keys = { };
 
-    printf("Using port %" PRIu16 "\n", port);
+    snprintf(usage, sizeof(usage), "Usage: ./lwm2m-sample-bs-server [-p PORT] [-s SEC_MODE]\n"
+        "Where default PORT=%" PRIu16 " and SEC_MODE is an integer as per:\n"
+        "\tPRE_SHARED_KEY=%d (default)\n"
+        "\tRAW_PUBLIC_KEY=%d\n"
+        "\tCERTIFICATE=%d\n",
+        port,
+        SOL_LWM2M_SECURITY_MODE_PRE_SHARED_KEY,
+        SOL_LWM2M_SECURITY_MODE_RAW_PUBLIC_KEY,
+        SOL_LWM2M_SECURITY_MODE_CERTIFICATE);
+
+    while ((r = getopt(argc, argv, "p:s:")) != -1) {
+        switch (r) {
+        case 'p':
+            port = atoi(optarg);
+            break;
+        case 's':
+            sec_mode = atoi(optarg);
+            if (sec_mode < 0 || sec_mode > 2) {
+                fprintf(stderr, "%s", usage);
+                return -1;
+            }
+            break;
+        default:
+            fprintf(stderr, "%s", usage);
+            return -1;
+        }
+    }
+
+    printf("Using port %" PRIu16 " for DTLS\n", port);
     sol_init();
 
-    server = sol_lwm2m_bootstrap_server_new(port, known_clients);
+    if (sec_mode == SOL_LWM2M_SECURITY_MODE_PRE_SHARED_KEY) {
+        sol_vector_init(&known_keys, sizeof(struct sol_lwm2m_security_psk));
+        psk = sol_vector_append(&known_keys);
+        psk->id = &psk_bs_id;
+        psk->key = &psk_bs_key;
+    }
+
+    server = sol_lwm2m_bootstrap_server_new(port, known_clients, sec_mode, &known_keys);
     if (!server) {
         r = -1;
         fprintf(stderr, "Could not create the LWM2M bootstrap server\n");
@@ -338,6 +439,7 @@ main(int argc, char *argv[])
 exit_del:
     sol_lwm2m_bootstrap_server_del(server);
 exit:
+    sol_vector_clear(&known_keys);
     sol_shutdown();
     return r;
 }
