@@ -64,9 +64,14 @@ extern "C" {
  */
 
 /**
- * @brief Macro that defines the default port for a LWM2M server.
+ * @brief Macro that defines the default port for a NoSec LWM2M server.
  */
-#define SOL_LWM2M_DEFAULT_SERVER_PORT (5683)
+#define SOL_LWM2M_DEFAULT_SERVER_PORT_COAP (5683)
+
+/**
+ * @brief Macro that defines the default port for a DTLS-secured LWM2M server.
+ */
+#define SOL_LWM2M_DEFAULT_SERVER_PORT_DTLS (5684)
 
 /**
  * @typedef sol_lwm2m_client_object
@@ -273,6 +278,22 @@ enum sol_lwm2m_resource_type {
      */
     SOL_LWM2M_RESOURCE_TYPE_UNKNOWN = -1
 };
+
+/**
+ * @brief Struct that represents a Pre-Shared Key (PSK).
+ *
+ * A sol_vector holding elements of this type is used by the LWM2M Server
+ * and LWM2M Bootstrap Server to keep a list of known Clients' Pre-Shared Keys.
+ *
+ * @see sol_lwm2m_server_new()
+ * @see sol_lwm2m_bootstrap_server_new()
+ */
+typedef struct sol_lwm2m_security_psk {
+    /** @brief The PSK Identity, composed of a 16-bytes UTF-8 String */
+    struct sol_blob *id;
+    /** @brief The PSK Key, composed of an Opaque 16-bytes (128-bit) AES Key */
+    struct sol_blob *key;
+} sol_lwm2m_security_psk;
 
 /**
  * @brief Struct that represents TLV data.
