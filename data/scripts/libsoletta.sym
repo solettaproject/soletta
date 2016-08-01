@@ -135,6 +135,7 @@ global:
         sol_coap_server_set_unknown_resource_handler;
         sol_coap_server_unref;
         sol_coap_server_unregister_resource;
+        sol_coap_server_is_secure;
         sol_coap_unobserve_by_token;
 
         sol_direction_vector_eq;
