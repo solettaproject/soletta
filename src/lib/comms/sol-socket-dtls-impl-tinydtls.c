@@ -629,7 +629,7 @@ get_psk_info(struct dtls_context_t *ctx, const session_t *session,
 
         len = socket->credentials->get_id(socket->credentials->data, &addr,
             result, result_len);
-        if (len != SOL_DTLS_PSK_ID_LEN) {
+        if (len > SOL_DTLS_PSK_ID_LEN) {
             SOL_DBG("Not enough space to write key ID");
             r = dtls_alert_fatal_create(DTLS_ALERT_INTERNAL_ERROR);
         } else {
