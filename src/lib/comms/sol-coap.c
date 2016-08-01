@@ -89,6 +89,7 @@ struct sol_coap_server {
         const struct sol_network_link_addr *cliaddr);
     const void *unknown_handler_data;
     int refcnt;
+    bool secure;
 };
 
 struct resource_context {
@@ -144,6 +145,14 @@ sol_coap_server_get_socket(const struct sol_coap_server *server)
     SOL_NULL_CHECK_ERRNO(server, EINVAL, NULL);
 
     return server->socket;
+}
+
+SOL_API bool
+sol_coap_server_is_secure(const struct sol_coap_server *server)
+{
+    SOL_NULL_CHECK_ERRNO(server, EINVAL, NULL);
+
+    return server->secure;
 }
 
 SOL_API int
@@ -1917,6 +1926,8 @@ sol_coap_server_new_full(struct sol_socket_ip_options *options, const struct sol
     }
 
     sol_network_subscribe_events(network_event, server);
+
+    server->secure = options->secure;
 
     SOL_DBG("New server %p on port %d%s", server, servaddr->port,
         !options->secure ? "" : " (secure)");
