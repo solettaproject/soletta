@@ -104,6 +104,7 @@ struct resolve_absolute_path_data {
 #define SYSFS_TRIGGER_SYSFS_ADD_TRIGGER SYSFS_DEVICES_PATH "/iio_sysfs_trigger/add_trigger"
 #define SYSFS_TRIGGER_SYSFS_PATH SYSFS_DEVICES_PATH "/iio_sysfs_trigger"
 
+#define CHANNEL_ENABLE_PATH SYSFS_DEVICES_PATH "/iio:device%d/%s_en"
 #define CHANNEL_RAW_PATH SYSFS_DEVICES_PATH "/iio:device%d/%s_raw"
 #define CHANNEL_PROCESSED_PATH SYSFS_DEVICES_PATH "/iio:device%d/%s_input"
 #define CHANNEL_OFFSET_PATH SYSFS_DEVICES_PATH "/iio:device%d/%s_offset"
@@ -362,6 +363,24 @@ set_buffer_enabled(struct sol_iio_device *device, bool enabled)
 
     if (sol_util_write_file(path, "%d", enabled) < 0)
         return false;
+
+    return true;
+}
+
+static bool
+set_channel_enabled(struct sol_iio_device *device, const char *channel_name, bool enabled)
+{
+    char path[PATH_MAX];
+    bool r;
+
+    r = craft_filename_path(path, sizeof(path), CHANNEL_ENABLE_PATH, device->device_id, channel_name);
+    if (!r)
+        return false;
+
+    if (check_file_existence(path)) {
+        if (sol_util_write_file(path, "%d", enabled) < 0)
+            return false;
+    }
 
     return true;
 }
@@ -856,8 +875,11 @@ end:
 }
 
 static void
-iio_del_channel(struct sol_iio_channel *channel)
+iio_del_channel(struct sol_iio_device *device, struct sol_iio_channel *channel)
 {
+    /* Deactivate device firmware/hardware after use */
+    set_channel_enabled(device, channel->name, false);
+
     free(channel);
 }
 
@@ -870,7 +892,7 @@ sol_iio_close(struct sol_iio_device *device)
     SOL_NULL_CHECK(device);
 
     SOL_PTR_VECTOR_FOREACH_REVERSE_IDX (&device->channels, channel, i) {
-        iio_del_channel(channel);
+        iio_del_channel(device, channel);
     }
     sol_ptr_vector_clear(&device->channels);
 
@@ -973,6 +995,11 @@ sol_iio_add_channel(struct sol_iio_device *device, const char *name, const struc
     r = sol_ptr_vector_append(&channel->device->channels, channel);
     SOL_INT_CHECK_GOTO(r, < 0, error);
 
+    /* Some device firmware/hardware feature default state is off, thus need to activate it before read */
+    if (!set_channel_enabled(device, name, true))
+        SOL_WRN("Could not activate device channel [%s] in device%d",
+            name, device->device_id);
+
     SOL_DBG("channel [%s] added. scale: %lf - offset: %d - storagebits: %d"
         " - bits: %d - mask: %" PRIu64, channel->name, channel->scale,
         channel->offset, channel->storagebits, channel->bits, channel->mask);
@@ -980,7 +1007,7 @@ sol_iio_add_channel(struct sol_iio_device *device, const char *name, const struc
     return channel;
 
 error:
-    iio_del_channel(channel);
+    iio_del_channel(device, channel);
 
     return NULL;
 }
