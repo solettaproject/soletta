@@ -422,13 +422,7 @@ call_user_write_cb(void *data, struct sol_socket *wrapped)
         SOL_DBG("User func@%p returned success, encrypting payload",
             socket->write.cb);
 
-        if (encrypt_payload(socket)) {
-            SOL_DBG("Data encrypted, should have been passed to the "
-                "wrapped socket");
-            return true;
-        }
-
-        SOL_DBG("Could not encrypt payload");
+        return true;
     }
 
     return false;
