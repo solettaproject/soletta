@@ -1069,6 +1069,13 @@ handle_read(struct sol_lwm2m_client *client,
     uint16_t i;
     int r;
 
+    if ((obj_ctx->obj->id == SECURITY_OBJECT_ID) &&
+        (server_id != UINT16_MAX)) {
+        SOL_WRN("Only the Bootstrap Server is allowed to access the Security Object."
+            " Server ID %" PRId64 " trying to access it", server_id);
+        return SOL_COAP_RESPONSE_CODE_UNAUTHORIZED;
+    }
+
     if (client->supports_access_control && obj_instance) {
         r = check_authorization(client, server_id, obj_ctx->obj->id,
             obj_instance->id, SOL_LWM2M_ACL_READ);
