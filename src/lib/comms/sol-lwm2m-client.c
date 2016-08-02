@@ -1040,6 +1040,13 @@ handle_read(struct sol_lwm2m_client *client,
     uint16_t i;
     int r;
 
+    if ((obj_ctx->obj->id == SECURITY_OBJECT_ID) &&
+        (server_id != UINT16_MAX)) {
+        SOL_WRN("Only the Bootstrap Server is allowed to access the Security Object."
+            " Server ID %" PRId64 " trying to access it", server_id);
+        return SOL_COAP_RESPONSE_CODE_UNAUTHORIZED;
+    }
+
     if (client->supports_access_control && obj_instance) {
         r = check_authorization(client, server_id, obj_ctx->obj->id,
             obj_instance->id, SOL_LWM2M_ACL_READ);
@@ -1362,10 +1369,17 @@ handle_resource(void *data, struct sol_coap_server *server,
         goto exit;
     }
 
-    if (client->supports_access_control) {
-        r = get_server_id_by_link_addr(&client->connections, cliaddr, &server_id);
-        header_code = SOL_COAP_RESPONSE_CODE_INTERNAL_ERROR;
-        SOL_INT_CHECK_GOTO(r, < 0, exit);
+    r = get_server_id_by_link_addr(&client->connections, cliaddr, &server_id);
+    header_code = SOL_COAP_RESPONSE_CODE_INTERNAL_ERROR;
+    SOL_INT_CHECK_GOTO(r, < 0, exit);
+
+    if (path_size >= 1 &&
+        ((obj_ctx->obj->id == SECURITY_OBJECT_ID) &&
+        (server_id != UINT16_MAX))) {
+        SOL_WRN("Only the Bootstrap Server is allowed to access the Security Object."
+            " Server ID %" PRId64 " trying to access it", server_id);
+        header_code = SOL_COAP_RESPONSE_CODE_UNAUTHORIZED;
+        goto exit;
     }
 
     switch (method) {
