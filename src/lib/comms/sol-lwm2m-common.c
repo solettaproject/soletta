@@ -120,7 +120,10 @@ get_server_id_by_link_addr(const struct sol_ptr_vector *connections,
     SOL_PTR_VECTOR_FOREACH_IDX (connections, conn_ctx, i) {
         server_addr = sol_vector_get_no_check(&conn_ctx->server_addr_list, conn_ctx->addr_list_idx);
         if (sol_network_link_addr_eq_full(cliaddr, server_addr, true)) {
-            *server_id = conn_ctx->server_id;
+            if (conn_ctx->server_id == DEFAULT_SHORT_SERVER_ID)
+                *server_id = UINT16_MAX;
+            else
+                *server_id = conn_ctx->server_id;
             return 0;
         }
     }
