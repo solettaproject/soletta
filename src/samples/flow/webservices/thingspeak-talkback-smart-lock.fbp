@@ -28,7 +28,7 @@
 #
 # Usage: ./thingspeak-talkback-smart-lock.fbp
 #
-# On other proccess you may run thingspeak-talkback-identify.fbp
+# On other process you may run thingspeak-talkback-identify.fbp
 # to emit these commands. Or you could just add commands
 # directly on ThingsSpeak web interface.
 #

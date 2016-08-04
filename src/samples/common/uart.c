@@ -113,7 +113,7 @@ producer_make_data(void *data)
 
     //Stop the production until the pendind blob is sent
     if (pending_blob) {
-        printf("Waiting for blob data: %.*s to be transfered.\n",
+        printf("Waiting for blob data: %.*s to be transferred.\n",
             SOL_STR_SLICE_PRINT(sol_str_slice_from_blob(pending_blob)));
         return true;
     }

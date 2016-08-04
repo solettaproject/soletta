@@ -25,13 +25,13 @@
 # smart lock, to open.
 #
 # Here we'll simulate the first device as a single keyboard key and
-# it will add the command "OPEN" to the queue everytime it's pressed
+# it will add the command "OPEN" to the queue every time it's pressed
 # (key 'a').
 # It also prints to the console the submitted command.
 #
 # Usage: ./thingspeak-talkback-identify.fbp
 #
-# On other proccess you may run thingspeak-talkback-smart-lock.fbp
+# On other process you may run thingspeak-talkback-smart-lock.fbp
 # to consume these commands.
 #
 # Register at https://thingspeak.com or use another server (and
@@ -41,7 +41,7 @@
 # id (not the name) and the API Key. Use these values as
 # options for talkback_add and talkback_execute nodes.
 #
-# You'll be able to see it throught the Thingspeak web interface as well,
+# You'll be able to see it through the Thingspeak web interface as well,
 # if you want.
 
 

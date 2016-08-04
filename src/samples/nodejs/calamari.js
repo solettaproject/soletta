@@ -34,20 +34,20 @@ gpio_map = [{pin: 338}, {pin: 339}, {pin: 464},
             {pin: 483, direction: "in", edge: "rising"},
             {pin: 482, direction: "in", edge: "rising"}]
             .map(function(pin_config) {
-                return new Promise(function(fullfill) {
+                return new Promise(function(fulfill) {
                     gp.open(pin_config)
                         .then((gpio) => {
                             gpios.push(gpio);
-                            fullfill(gpio);
+                            fulfill(gpio);
                         })
                         .catch(function(fail) {
                             console.log("Could not open gpio: ", fail);
-                            fullfill();
+                            fulfill();
                         });
                 });
             });
 
-/* Hack in place: I really don't care about fullfilled values, only about
+/* Hack in place: I really don't care about fulfilled values, only about
  * `gpios` array itself, as it is the one that contains valid gpios.
  * If we don't have six of them, then application failed. At least, we can
  * close all gpio that were opened at exit handler */

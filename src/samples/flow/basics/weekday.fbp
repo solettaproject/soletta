@@ -17,7 +17,7 @@
 # limitations under the License.
 
 # This flow exemplify how to display current weekday.
-# Everytime day changes on system time a new message will be displayed
+# Every time day changes on system time a new message will be displayed
 # on console.
 
 weekday(wallclock/weekday:send_initial_packet=true)

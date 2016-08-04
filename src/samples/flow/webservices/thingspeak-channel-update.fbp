@@ -23,7 +23,7 @@
 # from a device, using Soletta Project node types.
 #
 # Here we'll consider two different fields (a channel supports up
-# to 8), the first one to keep the device's signal strenght,
+# to 8), the first one to keep the device's signal strength,
 # and another to check if a hipotetical interface is up or down.
 #
 # These data will be randonly generated, pushed to the server
@@ -38,7 +38,7 @@
 # (not the name) and the Write API Key. Use these values as
 # options for thingspeak/channel-update node.
 #
-# You'll be able to see the collected data throught the Thingspeak
+# You'll be able to see the collected data through the Thingspeak
 # web interface.
 
 

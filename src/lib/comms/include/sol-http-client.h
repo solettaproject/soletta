@@ -162,7 +162,7 @@ typedef struct sol_http_request_interface {
  *         return;
  *     }
  *
- *     // Printing the response paramters ...
+ *     // Printing the response parameters ...
  *     SOL_HTTP_PARAMS_FOREACH_IDX (&response->param, value, idx) {
  *         switch (value->type) {
  *         case SOL_HTTP_PARAM_COOKIE:

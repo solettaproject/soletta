@@ -299,7 +299,7 @@ typedef struct sol_http_server_progressive_config {
      * @brief Callback used to inform that a struct @ref sol_blob was sent
      * @param data The user data
      * @param progressive The progressive response
-     * @param blob The blob that was transfered
+     * @param blob The blob that was transferred
      * @note The blob will unref for you automatically
      * @note It's safe to call sol_http_progressive_response_del() inside this callback.
      */

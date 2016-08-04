@@ -115,7 +115,7 @@ int sol_efivars_read_raw(const char *name, struct sol_buffer *buffer);
  *
  * @param name name of property. It will look for an EFI variable with
  * this name.
- * @param value Teh variable that will be set with read contents.
+ * @param value The variable that will be set with read contents.
  *
  * return @c 0 on success, a negative number on failure
  */
@@ -164,7 +164,7 @@ sol_efivars_write_uint8(const char *name, uint8_t value,
  *
  * @param name name of property. It will look for an EFI variable with
  * this name.
- * @param value Teh variable that will be set with read contents.
+ * @param value The variable that will be set with read contents.
  *
  * return @c 0 on success, a negative number on failure
  */
@@ -213,7 +213,7 @@ sol_efivars_write_bool(const char *name, bool value,
  *
  * @param name name of property. It will look for an EFI variable with
  * this name.
- * @param value Teh variable that will be set with read contents.
+ * @param value The variable that will be set with read contents.
  *
  * return @c 0 on success, a negative number on failure
  */
@@ -262,7 +262,7 @@ sol_efivars_write_int32(const char *name, int32_t value,
  *
  * @param name name of property. It will look for an EFI variable with
  * this name.
- * @param value Teh variable that will be set with read contents.
+ * @param value The variable that will be set with read contents.
  *
  * return @c 0 on success, a negative number on failure
  */
@@ -311,7 +311,7 @@ sol_efivars_write_irange(const char *name, struct sol_irange *value,
  *
  * @param name name of property. It will look for an EFI variable with
  * this name.
- * @param value Teh variable that will be set with read contents.
+ * @param value The variable that will be set with read contents.
  *
  * return @c 0 on success, a negative number on failure
  */
@@ -360,7 +360,7 @@ sol_efivars_write_drange(const char *name, struct sol_drange *value,
  *
  * @param name name of property. It will look for an EFI variable with
  * this name.
- * @param value Teh variable that will be set with read contents.
+ * @param value The variable that will be set with read contents.
  *
  * return @c 0 on success, a negative number on failure
  */
@@ -409,7 +409,7 @@ sol_efivars_write_double(const char *name, double value,
  *
  * @param name name of property. It will look for an EFI variable with
  * this name.
- * @param value Teh variable that will be set with read contents.
+ * @param value The variable that will be set with read contents.
  *
  * return @c 0 on success, a negative number on failure
  */

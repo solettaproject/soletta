@@ -117,14 +117,14 @@ extern "C" {
  *
  * @subsection write Writing
  *
- * Write operations must be async and the data that will be transfered must be
+ * Write operations must be async and the data that will be transferred must be
  * provided as a pointer to @ref sol_blob. One should follow the API below:
  * @snippet design_patterns/stream_sample.c stream write api
  *
  * Every blob requested to be written, must be queued in order to be sent. If there's no more space
  * to queue more blobs (sum of all queued blobs >= @c feed_size) the function write should return @c -ENOSPC.
  *
- * Everytime a blob is fully written the @c on_feed_done must be called in order to inform the user that
+ * Every time a blob is fully written the @c on_feed_done must be called in order to inform the user that
  * the write operation was completed. The @c on_feed_done should have the following signature:
  *
  * @code{.c}
