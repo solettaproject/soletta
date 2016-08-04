@@ -90,6 +90,8 @@ struct resolve_absolute_path_data {
 #define DEVICE_PATH "/dev/iio:device%d"
 #define SYSFS_DEVICES_PATH "/sys/bus/iio/devices"
 #define SYSFS_DEVICE_PATH "/sys/bus/iio/devices/%s"
+#define CONFIGFS_IIO_TRIGGERS_PATH "/sys/kernel/config/iio/triggers"
+#define CONFIGFS_IIO_TRIGGER_PATH "/sys/kernel/config/iio/triggers/%s"
 
 #define DEVICE_NAME_PATH SYSFS_DEVICES_PATH "/iio:device%d/name"
 #define DEVICE_NAME_PATH_BY_DEVICE_DIR SYSFS_DEVICES_PATH "/%s/name"
@@ -119,6 +121,9 @@ struct resolve_absolute_path_data {
 #define SAMPLING_FREQUENCY_TRIGGER_PATH SYSFS_DEVICES_PATH "/trigger%d/sampling_frequency"
 
 #define I2C_DEVICES_PATH "/sys/bus/i2c/devices/%u-%04u/"
+
+#define HRTIMER_TRIGGER_PREFIX "hrtimer:"
+#define HRTIMER_TRIGGER_PREFIX_LEN 8
 
 #define REL_PATH_IDX 2
 #define DEV_NUMBER_IDX 3
@@ -179,7 +184,11 @@ check_trigger_name(const char *trigger_dir, const char *trigger_name)
         return false;
     }
 
-    result = streq(trigger_name, name);
+    /* For hrtimer trigger, the current trigger name is the string after HRTIMER_TRIGGER_PREFIX */
+    if (streqn(trigger_name, HRTIMER_TRIGGER_PREFIX, HRTIMER_TRIGGER_PREFIX_LEN))
+        result = streq((trigger_name + HRTIMER_TRIGGER_PREFIX_LEN), name);
+    else
+        result = streq(trigger_name, name);
     free(name);
 
     return result;
@@ -307,7 +316,53 @@ error:
 }
 
 static bool
-check_trigger(struct sol_iio_device *device)
+create_hrtimer_trigger(struct sol_iio_device *device, const char *config_trigger_name)
+{
+    int success, len, r = false;
+    char *trigger_name, *replace;
+    char path[PATH_MAX];
+
+    if (check_file_existence(CONFIGFS_IIO_TRIGGERS_PATH)) {
+        len = asprintf(&trigger_name, "%s", config_trigger_name);
+        if (len < 0)
+            goto error;
+
+        r = craft_filename_path(path, sizeof(path), CONFIGFS_IIO_TRIGGER_PATH, trigger_name);
+        if (!r) {
+            free(trigger_name);
+            goto error;
+        }
+
+        /* Convert the ':' to '-'. configfs iio trigger format is 'hrtimer-<trigger name>' */
+        replace = strchr(path, ':');
+        *replace = '-';
+
+        success = mkdir(path, S_IRWXU);
+
+        if (success == 0) {
+            r = set_current_trigger(device, (trigger_name + HRTIMER_TRIGGER_PREFIX_LEN));
+            if (r)
+                device->trigger_name = trigger_name;
+            else {
+                free(trigger_name);
+                goto error;
+            }
+        }
+    } else {
+        SOL_WRN("IIO triggers folder '"CONFIGFS_IIO_TRIGGERS_PATH "' is not exist.");
+        goto error;
+    }
+
+    return r;
+
+error:
+    SOL_WRN("Could not create hrtimer trigger.");
+
+    return false;
+}
+
+static bool
+check_trigger(struct sol_iio_device *device, const struct sol_iio_config *config)
 {
     char path[PATH_MAX];
     char *name = NULL;
@@ -322,10 +377,17 @@ check_trigger(struct sol_iio_device *device)
 
     len = sol_util_read_file(path, "%ms", &name);
     if (len < 0) {
-        SOL_INF("No current trigger for iio:device%d. Creating a sysfs one.",
-            device->device_id);
-        if (!create_sysfs_trigger(device))
-            return false;
+        if (streqn(config->trigger_name, HRTIMER_TRIGGER_PREFIX, HRTIMER_TRIGGER_PREFIX_LEN)) {
+            SOL_INF("Creating a hrtimer trigger for iio:device%d.",
+                device->device_id);
+            if (!create_hrtimer_trigger(device, config->trigger_name))
+                return false;
+        } else {
+            SOL_INF("No current trigger for iio:device%d. Creating a sysfs one.",
+                device->device_id);
+            if (!create_sysfs_trigger(device))
+                return false;
+        }
     } else
         device->trigger_name = name;
 
@@ -680,13 +742,19 @@ sol_iio_open(int device_id, const struct sol_iio_config *config)
         device->reader_cb_data = config->data;
 
         if (config->trigger_name && config->trigger_name[0] != '\0') {
-            if (!set_current_trigger(device, config->trigger_name)) {
-                SOL_WRN("Could not set device%d current trigger",
-                    device->device_id);
+            /* For hrtimer trigger, remove the prefix and set trigger if HRTIMER_TRIGGER_PREFIX */
+            if (streqn(config->trigger_name, HRTIMER_TRIGGER_PREFIX, HRTIMER_TRIGGER_PREFIX_LEN)) {
+                if (!set_current_trigger(device, config->trigger_name + HRTIMER_TRIGGER_PREFIX_LEN))
+                    SOL_WRN("Could not set device%d current trigger",
+                        device->device_id);
+            } else {
+                if (!set_current_trigger(device, config->trigger_name))
+                    SOL_WRN("Could not set device%d current trigger",
+                        device->device_id);
             }
         }
 
-        if (!check_trigger(device)) {
+        if (!check_trigger(device, config)) {
             SOL_WRN("No trigger available for device%d", device->device_id);
             goto error;
         }
