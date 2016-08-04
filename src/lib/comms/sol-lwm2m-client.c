@@ -904,7 +904,7 @@ handle_create(struct sol_lwm2m_client *client,
         } else if (r != SOL_COAP_RESPONSE_CODE_CHANGED && r != SOL_COAP_RESPONSE_CODE_CREATED) {
             SOL_WRN("Failed to create Access Control Object Instance for Object /%"
                 PRIu16 "/%" PRIu16, obj_ctx->obj->id, obj_instance->id);
-            return -ECANCELED;
+            goto err_exit;
         }
     }
 
