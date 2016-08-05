@@ -43,6 +43,7 @@
 #endif
 
 struct sol_iio_device {
+    double *mount_matrix;
     char *trigger_name;
     void (*reader_cb)(void *data, struct sol_iio_device *device);
     const void *reader_cb_data;
@@ -118,8 +119,13 @@ struct resolve_absolute_path_data {
 #define SAMPLING_FREQUENCY_BUFFER_PATH SYSFS_DEVICES_PATH "/iio:device%d/buffer/sampling_frequency"
 #define SAMPLING_FREQUENCY_TRIGGER_PATH SYSFS_DEVICES_PATH "/trigger%d/sampling_frequency"
 
+#define SYSFS_MOUNT_MATRIX SYSFS_DEVICES_PATH "/iio:device%d/mount_matrix"
+#define SYSFS_OUT_MOUNT_MATRIX SYSFS_DEVICES_PATH "/iio:device%d/out_mount_matrix"
+#define SYSFS_IN_MOUNT_MATRIX SYSFS_DEVICES_PATH "/iio:device%d/in_mount_matrix"
+
 #define I2C_DEVICES_PATH "/sys/bus/i2c/devices/%u-%04u/"
 
+#define MOUNT_MATRIX_LEN 9
 #define REL_PATH_IDX 2
 #define DEV_NUMBER_IDX 3
 #define DEV_NAME_IDX 4
@@ -618,6 +624,56 @@ iio_set_channel_offset(struct sol_iio_channel *channel, int offset)
     return result;
 }
 
+static bool
+get_mount_matrix(struct sol_iio_device *device, double *mount_matrix)
+{
+    char buf[100];
+    char *tmp1, *tmp2;
+    char path[PATH_MAX];
+    bool result = false;
+    int len, i;
+    double d;
+    const char *base = NULL;
+
+    /* Find the mount matrix sysfs node */
+    if (check_file_existence(SYSFS_MOUNT_MATRIX, device->device_id))
+        base = SYSFS_MOUNT_MATRIX;
+    else if (check_file_existence(SYSFS_OUT_MOUNT_MATRIX, device->device_id))
+        base = SYSFS_OUT_MOUNT_MATRIX;
+    else if (check_file_existence(SYSFS_IN_MOUNT_MATRIX, device->device_id))
+        base = SYSFS_IN_MOUNT_MATRIX;
+    else {
+        SOL_WRN("Could not find mount_matrix for device%d", device->device_id);
+        return false;
+    }
+
+    result = craft_filename_path(path, sizeof(path), base, device->device_id);
+    if (!result) {
+        SOL_WRN("Could not open device mount_matrix file");
+        return false;
+    }
+
+    len = sol_util_read_file(path, "%99[^\n]", buf);
+    if (len < 0) {
+        SOL_WRN("Coult not read mount matrix %s on sysfs.", path);
+        return false;
+    }
+
+    SOL_DBG("in_mount_matrix=%s", buf);
+
+    tmp1 = buf;
+    for (i = 0; i < MOUNT_MATRIX_LEN; i++) {
+        d = strtod(tmp1, &tmp2);
+        if (tmp1 == tmp2)
+            return false;
+        mount_matrix[i] = d;
+        tmp1 = tmp2 + 1;
+        SOL_DBG("matrix[%d]=%f", i, mount_matrix[i]);
+    }
+
+    return result;
+}
+
 SOL_API struct sol_iio_device *
 sol_iio_open(int device_id, const struct sol_iio_config *config)
 {
@@ -720,10 +776,19 @@ sol_iio_open(int device_id, const struct sol_iio_config *config)
             SOL_WRN("Could not set device%d sampling frequency", device->device_id);
     }
 
+    device->mount_matrix = calloc(MOUNT_MATRIX_LEN, sizeof(double));
+    SOL_NULL_CHECK_GOTO(device->mount_matrix, error);
+
+    r = get_mount_matrix(device, device->mount_matrix);
+    if (!r) {
+        free(device->mount_matrix);
+        device->mount_matrix = NULL;
+    }
+
     SOL_DBG("iio device created. device%d - buffer_enabled: %d - manual_trigger: %d"
-        " - trigger_name: %s - trigger_id: %d", device->device_id,
+        " - trigger_name: %s - trigger_id: %d - mount_matrix: %p", device->device_id,
         device->buffer_enabled, device->manual_triggering, device->trigger_name,
-        device->trigger_id);
+        device->trigger_id, device->mount_matrix);
 
     return device;
 
@@ -902,6 +967,7 @@ sol_iio_close(struct sol_iio_device *device)
     if (device->fd_handler) sol_fd_del(device->fd_handler);
     if (device->fd > -1) close(device->fd);
     if (device->name_fd > -1) close(device->name_fd);
+    free(device->mount_matrix);
 
     sol_buffer_fini(&device->buffer);
     free(device->trigger_name);
@@ -1453,4 +1519,27 @@ sol_iio_read_channel_raw_buffer(struct sol_iio_channel *channel)
     slice.data = (char *)channel->device->buffer.data + offset_bytes;
 
     return slice;
+}
+
+SOL_API int
+sol_iio_mount_calibration(struct sol_iio_device *device, sol_direction_vector *value)
+{
+    int i;
+    double tmp[3];
+
+    if (!device->mount_matrix)
+        return -1;
+
+    // mount correction
+    for (i = 0; i < 3; i++) {
+        tmp[i] = value->x * device->mount_matrix[i * 3]
+            + value->y * device->mount_matrix[i * 3 + 1]
+            + value->z * device->mount_matrix[i * 3 + 2];
+    }
+
+    value->x = tmp[0];
+    value->y = tmp[1];
+    value->z = tmp[2];
+    SOL_DBG("%f-%f-%f", value->x, value->y, value->z);
+    return 0;
 }

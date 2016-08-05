@@ -143,6 +143,11 @@ iio_direction_vector_reader_cb(void *data, struct sol_iio_device *device)
     r = sol_iio_read_channel_value(mdata->channel_z, &out.z);
     SOL_INT_CHECK_GOTO(r, < 0, error);
 
+    SOL_DBG("Before mount_calibration: %f-%f-%f", out.x, out.y, out.z);
+
+    // mount correction
+    sol_iio_mount_calibration(device, &out);
+
     sol_flow_send_direction_vector_packet(node, type->out_port, &out);
 
     return;
