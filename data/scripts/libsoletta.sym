@@ -416,6 +416,7 @@ global:
         sol_iio_open;
         sol_iio_read_channel_raw_buffer;
         sol_iio_read_channel_value;
+        sol_iio_mount_calibration;
 
         sol_init;
 

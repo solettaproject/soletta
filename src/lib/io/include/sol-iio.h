@@ -230,6 +230,20 @@ struct sol_str_slice
 sol_iio_read_channel_raw_buffer(struct sol_iio_channel *channel);
 
 /**
+ * @brief Perform the mount calibration.
+ *
+ * This function is meaningful only when mount_matrix is supported.
+ *
+ * @param device device to get mount matrix
+ * @param value data to be calibrated
+ *
+ * @return 0 if mount_matrix is exits and perform the calibration, -1 means does not support mount_matrix.
+ *
+ */
+int
+sol_iio_mount_calibration(struct sol_iio_device *device, sol_direction_vector *value);
+
+/**
  * @}
  */
 
