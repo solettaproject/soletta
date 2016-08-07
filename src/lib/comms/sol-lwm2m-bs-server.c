@@ -30,6 +30,7 @@
 #include "sol-lwm2m.h"
 #include "sol-lwm2m-common.h"
 #include "sol-lwm2m-bs-server.h"
+#include "sol-lwm2m-security.h"
 #include "sol-macros.h"
 #include "sol-mainloop.h"
 #include "sol-monitors.h"
@@ -40,13 +41,6 @@
 #include "sol-http.h"
 
 SOL_LOG_INTERNAL_DECLARE_STATIC(_lwm2m_bs_server_domain, "lwm2m-bs-server");
-
-struct sol_lwm2m_bootstrap_server {
-    struct sol_coap_server *coap;
-    struct sol_ptr_vector clients;
-    struct sol_monitors bootstrap;
-    const char **known_clients;
-};
 
 struct sol_lwm2m_bootstrap_client_info {
     char *name;
@@ -217,22 +211,57 @@ static const struct sol_coap_resource bootstrap_request_interface = {
 };
 
 SOL_API struct sol_lwm2m_bootstrap_server *
-sol_lwm2m_bootstrap_server_new(uint16_t port, const char **known_clients)
+sol_lwm2m_bootstrap_server_new(uint16_t port, const char **known_clients,
+    enum sol_lwm2m_security_mode sec_mode, struct sol_vector *known_psks)
 {
     struct sol_lwm2m_bootstrap_server *server;
     struct sol_network_link_addr servaddr = { .family = SOL_NETWORK_FAMILY_INET6,
                                               .port = port };
     int r;
+    const char *sec_mode_str;
 
     SOL_LOG_INTERNAL_INIT_ONCE;
 
     SOL_NULL_CHECK(known_clients, NULL);
+    switch (sec_mode) {
+    case SOL_LWM2M_SECURITY_MODE_PRE_SHARED_KEY:
+        SOL_NULL_CHECK(known_psks, NULL);
+        sec_mode_str = "Pre-Shared Key";
+        break;
+    case SOL_LWM2M_SECURITY_MODE_RAW_PUBLIC_KEY:
+        sec_mode_str = "Raw Public Key";
+        SOL_WRN("Raw Public Key security mode is not supported yet.");
+        return NULL;
+    case SOL_LWM2M_SECURITY_MODE_CERTIFICATE:
+        sec_mode_str = "Certificate";
+        SOL_WRN("Certificate security mode is not supported yet.");
+        return NULL;
+    case SOL_LWM2M_SECURITY_MODE_NO_SEC:
+        SOL_WRN("Bootstrap Server MUST use DTLS.");
+        return NULL;
+    default:
+        SOL_WRN("Unknown DTLS Security Mode: %d", sec_mode);
+        return NULL;
+    }
 
     server = calloc(1, sizeof(struct sol_lwm2m_bootstrap_server));
     SOL_NULL_CHECK(server, NULL);
 
-    server->coap = sol_coap_server_new(&servaddr, false);
+    //LWM2M Bootstrap Server MUST always use DTLS
+    if (sec_mode == SOL_LWM2M_SECURITY_MODE_PRE_SHARED_KEY)
+        server->known_psks = known_psks;
+
+    server->coap = sol_coap_server_new(&servaddr, true);
     SOL_NULL_CHECK_GOTO(server->coap, err_coap);
+
+    server->security = sol_lwm2m_bootstrap_server_security_add(server, sec_mode);
+    if (!server->security) {
+        SOL_ERR("Could not enable %s security mode for LWM2M Bootstrap Server",
+            sec_mode_str);
+        goto err_security;
+    } else {
+        SOL_DBG("Using %s security mode", sec_mode_str);
+    }
 
     server->known_clients = known_clients;
 
@@ -242,11 +271,11 @@ sol_lwm2m_bootstrap_server_new(uint16_t port, const char **known_clients)
 
     r = sol_coap_server_register_resource(server->coap,
         &bootstrap_request_interface, server);
-    SOL_INT_CHECK_GOTO(r, < 0, err_register);
+    SOL_INT_CHECK_GOTO(r, < 0, err_security);
 
     return server;
 
-err_register:
+err_security:
     sol_coap_server_unref(server->coap);
 err_coap:
     free(server);
@@ -262,6 +291,8 @@ sol_lwm2m_bootstrap_server_del(struct sol_lwm2m_bootstrap_server *server)
     SOL_NULL_CHECK(server);
 
     sol_coap_server_unref(server->coap);
+
+    sol_lwm2m_bootstrap_server_security_del(server->security);
 
     SOL_PTR_VECTOR_FOREACH_IDX (&server->clients, bs_cinfo, i)
         bootstrap_client_info_del(bs_cinfo);
