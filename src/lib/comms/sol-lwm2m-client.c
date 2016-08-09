@@ -452,6 +452,28 @@ check_authorization(struct sol_lwm2m_client *client,
     }
 
     obj_ctx = find_object_ctx_by_id(client, ACCESS_CONTROL_OBJECT_ID);
+    //If the target Object is an Access Control Object itself,
+    // the server is authorized iff it is the owner of the object instance.
+    if (obj_id == ACCESS_CONTROL_OBJECT_ID) {
+        SOL_VECTOR_FOREACH_IDX (&obj_ctx->instances, obj_instance, i) {
+            if (obj_instance->id == instance_id) {
+                r = read_resources(client, obj_ctx, obj_instance, res, 1,
+                    ACCESS_CONTROL_OBJECT_OWNER_RES_ID);
+                if (r < 0) {
+                    SOL_WRN("Could not read Access Control"
+                        " Object's [Owner ID] resource\n");
+                    goto exit_clear_1;
+                }
+
+                if (res[0].data[0].content.integer == server_id)
+                    r = 1;
+                else
+                    r = 0;
+                goto exit_clear_1;
+            }
+        }
+    }
+
     SOL_VECTOR_FOREACH_IDX (&obj_ctx->instances, obj_instance, i) {
         r = read_resources(client, obj_ctx, obj_instance, res, 2,
             ACCESS_CONTROL_OBJECT_OBJECT_RES_ID,
@@ -459,7 +481,7 @@ check_authorization(struct sol_lwm2m_client *client,
         if (r < 0) {
             SOL_WRN("Could not read Access Control Object's"
                 " [Object ID] and [Instance ID] resources\n");
-            goto exit;
+            goto exit_clear_2;
         }
 
         //Retrieve the associated Access Control Object Instance, by matching Object ID
@@ -478,7 +500,7 @@ check_authorization(struct sol_lwm2m_client *client,
             if (r < 0) {
                 SOL_WRN("Could not read Access Control"
                     " Object's [ACL] and [Owner ID] resources\n");
-                goto exit;
+                goto exit_clear_2;
             }
 
             //Retrive this server's ACL Resource Instance
@@ -486,10 +508,10 @@ check_authorization(struct sol_lwm2m_client *client,
                 if (res[0].data[i].id == server_id) {
                     if (res[0].data[i].content.integer & rights_needed) {
                         r = 1;
-                        goto exit;
+                        goto exit_clear_2;
                     } else {
                         r = 0;
-                        goto exit;
+                        goto exit_clear_2;
                     }
                 }
 
@@ -502,26 +524,28 @@ check_authorization(struct sol_lwm2m_client *client,
             // If owner and no specific ACL Resource Instance, then full access rights.
             if (res[1].data[0].content.integer == server_id) {
                 r = 1;
-                goto exit;
+                goto exit_clear_2;
             }
 
             //If no ACL and not owner, check if the default ACL Resource Instance applies
             if (default_acl & rights_needed) {
                 r = 1;
-                goto exit;
+                goto exit_clear_2;
             }
 
             //If not Observe operation on Object level, do not check next instance;
             // only break and return
             if (!(instance_id == -1 && (rights_needed & SOL_LWM2M_ACL_READ)))
-                goto exit;
+                goto exit_clear_2;
         }
 
         clear_resource_array(res, sol_util_array_size(res));
     }
 
-exit:
-    clear_resource_array(res, sol_util_array_size(res));
+exit_clear_2:
+    sol_lwm2m_resource_clear(&res[1]);
+exit_clear_1:
+    sol_lwm2m_resource_clear(&res[0]);
 
     return r;
 }
