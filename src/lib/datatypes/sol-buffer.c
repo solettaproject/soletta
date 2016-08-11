@@ -132,8 +132,12 @@ sol_buffer_set_slice(struct sol_buffer *buf, const struct sol_str_slice slice)
     if (err < 0)
         return err;
 
-    sol_str_slice_copy(buf->data, slice);
+    memcpy(buf->data, slice.data, slice.len);
     buf->used = slice.len;
+    if (SOL_BUFFER_NEEDS_NUL_BYTE(buf)) {
+        return sol_buffer_ensure_nul_byte(buf);
+    }
+
     return 0;
 }
 
