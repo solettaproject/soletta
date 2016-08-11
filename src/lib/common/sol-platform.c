@@ -423,13 +423,28 @@ sol_platform_get_machine_id(void)
     char *env_id = getenv("SOL_MACHINE_ID");
 
     if (env_id) {
-        if (strlen(env_id) > 32 ||
-            !sol_util_uuid_str_is_valid(sol_str_slice_from_str(env_id))) {
+        if (!sol_util_uuid_str_is_valid(sol_str_slice_from_str(env_id))) {
             SOL_WRN("Malformed UUID passed on environment variable "
                 "SOL_MACHINE_ID: %s", env_id);
             return NULL;
         }
-        return env_id;
+
+        if (strlen(env_id) == 36) {
+            int i, j;
+
+            /* remove hyphens on positions 8, 13, 18, 23 (from 0) */
+            for (i = 0, j = 0; i < 36; i++) {
+                if (i != 8 && i != 13 && i != 18 && i !=  23) {
+                    id[j] = env_id[i];
+                    j++;
+                }
+            }
+            id[32] = '\0';
+
+            return id;
+        } else {
+            return env_id;
+        }
     }
 #endif
     if (!id[0]) {
