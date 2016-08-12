@@ -439,7 +439,7 @@ check_authorization(struct sol_lwm2m_client *client,
 {
     struct obj_ctx *obj_ctx;
     struct obj_instance *obj_instance;
-    struct sol_lwm2m_resource res[2];
+    struct sol_lwm2m_resource res[2] = { 0 };
     int r = 0;
     int64_t default_acl = SOL_LWM2M_ACL_NONE;
     uint16_t i;
