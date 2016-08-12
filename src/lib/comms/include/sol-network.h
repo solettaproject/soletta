@@ -228,14 +228,18 @@ const struct sol_network_link_addr *sol_network_link_addr_from_str(struct sol_ne
  *
  * @param a The first address to be compared.
  * @param b The second address to be compared.
+ * @param include_port Indicates if the port should be included in the comparison as well.
  *
  * @return @c true if they are equal, otherwise @c false.
  */
 static inline bool
 sol_network_link_addr_eq(const struct sol_network_link_addr *a,
-    const struct sol_network_link_addr *b)
+    const struct sol_network_link_addr *b, bool include_port)
 {
     size_t bytes;
+
+    if (include_port && (a->port != b->port))
+        return false;
 
     if (a->family == b->family) {
         const uint8_t *addr_a, *addr_b;

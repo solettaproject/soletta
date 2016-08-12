@@ -1167,7 +1167,7 @@ state_changed(void *data, enum sol_coap_response_code response_code, struct sol_
     if (!cliaddr || !repr_vec)
         return;
 
-    if (!sol_network_link_addr_eq(cliaddr, &resource->resource->addr)) {
+    if (!sol_network_link_addr_eq(cliaddr, &resource->resource->addr, false)) {
         SOL_BUFFER_DECLARE_STATIC(resaddr, SOL_NETWORK_INET_ADDR_STR_LEN);
         SOL_BUFFER_DECLARE_STATIC(respaddr, SOL_NETWORK_INET_ADDR_STR_LEN);
 

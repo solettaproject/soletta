@@ -1288,7 +1288,7 @@ find_device_by_addr(struct context *ctx,
     SOL_PTR_VECTOR_FOREACH_IDX (&ctx->devices, d, i) {
         const struct sol_bt_device_info *info = &d->info;
 
-        if (sol_network_link_addr_eq(addr, &info->addr))
+        if (sol_network_link_addr_eq(addr, &info->addr, false))
             return d;
     }
 
