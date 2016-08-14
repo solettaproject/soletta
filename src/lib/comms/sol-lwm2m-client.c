@@ -391,7 +391,7 @@ check_authorization(struct sol_lwm2m_client *client,
 {
     struct obj_ctx *obj_ctx;
     struct obj_instance *obj_instance;
-    struct sol_lwm2m_resource res[2] = { 0 };
+    struct sol_lwm2m_resource res[2] = { };
     int r = 0;
     int64_t default_acl = SOL_LWM2M_ACL_NONE;
     uint16_t i, j;
@@ -519,7 +519,7 @@ handle_delete(struct sol_lwm2m_client *client,
     struct obj_ctx *obj_ctx, struct obj_instance *obj_instance,
     int64_t server_id)
 {
-    int r, ret = SOL_COAP_RESPONSE_CODE_BAD_REQUEST;
+    int r, ret = SOL_COAP_RESPONSE_CODE_NOT_ALLOWED;
     uint16_t i, j;
     struct obj_ctx *acc_obj_ctx;
     struct obj_instance *acc_obj_instance;
@@ -2085,8 +2085,9 @@ register_with_server(struct sol_lwm2m_client *client,
 
     conn_ctx->registration_time = time(NULL);
 
-    SOL_DBG("Connecting with LWM2M server - binding '%.*s' -"
-        "lifetime '%" PRId64 "'", SOL_STR_SLICE_PRINT(sol_str_slice_from_blob(binding)),
+    SOL_DBG("Connecting with LWM2M %s server - id %" PRId64 " - binding '%.*s' -"
+        " lifetime '%" PRId64 "'", conn_ctx->secure ? "(DTLS)" : "(CoAP)",
+        conn_ctx->server_id, SOL_STR_SLICE_PRINT(sol_str_slice_from_blob(binding)),
         conn_ctx->lifetime);
     r = sol_coap_send_packet_with_reply(
         conn_ctx->secure ? client->dtls_server : client->coap_server,

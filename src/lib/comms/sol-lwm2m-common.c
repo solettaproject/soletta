@@ -1085,7 +1085,7 @@ sol_lwm2m_common_get_path_props(const char *path)
     }
 
     if (i == slashes) {
-        SOL_WRN("Path '%s' is empty\n", path);
+        SOL_DBG("Path '%s' is empty\n", path);
         return PATH_IS_INVALID_OR_EMPTY;
     }
 
