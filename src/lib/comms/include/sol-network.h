@@ -222,20 +222,24 @@ const char *sol_network_link_addr_to_str(const struct sol_network_link_addr *add
 const struct sol_network_link_addr *sol_network_link_addr_from_str(struct sol_network_link_addr *addr, const char *buf);
 
 /**
- * @brief Checks if two address are equal.
+ * @brief Checks if two address are equal - possibly including the port field.
  *
  * This function compares two addresses to see if they are the same.
  *
  * @param a The first address to be compared.
  * @param b The second address to be compared.
+ * @param compare_ports Indicates if the port should be included in the comparison as well.
  *
  * @return @c true if they are equal, otherwise @c false.
  */
 static inline bool
-sol_network_link_addr_eq(const struct sol_network_link_addr *a,
-    const struct sol_network_link_addr *b)
+sol_network_link_addr_eq_full(const struct sol_network_link_addr *a,
+    const struct sol_network_link_addr *b, bool compare_ports)
 {
     size_t bytes;
+
+    if (compare_ports && (a->port != b->port))
+        return false;
 
     if (a->family == b->family) {
         const uint8_t *addr_a, *addr_b;
@@ -297,6 +301,22 @@ sol_network_link_addr_eq(const struct sol_network_link_addr *a,
     return false;
 }
 
+/**
+ * @brief Checks if two address are equal.
+ *
+ * This function compares two addresses to see if they are the same.
+ *
+ * @param a The first address to be compared.
+ * @param b The second address to be compared.
+ *
+ * @return @c true if they are equal, otherwise @c false.
+ */
+static inline bool
+sol_network_link_addr_eq(const struct sol_network_link_addr *a,
+    const struct sol_network_link_addr *b)
+{
+    return sol_network_link_addr_eq_full(a, b, false);
+}
 /**
  * @brief Subscribes to receive network link events.
  *
