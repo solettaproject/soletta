@@ -1230,7 +1230,7 @@ get_server_id_by_link_addr(const struct sol_ptr_vector *connections,
 
     SOL_PTR_VECTOR_FOREACH_IDX (connections, conn_ctx, i) {
         server_addr = sol_vector_get_no_check(&conn_ctx->server_addr_list, conn_ctx->addr_list_idx);
-        if (sol_network_link_addr_eq(cliaddr, server_addr)) {
+        if (sol_network_link_addr_eq(cliaddr, server_addr, true)) {
             *server_id = conn_ctx->server_id;
             return 0;
         }
@@ -2385,7 +2385,7 @@ bootstrap_finish(void *data, struct sol_coap_server *coap,
 
     SOL_PTR_VECTOR_FOREACH_IDX (&client->connections, conn_ctx, i) {
         server_addr = sol_vector_get_no_check(&conn_ctx->server_addr_list, conn_ctx->addr_list_idx);
-        if (sol_network_link_addr_eq(cliaddr, server_addr)) {
+        if (sol_network_link_addr_eq(cliaddr, server_addr, true)) {
             server_connection_ctx_remove(&client->connections, conn_ctx);
             break;
         }

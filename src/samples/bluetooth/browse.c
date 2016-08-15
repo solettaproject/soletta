@@ -141,7 +141,7 @@ found_device(void *user_data, const struct sol_bt_device_info *device)
         return;
 
     if (browse_addr.family != SOL_NETWORK_FAMILY_UNSPEC) {
-        if (!sol_network_link_addr_eq(&browse_addr, &device->addr))
+        if (!sol_network_link_addr_eq(&browse_addr, &device->addr, false))
             return;
 
         sol_bt_stop_scan(scan);
