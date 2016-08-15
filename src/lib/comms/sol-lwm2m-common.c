@@ -44,6 +44,93 @@ SOL_LOG_INTERNAL_DECLARE_STATIC(_lwm2m_common_domain, "lwm2m-common");
 int sol_lwm2m_common_init(void);
 void sol_lwm2m_common_shutdown(void);
 
+int
+read_resources(struct sol_lwm2m_client *client,
+    struct obj_ctx *obj_ctx, struct obj_instance *instance,
+    struct sol_lwm2m_resource *res, size_t res_len, ...)
+{
+    size_t i;
+    int r = 0;
+    va_list ap;
+
+    SOL_NULL_CHECK(obj_ctx->obj->read, -ENOTSUP);
+
+    va_start(ap, res_len);
+
+    // The va_list contains the resources IDs that should be read.
+    for (i = 0; i < res_len; i++) {
+        r = obj_ctx->obj->read((void *)instance->data,
+            (void *)client->user_data, client, instance->id,
+            (uint16_t)va_arg(ap, int), &res[i]);
+
+        if (r == -ENOENT) {
+            res[i].data_len = 0;
+            res[i].data = NULL;
+            continue;
+        }
+
+        LWM2M_RESOURCE_CHECK_API_GOTO(res[i], err_exit_api);
+        SOL_INT_CHECK_GOTO(r, < 0, err_exit);
+    }
+
+    va_end(ap);
+    return 0;
+
+#ifndef SOL_NO_API_VERSION
+err_exit_api:
+    r = -EINVAL;
+#endif
+err_exit:
+    clear_resource_array(res, i);
+    va_end(ap);
+    return r;
+}
+
+struct obj_ctx *
+find_object_ctx_by_id(struct sol_lwm2m_client *client, uint16_t id)
+{
+    uint16_t i;
+    struct obj_ctx *ctx;
+
+    SOL_VECTOR_FOREACH_IDX (&client->objects, ctx, i) {
+        if (ctx->obj->id == id)
+            return ctx;
+    }
+
+    return NULL;
+}
+
+void
+clear_resource_array(struct sol_lwm2m_resource *array, uint16_t len)
+{
+    uint16_t i;
+
+    for (i = 0; i < len; i++)
+        sol_lwm2m_resource_clear(&array[i]);
+}
+
+int
+get_server_id_by_link_addr(const struct sol_ptr_vector *connections,
+    const struct sol_network_link_addr *cliaddr, int64_t *server_id)
+{
+    struct server_conn_ctx *conn_ctx;
+    struct sol_network_link_addr *server_addr;
+    uint16_t i;
+
+    SOL_PTR_VECTOR_FOREACH_IDX (connections, conn_ctx, i) {
+        server_addr = sol_vector_get_no_check(&conn_ctx->server_addr_list, conn_ctx->addr_list_idx);
+        if (sol_network_link_addr_eq_full(cliaddr, server_addr, true)) {
+            if (conn_ctx->server_id == DEFAULT_SHORT_SERVER_ID)
+                *server_id = UINT16_MAX;
+            else
+                *server_id = conn_ctx->server_id;
+            return 0;
+        }
+    }
+
+    return -ENOENT;
+}
+
 void
 send_ack_if_needed(struct sol_coap_server *coap, struct sol_coap_packet *msg,
     const struct sol_network_link_addr *cliaddr)

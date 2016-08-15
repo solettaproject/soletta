@@ -477,9 +477,20 @@ int sol_coap_header_set_code(struct sol_coap_packet *pkt, uint8_t code);
 int sol_coap_header_set_id(struct sol_coap_packet *pkt, uint16_t id);
 
 /**
+ * @brief Check if a given CoAP server instance is running over DTLS or not.
+ *
+ * @param server The server to be checked.
+ *
+ * @return True if this server uses DTLS to encrypt communication with its
+ * endpoints; false otherwise.
+ *
+ */
+bool sol_coap_server_is_secure(const struct sol_coap_server *server);
+
+/**
  * @brief Creates a new CoAP server instance.
  *
- * Creates a new, unsecured, CoAP server instance listening on address
+ * Creates a new, CoAP server instance listening on address
  * @a addr. If the server cannot be created, NULL will be returned and
  * @c errno will be set to indicate the reason.
  *

@@ -45,9 +45,10 @@
 #define ARRAY_VALUE_ONE (INT64_MAX)
 #define ARRAY_VALUE_TWO (INT64_MIN)
 
-#define SECURITY_SERVER_OBJECT_ID (0)
+#define SECURITY_OBJECT_ID (0)
 #define SECURITY_SERVER_URI (0)
-#define SECURITY_SERVER_IS_BOOTSTRAP (1)
+#define SECURITY_IS_BOOTSTRAP (1)
+#define SECURITY_SECURITY_MODE (2)
 #define SECURITY_SERVER_ID (10)
 
 #define SERVER_OBJECT_ID (1)
@@ -107,9 +108,12 @@ security_object_read(void *instance_data, void *user_data,
         SOL_LWM2M_RESOURCE_SINGLE_INIT(r, res, 0,
             SOL_LWM2M_RESOURCE_DATA_TYPE_STRING, &addr);
         break;
-    case SECURITY_SERVER_IS_BOOTSTRAP:
+    case SECURITY_IS_BOOTSTRAP:
         SOL_LWM2M_RESOURCE_SINGLE_INIT(r, res, 1,
             SOL_LWM2M_RESOURCE_DATA_TYPE_BOOL, false);
+        break;
+    case SECURITY_SECURITY_MODE:
+        SOL_LWM2M_RESOURCE_SINGLE_INT_INIT(r, res, 2, SOL_LWM2M_SECURITY_MODE_NO_SEC);
         break;
     case SECURITY_SERVER_ID:
         SOL_LWM2M_RESOURCE_SINGLE_INT_INIT(r, res, 10, 101);
@@ -368,7 +372,7 @@ del_dummy(void *instance_data, void *user_data,
 
 static const struct sol_lwm2m_object security_object = {
     SOL_SET_API_VERSION(.api_version = SOL_LWM2M_OBJECT_API_VERSION, )
-    .id = SECURITY_SERVER_OBJECT_ID,
+    .id = SECURITY_OBJECT_ID,
     .resources_count = 12,
     .read = security_object_read
 };
@@ -591,7 +595,7 @@ registration_event_cb(void *data, struct sol_lwm2m_server *server,
             uint16_t obj_id;
             r = sol_lwm2m_client_object_get_id(object, &obj_id);
             ASSERT(r == 0);
-            if (obj_id == SECURITY_SERVER_OBJECT_ID ||
+            if (obj_id == SECURITY_OBJECT_ID ||
                 obj_id == SERVER_OBJECT_ID || obj_id == DUMMY_OBJECT_ID)
                 objects_found++;
         }
@@ -623,7 +627,9 @@ main(int argc, char *argv[])
     r = sol_init();
     ASSERT(!r);
 
-    server = sol_lwm2m_server_new(SOL_LWM2M_DEFAULT_SERVER_PORT);
+    server = sol_lwm2m_server_new(SOL_LWM2M_DEFAULT_SERVER_PORT_COAP,
+        SOL_LWM2M_DEFAULT_SERVER_PORT_DTLS,
+        SOL_LWM2M_SECURITY_MODE_NO_SEC, NULL);
     ASSERT(server != NULL);
 
     r = sol_lwm2m_server_add_registration_monitor(server, registration_event_cb,

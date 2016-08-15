@@ -17,19 +17,19 @@
  */
 
 /*
-   To run: ./lwm2m-sample-client <client name> [bootstrap]
-   If [bootstrap] argument is not given:
-   This LWM2M client sample will try to connect to a LWM2M server @ locahost:5683.
+   To run: ./lwm2m-sample-client <client name> [-b] [-s SEC_MODE]
+   If [-b] argument is not given:
+   This LWM2M client sample will try to connect to a LWM2M server @ locahost:5683
+   (or @ localhost:5684 if -s is given).
    If a location object is created by the LWM2M server, it will report its location
    every one second.
 
-   If [bootstrap] argument is given:
-   This LWM2M client sample will try to connect to a LWM2M server @ locahost:5683.
-   It should fail and thus will expect a server-initiated bootstrap.
+   If [-b] argument is given:
+   This LWM2M client sample expect a server-initiated bootstrap.
    If it doesn't happen in 5s, it will try to connect to a LWM2M bootstrap server
    @ localhost:5783 and perform client-initiated bootstrap.
-   If the bootstrap is successful, it will try to connect and register with the
-   server received in the bootstrap information.
+   If the bootstrap is successfull, it will try to connect and register with the
+   server(s) received in the bootstrap information.
  */
 
 #include "sol-lwm2m-client.h"
@@ -41,6 +41,7 @@
 #include <stdbool.h>
 #include <errno.h>
 #include <time.h>
+#include <unistd.h>
 
 #define LOCATION_OBJ_ID (6)
 #define LOCATION_OBJ_LATITUDE_RES_ID (0)
@@ -62,12 +63,16 @@
 #define ACCESS_CONTROL_OBJ_ACL_RES_ID (2)
 #define ACCESS_CONTROL_OBJ_OWNER_RES_ID (3)
 
-#define SECURITY_SERVER_OBJ_ID (0)
-#define SECURITY_SERVER_SERVER_URI_RES_ID (0)
-#define SECURITY_SERVER_IS_BOOTSTRAP_RES_ID (1)
-#define SECURITY_SERVER_SERVER_ID_RES_ID (10)
-#define SECURITY_SERVER_CLIENT_HOLD_OFF_TIME_RES_ID (11)
-#define SECURITY_SERVER_BOOTSTRAP_SERVER_ACCOUNT_TIMEOUT_RES_ID (12)
+#define SECURITY_OBJ_ID (0)
+#define SECURITY_SERVER_URI_RES_ID (0)
+#define SECURITY_IS_BOOTSTRAP_RES_ID (1)
+#define SECURITY_SECURITY_MODE_RES_ID (2)
+#define SECURITY_PUBLIC_KEY_OR_IDENTITY_RES_ID (3)
+#define SECURITY_SERVER_PUBLIC_KEY_RES_ID (4)
+#define SECURITY_SECRET_KEY_RES_ID (5)
+#define SECURITY_SERVER_ID_RES_ID (10)
+#define SECURITY_CLIENT_HOLD_OFF_TIME_RES_ID (11)
+#define SECURITY_BOOTSTRAP_SERVER_ACCOUNT_TIMEOUT_RES_ID (12)
 
 struct client_data_ctx {
     bool has_location_instance;
@@ -78,6 +83,10 @@ struct security_obj_instance_ctx {
     struct sol_lwm2m_client *client;
     struct sol_blob *server_uri;
     bool is_bootstrap;
+    int64_t security_mode;
+    struct sol_blob *public_key_or_id;
+    struct sol_blob *server_public_key;
+    struct sol_blob *secret_key;
     int64_t server_id;
     int64_t client_hold_off_time;
     int64_t bootstrap_server_account_timeout;
@@ -114,16 +123,57 @@ struct location_obj_instance_ctx {
 static struct sol_blob bootstrap_server_addr = {
     .type = &SOL_BLOB_TYPE_NO_FREE,
     .parent = NULL,
-    .mem = (void *)"coap://localhost:5783",
-    .size = sizeof("coap://localhost:5783") - 1,
+    .mem = (void *)"coaps://localhost:5783",
+    .size = sizeof("coaps://localhost:5783") - 1,
     .refcnt = 1
 };
 
-static struct sol_blob server_addr = {
+static struct sol_blob server_addr_coap = {
     .type = &SOL_BLOB_TYPE_NO_FREE,
     .parent = NULL,
     .mem = (void *)"coap://localhost:5683",
     .size = sizeof("coap://localhost:5683") - 1,
+    .refcnt = 1
+};
+
+static struct sol_blob server_addr_dtls = {
+    .type = &SOL_BLOB_TYPE_NO_FREE,
+    .parent = NULL,
+    .mem = (void *)"coaps://localhost:5684",
+    .size = sizeof("coaps://localhost:5684") - 1,
+    .refcnt = 1
+};
+
+//FIXME: UNSEC: Hardcoded Crypto Keys
+static struct sol_blob psk_id = {
+    .type = &SOL_BLOB_TYPE_NO_FREE,
+    .parent = NULL,
+    .mem = (void *)"cli1",
+    .size = sizeof("cli1") - 1,
+    .refcnt = 1
+};
+
+static struct sol_blob psk_key = {
+    .type = &SOL_BLOB_TYPE_NO_FREE,
+    .parent = NULL,
+    .mem = (void *)"0123456789ABCDEF",
+    .size = sizeof("0123456789ABCDEF") - 1,
+    .refcnt = 1
+};
+
+static struct sol_blob psk_bs_id = {
+    .type = &SOL_BLOB_TYPE_NO_FREE,
+    .parent = NULL,
+    .mem = (void *)"cli1-bs",
+    .size = sizeof("cli1-bs") - 1,
+    .refcnt = 1
+};
+
+static struct sol_blob psk_bs_key = {
+    .type = &SOL_BLOB_TYPE_NO_FREE,
+    .parent = NULL,
+    .mem = (void *)"FEDCBA9876543210",
+    .size = sizeof("FEDCBA9876543210") - 1,
     .refcnt = 1
 };
 
@@ -317,28 +367,50 @@ read_security_obj(void *instance_data, void *user_data,
     struct security_obj_instance_ctx *ctx = instance_data;
     int r;
 
-    //It implements only the necassary info to connect to a LWM2M server
-    // or bootstrap server without encryption.
     switch (res_id) {
-    case SECURITY_SERVER_SERVER_URI_RES_ID:
+    case SECURITY_SERVER_URI_RES_ID:
         SOL_LWM2M_RESOURCE_SINGLE_INIT(r, res, res_id,
             SOL_LWM2M_RESOURCE_DATA_TYPE_STRING, ctx->server_uri);
         break;
-    case SECURITY_SERVER_IS_BOOTSTRAP_RES_ID:
+    case SECURITY_IS_BOOTSTRAP_RES_ID:
         SOL_LWM2M_RESOURCE_SINGLE_INIT(r, res, res_id,
             SOL_LWM2M_RESOURCE_DATA_TYPE_BOOL, ctx->is_bootstrap);
         break;
-    case SECURITY_SERVER_SERVER_ID_RES_ID:
+    case SECURITY_SECURITY_MODE_RES_ID:
+        SOL_LWM2M_RESOURCE_SINGLE_INT_INIT(r, res, res_id, ctx->security_mode);
+        break;
+    case SECURITY_PUBLIC_KEY_OR_IDENTITY_RES_ID:
+        if (!ctx->public_key_or_id)
+            r = -ENOENT;
+        else
+            SOL_LWM2M_RESOURCE_SINGLE_INIT(r, res, res_id,
+                SOL_LWM2M_RESOURCE_DATA_TYPE_STRING, ctx->public_key_or_id);
+        break;
+    case SECURITY_SERVER_PUBLIC_KEY_RES_ID:
+        if (!ctx->server_public_key)
+            r = -ENOENT;
+        else
+            SOL_LWM2M_RESOURCE_SINGLE_INIT(r, res, res_id,
+                SOL_LWM2M_RESOURCE_DATA_TYPE_STRING, ctx->server_public_key);
+        break;
+    case SECURITY_SECRET_KEY_RES_ID:
+        if (!ctx->secret_key)
+            r = -ENOENT;
+        else
+            SOL_LWM2M_RESOURCE_SINGLE_INIT(r, res, res_id,
+                SOL_LWM2M_RESOURCE_DATA_TYPE_STRING, ctx->secret_key);
+        break;
+    case SECURITY_SERVER_ID_RES_ID:
         SOL_LWM2M_RESOURCE_SINGLE_INT_INIT(r, res, res_id, ctx->server_id);
         break;
-    case SECURITY_SERVER_CLIENT_HOLD_OFF_TIME_RES_ID:
+    case SECURITY_CLIENT_HOLD_OFF_TIME_RES_ID:
         SOL_LWM2M_RESOURCE_SINGLE_INT_INIT(r, res, res_id, ctx->client_hold_off_time);
         break;
-    case SECURITY_SERVER_BOOTSTRAP_SERVER_ACCOUNT_TIMEOUT_RES_ID:
+    case SECURITY_BOOTSTRAP_SERVER_ACCOUNT_TIMEOUT_RES_ID:
         SOL_LWM2M_RESOURCE_SINGLE_INT_INIT(r, res, res_id, ctx->bootstrap_server_account_timeout);
         break;
     default:
-        if (res_id >= 2 && res_id <= 9)
+        if (res_id >= 6 && res_id <= 9)
             r = -ENOENT;
         else
             r = -EINVAL;
@@ -356,24 +428,39 @@ write_security_res(void *instance_data, void *user_data,
     int r = 0;
 
     switch (res->id) {
-    case SECURITY_SERVER_SERVER_URI_RES_ID:
+    case SECURITY_SERVER_URI_RES_ID:
         sol_blob_unref(instance_ctx->server_uri);
         instance_ctx->server_uri = sol_blob_ref(res->data->content.blob);
         break;
-    case SECURITY_SERVER_IS_BOOTSTRAP_RES_ID:
+    case SECURITY_IS_BOOTSTRAP_RES_ID:
         instance_ctx->is_bootstrap = res->data->content.b;
         break;
-    case SECURITY_SERVER_SERVER_ID_RES_ID:
+    case SECURITY_SECURITY_MODE_RES_ID:
+        instance_ctx->security_mode = res->data->content.integer;
+        break;
+    case SECURITY_PUBLIC_KEY_OR_IDENTITY_RES_ID:
+        sol_blob_unref(instance_ctx->public_key_or_id);
+        instance_ctx->public_key_or_id = sol_blob_ref(res->data->content.blob);
+        break;
+    case SECURITY_SERVER_PUBLIC_KEY_RES_ID:
+        sol_blob_unref(instance_ctx->server_public_key);
+        instance_ctx->server_public_key = sol_blob_ref(res->data->content.blob);
+        break;
+    case SECURITY_SECRET_KEY_RES_ID:
+        sol_blob_unref(instance_ctx->secret_key);
+        instance_ctx->secret_key = sol_blob_ref(res->data->content.blob);
+        break;
+    case SECURITY_SERVER_ID_RES_ID:
         instance_ctx->server_id = res->data->content.integer;
         break;
-    case SECURITY_SERVER_CLIENT_HOLD_OFF_TIME_RES_ID:
+    case SECURITY_CLIENT_HOLD_OFF_TIME_RES_ID:
         instance_ctx->client_hold_off_time = res->data->content.integer;
         break;
-    case SECURITY_SERVER_BOOTSTRAP_SERVER_ACCOUNT_TIMEOUT_RES_ID:
+    case SECURITY_BOOTSTRAP_SERVER_ACCOUNT_TIMEOUT_RES_ID:
         instance_ctx->bootstrap_server_account_timeout = res->data->content.integer;
         break;
     default:
-        if (res->id >= 2 && res->id <= 9)
+        if (res->id >= 6 && res->id <= 9)
             r = -ENOENT;
         else
             r = -EINVAL;
@@ -399,7 +486,7 @@ write_security_tlv(void *instance_data, void *user_data,
         SOL_BUFFER_DECLARE_STATIC(buf, 64);
 
         switch (tlv->id) {
-        case SECURITY_SERVER_SERVER_URI_RES_ID:
+        case SECURITY_SERVER_URI_RES_ID:
             r = sol_lwm2m_tlv_get_bytes(tlv, &buf);
             if (r < 0)
                 return r;
@@ -408,22 +495,54 @@ write_security_tlv(void *instance_data, void *user_data,
             if (!instance_ctx->server_uri)
                 return -EINVAL;
             break;
-        case SECURITY_SERVER_IS_BOOTSTRAP_RES_ID:
+        case SECURITY_IS_BOOTSTRAP_RES_ID:
             r = sol_lwm2m_tlv_get_bool(tlv, &instance_ctx->is_bootstrap);
             if (r < 0)
                 return r;
             break;
-        case SECURITY_SERVER_SERVER_ID_RES_ID:
+        case SECURITY_SECURITY_MODE_RES_ID:
+            r = sol_lwm2m_tlv_get_int(tlv, &instance_ctx->security_mode);
+            if (r < 0)
+                return r;
+            break;
+        case SECURITY_PUBLIC_KEY_OR_IDENTITY_RES_ID:
+            r = sol_lwm2m_tlv_get_bytes(tlv, &buf);
+            if (r < 0)
+                return r;
+            sol_blob_unref(instance_ctx->public_key_or_id);
+            instance_ctx->public_key_or_id = sol_buffer_to_blob(&buf);
+            if (!instance_ctx->public_key_or_id)
+                return -EINVAL;
+            break;
+        case SECURITY_SERVER_PUBLIC_KEY_RES_ID:
+            r = sol_lwm2m_tlv_get_bytes(tlv, &buf);
+            if (r < 0)
+                return r;
+            sol_blob_unref(instance_ctx->server_public_key);
+            instance_ctx->server_public_key = sol_buffer_to_blob(&buf);
+            if (!instance_ctx->server_public_key)
+                return -EINVAL;
+            break;
+        case SECURITY_SECRET_KEY_RES_ID:
+            r = sol_lwm2m_tlv_get_bytes(tlv, &buf);
+            if (r < 0)
+                return r;
+            sol_blob_unref(instance_ctx->secret_key);
+            instance_ctx->secret_key = sol_buffer_to_blob(&buf);
+            if (!instance_ctx->secret_key)
+                return -EINVAL;
+            break;
+        case SECURITY_SERVER_ID_RES_ID:
             r = sol_lwm2m_tlv_get_int(tlv, &instance_ctx->server_id);
             if (r < 0)
                 return r;
             break;
-        case SECURITY_SERVER_CLIENT_HOLD_OFF_TIME_RES_ID:
+        case SECURITY_CLIENT_HOLD_OFF_TIME_RES_ID:
             r = sol_lwm2m_tlv_get_int(tlv, &instance_ctx->client_hold_off_time);
             if (r < 0)
                 return r;
             break;
-        case SECURITY_SERVER_BOOTSTRAP_SERVER_ACCOUNT_TIMEOUT_RES_ID:
+        case SECURITY_BOOTSTRAP_SERVER_ACCOUNT_TIMEOUT_RES_ID:
             r = sol_lwm2m_tlv_get_int(tlv, &instance_ctx->bootstrap_server_account_timeout);
             if (r < 0)
                 return r;
@@ -470,7 +589,7 @@ create_security_obj(void *user_data, struct sol_lwm2m_client *client,
     SOL_VECTOR_FOREACH_IDX (&payload.payload.tlv_content, tlv, i) {
         SOL_BUFFER_DECLARE_STATIC(buf, 64);
 
-        if (tlv->id == SECURITY_SERVER_SERVER_URI_RES_ID) {
+        if (tlv->id == SECURITY_SERVER_URI_RES_ID) {
             r = sol_lwm2m_tlv_get_bytes(tlv, &buf);
             if (r < 0)
                 goto err_free_instance;
@@ -479,13 +598,42 @@ create_security_obj(void *user_data, struct sol_lwm2m_client *client,
                 fprintf(stderr, "Could not set server_uri resource\n");
                 goto err_free_instance;
             }
-        } else if (tlv->id == SECURITY_SERVER_IS_BOOTSTRAP_RES_ID) {
+        } else if (tlv->id == SECURITY_IS_BOOTSTRAP_RES_ID) {
             r = sol_lwm2m_tlv_get_bool(tlv, &instance_ctx->is_bootstrap);
-        } else if (tlv->id == SECURITY_SERVER_SERVER_ID_RES_ID) {
+        } else if (tlv->id == SECURITY_SECURITY_MODE_RES_ID) {
+            r = sol_lwm2m_tlv_get_int(tlv, &instance_ctx->security_mode);
+        } else if (tlv->id == SECURITY_PUBLIC_KEY_OR_IDENTITY_RES_ID) {
+            r = sol_lwm2m_tlv_get_bytes(tlv, &buf);
+            if (r < 0)
+                goto err_free_instance;
+            instance_ctx->public_key_or_id = sol_buffer_to_blob(&buf);
+            if (!instance_ctx->public_key_or_id) {
+                fprintf(stderr, "Could not set public_key_or_id resource\n");
+                goto err_free_instance;
+            }
+        } else if (tlv->id == SECURITY_SERVER_PUBLIC_KEY_RES_ID) {
+            r = sol_lwm2m_tlv_get_bytes(tlv, &buf);
+            if (r < 0)
+                goto err_free_instance;
+            instance_ctx->server_public_key = sol_buffer_to_blob(&buf);
+            if (!instance_ctx->server_public_key) {
+                fprintf(stderr, "Could not set server_public_key resource\n");
+                goto err_free_instance;
+            }
+        } else if (tlv->id == SECURITY_SECRET_KEY_RES_ID) {
+            r = sol_lwm2m_tlv_get_bytes(tlv, &buf);
+            if (r < 0)
+                goto err_free_instance;
+            instance_ctx->secret_key = sol_buffer_to_blob(&buf);
+            if (!instance_ctx->secret_key) {
+                fprintf(stderr, "Could not set secret_key resource\n");
+                goto err_free_instance;
+            }
+        } else if (tlv->id == SECURITY_SERVER_ID_RES_ID) {
             r = sol_lwm2m_tlv_get_int(tlv, &instance_ctx->server_id);
-        } else if (tlv->id == SECURITY_SERVER_CLIENT_HOLD_OFF_TIME_RES_ID) {
+        } else if (tlv->id == SECURITY_CLIENT_HOLD_OFF_TIME_RES_ID) {
             r = sol_lwm2m_tlv_get_int(tlv, &instance_ctx->client_hold_off_time);
-        } else if (tlv->id == SECURITY_SERVER_BOOTSTRAP_SERVER_ACCOUNT_TIMEOUT_RES_ID) {
+        } else if (tlv->id == SECURITY_BOOTSTRAP_SERVER_ACCOUNT_TIMEOUT_RES_ID) {
             r = sol_lwm2m_tlv_get_int(tlv, &instance_ctx->bootstrap_server_account_timeout);
         }
 
@@ -503,6 +651,13 @@ create_security_obj(void *user_data, struct sol_lwm2m_client *client,
     return 0;
 
 err_free_instance:
+    sol_blob_unref(instance_ctx->server_uri);
+    if (instance_ctx->public_key_or_id)
+        sol_blob_unref(instance_ctx->public_key_or_id);
+    if (instance_ctx->server_public_key)
+        sol_blob_unref(instance_ctx->server_public_key);
+    if (instance_ctx->secret_key)
+        sol_blob_unref(instance_ctx->secret_key);
     free(instance_ctx);
     return r;
 }
@@ -514,6 +669,12 @@ del_security_obj(void *instance_data, void *user_data,
     struct security_obj_instance_ctx *instance_ctx = instance_data;
 
     sol_blob_unref(instance_ctx->server_uri);
+    if (instance_ctx->public_key_or_id)
+        sol_blob_unref(instance_ctx->public_key_or_id);
+    if (instance_ctx->server_public_key)
+        sol_blob_unref(instance_ctx->server_public_key);
+    if (instance_ctx->secret_key)
+        sol_blob_unref(instance_ctx->secret_key);
     free(instance_ctx);
     return 0;
 }
@@ -526,8 +687,6 @@ read_server_obj(void *instance_data, void *user_data,
     struct server_obj_instance_ctx *ctx = instance_data;
     int r;
 
-    //It implements only the necassary info to connect to a LWM2M server
-    // without encryption.
     switch (res_id) {
     case SERVER_OBJ_SHORT_RES_ID:
         SOL_LWM2M_RESOURCE_SINGLE_INT_INIT(r, res, res_id, ctx->server_id);
@@ -1016,7 +1175,7 @@ static const struct sol_lwm2m_object location_object = {
 
 static const struct sol_lwm2m_object security_object = {
     SOL_SET_API_VERSION(.api_version = SOL_LWM2M_OBJECT_API_VERSION, )
-    .id = SECURITY_SERVER_OBJ_ID,
+    .id = SECURITY_OBJ_ID,
     .resources_count = 12,
     .read = read_security_obj,
     .create = create_security_obj,
@@ -1058,20 +1217,55 @@ main(int argc, char *argv[])
     struct security_obj_instance_ctx *security_data;
     struct server_obj_instance_ctx *server_data;
     int r;
+    enum sol_lwm2m_security_mode sec_mode = SOL_LWM2M_SECURITY_MODE_NO_SEC;
+    char *cli_name = NULL;
+    char usage[256];
 
     srand(time(NULL));
-    if (argc < 2) {
-        fprintf(stderr, "Usage: ./lwm2m-sample-client <client-name> [bootstrap]\n");
+
+    snprintf(usage, sizeof(usage), "Usage: ./lwm2m-sample-client <client-name> [-b] [-s SEC_MODE]\n"
+        "Where Factory Bootstrap is default and SEC_MODE is an integer as per:\n"
+        "\tPRE_SHARED_KEY=%d\n"
+        "\tRAW_PUBLIC_KEY=%d\n"
+        "\tCERTIFICATE=%d\n"
+        "\tNO_SEC=%d (default)\n",
+        SOL_LWM2M_SECURITY_MODE_PRE_SHARED_KEY,
+        SOL_LWM2M_SECURITY_MODE_RAW_PUBLIC_KEY,
+        SOL_LWM2M_SECURITY_MODE_CERTIFICATE,
+        SOL_LWM2M_SECURITY_MODE_NO_SEC);
+
+    while ((r = getopt(argc, argv, "bs:")) != -1) {
+        switch (r) {
+        case 'b':
+            data_ctx.is_bootstrap = true;
+            break;
+        case 's':
+            sec_mode = atoi(optarg);
+            if (sec_mode < 0 || sec_mode > 3) {
+                fprintf(stderr, "%s", usage);
+                return -1;
+            }
+            break;
+        default:
+            fprintf(stderr, "%s", usage);
+            return -1;
+        }
+    }
+
+    cli_name = argv[optind];
+    if (!cli_name) {
+        fprintf(stderr, "%s", usage);
+        return -1;
+    }
+
+    if (data_ctx.is_bootstrap && (sec_mode == SOL_LWM2M_SECURITY_MODE_NO_SEC)) {
+        fprintf(stderr, "Non-Factory Bootstrap Mode needs DTLS security enabled\n");
         return -1;
     }
 
     sol_init();
 
-    if (argv[2])
-        data_ctx.is_bootstrap = true;
-
-    client = sol_lwm2m_client_new(argv[1], NULL, NULL, objects,
-        &data_ctx);
+    client = sol_lwm2m_client_new(cli_name, NULL, NULL, objects, &data_ctx);
 
     if (!client) {
         r = -1;
@@ -1086,6 +1280,7 @@ main(int argc, char *argv[])
     }
 
     security_data->client = client;
+    security_data->security_mode = sec_mode;
 
     if (!data_ctx.is_bootstrap) {
         server_data = calloc(1, sizeof(struct server_obj_instance_ctx));
@@ -1106,8 +1301,11 @@ main(int argc, char *argv[])
             goto exit_del;
         }
 
-        security_data->server_uri = &server_addr;
+        security_data->server_uri = (sec_mode == SOL_LWM2M_SECURITY_MODE_NO_SEC) ?
+            &server_addr_coap : &server_addr_dtls;
         security_data->is_bootstrap = false;
+        security_data->public_key_or_id = &psk_id;
+        security_data->secret_key = &psk_key;
         security_data->server_id = 101;
     } else {
         r = sol_lwm2m_client_add_bootstrap_finish_monitor(client, bootstrap_cb,
@@ -1120,6 +1318,8 @@ main(int argc, char *argv[])
 
         security_data->server_uri = &bootstrap_server_addr;
         security_data->is_bootstrap = true;
+        security_data->public_key_or_id = &psk_bs_id;
+        security_data->secret_key = &psk_bs_key;
         security_data->client_hold_off_time = 5;
         security_data->bootstrap_server_account_timeout = 0;
     }
