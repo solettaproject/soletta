@@ -16,6 +16,31 @@
  * limitations under the License.
  */
 
+/*
+ * Testing Scenario:
+ *
+ * +----------------+                +---------------+
+ * |                |                |               |
+ * |            [5693\CoAP]  (4)     |  sec_client   |
+ * | sec_server [5684\DTLS]-----[*\DTLS] w/ Access   |
+ * |                |        +--[*\DTLS]  Control [*\CoAP]-+
+ * +----------------+        |       |               |  (3)|   +--------------+
+ *                           |(2)    +---------------+     |   |              |
+ *                           |                             |   | nosec_server |
+ * +----------------+        |       +----------------+  [5683\CoAP]          |
+ * |                |        |       |                |    |   |              |
+ * |            [5784\DTLS]--+       |  nosec_client  |    |   +--------------+
+ * |  bs_server     |                |   w/o Access   | (1)|
+ * |                |                |    Control [*\CoAP]-+
+ * +----------------+                |                |
+ *                                   +----------------+
+ *
+ * (1)        1:1 Client-Server communication through CoAP
+ * (2)        1:1 Client-BootstrapServer communication through DTLS (w/ PSK)
+ * (3)[+(1)]  2:1 Client-Server communication through CoAP
+ * (4)[+(3)]  1:2 Client-Server communication through CoAP and DTLS (w/ PSK)
+ */
+
 #include <time.h>
 #include <stdint.h>
 #include <string.h>
@@ -26,6 +51,7 @@
 #include "sol-lwm2m.h"
 #include "sol-lwm2m-client.h"
 #include "sol-lwm2m-server.h"
+#include "sol-lwm2m-bs-server.h"
 #include "sol-mainloop.h"
 #include "sol-coap.h"
 #include "sol-util.h"
@@ -46,15 +72,26 @@
 #define ARRAY_VALUE_TWO (INT64_MIN)
 
 #define SECURITY_OBJECT_ID (0)
-#define SECURITY_SERVER_URI (0)
-#define SECURITY_IS_BOOTSTRAP (1)
-#define SECURITY_SECURITY_MODE (2)
-#define SECURITY_SERVER_ID (10)
+#define SECURITY_OBJECT_SERVER_URI (0)
+#define SECURITY_OBJECT_IS_BOOTSTRAP (1)
+#define SECURITY_OBJECT_SECURITY_MODE (2)
+#define SECURITY_OBJECT_PUBLIC_KEY_OR_IDENTITY (3)
+#define SECURITY_OBJECT_SERVER_PUBLIC_KEY (4)
+#define SECURITY_OBJECT_SECRET_KEY (5)
+#define SECURITY_OBJECT_SERVER_ID (10)
+#define SECURITY_OBJECT_CLIENT_HOLD_OFF_TIME (11)
+#define SECURITY_OBJECT_BOOTSTRAP_SERVER_ACCOUNT_TIMEOUT (12)
 
 #define SERVER_OBJECT_ID (1)
 #define SERVER_OBJECT_SERVER_ID (0)
 #define SERVER_OBJECT_LIFETIME (1)
 #define SERVER_OBJECT_BINDING (7)
+
+#define ACCESS_CONTROL_OBJECT_ID (2)
+#define ACCESS_CONTROL_OBJECT_OBJECT_ID (0)
+#define ACCESS_CONTROL_OBJECT_INSTANCE_ID (1)
+#define ACCESS_CONTROL_OBJECT_ACL (2)
+#define ACCESS_CONTROL_OBJECT_OWNER_ID (3)
 
 #define DUMMY_OBJECT_ID (999)
 #define DUMMY_OBJECT_STRING_ID (0)
@@ -66,6 +103,39 @@
 #define DUMMY_OBJECT_OBJ_LINK_ID (6)
 #define DUMMY_OBJECT_ARRAY_ID (7)
 #define DUMMY_OBJECT_EXECUTE_ID (8)
+
+struct security_obj_instance_ctx {
+    struct sol_lwm2m_client *client;
+    struct sol_blob *server_uri;
+    bool is_bootstrap;
+    int64_t security_mode;
+    struct sol_blob *public_key_or_id;
+    struct sol_blob *server_public_key;
+    struct sol_blob *secret_key;
+    int64_t server_id;
+    int64_t client_hold_off_time;
+    int64_t bootstrap_server_account_timeout;
+};
+
+struct server_obj_instance_ctx {
+    struct sol_lwm2m_client *client;
+    struct sol_blob *binding;
+    int64_t server_id;
+    int64_t lifetime;
+};
+
+struct acl_instance {
+    uint16_t key;
+    int64_t value;
+};
+
+struct access_control_obj_instance_ctx {
+    struct sol_lwm2m_client *client;
+    int64_t owner_id;
+    int64_t object_id;
+    int64_t instance_id;
+    struct sol_vector acl;
+};
 
 struct dummy_ctx {
     uint16_t id;
@@ -80,13 +150,73 @@ struct dummy_ctx {
     int64_t array[2];
 };
 
-static struct sol_blob addr = {
+//LWM2M Server ID=101 will be listening @ localhost:5683
+// using NoSec mode only
+static struct sol_blob nosec_server_coap_addr = {
     .type = &SOL_BLOB_TYPE_NO_FREE,
     .parent = NULL,
     .mem = (void *)"coap://localhost:5683",
     .size = sizeof("coap://localhost:5683") - 1,
     .refcnt = 1
 };
+
+#ifdef DTLS
+//LWM2M Server ID=102 will be listening @ localhost:5684
+// using PSK security mode,
+// with known_psks = { .id: "cli1"; .key: "0123456789ABCDEF" }
+static struct sol_blob sec_server_psk_id = {
+    .type = &SOL_BLOB_TYPE_NO_FREE,
+    .parent = NULL,
+    .mem = (void *)"cli1",
+    .size = sizeof("cli1") - 1,
+    .refcnt = 1
+};
+
+static struct sol_blob sec_server_psk_key = {
+    .type = &SOL_BLOB_TYPE_NO_FREE,
+    .parent = NULL,
+    .mem = (void *)"0123456789ABCDEF",
+    .size = sizeof("0123456789ABCDEF") - 1,
+    .refcnt = 1
+};
+
+static struct sol_blob sec_server_dtls_addr = {
+    .type = &SOL_BLOB_TYPE_NO_FREE,
+    .parent = NULL,
+    .mem = (void *)"coaps://localhost:5684",
+    .size = sizeof("coaps://localhost:5684") - 1,
+    .refcnt = 1
+};
+
+//LWM2M Bootstrap Server will be listening @ localhost:5784
+// using PSK security mode, with
+// known_psks = { .id: "cli1-bs"; .key: "FEDCBA9876543210" }
+const char *known_clients[] = { "cli1", NULL };
+
+static struct sol_blob bs_server_psk_id = {
+    .type = &SOL_BLOB_TYPE_NO_FREE,
+    .parent = NULL,
+    .mem = (void *)"cli1-bs",
+    .size = sizeof("cli1-bs") - 1,
+    .refcnt = 1
+};
+
+static struct sol_blob bs_server_psk_key = {
+    .type = &SOL_BLOB_TYPE_NO_FREE,
+    .parent = NULL,
+    .mem = (void *)"FEDCBA9876543210",
+    .size = sizeof("FEDCBA9876543210") - 1,
+    .refcnt = 1
+};
+
+static struct sol_blob bs_server_addr = {
+    .type = &SOL_BLOB_TYPE_NO_FREE,
+    .parent = NULL,
+    .mem = (void *)"coaps://localhost:5784",
+    .size = sizeof("coaps://localhost:5784") - 1,
+    .refcnt = 1
+};
+#endif
 
 static struct sol_blob binding = {
     .type = &SOL_BLOB_TYPE_NO_FREE,
@@ -96,69 +226,587 @@ static struct sol_blob binding = {
     .refcnt = 1
 };
 
+// ============================================================== Security Object
 static int
 security_object_read(void *instance_data, void *user_data,
     struct sol_lwm2m_client *client,
     uint16_t instance_id, uint16_t res_id, struct sol_lwm2m_resource *res)
 {
+    struct security_obj_instance_ctx *ctx = instance_data;
     int r;
 
     switch (res_id) {
-    case SECURITY_SERVER_URI:
-        SOL_LWM2M_RESOURCE_SINGLE_INIT(r, res, 0,
-            SOL_LWM2M_RESOURCE_DATA_TYPE_STRING, &addr);
+    case SECURITY_OBJECT_SERVER_URI:
+        SOL_LWM2M_RESOURCE_SINGLE_INIT(r, res, res_id,
+            SOL_LWM2M_RESOURCE_DATA_TYPE_STRING, ctx->server_uri);
+        ASSERT(r == 0);
         break;
-    case SECURITY_IS_BOOTSTRAP:
-        SOL_LWM2M_RESOURCE_SINGLE_INIT(r, res, 1,
-            SOL_LWM2M_RESOURCE_DATA_TYPE_BOOL, false);
+    case SECURITY_OBJECT_IS_BOOTSTRAP:
+        SOL_LWM2M_RESOURCE_SINGLE_INIT(r, res, res_id,
+            SOL_LWM2M_RESOURCE_DATA_TYPE_BOOL, ctx->is_bootstrap);
+        ASSERT(r == 0);
         break;
-    case SECURITY_SECURITY_MODE:
-        SOL_LWM2M_RESOURCE_SINGLE_INT_INIT(r, res, 2, SOL_LWM2M_SECURITY_MODE_NO_SEC);
+    case SECURITY_OBJECT_SECURITY_MODE:
+        SOL_LWM2M_RESOURCE_SINGLE_INT_INIT(r, res, res_id, ctx->security_mode);
+        ASSERT(r == 0);
         break;
-    case SECURITY_SERVER_ID:
-        SOL_LWM2M_RESOURCE_SINGLE_INT_INIT(r, res, 10, 101);
+    case SECURITY_OBJECT_PUBLIC_KEY_OR_IDENTITY:
+        if (!ctx->public_key_or_id)
+            r = -ENOENT;
+        else {
+            SOL_LWM2M_RESOURCE_SINGLE_INIT(r, res, res_id,
+                SOL_LWM2M_RESOURCE_DATA_TYPE_STRING, ctx->public_key_or_id);
+            ASSERT(r == 0);
+        }
+        break;
+    case SECURITY_OBJECT_SERVER_PUBLIC_KEY:
+        if (!ctx->server_public_key)
+            r = -ENOENT;
+        else {
+            SOL_LWM2M_RESOURCE_SINGLE_INIT(r, res, res_id,
+                SOL_LWM2M_RESOURCE_DATA_TYPE_STRING, ctx->server_public_key);
+            ASSERT(r == 0);
+        }
+        break;
+    case SECURITY_OBJECT_SECRET_KEY:
+        if (!ctx->secret_key)
+            r = -ENOENT;
+        else {
+            SOL_LWM2M_RESOURCE_SINGLE_INIT(r, res, res_id,
+                SOL_LWM2M_RESOURCE_DATA_TYPE_STRING, ctx->secret_key);
+            ASSERT(r == 0);
+        }
+        break;
+    case SECURITY_OBJECT_SERVER_ID:
+        SOL_LWM2M_RESOURCE_SINGLE_INT_INIT(r, res, res_id, ctx->server_id);
+        ASSERT(r == 0);
+        break;
+    case SECURITY_OBJECT_CLIENT_HOLD_OFF_TIME:
+        SOL_LWM2M_RESOURCE_SINGLE_INT_INIT(r, res, res_id, ctx->client_hold_off_time);
+        ASSERT(r == 0);
+        break;
+    case SECURITY_OBJECT_BOOTSTRAP_SERVER_ACCOUNT_TIMEOUT:
+        SOL_LWM2M_RESOURCE_SINGLE_INT_INIT(r, res, res_id, ctx->bootstrap_server_account_timeout);
+        ASSERT(r == 0);
         break;
     default:
-        r = -EINVAL;
+        if (res_id >= 6 && res_id <= 9)
+            r = -ENOENT;
+        else
+            ASSERT(1 == 2); //MUST NOT HAPPEN!
     }
 
     return r;
 }
 
 static int
+security_object_write_res(void *instance_data, void *user_data,
+    struct sol_lwm2m_client *client,
+    uint16_t instance_id, uint16_t res_id, const struct sol_lwm2m_resource *res)
+{
+    return 0;
+}
+
+static int
+security_object_write_tlv(void *instance_data, void *user_data,
+    struct sol_lwm2m_client *client,
+    uint16_t instance_id, struct sol_vector *tlvs)
+{
+    int r = 0;
+    uint16_t i;
+    struct sol_lwm2m_tlv *tlv;
+    struct security_obj_instance_ctx *instance_ctx = instance_data;
+
+    SOL_VECTOR_FOREACH_IDX (tlvs, tlv, i) {
+        SOL_BUFFER_DECLARE_STATIC(buf, 64);
+
+        switch (tlv->id) {
+        case SECURITY_OBJECT_SERVER_URI:
+            r = sol_lwm2m_tlv_get_bytes(tlv, &buf);
+            ASSERT(r == 0);
+            sol_blob_unref(instance_ctx->server_uri);
+            instance_ctx->server_uri = sol_buffer_to_blob(&buf);
+            ASSERT(instance_ctx->server_uri != NULL);
+            break;
+        case SECURITY_OBJECT_IS_BOOTSTRAP:
+            r = sol_lwm2m_tlv_get_bool(tlv, &instance_ctx->is_bootstrap);
+            ASSERT(r == 0);
+            break;
+        case SECURITY_OBJECT_SECURITY_MODE:
+            r = sol_lwm2m_tlv_get_int(tlv, &instance_ctx->security_mode);
+            ASSERT(r == 0);
+            break;
+        case SECURITY_OBJECT_PUBLIC_KEY_OR_IDENTITY:
+            r = sol_lwm2m_tlv_get_bytes(tlv, &buf);
+            ASSERT(r == 0);
+            sol_blob_unref(instance_ctx->public_key_or_id);
+            instance_ctx->public_key_or_id = sol_buffer_to_blob(&buf);
+            ASSERT(instance_ctx->public_key_or_id != NULL);
+            break;
+        case SECURITY_OBJECT_SERVER_PUBLIC_KEY:
+            r = sol_lwm2m_tlv_get_bytes(tlv, &buf);
+            ASSERT(r == 0);
+            sol_blob_unref(instance_ctx->server_public_key);
+            instance_ctx->server_public_key = sol_buffer_to_blob(&buf);
+            ASSERT(instance_ctx->server_public_key != NULL);
+            break;
+        case SECURITY_OBJECT_SECRET_KEY:
+            r = sol_lwm2m_tlv_get_bytes(tlv, &buf);
+            ASSERT(r == 0);
+            sol_blob_unref(instance_ctx->secret_key);
+            instance_ctx->secret_key = sol_buffer_to_blob(&buf);
+            ASSERT(instance_ctx->secret_key != NULL);
+            break;
+        case SECURITY_OBJECT_SERVER_ID:
+            r = sol_lwm2m_tlv_get_int(tlv, &instance_ctx->server_id);
+            ASSERT(r == 0);
+            break;
+        case SECURITY_OBJECT_CLIENT_HOLD_OFF_TIME:
+            r = sol_lwm2m_tlv_get_int(tlv, &instance_ctx->client_hold_off_time);
+            ASSERT(r == 0);
+            break;
+        case SECURITY_OBJECT_BOOTSTRAP_SERVER_ACCOUNT_TIMEOUT:
+            r = sol_lwm2m_tlv_get_int(tlv, &instance_ctx->bootstrap_server_account_timeout);
+            ASSERT(r == 0);
+            break;
+        default:
+            ASSERT(1 == 2); //MUST NOT HAPPEN!
+        }
+    }
+
+    if (tlvs->len == 1 && r >= 0)
+        printf("DBG: TLV written to Security object at /1/%" PRIu16 "/%" PRIu16 "\n",
+            instance_id, tlv->id);
+    else
+        printf("DBG: TLV written to Security object at /1/%" PRIu16 "\n", instance_id);
+
+    return r;
+}
+
+static int
+security_object_create(void *user_data, struct sol_lwm2m_client *client,
+    uint16_t instance_id, void **instance_data,
+    struct sol_lwm2m_payload payload)
+{
+    struct security_obj_instance_ctx *instance_ctx;
+    int r;
+    uint16_t i;
+    struct sol_lwm2m_tlv *tlv;
+
+    ASSERT(payload.type == SOL_LWM2M_CONTENT_TYPE_TLV);
+
+    instance_ctx = calloc(1, sizeof(struct security_obj_instance_ctx));
+    ASSERT(instance_ctx != NULL);
+
+    SOL_VECTOR_FOREACH_IDX (&payload.payload.tlv_content, tlv, i) {
+        SOL_BUFFER_DECLARE_STATIC(buf, 64);
+
+        if (tlv->id == SECURITY_OBJECT_SERVER_URI) {
+            r = sol_lwm2m_tlv_get_bytes(tlv, &buf);
+            ASSERT(r == 0);
+            instance_ctx->server_uri = sol_buffer_to_blob(&buf);
+            ASSERT(instance_ctx->server_uri != NULL);
+        } else if (tlv->id == SECURITY_OBJECT_IS_BOOTSTRAP) {
+            r = sol_lwm2m_tlv_get_bool(tlv, &instance_ctx->is_bootstrap);
+            ASSERT(r == 0);
+        } else if (tlv->id == SECURITY_OBJECT_SECURITY_MODE) {
+            r = sol_lwm2m_tlv_get_int(tlv, &instance_ctx->security_mode);
+            ASSERT(r == 0);
+        } else if (tlv->id == SECURITY_OBJECT_PUBLIC_KEY_OR_IDENTITY) {
+            r = sol_lwm2m_tlv_get_bytes(tlv, &buf);
+            ASSERT(r == 0);
+            instance_ctx->public_key_or_id = sol_buffer_to_blob(&buf);
+            ASSERT(instance_ctx->public_key_or_id != NULL);
+        } else if (tlv->id == SECURITY_OBJECT_SERVER_PUBLIC_KEY) {
+            r = sol_lwm2m_tlv_get_bytes(tlv, &buf);
+            ASSERT(r == 0);
+            instance_ctx->server_public_key = sol_buffer_to_blob(&buf);
+            ASSERT(instance_ctx->server_public_key != NULL);
+        } else if (tlv->id == SECURITY_OBJECT_SECRET_KEY) {
+            r = sol_lwm2m_tlv_get_bytes(tlv, &buf);
+            ASSERT(r == 0);
+            instance_ctx->secret_key = sol_buffer_to_blob(&buf);
+            ASSERT(instance_ctx->secret_key != NULL);
+        } else if (tlv->id == SECURITY_OBJECT_SERVER_ID) {
+            r = sol_lwm2m_tlv_get_int(tlv, &instance_ctx->server_id);
+            ASSERT(r == 0);
+        } else if (tlv->id == SECURITY_OBJECT_CLIENT_HOLD_OFF_TIME) {
+            r = sol_lwm2m_tlv_get_int(tlv, &instance_ctx->client_hold_off_time);
+            ASSERT(r == 0);
+        } else if (tlv->id == SECURITY_OBJECT_BOOTSTRAP_SERVER_ACCOUNT_TIMEOUT) {
+            r = sol_lwm2m_tlv_get_int(tlv, &instance_ctx->bootstrap_server_account_timeout);
+            ASSERT(r == 0);
+        } else
+            ASSERT(1 == 2); //MUST NOT HAPPEN!
+    }
+
+    instance_ctx->client = client;
+    *instance_data = instance_ctx;
+    printf("DBG: Security object created at /0/%" PRIu16 "\n", instance_id);
+
+    return 0;
+}
+
+static int
+security_object_delete(void *instance_data, void *user_data,
+    struct sol_lwm2m_client *client, uint16_t instance_id)
+{
+    struct security_obj_instance_ctx *instance_ctx = instance_data;
+
+    sol_blob_unref(instance_ctx->server_uri);
+    if (instance_ctx->public_key_or_id)
+        sol_blob_unref(instance_ctx->public_key_or_id);
+    if (instance_ctx->server_public_key)
+        sol_blob_unref(instance_ctx->server_public_key);
+    if (instance_ctx->secret_key)
+        sol_blob_unref(instance_ctx->secret_key);
+    free(instance_ctx);
+    return 0;
+}
+
+// ================================================================ Server Object
+static int
 server_object_read(void *instance_data, void *user_data,
     struct sol_lwm2m_client *client,
     uint16_t instance_id, uint16_t res_id, struct sol_lwm2m_resource *res)
 {
+    struct server_obj_instance_ctx *ctx = instance_data;
     int r;
 
     switch (res_id) {
     case SERVER_OBJECT_SERVER_ID:
-        SOL_LWM2M_RESOURCE_SINGLE_INT_INIT(r, res, 0, 101);
+        SOL_LWM2M_RESOURCE_SINGLE_INT_INIT(r, res, res_id, ctx->server_id);
+        ASSERT(r == 0);
         break;
     case SERVER_OBJECT_LIFETIME:
-        SOL_LWM2M_RESOURCE_SINGLE_INT_INIT(r, res, 1, LIFETIME);
+        SOL_LWM2M_RESOURCE_SINGLE_INT_INIT(r, res, res_id, ctx->lifetime);
+        ASSERT(r == 0);
         break;
     case SERVER_OBJECT_BINDING:
-        SOL_LWM2M_RESOURCE_SINGLE_INIT(r, res, 7,
-            SOL_LWM2M_RESOURCE_DATA_TYPE_STRING, &binding);
+        SOL_LWM2M_RESOURCE_SINGLE_INIT(r, res, res_id,
+            SOL_LWM2M_RESOURCE_DATA_TYPE_STRING, ctx->binding);
+        ASSERT(r == 0);
         break;
     default:
-        r = -EINVAL;
+        if (res_id >= 2 && res_id <= 6)
+            r = -ENOENT;
+        else
+            ASSERT(1 == 2); //MUST NOT HAPPEN!
     }
 
     return r;
 }
 
+static int
+server_object_write_res(void *instance_data, void *user_data,
+    struct sol_lwm2m_client *client,
+    uint16_t instance_id, uint16_t res_id, const struct sol_lwm2m_resource *res)
+{
+    return 0;
+}
+
+static int
+server_object_write_tlv(void *instance_data, void *user_data,
+    struct sol_lwm2m_client *client,
+    uint16_t instance_id, struct sol_vector *tlvs)
+{
+    int r = 0;
+    uint16_t i;
+    struct sol_lwm2m_tlv *tlv;
+    struct server_obj_instance_ctx *instance_ctx = instance_data;
+
+    SOL_VECTOR_FOREACH_IDX (tlvs, tlv, i) {
+        SOL_BUFFER_DECLARE_STATIC(buf, 64);
+
+        switch (tlv->id) {
+        case SERVER_OBJECT_SERVER_ID:
+            r = sol_lwm2m_tlv_get_int(tlv, &instance_ctx->server_id);
+            ASSERT(r == 0);
+            break;
+        case SERVER_OBJECT_LIFETIME:
+            r = sol_lwm2m_tlv_get_int(tlv, &instance_ctx->lifetime);
+            ASSERT(r == 0);
+            break;
+        case SERVER_OBJECT_BINDING:
+            r = sol_lwm2m_tlv_get_bytes(tlv, &buf);
+            ASSERT(r == 0);
+            sol_blob_unref(instance_ctx->binding);
+            instance_ctx->binding = sol_buffer_to_blob(&buf);
+            ASSERT(instance_ctx->binding != NULL);
+            break;
+        default:
+            ASSERT(1 == 2); //MUST NOT HAPPEN!
+        }
+    }
+
+    if (tlvs->len == 1 && r >= 0)
+        printf("DBG: TLV written to Server object at /1/%" PRIu16 "/%" PRIu16 "\n",
+            instance_id, tlv->id);
+    else
+        printf("DBG: TLV written to Server object at /1/%" PRIu16 "\n", instance_id);
+
+    return r;
+}
+
+static int
+server_object_create(void *user_data, struct sol_lwm2m_client *client,
+    uint16_t instance_id, void **instance_data,
+    struct sol_lwm2m_payload payload)
+{
+    struct server_obj_instance_ctx *instance_ctx;
+    int r;
+    uint16_t i;
+    struct sol_lwm2m_tlv *tlv;
+
+    ASSERT(payload.type == SOL_LWM2M_CONTENT_TYPE_TLV);
+
+    instance_ctx = calloc(1, sizeof(struct server_obj_instance_ctx));
+    ASSERT(instance_ctx != NULL);
+
+    SOL_VECTOR_FOREACH_IDX (&payload.payload.tlv_content, tlv, i) {
+        SOL_BUFFER_DECLARE_STATIC(buf, 64);
+
+        if (tlv->id == SERVER_OBJECT_SERVER_ID) {
+            r = sol_lwm2m_tlv_get_int(tlv, &instance_ctx->server_id);
+            ASSERT(r == 0);
+        } else if (tlv->id == SERVER_OBJECT_LIFETIME) {
+            r = sol_lwm2m_tlv_get_int(tlv, &instance_ctx->lifetime);
+            ASSERT(r == 0);
+        } else if (tlv->id == SERVER_OBJECT_BINDING) {
+            r = sol_lwm2m_tlv_get_bytes(tlv, &buf);
+            ASSERT(r == 0);
+            instance_ctx->binding = sol_buffer_to_blob(&buf);
+            ASSERT(instance_ctx->binding != NULL);
+        } else
+            ASSERT(1 == 2); //MUST NOT HAPPEN!
+    }
+
+    instance_ctx->client = client;
+    *instance_data = instance_ctx;
+    printf("DBG: Server object created at /1/%" PRIu16 "\n", instance_id);
+
+    return 0;
+}
+
+static int
+server_object_delete(void *instance_data, void *user_data,
+    struct sol_lwm2m_client *client, uint16_t instance_id)
+{
+    struct server_obj_instance_ctx *instance_ctx = instance_data;
+
+    sol_blob_unref(instance_ctx->binding);
+    free(instance_ctx);
+    return 0;
+}
+
+// ======================================================== Access Control Object
+static int
+access_control_object_read(void *instance_data, void *user_data,
+    struct sol_lwm2m_client *client,
+    uint16_t instance_id, uint16_t res_id, struct sol_lwm2m_resource *res)
+{
+    struct access_control_obj_instance_ctx *ctx = instance_data;
+    int r;
+
+    if (res_id == ACCESS_CONTROL_OBJECT_OBJECT_ID) {
+        SOL_LWM2M_RESOURCE_SINGLE_INT_INIT(r, res, res_id, ctx->object_id);
+        ASSERT(r == 0);
+    } else if (res_id == ACCESS_CONTROL_OBJECT_INSTANCE_ID) {
+        SOL_LWM2M_RESOURCE_SINGLE_INT_INIT(r, res, res_id, ctx->instance_id);
+        ASSERT(r == 0);
+    } else if (res_id == ACCESS_CONTROL_OBJECT_ACL) {
+        struct acl_instance *acl_item;
+        uint16_t i;
+        struct sol_vector acl_instances;
+        struct sol_lwm2m_resource_data *res_data;
+
+        if (ctx->acl.len == 0)
+            return -ENOENT;
+
+        sol_vector_init(&acl_instances, sizeof(struct sol_lwm2m_resource_data));
+
+        SOL_VECTOR_FOREACH_IDX (&ctx->acl, acl_item, i) {
+            res_data = sol_vector_append(&acl_instances);
+            res_data->id = acl_item->key;
+            res_data->content.integer = acl_item->value;
+        }
+
+        SOL_SET_API_VERSION(res->api_version = SOL_LWM2M_RESOURCE_API_VERSION; )
+        r = sol_lwm2m_resource_init_vector(res, ACCESS_CONTROL_OBJECT_ACL,
+            SOL_LWM2M_RESOURCE_DATA_TYPE_INT, &acl_instances);
+        ASSERT(r == 0);
+
+        sol_vector_clear(&acl_instances);
+    } else if (res_id == ACCESS_CONTROL_OBJECT_OWNER_ID) {
+        SOL_LWM2M_RESOURCE_SINGLE_INT_INIT(r, res, res_id, ctx->owner_id);
+        ASSERT(r == 0);
+    } else {
+        ASSERT(1 == 2); //MUST NOT HAPPEN!
+    }
+
+    return r;
+}
+
+static int
+access_control_object_write_res(void *instance_data, void *user_data,
+    struct sol_lwm2m_client *client,
+    uint16_t instance_id, uint16_t res_id, const struct sol_lwm2m_resource *res)
+{
+    return 0;
+}
+
+static int
+write_or_create_acl(struct sol_vector *acl,
+    struct sol_vector *tlvs, uint16_t *j, bool is_create)
+{
+    struct acl_instance *acl_item;
+    struct sol_lwm2m_tlv *res_tlv;
+    int64_t res_val;
+    int r;
+
+    while ((res_tlv = sol_vector_get(tlvs, *j)) &&
+        res_tlv->type == SOL_LWM2M_TLV_TYPE_RESOURCE_INSTANCE) {
+        r = sol_lwm2m_tlv_get_int(res_tlv, &res_val);
+        ASSERT(r == 0);
+
+        acl_item = sol_vector_append(acl);
+        ASSERT(acl_item != NULL);
+
+        acl_item->key = res_tlv->id;
+        acl_item->value = res_val;
+        if (is_create)
+            printf("DBG: <<[CREATE]<< acl[%" PRIu16 "]=%" PRId64
+                " >>>> | ", acl_item->key, acl_item->value);
+        else
+            printf("DBG: <<[WRITE_TLV]<< acl[%" PRIu16 "]=%" PRId64
+                " >>>> | ", acl_item->key, acl_item->value);
+        (*j)++;
+    }
+
+    return 0;
+}
+
+static int
+access_control_object_write_tlv(void *instance_data, void *user_data,
+    struct sol_lwm2m_client *client,
+    uint16_t instance_id, struct sol_vector *tlvs)
+{
+    int r = -EINVAL;
+    uint16_t i;
+    struct sol_lwm2m_tlv *tlv;
+    struct access_control_obj_instance_ctx *instance_ctx = instance_data;
+
+    SOL_VECTOR_FOREACH_IDX (tlvs, tlv, i) {
+        if (tlv->id == ACCESS_CONTROL_OBJECT_OBJECT_ID &&
+            tlv->type == SOL_LWM2M_TLV_TYPE_RESOURCE_WITH_VALUE) {
+            r = sol_lwm2m_tlv_get_int(tlv, &instance_ctx->object_id);
+            ASSERT(r == 0);
+        } else if (tlv->id == ACCESS_CONTROL_OBJECT_INSTANCE_ID &&
+            tlv->type == SOL_LWM2M_TLV_TYPE_RESOURCE_WITH_VALUE) {
+            r = sol_lwm2m_tlv_get_int(tlv, &instance_ctx->instance_id);
+            ASSERT(r == 0);
+        } else if (tlv->id == ACCESS_CONTROL_OBJECT_ACL &&
+            tlv->type == SOL_LWM2M_TLV_TYPE_MULTIPLE_RESOURCES) {
+            uint16_t j = i + 1;
+
+            sol_vector_clear(&instance_ctx->acl);
+
+            r = write_or_create_acl(&instance_ctx->acl, tlvs, &j, false);
+            ASSERT(r == 0);
+
+            i = j - 1;
+        } else if (tlv->id == ACCESS_CONTROL_OBJECT_OWNER_ID &&
+            tlv->type == SOL_LWM2M_TLV_TYPE_RESOURCE_WITH_VALUE) {
+            r = sol_lwm2m_tlv_get_int(tlv, &instance_ctx->owner_id);
+            ASSERT(r == 0);
+        } else {
+            ASSERT(1 == 2); //MUST NOT HAPPEN!
+        }
+    }
+
+    if (tlvs->len == 1 && r >= 0)
+        printf("DBG: TLV written to Access Control object at /2/%" PRIu16 "/%" PRIu16 "\n",
+            instance_id, tlv->id);
+    else
+        printf("DBG: TLV written to Access Control object at /2/%" PRIu16 "\n", instance_id);
+
+    return r;
+}
+
+static int
+access_control_object_create(void *user_data, struct sol_lwm2m_client *client,
+    uint16_t instance_id, void **instance_data,
+    struct sol_lwm2m_payload payload)
+{
+    struct access_control_obj_instance_ctx *instance_ctx;
+    int r;
+    uint16_t i;
+    struct sol_lwm2m_tlv *tlv;
+
+    ASSERT(payload.type == SOL_LWM2M_CONTENT_TYPE_TLV);
+
+    instance_ctx = calloc(1, sizeof(struct access_control_obj_instance_ctx));
+    ASSERT(instance_ctx != NULL);
+
+    sol_vector_init(&instance_ctx->acl, sizeof(struct acl_instance));
+
+    SOL_VECTOR_FOREACH_IDX (&payload.payload.tlv_content, tlv, i) {
+        if (tlv->id == ACCESS_CONTROL_OBJECT_OBJECT_ID &&
+            tlv->type == SOL_LWM2M_TLV_TYPE_RESOURCE_WITH_VALUE) {
+            r = sol_lwm2m_tlv_get_int(tlv, &instance_ctx->object_id);
+            ASSERT(r == 0);
+        } else if (tlv->id == ACCESS_CONTROL_OBJECT_INSTANCE_ID &&
+            tlv->type == SOL_LWM2M_TLV_TYPE_RESOURCE_WITH_VALUE) {
+            r = sol_lwm2m_tlv_get_int(tlv, &instance_ctx->instance_id);
+            ASSERT(r == 0);
+        } else if (tlv->id == ACCESS_CONTROL_OBJECT_ACL &&
+            tlv->type == SOL_LWM2M_TLV_TYPE_MULTIPLE_RESOURCES) {
+            uint16_t j = i + 1;
+
+            sol_vector_clear(&instance_ctx->acl);
+
+            r = write_or_create_acl(&instance_ctx->acl, &payload.payload.tlv_content, &j, true);
+            ASSERT(r == 0);
+
+            i = j - 1;
+        } else if (tlv->id == ACCESS_CONTROL_OBJECT_OWNER_ID &&
+            tlv->type == SOL_LWM2M_TLV_TYPE_RESOURCE_WITH_VALUE) {
+            r = sol_lwm2m_tlv_get_int(tlv, &instance_ctx->owner_id);
+            ASSERT(r == 0);
+        } else
+            ASSERT(1 == 2); //MUST NOT HAPPEN!
+    }
+
+    instance_ctx->client = client;
+    *instance_data = instance_ctx;
+    printf("DBG: Access Control object {Obj:%" PRId64 ", Inst: %"
+        PRId64 ", Owner: %" PRId64 "} created at /2/%" PRIu16 "\n",
+        instance_ctx->object_id, instance_ctx->instance_id,
+        instance_ctx->owner_id, instance_id);
+
+    return 0;
+}
+
+static int
+access_control_object_delete(void *instance_data, void *user_data,
+    struct sol_lwm2m_client *client, uint16_t instance_id)
+{
+    struct access_control_obj_instance_ctx *instance_ctx = instance_data;
+
+    sol_vector_clear(&instance_ctx->acl);
+    free(instance_ctx);
+    return 0;
+}
+
+// ================================================================= Dummy Object
 /*
    This function is used by the lwm2m client and server to check if the tlv
    and its values are valid. However the lwm2m server will pass NULL as
    the second argument.
  */
 static void
-check_tlv_and_save(struct sol_vector *tlvs, struct dummy_ctx *ctx)
+check_tlv_and_save(struct sol_vector *tlvs, struct dummy_ctx *ctx, bool *first)
 {
-    static bool first = true;
     uint16_t i;
     struct sol_lwm2m_tlv *tlv;
     int r;
@@ -195,7 +843,7 @@ check_tlv_and_save(struct sol_vector *tlvs, struct dummy_ctx *ctx)
             case DUMMY_OBJECT_INT_ID:
                 r = sol_lwm2m_tlv_get_int(tlv, &int64);
                 ASSERT(r == 0);
-                if (first || !ctx)
+                if (*first || !ctx)
                     ASSERT(int64 == INT_VALUE);
                 else
                     ASSERT(int64 == INT_REPLACE_VALUE);
@@ -251,7 +899,7 @@ check_tlv_and_save(struct sol_vector *tlvs, struct dummy_ctx *ctx)
         }
         sol_buffer_fini(&buf);
     }
-    first = false;
+    *first = false;
 }
 
 static int
@@ -260,13 +908,14 @@ create_dummy(void *user_data, struct sol_lwm2m_client *client,
     struct sol_lwm2m_payload payload)
 {
     struct dummy_ctx *ctx = calloc(1, sizeof(struct dummy_ctx));
+    bool *first = user_data;
 
     ASSERT(ctx);
     *instance_data = ctx;
     ctx->id = instance_id;
 
     ASSERT(payload.type == SOL_LWM2M_CONTENT_TYPE_TLV);
-    check_tlv_and_save(&payload.payload.tlv_content, ctx);
+    check_tlv_and_save(&payload.payload.tlv_content, ctx, first);
     return 0;
 }
 
@@ -276,8 +925,9 @@ write_dummy_tlv(void *instance_data, void *user_data,
     struct sol_vector *tlvs)
 {
     struct dummy_ctx *ctx = instance_data;
+    bool *first = user_data;
 
-    check_tlv_and_save(tlvs, ctx);
+    check_tlv_and_save(tlvs, ctx, first);
     return 0;
 }
 
@@ -374,14 +1024,33 @@ static const struct sol_lwm2m_object security_object = {
     SOL_SET_API_VERSION(.api_version = SOL_LWM2M_OBJECT_API_VERSION, )
     .id = SECURITY_OBJECT_ID,
     .resources_count = 12,
-    .read = security_object_read
+    .read = security_object_read,
+    .write_resource = security_object_write_res,
+    .write_tlv = security_object_write_tlv,
+    .create = security_object_create,
+    .del = security_object_delete
 };
 
 static const struct sol_lwm2m_object server_object = {
     SOL_SET_API_VERSION(.api_version = SOL_LWM2M_OBJECT_API_VERSION, )
     .id = SERVER_OBJECT_ID,
     .resources_count = 9,
-    .read = server_object_read
+    .read = server_object_read,
+    .write_resource = server_object_write_res,
+    .write_tlv = server_object_write_tlv,
+    .create = server_object_create,
+    .del = server_object_delete
+};
+
+static const struct sol_lwm2m_object access_control_object = {
+    SOL_SET_API_VERSION(.api_version = SOL_LWM2M_OBJECT_API_VERSION, )
+    .id = ACCESS_CONTROL_OBJECT_ID,
+    .resources_count = 4,
+    .read = access_control_object_read,
+    .write_resource = access_control_object_write_res,
+    .write_tlv = access_control_object_write_tlv,
+    .create = access_control_object_create,
+    .del = access_control_object_delete
 };
 
 //This is a dummy object, it's not defined by OMA!
@@ -398,12 +1067,45 @@ static const struct sol_lwm2m_object dummy_object = {
 };
 
 static void
+observe_res_cb(void *data,
+    struct sol_lwm2m_server *server,
+    struct sol_lwm2m_client_info *client,
+    const char *path,
+    enum sol_coap_response_code response_code,
+    enum sol_lwm2m_content_type content_type,
+    struct sol_str_slice content);
+
+static void
+delete_cb(void *data,
+    struct sol_lwm2m_server *server,
+    struct sol_lwm2m_client_info *client, const char *path,
+    enum sol_coap_response_code response_code);
+
+static void
 execute_cb(void *data,
     struct sol_lwm2m_server *server,
     struct sol_lwm2m_client_info *client, const char *path,
     enum sol_coap_response_code response_code)
 {
-    ASSERT(response_code == SOL_COAP_RESPONSE_CODE_CHANGED);
+    int r;
+    char *server_type = data;
+
+    if (!strcmp("cli1", sol_lwm2m_client_info_get_name(client))) {
+        ASSERT(response_code == SOL_COAP_RESPONSE_CODE_UNAUTHORIZED);
+
+        printf("DBG: '%s' ---[Unobserve /999/0/2]---> '%s'\n",
+            server_type, sol_lwm2m_client_info_get_name(client));
+        r = sol_lwm2m_server_del_observer(server, client, "/999/0/2",
+            observe_res_cb, data);
+        ASSERT(r == 0);
+
+        printf("DBG: '%s' ---[Delete /999/0]---> %s\n",
+            server_type, sol_lwm2m_client_info_get_name(client));
+        r = sol_lwm2m_server_delete_object_instance(server, client, "/999/0",
+            delete_cb, data);
+        ASSERT(r == 0);
+    } else
+        ASSERT(response_code == SOL_COAP_RESPONSE_CODE_CHANGED);
 }
 
 static void
@@ -413,11 +1115,14 @@ write_cb(void *data,
     enum sol_coap_response_code response_code)
 {
     int r;
+    char *server_type = data;
 
     ASSERT(response_code == SOL_COAP_RESPONSE_CODE_CHANGED);
 
+    printf("DBG: '%s' ---[Execute /999/0/8]---> '%s'\n",
+        server_type, sol_lwm2m_client_info_get_name(client));
     r = sol_lwm2m_server_execute_resource(server, client, "/999/0/8",
-        EXECUTE_ARGS, execute_cb, NULL);
+        EXECUTE_ARGS, execute_cb, data);
     ASSERT(r == 0);
 }
 
@@ -433,6 +1138,8 @@ read_cb(void *data,
     struct sol_vector tlvs;
     int r;
     struct sol_lwm2m_resource res;
+    static bool first = true;
+    char *server_type = data;
 
     ASSERT(response_code == SOL_COAP_RESPONSE_CODE_CONTENT);
     ASSERT(content_type == SOL_LWM2M_CONTENT_TYPE_TLV);
@@ -440,12 +1147,14 @@ read_cb(void *data,
     r = sol_lwm2m_parse_tlv(content, &tlvs);
     ASSERT(r == 0);
 
-    check_tlv_and_save(&tlvs, NULL);
+    check_tlv_and_save(&tlvs, NULL, &first);
 
     SOL_LWM2M_RESOURCE_SINGLE_INT_INIT(r, &res, DUMMY_OBJECT_INT_ID, INT_REPLACE_VALUE);
     ASSERT(r == 0);
+    printf("DBG: '%s' ---[Write /999/0/2]---> '%s'\n",
+        server_type, sol_lwm2m_client_info_get_name(client));
     r = sol_lwm2m_server_write(server, client, "/999/0/2",
-        &res, 1, write_cb, NULL);
+        &res, 1, write_cb, data);
     ASSERT(r == 0);
     sol_lwm2m_resource_clear(&res);
     sol_lwm2m_tlv_list_clear(&tlvs);
@@ -460,7 +1169,7 @@ observe_res_cb(void *data,
     enum sol_lwm2m_content_type content_type,
     struct sol_str_slice content)
 {
-    static int i = 0;
+    static int nosec_i = 0, sec_i = 0;
     struct sol_vector tlvs;
     struct sol_lwm2m_tlv *tlv;
     int64_t v;
@@ -476,17 +1185,40 @@ observe_res_cb(void *data,
     r = sol_lwm2m_tlv_get_int(tlv, &v);
     ASSERT(r == 0);
 
-    if (i == 0)
-        ASSERT(v == INT_VALUE);
-    else if (i == 1)
-        ASSERT(v == INT_REPLACE_VALUE);
-    else
-        ASSERT(1 == 2); //MUST NOT HAPPEN!
+    if (!strcmp(CLIENT_NAME, sol_lwm2m_client_info_get_name(client))) {
+        if (nosec_i == 0)
+            ASSERT(v == INT_VALUE);
+        else if (nosec_i == 1)
+            ASSERT(v == INT_REPLACE_VALUE);
+        else
+            ASSERT(1 == 2); //MUST NOT HAPPEN!
 
-    i++;
+        nosec_i++;
+    } else {
+        if (sec_i == 0)
+            ASSERT(v == INT_VALUE);
+        else if (sec_i == 1)
+            ASSERT(v == INT_REPLACE_VALUE);
+        else
+            ASSERT(1 == 2); //MUST NOT HAPPEN!
+
+        sec_i++;
+    }
+
     sol_lwm2m_tlv_clear(tlv);
     sol_vector_clear(&tlvs);
 }
+
+#ifdef DTLS
+static void
+write_acl_cb(void *data,
+    struct sol_lwm2m_server *server,
+    struct sol_lwm2m_client_info *client, const char *path,
+    enum sol_coap_response_code response_code)
+{
+    ASSERT(response_code == SOL_COAP_RESPONSE_CODE_CHANGED);
+}
+#endif
 
 static void
 create_cb(void *data,
@@ -495,25 +1227,51 @@ create_cb(void *data,
     enum sol_coap_response_code response_code)
 {
     int r;
+    char *server_type = data;
+
+#ifdef DTLS
+    struct sol_lwm2m_resource res;
+#endif
 
     ASSERT(response_code == SOL_COAP_RESPONSE_CODE_CREATED);
 
+#ifdef DTLS
+    if (!strcmp("cli1", sol_lwm2m_client_info_get_name(client))) {
+        SOL_LWM2M_RESOURCE_INIT(r, &res, ACCESS_CONTROL_OBJECT_ACL,
+            SOL_LWM2M_RESOURCE_TYPE_MULTIPLE, 1, SOL_LWM2M_RESOURCE_DATA_TYPE_INT,
+            101, SOL_TYPE_CHECK(int64_t, SOL_LWM2M_ACL_READ | SOL_LWM2M_ACL_WRITE));
+        ASSERT(r == 0);
+        printf("DBG: '%s' ---[Write /2/3/2]---> '%s'\n",
+            server_type, sol_lwm2m_client_info_get_name(client));
+        r = sol_lwm2m_server_write(server, client, "/2/3/2",
+            &res, 1, write_acl_cb, data);
+        ASSERT(r == 0);
+        sol_lwm2m_resource_clear(&res);
+    }
+#endif
+
+    printf("DBG: '%s' ---[Read /999/0]---> '%s'\n",
+        server_type, sol_lwm2m_client_info_get_name(client));
     r = sol_lwm2m_server_read(server, client, "/999/0",
-        read_cb, NULL);
+        read_cb, data);
     ASSERT(r == 0);
 
+    printf("DBG: '%s' ---[Observe /999/0/2]---> '%s'\n",
+        server_type, sol_lwm2m_client_info_get_name(client));
     r = sol_lwm2m_server_add_observer(server, client, "/999/0/2",
-        observe_res_cb, NULL);
+        observe_res_cb, data);
     ASSERT(r == 0);
 }
 
 static void
-create_obj(struct sol_lwm2m_server *server, struct sol_lwm2m_client_info *cinfo)
+create_obj(struct sol_lwm2m_server *server,
+    struct sol_lwm2m_client_info *cinfo, void *data)
 {
     int r;
     size_t i;
     struct sol_lwm2m_resource res[8];
     struct sol_blob *blob;
+    char *server_type = data;
 
     blob = sol_blob_new(&SOL_BLOB_TYPE_NO_FREE_DATA, NULL,
         STR, strlen(STR));
@@ -548,8 +1306,10 @@ create_obj(struct sol_lwm2m_server *server, struct sol_lwm2m_client_info *cinfo)
         SOL_LWM2M_RESOURCE_TYPE_MULTIPLE, 2,
         SOL_LWM2M_RESOURCE_DATA_TYPE_INT, 0, ARRAY_VALUE_ONE, 1, ARRAY_VALUE_TWO);
     ASSERT(r == 0);
+    printf("DBG: '%s' ---[Create /999]--> '%s'\n",
+        server_type, sol_lwm2m_client_info_get_name(cinfo));
     r = sol_lwm2m_server_create_object_instance(server, cinfo, "/999", res,
-        sol_util_array_size(res), create_cb, NULL);
+        sol_util_array_size(res), create_cb, data);
     ASSERT(r == 0);
 
     for (i = 0; i < sol_util_array_size(res); i++)
@@ -562,94 +1322,522 @@ delete_cb(void *data,
     struct sol_lwm2m_client_info *client, const char *path,
     enum sol_coap_response_code response_code)
 {
-    ASSERT(response_code == SOL_COAP_RESPONSE_CODE_DELETED);
-    sol_quit();
+    static int finished_connections = 0;
+    char *server_type = data;
+
+    if (!strcmp("cli1", sol_lwm2m_client_info_get_name(client)))
+        ASSERT(response_code == SOL_COAP_RESPONSE_CODE_UNAUTHORIZED);
+    else
+        ASSERT(response_code == SOL_COAP_RESPONSE_CODE_DELETED);
+
+    finished_connections++;
+
+    printf("DBG: ======== [%d] Client '%s' finished with '%s' server\n",
+        finished_connections, sol_lwm2m_client_info_get_name(client),
+        server_type);
+
+#ifdef DTLS
+    if (finished_connections == 3)
+        sol_quit();
+#else
+    if (finished_connections == 1)
+        sol_quit();
+#endif
 }
 
 static void
-registration_event_cb(void *data, struct sol_lwm2m_server *server,
+check_cinfo(struct sol_lwm2m_client_info *cinfo, const char *name,
+    const char *sms_number, const char *objects_path,
+    enum sol_lwm2m_binding_mode binding_mode, bool access_control)
+{
+    int r;
+    uint32_t lf;
+    const struct sol_ptr_vector *objects;
+    struct sol_lwm2m_client_object *object;
+    uint16_t i, objects_found = 0;
+
+    ASSERT(!strcmp(name, sol_lwm2m_client_info_get_name(cinfo)));
+    if (sms_number)
+        ASSERT(!strcmp(SMS_NUMBER, sol_lwm2m_client_info_get_sms_number(cinfo)));
+    if (objects_path)
+        ASSERT(!strcmp("/my_path",
+            sol_lwm2m_client_info_get_objects_path(cinfo)));
+    r = sol_lwm2m_client_info_get_lifetime(cinfo, &lf);
+    ASSERT(r == 0);
+    ASSERT(lf == LIFETIME);
+    ASSERT(sol_lwm2m_client_info_get_binding_mode(cinfo) ==
+        SOL_LWM2M_BINDING_MODE_U);
+
+    objects = sol_lwm2m_client_info_get_objects(cinfo);
+
+    SOL_PTR_VECTOR_FOREACH_IDX (objects, object, i) {
+        uint16_t obj_id;
+        r = sol_lwm2m_client_object_get_id(object, &obj_id);
+        ASSERT(r == 0);
+        if (obj_id == SECURITY_OBJECT_ID || obj_id == ACCESS_CONTROL_OBJECT_ID ||
+            obj_id == SERVER_OBJECT_ID || obj_id == DUMMY_OBJECT_ID)
+            objects_found++;
+    }
+
+    ASSERT(objects_found == (access_control ? 4 : 3));
+}
+
+static void
+nosec_registration_event_cb(void *data, struct sol_lwm2m_server *server,
     struct sol_lwm2m_client_info *cinfo,
     enum sol_lwm2m_registration_event event)
 {
     int r;
+    char *server_type = data;
 
-    if (event == SOL_LWM2M_REGISTRATION_EVENT_REGISTER) {
-        uint32_t lf;
-        const struct sol_ptr_vector *objects;
-        struct sol_lwm2m_client_object *object;
-        uint16_t i, objects_found = 0;
+    if (event == SOL_LWM2M_REGISTRATION_EVENT_REGISTER &&
+        !strcmp("cli1", sol_lwm2m_client_info_get_name(cinfo))) {
+        check_cinfo(cinfo, "cli1", NULL, NULL, SOL_LWM2M_BINDING_MODE_U, true);
 
-        ASSERT(!strcmp(CLIENT_NAME, sol_lwm2m_client_info_get_name(cinfo)));
-        ASSERT(!strcmp(SMS_NUMBER, sol_lwm2m_client_info_get_sms_number(cinfo)));
-        ASSERT(!strcmp("/my_path",
-            sol_lwm2m_client_info_get_objects_path(cinfo)));
-        r = sol_lwm2m_client_info_get_lifetime(cinfo, &lf);
-        ASSERT(r == 0);
-        ASSERT(lf == LIFETIME);
-        ASSERT(sol_lwm2m_client_info_get_binding_mode(cinfo) ==
-            SOL_LWM2M_BINDING_MODE_U);
+        create_obj(server, cinfo, data);
 
-        objects = sol_lwm2m_client_info_get_objects(cinfo);
+    } else if (event == SOL_LWM2M_REGISTRATION_EVENT_REGISTER) {
+        check_cinfo(cinfo, CLIENT_NAME, SMS_NUMBER, "/my_path", SOL_LWM2M_BINDING_MODE_U, false);
 
-        SOL_PTR_VECTOR_FOREACH_IDX (objects, object, i) {
-            uint16_t obj_id;
-            r = sol_lwm2m_client_object_get_id(object, &obj_id);
-            ASSERT(r == 0);
-            if (obj_id == SECURITY_OBJECT_ID ||
-                obj_id == SERVER_OBJECT_ID || obj_id == DUMMY_OBJECT_ID)
-                objects_found++;
-        }
-
-        ASSERT(objects_found == 3);
-        create_obj(server, cinfo);
+        create_obj(server, cinfo, data);
 
     } else if (event == SOL_LWM2M_REGISTRATION_EVENT_UPDATE) {
+        printf("DBG: '%s' ---[Unobserve /999/0/2]---> '%s'\n",
+            server_type, sol_lwm2m_client_info_get_name(cinfo));
         r = sol_lwm2m_server_del_observer(server, cinfo, "/999/0/2",
-            observe_res_cb, NULL);
+            observe_res_cb, data);
         ASSERT(r == 0);
+
+        printf("DBG: '%s' ---[Delete /999/0]---> %s\n",
+            server_type, sol_lwm2m_client_info_get_name(cinfo));
         r = sol_lwm2m_server_delete_object_instance(server, cinfo, "/999/0",
-            delete_cb, NULL);
+            delete_cb, data);
         ASSERT(r == 0);
     } else {
         ASSERT(1 == 2); //TIMEOUT/UNREGISTER, this must not happen!
     }
 }
 
+#ifdef DTLS
+static void
+write_acl_unauthorized_cb(void *data,
+    struct sol_lwm2m_server *server,
+    struct sol_lwm2m_client_info *client, const char *path,
+    enum sol_coap_response_code response_code)
+{
+    int r;
+    char *server_type = data;
+
+    ASSERT(response_code == SOL_COAP_RESPONSE_CODE_UNAUTHORIZED);
+
+    printf("DBG: '%s' ---[Delete /]---> %s\n",
+        server_type, sol_lwm2m_client_info_get_name(client));
+    r = sol_lwm2m_server_delete_object_instance(server, client, "/",
+        delete_cb, data);
+    ASSERT(r == -EINVAL);
+
+    delete_cb(data, server, client, NULL, SOL_COAP_RESPONSE_CODE_UNAUTHORIZED);
+}
+
+static void
+read_unauthorized_cb(void *data,
+    struct sol_lwm2m_server *server,
+    struct sol_lwm2m_client_info *client,
+    const char *path,
+    enum sol_coap_response_code response_code,
+    enum sol_lwm2m_content_type content_type,
+    struct sol_str_slice content)
+{
+    ASSERT(response_code == SOL_COAP_RESPONSE_CODE_UNAUTHORIZED);
+}
+
+static void
+observe_unauthorized_cb(void *data,
+    struct sol_lwm2m_server *server,
+    struct sol_lwm2m_client_info *client,
+    const char *path,
+    enum sol_coap_response_code response_code,
+    enum sol_lwm2m_content_type content_type,
+    struct sol_str_slice content)
+{
+    ASSERT(response_code == SOL_COAP_RESPONSE_CODE_UNAUTHORIZED);
+
+}
+
+static void
+sec_registration_event_cb(void *data, struct sol_lwm2m_server *server,
+    struct sol_lwm2m_client_info *cinfo,
+    enum sol_lwm2m_registration_event event)
+{
+    int r;
+    uint16_t i;
+    char *server_type = data;
+    struct sol_lwm2m_resource res[2];
+
+    if (event == SOL_LWM2M_REGISTRATION_EVENT_REGISTER) {
+        check_cinfo(cinfo, "cli1", NULL, NULL, SOL_LWM2M_BINDING_MODE_U, true);
+
+        SOL_LWM2M_RESOURCE_SINGLE_INIT(r, &res[0], DUMMY_OBJECT_BOOLEAN_FALSE_ID,
+            SOL_LWM2M_RESOURCE_DATA_TYPE_BOOL, false);
+        ASSERT(r == 0);
+        SOL_LWM2M_RESOURCE_SINGLE_INIT(r, &res[1], DUMMY_OBJECT_FLOAT_ID,
+            SOL_LWM2M_RESOURCE_DATA_TYPE_FLOAT, FLOAT_VALUE);
+        ASSERT(r == 0);
+
+        printf("DBG: '%s' ---[Write /999]---> '%s'\n",
+            server_type, sol_lwm2m_client_info_get_name(cinfo));
+        r = sol_lwm2m_server_write(server, cinfo, "/999",
+            res, sol_util_array_size(res), NULL, data);
+        ASSERT(r == -EINVAL);
+
+        for (i = 0; i < sol_util_array_size(res); i++)
+            sol_lwm2m_resource_clear(&res[i]);
+
+        printf("DBG: '%s' ---[Observe /1]---> '%s'\n",
+            server_type, sol_lwm2m_client_info_get_name(cinfo));
+        r = sol_lwm2m_server_add_observer(server, cinfo, "/1",
+            observe_unauthorized_cb, data);
+        ASSERT(r == 0);
+
+        printf("DBG: '%s' ---[Read /999]---> '%s'\n",
+            server_type, sol_lwm2m_client_info_get_name(cinfo));
+        r = sol_lwm2m_server_read(server, cinfo, "/999",
+            read_unauthorized_cb, data);
+        ASSERT(r == 0);
+
+        SOL_LWM2M_RESOURCE_INIT(r, &res[0], ACCESS_CONTROL_OBJECT_ACL,
+            SOL_LWM2M_RESOURCE_TYPE_MULTIPLE, 1, SOL_LWM2M_RESOURCE_DATA_TYPE_INT,
+            0, SOL_TYPE_CHECK(int64_t, SOL_LWM2M_ACL_READ | SOL_LWM2M_ACL_WRITE));
+        ASSERT(r == 0);
+        printf("DBG: '%s' ---[Write /2/3/2]---> '%s'\n",
+            server_type, sol_lwm2m_client_info_get_name(cinfo));
+        r = sol_lwm2m_server_write(server, cinfo, "/2/3/2",
+            &res[0], 1, write_acl_unauthorized_cb, data);
+        ASSERT(r == 0);
+        sol_lwm2m_resource_clear(&res[0]);
+
+    } else {
+        ASSERT(1 == 2); //TIMEOUT/UNREGISTER, this must not happen!
+    }
+}
+
+static void
+write_nosec_server_cb(void *data,
+    struct sol_lwm2m_bootstrap_server *server,
+    struct sol_lwm2m_bootstrap_client_info *bs_cinfo, const char *path,
+    enum sol_coap_response_code response_code)
+{
+    int r;
+
+    ASSERT(response_code == SOL_COAP_RESPONSE_CODE_CHANGED);
+    ASSERT(!strcmp("/0/1", path));
+
+    printf("DBG: [Bootstrap Finish]---> '%s'\n",
+        sol_lwm2m_bootstrap_client_info_get_name(bs_cinfo));
+    r = sol_lwm2m_bootstrap_server_send_finish(server, bs_cinfo);
+    ASSERT(r == 0);
+}
+
+static void
+write_servers_cb(void *data,
+    struct sol_lwm2m_bootstrap_server *server,
+    struct sol_lwm2m_bootstrap_client_info *bs_cinfo, const char *path,
+    enum sol_coap_response_code response_code)
+{
+    int r;
+    uint16_t i;
+    struct sol_lwm2m_resource nosec_server[4];
+
+    ASSERT(response_code == SOL_COAP_RESPONSE_CODE_CHANGED);
+    ASSERT(!strcmp("/1", path));
+
+    // NoSec Server's Security Object
+    SOL_LWM2M_RESOURCE_SINGLE_INIT(r, &nosec_server[0], SECURITY_OBJECT_SERVER_URI,
+        SOL_LWM2M_RESOURCE_DATA_TYPE_STRING, &nosec_server_coap_addr);
+    ASSERT(r == 0);
+    SOL_LWM2M_RESOURCE_SINGLE_INIT(r, &nosec_server[1], SECURITY_OBJECT_IS_BOOTSTRAP,
+        SOL_LWM2M_RESOURCE_DATA_TYPE_BOOL, false);
+    ASSERT(r == 0);
+    SOL_LWM2M_RESOURCE_SINGLE_INT_INIT(r, &nosec_server[2], SECURITY_OBJECT_SECURITY_MODE,
+        SOL_LWM2M_SECURITY_MODE_NO_SEC);
+    ASSERT(r == 0);
+    SOL_LWM2M_RESOURCE_SINGLE_INT_INIT(r, &nosec_server[3], SECURITY_OBJECT_SERVER_ID, 101);
+    ASSERT(r == 0);
+
+    printf("DBG: [Bootstrap Write /0/1]---> '%s'\n",
+        sol_lwm2m_bootstrap_client_info_get_name(bs_cinfo));
+    r = sol_lwm2m_bootstrap_server_write(server, bs_cinfo, "/0/1",
+        nosec_server, sol_util_array_size(nosec_server), write_nosec_server_cb, NULL);
+    ASSERT(r == 0);
+
+    for (i = 0; i < sol_util_array_size(nosec_server); i++)
+        sol_lwm2m_resource_clear(&nosec_server[i]);
+}
+
+static void
+write_sec_server_cb(void *data,
+    struct sol_lwm2m_bootstrap_server *server,
+    struct sol_lwm2m_bootstrap_client_info *bs_cinfo, const char *path,
+    enum sol_coap_response_code response_code)
+{
+    int r;
+    uint16_t i, j;
+    struct sol_lwm2m_resource nosec_server[3], sec_server[3];
+    struct sol_lwm2m_resource *servers[2] = {
+        nosec_server, sec_server
+    };
+    size_t servers_len[2] = {
+        sol_util_array_size(nosec_server), sol_util_array_size(sec_server)
+    };
+    uint16_t servers_ids[2] = {
+        0, 4
+    };
+
+    ASSERT(response_code == SOL_COAP_RESPONSE_CODE_CHANGED);
+    ASSERT(!strcmp("/0/0", path));
+
+    // NoSec Server's Server Object
+    SOL_LWM2M_RESOURCE_SINGLE_INT_INIT(r, &nosec_server[0], SERVER_OBJECT_SERVER_ID, 101);
+    ASSERT(r == 0);
+    SOL_LWM2M_RESOURCE_SINGLE_INT_INIT(r, &nosec_server[1], SERVER_OBJECT_LIFETIME, LIFETIME);
+    ASSERT(r == 0);
+    SOL_LWM2M_RESOURCE_SINGLE_INIT(r, &nosec_server[2], SERVER_OBJECT_BINDING,
+        SOL_LWM2M_RESOURCE_DATA_TYPE_STRING, &binding);
+    ASSERT(r == 0);
+
+    // PSK-secured Server's Server Object
+    SOL_LWM2M_RESOURCE_SINGLE_INT_INIT(r, &sec_server[0], SERVER_OBJECT_SERVER_ID, 102);
+    ASSERT(r == 0);
+    SOL_LWM2M_RESOURCE_SINGLE_INT_INIT(r, &sec_server[1], SERVER_OBJECT_LIFETIME, LIFETIME);
+    ASSERT(r == 0);
+    SOL_LWM2M_RESOURCE_SINGLE_INIT(r, &sec_server[2], SERVER_OBJECT_BINDING,
+        SOL_LWM2M_RESOURCE_DATA_TYPE_STRING, &binding);
+    ASSERT(r == 0);
+
+    printf("DBG: [Bootstrap Write /1]---> '%s'\n",
+        sol_lwm2m_bootstrap_client_info_get_name(bs_cinfo));
+    r = sol_lwm2m_bootstrap_server_write_object(server, bs_cinfo, "/1",
+        servers, servers_len, servers_ids, sol_util_array_size(servers), write_servers_cb, NULL);
+    ASSERT(r == 0);
+
+    for (i = 0; i < sol_util_array_size(servers); i++)
+        for (j = 0; j < sol_util_array_size(nosec_server); j++)
+            sol_lwm2m_resource_clear(&servers[i][j]);
+}
+
+static void
+delete_all_cb(void *data,
+    struct sol_lwm2m_bootstrap_server *server,
+    struct sol_lwm2m_bootstrap_client_info *bs_cinfo, const char *path,
+    enum sol_coap_response_code response_code)
+{
+    int r;
+    uint16_t i;
+    struct sol_lwm2m_resource sec_server[6];
+
+    ASSERT(response_code == SOL_COAP_RESPONSE_CODE_DELETED);
+    ASSERT(!strcmp("/", path));
+
+    // PSK-secured Server's Security Object
+    SOL_LWM2M_RESOURCE_SINGLE_INIT(r, &sec_server[0], SECURITY_OBJECT_SERVER_URI,
+        SOL_LWM2M_RESOURCE_DATA_TYPE_STRING, &sec_server_dtls_addr);
+    ASSERT(r == 0);
+    SOL_LWM2M_RESOURCE_SINGLE_INIT(r, &sec_server[1], SECURITY_OBJECT_IS_BOOTSTRAP,
+        SOL_LWM2M_RESOURCE_DATA_TYPE_BOOL, false);
+    ASSERT(r == 0);
+    SOL_LWM2M_RESOURCE_SINGLE_INT_INIT(r, &sec_server[2], SECURITY_OBJECT_SECURITY_MODE,
+        SOL_LWM2M_SECURITY_MODE_PRE_SHARED_KEY);
+    ASSERT(r == 0);
+    SOL_LWM2M_RESOURCE_SINGLE_INIT(r, &sec_server[3], SECURITY_OBJECT_PUBLIC_KEY_OR_IDENTITY,
+        SOL_LWM2M_RESOURCE_DATA_TYPE_STRING, &sec_server_psk_id);
+    ASSERT(r == 0);
+    SOL_LWM2M_RESOURCE_SINGLE_INIT(r, &sec_server[4], SECURITY_OBJECT_SECRET_KEY,
+        SOL_LWM2M_RESOURCE_DATA_TYPE_STRING, &sec_server_psk_key);
+    ASSERT(r == 0);
+    SOL_LWM2M_RESOURCE_SINGLE_INT_INIT(r, &sec_server[5], SECURITY_OBJECT_SERVER_ID, 102);
+    ASSERT(r == 0);
+
+    printf("DBG: [Bootstrap Write /0/0]---> '%s'\n",
+        sol_lwm2m_bootstrap_client_info_get_name(bs_cinfo));
+    r = sol_lwm2m_bootstrap_server_write(server, bs_cinfo, "/0/0",
+        sec_server, sol_util_array_size(sec_server), write_sec_server_cb, NULL);
+    ASSERT(r == 0);
+
+    for (i = 0; i < sol_util_array_size(sec_server); i++)
+        sol_lwm2m_resource_clear(&sec_server[i]);
+}
+
+static void
+bootstrap_request_cb(void *data,
+    struct sol_lwm2m_bootstrap_server *server,
+    struct sol_lwm2m_bootstrap_client_info *bs_cinfo)
+{
+    int r;
+
+    ASSERT(!strcmp("cli1", sol_lwm2m_bootstrap_client_info_get_name(bs_cinfo)));
+
+    printf("DBG: [Bootstrap Delete /]---> '%s'\n",
+        sol_lwm2m_bootstrap_client_info_get_name(bs_cinfo));
+    r = sol_lwm2m_bootstrap_server_delete_object_instance(server, bs_cinfo, "/",
+        delete_all_cb, NULL);
+    ASSERT(r == 0);
+}
+
+static void
+bootstrap_finish_cb(void *data,
+    struct sol_lwm2m_client *client,
+    enum sol_lwm2m_bootstrap_event event)
+{
+    int r;
+
+    ASSERT(event == SOL_LWM2M_BOOTSTRAP_EVENT_FINISHED);
+
+    r = sol_lwm2m_client_start(client);
+    ASSERT(r == 0);
+}
+#endif
+
 int
 main(int argc, char *argv[])
 {
-    struct sol_lwm2m_server *server;
-    struct sol_lwm2m_client *client;
-    static const struct sol_lwm2m_object *objects[] =
+    struct sol_lwm2m_server *nosec_server;
+    struct sol_lwm2m_client *nosec_client;
+    static const struct sol_lwm2m_object *nosec_objects[] =
     { &security_object, &server_object, &dummy_object, NULL };
+    struct security_obj_instance_ctx *nosec_security_data;
+    struct server_obj_instance_ctx *nosec_server_data;
+    bool nosec_first = true;
     int r;
+
+#ifdef DTLS
+    struct sol_lwm2m_bootstrap_server *bs_server;
+    struct sol_lwm2m_server *sec_server;
+    struct sol_lwm2m_client *sec_client;
+    static const struct sol_lwm2m_object *sec_objects[] =
+    { &security_object, &server_object,
+      &access_control_object, &dummy_object, NULL };
+    struct security_obj_instance_ctx *sec_security_data;
+    struct sol_lwm2m_security_psk *bs_psk, *sec_psk;
+    struct sol_vector bs_known_keys = { }, sec_known_keys = { };
+    bool sec_first = true;
+#endif
 
     r = sol_init();
     ASSERT(!r);
 
-    server = sol_lwm2m_server_new(SOL_LWM2M_DEFAULT_SERVER_PORT_COAP,
+    // ============================================== NoSec Server Initialization
+    nosec_server = sol_lwm2m_server_new(SOL_LWM2M_DEFAULT_SERVER_PORT_COAP,
         SOL_LWM2M_DEFAULT_SERVER_PORT_DTLS,
         SOL_LWM2M_SECURITY_MODE_NO_SEC, NULL);
-    ASSERT(server != NULL);
+    ASSERT(nosec_server != NULL);
 
-    r = sol_lwm2m_server_add_registration_monitor(server, registration_event_cb,
-        NULL);
+    r = sol_lwm2m_server_add_registration_monitor(nosec_server,
+        nosec_registration_event_cb, "NoSec");
     ASSERT_INT_EQ(r, 0);
 
-    client = sol_lwm2m_client_new(CLIENT_NAME, OBJ_PATH, SMS_NUMBER, objects, NULL);
-    ASSERT(client != NULL);
+    // ============================================== NoSec Client Initialization
+    nosec_client = sol_lwm2m_client_new(CLIENT_NAME, OBJ_PATH,
+        SMS_NUMBER, nosec_objects, &nosec_first);
+    ASSERT(nosec_client != NULL);
 
-    r = sol_lwm2m_client_add_object_instance(client, &server_object, NULL);
-    ASSERT_INT_EQ(r, 0);
-    r = sol_lwm2m_client_add_object_instance(client, &security_object, NULL);
+    nosec_server_data = calloc(1, sizeof(struct server_obj_instance_ctx));
+    ASSERT(nosec_server_data != NULL);
+
+    nosec_server_data->client = nosec_client;
+    nosec_server_data->binding = &binding;
+    nosec_server_data->server_id = 103;
+    nosec_server_data->lifetime = LIFETIME;
+
+    r = sol_lwm2m_client_add_object_instance(nosec_client,
+        &server_object, nosec_server_data);
     ASSERT_INT_EQ(r, 0);
 
-    r = sol_lwm2m_client_start(client);
+    nosec_security_data = calloc(1, sizeof(struct security_obj_instance_ctx));
+    ASSERT(nosec_security_data != NULL);
+
+    nosec_security_data->client = nosec_client;
+    nosec_security_data->security_mode = SOL_LWM2M_SECURITY_MODE_NO_SEC;
+    nosec_security_data->server_uri = &nosec_server_coap_addr;
+    nosec_security_data->server_id = 103;
+
+    r = sol_lwm2m_client_add_object_instance(nosec_client,
+        &security_object, nosec_security_data);
     ASSERT_INT_EQ(r, 0);
+
+    r = sol_lwm2m_client_start(nosec_client);
+    ASSERT_INT_EQ(r, 0);
+
+#ifdef DTLS
+    // ======================================== PSK-Secured Server Initialization
+    sol_vector_init(&sec_known_keys, sizeof(struct sol_lwm2m_security_psk));
+    sec_psk = sol_vector_append(&sec_known_keys);
+    sec_psk->id = &sec_server_psk_id;
+    sec_psk->key = &sec_server_psk_key;
+
+    sec_server = sol_lwm2m_server_new(5693,
+        SOL_LWM2M_DEFAULT_SERVER_PORT_DTLS,
+        SOL_LWM2M_SECURITY_MODE_PRE_SHARED_KEY, &sec_known_keys);
+    ASSERT(sec_server != NULL);
+
+    r = sol_lwm2m_server_add_registration_monitor(sec_server,
+        sec_registration_event_cb, "PSK-Secured");
+    ASSERT_INT_EQ(r, 0);
+
+    // ========================================== Bootstrap Server Initialization
+    sol_vector_init(&bs_known_keys, sizeof(struct sol_lwm2m_security_psk));
+    bs_psk = sol_vector_append(&bs_known_keys);
+    bs_psk->id = &bs_server_psk_id;
+    bs_psk->key = &bs_server_psk_key;
+
+    bs_server = sol_lwm2m_bootstrap_server_new(5784, known_clients,
+        SOL_LWM2M_SECURITY_MODE_PRE_SHARED_KEY, &bs_known_keys);
+    ASSERT(bs_server != NULL);
+
+    r = sol_lwm2m_bootstrap_server_add_request_monitor(bs_server,
+        bootstrap_request_cb, NULL);
+    ASSERT_INT_EQ(r, 0);
+
+    // ====================== PSK-Secured (+Access Control) Client Initialization
+    sec_client = sol_lwm2m_client_new("cli1", NULL, NULL,
+        sec_objects, &sec_first);
+    ASSERT(sec_client != NULL);
+
+    r = sol_lwm2m_client_add_bootstrap_finish_monitor(sec_client,
+        bootstrap_finish_cb, NULL);
+    ASSERT_INT_EQ(r, 0);
+
+    sec_security_data = calloc(1, sizeof(struct security_obj_instance_ctx));
+    ASSERT(sec_security_data != NULL);
+
+    sec_security_data->client = sec_client;
+    sec_security_data->server_uri = &bs_server_addr;
+    sec_security_data->is_bootstrap = true;
+    sec_security_data->security_mode = SOL_LWM2M_SECURITY_MODE_PRE_SHARED_KEY;
+    sec_security_data->public_key_or_id = &bs_server_psk_id;
+    sec_security_data->secret_key = &bs_server_psk_key;
+    sec_security_data->client_hold_off_time = 0; //TODO: 5
+
+    r = sol_lwm2m_client_add_object_instance(sec_client,
+        &security_object, sec_security_data);
+    ASSERT_INT_EQ(r, 0);
+
+    r = sol_lwm2m_client_start(sec_client);
+    ASSERT_INT_EQ(r, 0);
+#endif
 
     sol_run();
-    sol_lwm2m_client_del(client);
-    sol_lwm2m_server_del(server);
+
+    sol_lwm2m_client_stop(nosec_client);
+    sol_lwm2m_client_del(nosec_client);
+    sol_lwm2m_server_del(nosec_server);
+#ifdef DTLS
+    sol_lwm2m_client_stop(sec_client);
+    sol_lwm2m_client_del(sec_client);
+    sol_lwm2m_server_del(sec_server);
+    sol_lwm2m_bootstrap_server_del(bs_server);
+    sol_vector_clear(&sec_known_keys);
+    sol_vector_clear(&bs_known_keys);
+#endif
     sol_shutdown();
     return 0;
 }
