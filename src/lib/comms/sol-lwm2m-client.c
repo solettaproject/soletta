@@ -1130,6 +1130,7 @@ handle_read(struct sol_lwm2m_client *client,
         SOL_INT_CHECK_GOTO(r, < 0, err_exit);
     } else {
         struct obj_instance *instance;
+        bool read_an_instance = false;
 
         SOL_VECTOR_FOREACH_IDX (&obj_ctx->instances, instance, i) {
             if (instance->should_delete)
@@ -1156,9 +1157,13 @@ handle_read(struct sol_lwm2m_client *client,
                 }
             }
 
+            read_an_instance = true;
             r = read_object_instance(client, obj_ctx, instance, &resources);
             SOL_INT_CHECK_GOTO(r, < 0, err_exit);
         }
+        //The server is not authorized to read the object!
+        if (!read_an_instance)
+            return SOL_COAP_RESPONSE_CODE_UNAUTHORIZED;
     }
 
     SOL_VECTOR_FOREACH_IDX (&resources, res, i) {
