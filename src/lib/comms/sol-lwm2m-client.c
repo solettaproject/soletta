@@ -497,6 +497,13 @@ check_authorization(struct sol_lwm2m_client *client,
         clear_resource_array(res, sol_util_array_size(res));
     }
 
+    /*
+     * The server is trying to observe all instances of an object and no ACLs
+     * were found, REJECT HIM!
+     */
+    if ((instance_id == -1 && (rights_needed & SOL_LWM2M_ACL_READ)))
+        return 0;
+
     return -ENOENT;
 
 exit_clear_2:
