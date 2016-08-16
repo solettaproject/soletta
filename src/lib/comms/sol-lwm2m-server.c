@@ -1295,26 +1295,41 @@ err_exit:
     return -ENOMEM;
 }
 
-/**
- * This checks if the path has the following form: /2/0/1
- */
-static bool
-is_resource_set(const char *path)
+enum lwm2m_path_props {
+    PATH_IS_INVALID = (1 << 0),
+    PATH_HAS_OBJECT =  (1 << 1),
+    PATH_HAS_INSTANCE = (1 << 2),
+    PATH_HAS_RESOURCE = (1 << 3)
+};
+
+static enum lwm2m_path_props
+get_path_props(const char *path)
 {
-    size_t i;
-    uint8_t slashes;
-    const char *last_slash;
+    size_t i, slashes;
+    enum lwm2m_path_props props = PATH_IS_INVALID;
 
     for (i = 0, slashes = 0; path[i]; i++) {
         if (path[i] == '/') {
-            last_slash = path + i;
+            props =  props << 1;
             slashes++;
+            if (slashes > 3) {
+                SOL_WRN("The path '%s' has an invalid format."
+                    " Expected: /Object/Instance/Resource", path);
+                return PATH_IS_INVALID;
+            }
+        } else if (!isdigit(path[i])) {
+            SOL_WRN("The path '%s' contains a nondigit character: '%c'",
+                path, path[i]);
+            return PATH_IS_INVALID;
         }
     }
 
-    if (slashes < 3 || *(last_slash + 1) == '\0')
-        return false;
-    return true;
+    if (i - slashes == 0) {
+        SOL_WRN("Path '%s' is empty\n", path);
+        return PATH_IS_INVALID;
+    }
+
+    return props;
 }
 
 SOL_API int
@@ -1328,13 +1343,17 @@ sol_lwm2m_server_write(struct sol_lwm2m_server *server,
     const void *data)
 {
     enum sol_coap_method method = SOL_COAP_METHOD_PUT;
+    enum lwm2m_path_props props;
 
     SOL_NULL_CHECK(server, -EINVAL);
     SOL_NULL_CHECK(client, -EINVAL);
     SOL_NULL_CHECK(path, -EINVAL);
     SOL_NULL_CHECK(resources, -EINVAL);
 
-    if (!is_resource_set(path))
+    props = get_path_props(path);
+    SOL_EXP_CHECK(props < PATH_HAS_INSTANCE, -EINVAL);
+
+    if (props == PATH_HAS_INSTANCE)
         method = SOL_COAP_METHOD_POST;
 
     return send_management_packet(server, client, path,
@@ -1350,9 +1369,14 @@ sol_lwm2m_server_execute_resource(struct sol_lwm2m_server *server,
     enum sol_coap_response_code response_code),
     const void *data)
 {
+    enum lwm2m_path_props props;
+
     SOL_NULL_CHECK(server, -EINVAL);
     SOL_NULL_CHECK(client, -EINVAL);
     SOL_NULL_CHECK(path, -EINVAL);
+
+    props = get_path_props(path);
+    SOL_EXP_CHECK(props != PATH_HAS_RESOURCE, -EINVAL);
 
     return send_management_packet(server, client, path,
         MANAGEMENT_EXECUTE, cb, data, SOL_COAP_METHOD_POST, NULL, 0, args);
@@ -1367,9 +1391,14 @@ sol_lwm2m_server_delete_object_instance(struct sol_lwm2m_server *server,
     enum sol_coap_response_code response_code),
     const void *data)
 {
+    enum lwm2m_path_props props;
+
     SOL_NULL_CHECK(server, -EINVAL);
     SOL_NULL_CHECK(client, -EINVAL);
     SOL_NULL_CHECK(path, -EINVAL);
+
+    props = get_path_props(path);
+    SOL_EXP_CHECK(props != PATH_HAS_INSTANCE, -EINVAL);
 
     return send_management_packet(server, client, path,
         MANAGEMENT_DELETE, cb, data, SOL_COAP_METHOD_DELETE, NULL, 0, NULL);
@@ -1385,9 +1414,14 @@ sol_lwm2m_server_create_object_instance(struct sol_lwm2m_server *server,
     enum sol_coap_response_code response_code),
     const void *data)
 {
+    enum lwm2m_path_props props;
+
     SOL_NULL_CHECK(server, -EINVAL);
     SOL_NULL_CHECK(client, -EINVAL);
     SOL_NULL_CHECK(path, -EINVAL);
+
+    props = get_path_props(path);
+    SOL_EXP_CHECK(props < PATH_HAS_OBJECT || props > PATH_HAS_INSTANCE, -EINVAL);
 
     return send_management_packet(server, client, path,
         MANAGEMENT_CREATE, cb, data, SOL_COAP_METHOD_POST, resources,
@@ -1407,10 +1441,15 @@ sol_lwm2m_server_read(struct sol_lwm2m_server *server,
     struct sol_str_slice content),
     const void *data)
 {
+    enum lwm2m_path_props props;
+
     SOL_NULL_CHECK(server, -EINVAL);
     SOL_NULL_CHECK(client, -EINVAL);
     SOL_NULL_CHECK(path, -EINVAL);
     SOL_NULL_CHECK(cb, -EINVAL);
+
+    props = get_path_props(path);
+    SOL_EXP_CHECK(props < PATH_HAS_OBJECT, -EINVAL);
 
     return send_management_packet(server, client, path,
         MANAGEMENT_READ, cb, data, SOL_COAP_METHOD_GET, NULL, 0, NULL);
