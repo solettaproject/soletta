@@ -394,7 +394,7 @@ check_authorization(struct sol_lwm2m_client *client,
     struct sol_lwm2m_resource res[2] = { 0 };
     int r = 0;
     int64_t default_acl = SOL_LWM2M_ACL_NONE;
-    uint16_t i;
+    uint16_t i, j;
 
     //If only one server or Bootstrap Server ID, then full access rights
     if (sol_ptr_vector_get_len(&client->connections) == 1 || server_id == UINT16_MAX) {
@@ -459,9 +459,9 @@ check_authorization(struct sol_lwm2m_client *client,
             }
 
             //Retrive this server's ACL Resource Instance
-            for (i = 0; i < res[0].data_len; i++) {
-                if (res[0].data[i].id == server_id) {
-                    if (res[0].data[i].content.integer & rights_needed) {
+            for (j = 0; j < res[0].data_len; j++) {
+                if (res[0].data[j].id == server_id) {
+                    if (res[0].data[j].content.integer & rights_needed) {
                         r = 1;
                         goto exit_clear_2;
                     } else {
@@ -471,8 +471,8 @@ check_authorization(struct sol_lwm2m_client *client,
                 }
 
                 //Keep the default ACL Resource Instance, if any, to save another loop later
-                if (res[0].data[i].id == DEFAULT_SHORT_SERVER_ID)
-                    default_acl = res[0].data[i].content.integer;
+                if (res[0].data[j].id == DEFAULT_SHORT_SERVER_ID)
+                    default_acl = res[0].data[j].content.integer;
             }
 
             //If no ACL for this server, check if it is the owner of the object.
