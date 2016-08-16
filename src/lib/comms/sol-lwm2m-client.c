@@ -394,7 +394,7 @@ check_authorization(struct sol_lwm2m_client *client,
     struct sol_lwm2m_resource res[2] = { 0 };
     int r = 0;
     int64_t default_acl = SOL_LWM2M_ACL_NONE;
-    uint16_t i;
+    uint16_t i, j;
 
     //If only one server or Bootstrap Server ID, then full access rights
     if (sol_ptr_vector_get_len(&client->connections) == 1 || server_id == UINT16_MAX) {
@@ -459,9 +459,9 @@ check_authorization(struct sol_lwm2m_client *client,
             }
 
             //Retrive this server's ACL Resource Instance
-            for (i = 0; i < res[0].data_len; i++) {
-                if (res[0].data[i].id == server_id) {
-                    if (res[0].data[i].content.integer & rights_needed) {
+            for (j = 0; j < res[0].data_len; j++) {
+                if (res[0].data[j].id == server_id) {
+                    if (res[0].data[j].content.integer & rights_needed) {
                         r = 1;
                         goto exit_clear_2;
                     } else {
@@ -471,8 +471,8 @@ check_authorization(struct sol_lwm2m_client *client,
                 }
 
                 //Keep the default ACL Resource Instance, if any, to save another loop later
-                if (res[0].data[i].id == DEFAULT_SHORT_SERVER_ID)
-                    default_acl = res[0].data[i].content.integer;
+                if (res[0].data[j].id == DEFAULT_SHORT_SERVER_ID)
+                    default_acl = res[0].data[j].content.integer;
             }
 
             //If no ACL for this server, check if it is the owner of the object.
@@ -496,6 +496,13 @@ check_authorization(struct sol_lwm2m_client *client,
 
         clear_resource_array(res, sol_util_array_size(res));
     }
+
+    /*
+     * The server is trying to observe all instances of an object and no ACLs
+     * were found, REJECT HIM!
+     */
+    if ((instance_id == -1 && (rights_needed & SOL_LWM2M_ACL_READ)))
+        return 0;
 
     return -ENOENT;
 
@@ -1123,6 +1130,7 @@ handle_read(struct sol_lwm2m_client *client,
         SOL_INT_CHECK_GOTO(r, < 0, err_exit);
     } else {
         struct obj_instance *instance;
+        bool read_an_instance = false;
 
         SOL_VECTOR_FOREACH_IDX (&obj_ctx->instances, instance, i) {
             if (instance->should_delete)
@@ -1149,9 +1157,13 @@ handle_read(struct sol_lwm2m_client *client,
                 }
             }
 
+            read_an_instance = true;
             r = read_object_instance(client, obj_ctx, instance, &resources);
             SOL_INT_CHECK_GOTO(r, < 0, err_exit);
         }
+        //The server is not authorized to read the object!
+        if (!read_an_instance)
+            return SOL_COAP_RESPONSE_CODE_UNAUTHORIZED;
     }
 
     SOL_VECTOR_FOREACH_IDX (&resources, res, i) {
