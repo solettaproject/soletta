@@ -1061,3 +1061,33 @@ void
 sol_lwm2m_common_shutdown(void)
 {
 }
+
+enum sol_lwm2m_path_props
+sol_lwm2m_common_get_path_props(const char *path)
+{
+    size_t i, slashes;
+    enum sol_lwm2m_path_props props = PATH_IS_INVALID;
+
+    for (i = 0, slashes = 0; path[i]; i++) {
+        if (path[i] == '/') {
+            props =  props << 1;
+            slashes++;
+            if (slashes > 3) {
+                SOL_WRN("The path '%s' has an invalid format."
+                    " Expected: /Object/Instance/Resource", path);
+                return PATH_IS_INVALID;
+            }
+        } else if (!isdigit(path[i])) {
+            SOL_WRN("The path '%s' contains a nondigit character: '%c'",
+                path, path[i]);
+            return PATH_IS_INVALID;
+        }
+    }
+
+    if (i == slashes) {
+        SOL_WRN("Path '%s' is empty\n", path);
+        return PATH_IS_INVALID;
+    }
+
+    return props;
+}
