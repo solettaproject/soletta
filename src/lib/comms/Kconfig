@@ -16,6 +16,13 @@ config DTLS
 
 	    If unsure, say N.
 
+config DTLS_EXTRAS
+	bool "Enable some DTLS extra features used by OIC"
+	default n
+	depends on DTLS
+	help
+            This is needed when one wants OIC to support crypto.
+
 config BLUETOOTH
        bool
 
