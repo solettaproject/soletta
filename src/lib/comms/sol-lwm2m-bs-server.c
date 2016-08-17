@@ -446,9 +446,14 @@ sol_lwm2m_bootstrap_server_write_object(struct sol_lwm2m_bootstrap_server *serve
     enum sol_coap_response_code response_code),
     const void *data)
 {
+    enum sol_lwm2m_path_props props;
+
     SOL_NULL_CHECK(server, -EINVAL);
     SOL_NULL_CHECK(client, -EINVAL);
     SOL_NULL_CHECK(path, -EINVAL);
+
+    props = sol_lwm2m_common_get_path_props(path);
+    SOL_EXP_CHECK(props != PATH_HAS_OBJECT, -EINVAL);
 
     return send_bootstrap_packet(server, client, path,
         BOOTSTRAP_WRITE, cb, data, SOL_COAP_METHOD_PUT, NULL, instances,
@@ -465,9 +470,14 @@ sol_lwm2m_bootstrap_server_write(struct sol_lwm2m_bootstrap_server *server,
     enum sol_coap_response_code response_code),
     const void *data)
 {
+    enum sol_lwm2m_path_props props;
+
     SOL_NULL_CHECK(server, -EINVAL);
     SOL_NULL_CHECK(client, -EINVAL);
     SOL_NULL_CHECK(path, -EINVAL);
+
+    props = sol_lwm2m_common_get_path_props(path);
+    SOL_EXP_CHECK(props == PATH_IS_INVALID, -EINVAL);
 
     return send_bootstrap_packet(server, client, path,
         BOOTSTRAP_WRITE, cb, data, SOL_COAP_METHOD_PUT, resources, NULL, NULL, NULL, len);
@@ -482,9 +492,14 @@ sol_lwm2m_bootstrap_server_delete_object_instance(struct sol_lwm2m_bootstrap_ser
     enum sol_coap_response_code response_code),
     const void *data)
 {
+    enum sol_lwm2m_path_props props;
+
     SOL_NULL_CHECK(server, -EINVAL);
     SOL_NULL_CHECK(client, -EINVAL);
     SOL_NULL_CHECK(path, -EINVAL);
+
+    props = sol_lwm2m_common_get_path_props(path);
+    SOL_EXP_CHECK(props != PATH_HAS_INSTANCE, -EINVAL);
 
     return send_bootstrap_packet(server, client, path,
         BOOTSTRAP_DELETE, cb, data, SOL_COAP_METHOD_DELETE, NULL, NULL, NULL, NULL, 0);

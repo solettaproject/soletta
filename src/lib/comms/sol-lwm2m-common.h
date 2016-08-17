@@ -225,6 +225,13 @@ struct sol_lwm2m_bootstrap_server {
     const char **known_clients;
 };
 
+enum sol_lwm2m_path_props {
+    PATH_IS_INVALID = (1 << 0),
+    PATH_HAS_OBJECT =  (1 << 1),
+    PATH_HAS_INSTANCE = (1 << 2),
+    PATH_HAS_RESOURCE = (1 << 3)
+};
+
 int
 read_resources(struct sol_lwm2m_client *client,
     struct obj_ctx *obj_ctx, struct obj_instance *instance,
@@ -320,3 +327,6 @@ tlv_clear(struct sol_lwm2m_tlv *tlv);
 
 int
 is_resource(struct sol_lwm2m_tlv *tlv);
+
+enum sol_lwm2m_path_props
+sol_lwm2m_common_get_path_props(const char *path);

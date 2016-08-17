@@ -1134,6 +1134,7 @@ sol_lwm2m_server_add_observer(struct sol_lwm2m_server *server,
     struct sol_str_slice content),
     const void *data)
 {
+    enum sol_lwm2m_path_props props;
     struct observer_entry *entry;
     struct sol_coap_packet *pkt;
     uint8_t obs = 0;
@@ -1143,6 +1144,9 @@ sol_lwm2m_server_add_observer(struct sol_lwm2m_server *server,
     SOL_NULL_CHECK(server, -EINVAL);
     SOL_NULL_CHECK(path, -EINVAL);
     SOL_NULL_CHECK(client, -EINVAL);
+
+    props = sol_lwm2m_common_get_path_props(path);
+    SOL_EXP_CHECK(props < PATH_HAS_OBJECT, -EINVAL);
 
     entry = find_observer_entry(&server->observers, client, path);
 
@@ -1182,12 +1186,16 @@ sol_lwm2m_server_del_observer(struct sol_lwm2m_server *server,
     const void *data)
 {
     struct observer_entry *entry;
+    enum sol_lwm2m_path_props props;
     int r;
     int64_t token;
 
     SOL_NULL_CHECK(server, -EINVAL);
     SOL_NULL_CHECK(path, -EINVAL);
     SOL_NULL_CHECK(client, -EINVAL);
+
+    props = sol_lwm2m_common_get_path_props(path);
+    SOL_EXP_CHECK(props < PATH_HAS_OBJECT, -EINVAL);
 
     entry = find_observer_entry(&server->observers, client, path);
     SOL_NULL_CHECK(entry, -ENOENT);
@@ -1295,28 +1303,6 @@ err_exit:
     return -ENOMEM;
 }
 
-/**
- * This checks if the path has the following form: /2/0/1
- */
-static bool
-is_resource_set(const char *path)
-{
-    size_t i;
-    uint8_t slashes;
-    const char *last_slash;
-
-    for (i = 0, slashes = 0; path[i]; i++) {
-        if (path[i] == '/') {
-            last_slash = path + i;
-            slashes++;
-        }
-    }
-
-    if (slashes < 3 || *(last_slash + 1) == '\0')
-        return false;
-    return true;
-}
-
 SOL_API int
 sol_lwm2m_server_write(struct sol_lwm2m_server *server,
     struct sol_lwm2m_client_info *client, const char *path,
@@ -1328,13 +1314,17 @@ sol_lwm2m_server_write(struct sol_lwm2m_server *server,
     const void *data)
 {
     enum sol_coap_method method = SOL_COAP_METHOD_PUT;
+    enum sol_lwm2m_path_props props;
 
     SOL_NULL_CHECK(server, -EINVAL);
     SOL_NULL_CHECK(client, -EINVAL);
     SOL_NULL_CHECK(path, -EINVAL);
     SOL_NULL_CHECK(resources, -EINVAL);
 
-    if (!is_resource_set(path))
+    props = sol_lwm2m_common_get_path_props(path);
+    SOL_EXP_CHECK(props < PATH_HAS_INSTANCE, -EINVAL);
+
+    if (props == PATH_HAS_INSTANCE)
         method = SOL_COAP_METHOD_POST;
 
     return send_management_packet(server, client, path,
@@ -1350,9 +1340,14 @@ sol_lwm2m_server_execute_resource(struct sol_lwm2m_server *server,
     enum sol_coap_response_code response_code),
     const void *data)
 {
+    enum sol_lwm2m_path_props props;
+
     SOL_NULL_CHECK(server, -EINVAL);
     SOL_NULL_CHECK(client, -EINVAL);
     SOL_NULL_CHECK(path, -EINVAL);
+
+    props = sol_lwm2m_common_get_path_props(path);
+    SOL_EXP_CHECK(props != PATH_HAS_RESOURCE, -EINVAL);
 
     return send_management_packet(server, client, path,
         MANAGEMENT_EXECUTE, cb, data, SOL_COAP_METHOD_POST, NULL, 0, args);
@@ -1367,9 +1362,14 @@ sol_lwm2m_server_delete_object_instance(struct sol_lwm2m_server *server,
     enum sol_coap_response_code response_code),
     const void *data)
 {
+    enum sol_lwm2m_path_props props;
+
     SOL_NULL_CHECK(server, -EINVAL);
     SOL_NULL_CHECK(client, -EINVAL);
     SOL_NULL_CHECK(path, -EINVAL);
+
+    props = sol_lwm2m_common_get_path_props(path);
+    SOL_EXP_CHECK(props != PATH_HAS_INSTANCE, -EINVAL);
 
     return send_management_packet(server, client, path,
         MANAGEMENT_DELETE, cb, data, SOL_COAP_METHOD_DELETE, NULL, 0, NULL);
@@ -1385,9 +1385,14 @@ sol_lwm2m_server_create_object_instance(struct sol_lwm2m_server *server,
     enum sol_coap_response_code response_code),
     const void *data)
 {
+    enum sol_lwm2m_path_props props;
+
     SOL_NULL_CHECK(server, -EINVAL);
     SOL_NULL_CHECK(client, -EINVAL);
     SOL_NULL_CHECK(path, -EINVAL);
+
+    props = sol_lwm2m_common_get_path_props(path);
+    SOL_EXP_CHECK(props < PATH_HAS_OBJECT || props > PATH_HAS_INSTANCE, -EINVAL);
 
     return send_management_packet(server, client, path,
         MANAGEMENT_CREATE, cb, data, SOL_COAP_METHOD_POST, resources,
@@ -1407,10 +1412,15 @@ sol_lwm2m_server_read(struct sol_lwm2m_server *server,
     struct sol_str_slice content),
     const void *data)
 {
+    enum sol_lwm2m_path_props props;
+
     SOL_NULL_CHECK(server, -EINVAL);
     SOL_NULL_CHECK(client, -EINVAL);
     SOL_NULL_CHECK(path, -EINVAL);
     SOL_NULL_CHECK(cb, -EINVAL);
+
+    props = sol_lwm2m_common_get_path_props(path);
+    SOL_EXP_CHECK(props < PATH_HAS_OBJECT, -EINVAL);
 
     return send_management_packet(server, client, path,
         MANAGEMENT_READ, cb, data, SOL_COAP_METHOD_GET, NULL, 0, NULL);

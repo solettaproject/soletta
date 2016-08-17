@@ -729,13 +729,22 @@ sol_socket_dtls_set_handshake_cipher(struct sol_socket *s,
     enum sol_socket_dtls_cipher cipher)
 {
     static const dtls_cipher_t conv_tbl[] = {
+#ifdef DTLS_EXTRAS
         [SOL_SOCKET_DTLS_CIPHER_ECDH_ANON_AES128_CBC_SHA256] = TLS_ECDH_anon_WITH_AES_128_CBC_SHA_256,
+#endif
         [SOL_SOCKET_DTLS_CIPHER_PSK_AES128_CCM8] = TLS_PSK_WITH_AES_128_CCM_8,
         [SOL_SOCKET_DTLS_CIPHER_ECDHE_ECDSA_AES128_CCM8] = TLS_ECDHE_ECDSA_WITH_AES_128_CCM_8
     };
     struct sol_socket_dtls *socket = (struct sol_socket_dtls *)s;
 
     SOL_INT_CHECK(socket->dtls_magic, != dtls_magic, -EINVAL);
+
+#ifndef DTLS_EXTRAS
+    if (cipher == SOL_SOCKET_DTLS_CIPHER_ECDH_ANON_AES128_CBC_SHA256) {
+        SOL_WRN("To enable SOL_SOCKET_DTLS_CIPHER_ECDH_ANON_AES128_CBC_SHA256 compile Soletta with DTLS Extras");
+        return -EINVAL;
+    }
+#endif
 
     if ((size_t)cipher >= sol_util_array_size(conv_tbl))
         return -EINVAL;
@@ -745,6 +754,7 @@ sol_socket_dtls_set_handshake_cipher(struct sol_socket *s,
     return 0;
 }
 
+#ifdef DTLS_EXTRAS
 int
 sol_socket_dtls_set_anon_ecdh_enabled(struct sol_socket *s, bool setting)
 {
@@ -757,6 +767,14 @@ sol_socket_dtls_set_anon_ecdh_enabled(struct sol_socket *s, bool setting)
 
     return 0;
 }
+#else
+int
+sol_socket_dtls_set_anon_ecdh_enabled(struct sol_socket *s, bool setting)
+{
+    SOL_WRN("To enable sol_socket_dtls_set_anon_ecdh_enabled() compile Soletta with DTLS Extras");
+    return -ENOSYS;
+}
+#endif
 
 int
 sol_socket_dtls_prf_keyblock(struct sol_socket *s,
