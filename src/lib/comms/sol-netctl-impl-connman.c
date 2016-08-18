@@ -1444,6 +1444,96 @@ static const sd_bus_vtable agent_vtable[] = {
     SD_BUS_VTABLE_END,
 };
 
+static int
+_agent_callback(sd_bus_message *reply, void *userdata,
+    sd_bus_error *ret_error)
+{
+    struct ctx *pending = userdata;
+    const sd_bus_error *error;
+
+    pending->agent_slot = sd_bus_slot_unref(pending->agent_slot);
+
+    if (sol_bus_log_callback(reply, userdata, ret_error) < 0) {
+        error = sd_bus_message_get_error(reply);
+        _release_agent(pending);
+        _set_error_to_callback(NULL, error);
+    }
+
+    return 0;
+}
+
+SOL_API int
+sol_netctl_request_input(struct sol_netctl_service *service,
+    const struct sol_ptr_vector *vector)
+{
+    int r, i;
+    sd_bus_message *reply;
+    struct sol_netctl_agent_input *input;
+
+    SOL_NULL_CHECK(_ctx.agent, -EINVAL);
+    SOL_NULL_CHECK(_ctx.agent_msg, -EINVAL);
+
+    if (_ctx.auth_service != service) {
+        SOL_WRN("The connection is not the one being authenticated");
+        return -EINVAL;
+    }
+
+    if (sol_ptr_vector_get_len(vector) == 0) {
+        SOL_WRN("The vector is NULL");
+        return -EINVAL;
+    }
+
+    r = sd_bus_message_new_method_return(_ctx.agent_msg, &reply);
+    SOL_INT_CHECK_GOTO(r, < 0, fail);
+
+    r = sd_bus_message_open_container(reply, 'a', "{sv}");
+    SOL_INT_CHECK_GOTO(r, < 0, fail);
+
+    SOL_PTR_VECTOR_FOREACH_IDX (vector, input, i) {
+        if (input->input == NULL)
+            goto fail;
+        switch (input->type) {
+        case SOL_NETCTL_AGENT_NAME:
+            r = sd_bus_message_append(reply, "{sv}", "Name", "s", input->input);
+            SOL_INT_CHECK_GOTO(r, < 0, fail);
+            break;
+        case SOL_NETCTL_AGENT_PASSPHRASE:
+            r = sd_bus_message_append(reply, "{sv}", "Passphrase", "s", input->input);
+            SOL_INT_CHECK_GOTO(r, < 0, fail);
+            break;
+        case SOL_NETCTL_AGENT_IDENTITY:
+            r = sd_bus_message_append(reply, "{sv}", "Identity", "s", input->input);
+            SOL_INT_CHECK_GOTO(r, < 0, fail);
+            break;
+        case SOL_NETCTL_AGENT_WPS:
+            r = sd_bus_message_append(reply, "{sv}", "WPS", "s", input->input);
+            SOL_INT_CHECK_GOTO(r, < 0, fail);
+            break;
+        default:
+            SOL_WRN("The input type is not right");
+            break;
+        }
+    }
+
+    r = sd_bus_message_close_container(reply);
+    SOL_INT_CHECK_GOTO(r, < 0, fail);
+
+    r = sd_bus_send(NULL, reply, NULL);
+    sd_bus_message_unref(reply);
+
+fail:
+    _ctx.agent_msg = sd_bus_message_unref(_ctx.agent_msg);
+
+    SOL_PTR_VECTOR_FOREACH_IDX (vector, input, i) {
+        if (input->input)
+            free(input->input);
+        free(input);
+    }
+    sol_ptr_vector_clear((struct sol_ptr_vector *)vector);
+
+    return r;
+}
+
 SOL_API int
 sol_netctl_report_error(struct sol_netctl_service *service,
     const enum sol_netctl_agent_error_type type)
