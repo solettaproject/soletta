@@ -643,9 +643,9 @@ const struct sol_ptr_vector *sol_netctl_get_services(void);
  */
 enum sol_netctl_service_state sol_netctl_service_state_from_str(const char *state)
 #ifndef DOXYGEN_RUN
-    SOL_ATTR_WARN_UNUSED_RESULT
+SOL_ATTR_WARN_UNUSED_RESULT
 #endif
-    ;
+;
 
 /**
  * @brief Converts sol_netctl_service_state to a string name.
@@ -660,9 +660,9 @@ enum sol_netctl_service_state sol_netctl_service_state_from_str(const char *stat
  */
 const char *sol_netctl_service_state_to_str(enum sol_netctl_service_state state)
 #ifndef DOXYGEN_RUN
-    SOL_ATTR_WARN_UNUSED_RESULT
+SOL_ATTR_WARN_UNUSED_RESULT
 #endif
-    ;
+;
 
 /**
  * @brief get so_netctl_service structure from serivce name.
