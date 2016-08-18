@@ -28,6 +28,9 @@
 #include "sol-log.h"
 
 #define CONN_AP "Guest"
+#define INPUT   "12345678"
+
+struct sol_netctl_agent agent;
 
 static void
 manager_cb(void *data)
@@ -94,8 +97,53 @@ error_cb(void *data, const struct sol_netctl_service *service,
 }
 
 static void
+report_error(void *data, struct sol_netctl_service *service,
+    const char *error)
+{
+    int r;
+
+    printf("The agent action error is %s\n", error);
+    r = sol_netctl_report_error(service, SOL_NETCTL_AGENT_NORETRY);
+    printf("The agent report error return value is %d\n", r);
+}
+
+static void
+request_input(void *data, struct sol_netctl_service *service,
+    const struct sol_ptr_vector *vector)
+{
+    int r, i = 0;
+    struct sol_netctl_agent_input *input;
+
+    printf("The agent action is input\n");
+
+    SOL_PTR_VECTOR_FOREACH_IDX (vector, input, i) {
+        printf("The agent input type is %d\n", input->type);
+        input->input = strdup(INPUT);
+    }
+
+    r = sol_netctl_request_input(service, vector);
+    printf("The agent report input return value is %d\n", r);
+}
+
+static void
+cancel(void *data)
+{
+    printf("The agent action is cancelled\n");
+}
+
+static void
+release(void *data)
+{
+    printf("The agent action is release\n");
+}
+
+static void
 shutdown(void)
 {
+    int r;
+
+    r = sol_netctl_register_agent(NULL, NULL);
+    printf("unregister agent return value r = %d\n", r);
     sol_netctl_del_manager_monitor(manager_cb, NULL);
     sol_netctl_del_service_monitor(service_cb, NULL);
     sol_netctl_del_error_monitor(error_cb, NULL);
@@ -104,9 +152,19 @@ shutdown(void)
 static void
 startup(void)
 {
+    int r;
+
     sol_netctl_add_service_monitor(service_cb, NULL);
     sol_netctl_add_manager_monitor(manager_cb, NULL);
     sol_netctl_add_error_monitor(error_cb, NULL);
+
+    agent.report_error = report_error;
+    agent.request_input = request_input;
+    agent.cancel = cancel;
+    agent.release = release;
+
+    r = sol_netctl_register_agent(&agent, NULL);
+    printf("register agent return value r = %d\n", r);
 }
 
 SOL_MAIN_DEFAULT(startup, shutdown);
