@@ -76,6 +76,95 @@ typedef struct sol_netctl_network_params {
 } sol_netctl_network_params;
 
 /**
+ * @enum sol_netctl_agent_error_type
+ *
+ * @brief agent error type
+ *
+ * When the network connection failure,
+ * One of these must be chosen to return for connection.
+ * According to the return type, the failure network
+ * connection will be tried again or not.
+ */
+enum sol_netctl_agent_error_type {
+    /*
+     * @brief the error type is retry
+     *
+     * When the network connection failure,
+     * the user can select the return type
+     * and the connection will be tried again.
+     */
+    SOL_NETCTL_AGENT_RETRY,
+    /*
+     * @brief the error type is noretry
+     *
+     * When the network connection failure,
+     * the user can select the return type
+     * and the connection will not be tried again.
+     */
+    SOL_NETCTL_AGENT_NORETRY,
+};
+
+/**
+ * @enum sol_netctl_agent_prompt_type
+ *
+ * @brief agent prompt type
+ *
+ * When the user need input information to login the connecting network,
+ * One of these must be chosen to return the right login type for connection.
+ * According to the return type, the login process will be done.
+ */
+enum sol_netctl_agent_prompt_type {
+    /*
+     * @brief the type is unknown
+     *
+     * The type is unknow when the connection login type is not
+     * in the known type.
+     */
+    SOL_NETCTL_AGENT_UNKNOWN,
+    /*
+     * @brief the type is name
+     *
+     * The type is name when the connection login type is hidden.
+     */
+    SOL_NETCTL_AGENT_NAME,
+    /*
+     * @brief the type is identity
+     *
+     * The type is identity when the connection login type is
+     * security_8021x.
+     */
+    SOL_NETCTL_AGENT_IDENTITY,
+    /*
+     * @brief the type is passphrase
+     *
+     * The type is passphrase when the connection login type is
+     * security_none.
+     */
+    SOL_NETCTL_AGENT_PASSPHRASE,
+    /*
+     * @brief the type is wps
+     *
+     * The type is wps when the connection login type is
+     * wps enabled.
+     */
+    SOL_NETCTL_AGENT_WPS,
+    /*
+     * @brief the type is username
+     *
+     * The type is username when the connection login type is
+     * login input.
+     */
+    SOL_NETCTL_AGENT_USERNAME,
+    /*
+     * @brief the type is password
+     *
+     * The type is password when the connection login type is
+     * login input.
+     */
+    SOL_NETCTL_AGENT_PASSWORD,
+};
+
+/**
  * @enum sol_netctl_service_state
  *
  * @brief service state
@@ -207,6 +296,60 @@ enum sol_netctl_state {
      */
     SOL_NETCTL_STATE_OFFLINE,
 };
+
+/**
+ * @brief agent input struct
+ *
+ * This struct contains the information of agent input.
+ */
+typedef struct sol_netctl_agent_input {
+    /**
+     * @brief The agent prompt type
+     */
+    enum sol_netctl_agent_prompt_type type;
+    /**
+     * @brief The agent input value
+     */
+    char *input;
+} sol_netctl_agent_input;
+
+/**
+ * @brief agent callback functions
+ *
+ * This struct contains the callback functions of agent.
+ */
+typedef struct sol_netctl_agent {
+    /**
+     * @brief connection error callback used to inform connection failure
+     *
+     * @param data the user data
+     * @param service the connection failure service
+     * @param error the error information
+     */
+    void (*report_error)(void *data, struct sol_netctl_service *service,
+        const char *error);
+    /**
+     * @brief connection input callback used to inform connection login input
+     *
+     * @param data the user data
+     * @param service the connection login input service
+     * @param vector the login input type
+     */
+    void (*request_input)(void *data, struct sol_netctl_service *service,
+        const struct sol_ptr_vector *vector);
+    /**
+     * @brief connection cancel callback used to inform connection cancel
+     *
+     * @param data the user data
+     */
+    void (*cancel)(void *data);
+    /**
+     * @brief agent release callback used to inform agent release
+     *
+     * @param data the user data
+     */
+    void (*release)(void *data);
+} sol_netctl_agent;
 
 /**
  * @brief Service monitor callback used to inform a service changed
@@ -551,6 +694,68 @@ sol_netctl_find_service_by_name(const char *service_name)
     }
     return NULL;
 }
+
+/**
+ * @brief register a agent for network connection
+ *
+ * Register the agent for network connection.
+ * The register agent will inform the all information of network connection
+ * via the register callback struct.
+ * It includes the login input, the network connection failure and so on.
+ * The callback struct must be registered.
+ *
+ * @see struct sol_netctl_agent
+ *
+ * @param agent the agent Callback struct to be called when the related information is updated.
+ * @param data Add a user data per callback.
+ *
+ * @return 0 on success, -errno on failure.
+ */
+int
+sol_netctl_register_agent(const struct sol_netctl_agent *agent, const void *data);
+
+/**
+ * @brief report the error type to connection
+ *
+ * Report the error type for network connection.
+ * When the network connection failure, the user can select retry the connection or
+ * not retry it. The function can be used to select it.
+ * If retry connection is selected, the failure network connection will be tried to
+ * connect. If not retry connection is selected, the failure network connection will
+ * not be tried to connect.
+ * The connection failure information is informed via the agent callback.
+ * The agent must be registered before using sol_netctl_report_error.
+ *
+ * @see sol_netctl_register_agent
+ *
+ * @param service The service structure which the network connection is desired.
+ * @param type the selected network error type of the user.
+ *
+ * @return 0 on success, -errno on failure.
+ */
+int
+sol_netctl_report_error(struct sol_netctl_service *service,
+    const enum sol_netctl_agent_error_type type);
+
+/**
+ * @brief request the login input to connection
+ *
+ * Request the login input for network connection.
+ * When the login information is needed in the process of network connection,
+ * the funcation can be used to input the login information for network connection.
+ * The login input information is informed via the agent callback.
+ * The agent must be registered before using sol_netctl_request_input.
+ *
+ * @see sol_netctl_register_agent
+ *
+ * @param service The service structure which the network connection is desired.
+ * @param vector the vector of input types and inputs from the user.
+ *
+ * @return 0 on success, -errno on failure.
+ */
+int
+sol_netctl_request_input(struct sol_netctl_service *service,
+    const struct sol_ptr_vector *vector);
 
 /**
  * @}
