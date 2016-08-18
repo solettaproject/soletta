@@ -1445,6 +1445,44 @@ static const sd_bus_vtable agent_vtable[] = {
 };
 
 SOL_API int
+sol_netctl_report_error(struct sol_netctl_service *service,
+    const enum sol_netctl_agent_error_type type)
+{
+    int r;
+    sd_bus_message *reply;
+    const char *interface;
+
+    SOL_NULL_CHECK(_ctx.agent, -EINVAL);
+    SOL_NULL_CHECK(_ctx.agent_msg, -EINVAL);
+
+    if (_ctx.auth_service != service) {
+        SOL_WRN("The connection is not the one being authenticated");
+        return -EINVAL;
+    }
+
+    if (type == SOL_NETCTL_AGENT_RETRY) {
+        interface = sd_bus_message_get_interface(_ctx.agent_msg);
+        if (strcmp(interface, CONNMAN_AGENT_INTERFACE) == 0)
+            r = sd_bus_message_new_method_errorf(_ctx.agent_msg, &reply,
+                "net.connman.Agent.Error.Retry", NULL);
+        else
+            r = sd_bus_message_new_method_errorf(_ctx.agent_msg, &reply,
+                "net.connman.vpn.Agent.Error.Retry", NULL);
+        SOL_INT_CHECK_GOTO(r, < 0, fail);
+
+        r = sd_bus_send(NULL, reply, NULL);
+        sd_bus_message_unref(reply);
+    } else {
+        r = sd_bus_reply_method_return(_ctx.agent_msg, NULL);
+    }
+
+fail:
+    _ctx.agent_msg = sd_bus_message_unref(_ctx.agent_msg);
+
+    return r;
+}
+
+SOL_API int
 sol_netctl_register_agent(const struct sol_netctl_agent *agent, const void *data)
 {
     int r;
