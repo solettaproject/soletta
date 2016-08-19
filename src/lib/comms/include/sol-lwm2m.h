@@ -524,11 +524,11 @@ void sol_lwm2m_resource_clear(struct sol_lwm2m_resource *resource);
  *
  * Resource type | Last argument type
  * ------------- | ------------------
- * SOL_LWM2M_RESOURCE_DATA_TYPE_STRING | struct sol_str_slice
+ * SOL_LWM2M_RESOURCE_DATA_TYPE_STRING | struct sol_blob *
  * SOL_LWM2M_RESOURCE_DATA_TYPE_INT | int64_t
  * SOL_LWM2M_RESOURCE_DATA_TYPE_FLOAT | double
  * SOL_LWM2M_RESOURCE_DATA_TYPE_BOOL | bool
- * SOL_LWM2M_RESOURCE_DATA_TYPE_OPAQUE | struct sol_str_slice
+ * SOL_LWM2M_RESOURCE_DATA_TYPE_OPAQUE | struct sol_blob *
  * SOL_LWM2M_RESOURCE_DATA_TYPE_TIME | int64_t
  * SOL_LWM2M_RESOURCE_DATA_TYPE_OBJ_LINK | uint16_t, uint16_t
  *
