@@ -18,6 +18,7 @@
 
 #pragma once
 
+#include <sol-socket.h>
 #include <sol-network.h>
 #include <sol-str-slice.h>
 
@@ -502,6 +503,25 @@ bool sol_coap_server_is_secure(const struct sol_coap_server *server);
  *
  */
 struct sol_coap_server *sol_coap_server_new(const struct sol_network_link_addr *addr, bool secure);
+
+/**
+ * @brief Creates a new DTLS-Secured CoAP server instance.
+ *
+ * Creates a new, DTLS-Secured CoAP server instance listening on address
+ * @a addr. If the server cannot be created, NULL will be returned and
+ * @c errno will be set to indicate the reason.
+ *
+ * @param addr The address where the server will listen on.
+ * @param cipher_suites Indicates the desired cipher suites to use.
+ * @param cipher_suites_len Indicates the length of the @c cipher_suites array.
+ *
+ * @return A new server instance, or NULL in case of failure.
+ *
+ */
+struct sol_coap_server *sol_coap_server_new_by_cipher_suites(
+    const struct sol_network_link_addr *addr,
+    enum sol_socket_dtls_cipher *cipher_suites,
+    uint16_t cipher_suites_len);
 
 /**
  * @brief Take a reference of the given server.

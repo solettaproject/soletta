@@ -130,6 +130,7 @@ global:
         sol_coap_send_packet;
         sol_coap_send_packet_with_reply;
         sol_coap_server_new;
+        sol_coap_server_new_by_cipher_suites;
         sol_coap_server_ref;
         sol_coap_server_register_resource;
         sol_coap_server_set_unknown_resource_handler;
