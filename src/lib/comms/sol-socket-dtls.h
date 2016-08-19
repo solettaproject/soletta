@@ -28,11 +28,6 @@
 #define SOL_DTLS_PSK_ID_LEN 16
 #define SOL_DTLS_PSK_KEY_LEN 16
 
-enum sol_socket_dtls_cipher {
-    SOL_SOCKET_DTLS_CIPHER_ECDH_ANON_AES128_CBC_SHA256,
-    SOL_SOCKET_DTLS_CIPHER_PSK_AES128_CCM8,
-    SOL_SOCKET_DTLS_CIPHER_ECDHE_ECDSA_AES128_CCM8
-};
 
 struct sol_socket_dtls_credential_cb {
     const void *data;
