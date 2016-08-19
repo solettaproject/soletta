@@ -58,6 +58,22 @@
 #define SECURITY_CLIENT_HOLD_OFF_TIME_RES_ID (11)
 #define SECURITY_BOOTSTRAP_SERVER_ACCOUNT_TIMEOUT_RES_ID (12)
 
+#define PSK_KEY_LEN 16
+#define RPK_PRIVATE_KEY_LEN 32
+#define RPK_PUBLIC_KEY_LEN (2 * RPK_PRIVATE_KEY_LEN)
+
+//FIXME: UNSEC: Hardcoded Crypto Keys
+#define CLIENT_BS_PSK_ID ("cli1-bs")
+#define CLIENT_BS_PSK_KEY ("FEDCBA9876543210")
+#define CLIENT_SERVER_PSK_ID ("cli1")
+#define CLIENT_SERVER_PSK_KEY ("0123456789ABCDEF")
+
+#define CLIENT_PUBLIC_KEY ("D055EE14084D6E0615599DB583913E4A3E4526A2704D61F27A4CCFBA9758EF9A" \
+    "B418B64AFE8030DA1DDCF4F42E2F2631D043B1FB03E22F4D17DE43F9F9ADEE70")
+#define BS_SERVER_PRIVATE_KEY ("9b7dfec20e49fe2cacf23fb21d06a8dc496530c695ec24cdf6c002ce44afa5fb")
+#define BS_SERVER_PUBLIC_KEY ("cd4110e97bbd6e7e5a800028079d02915c70b915ea4596402098deea585eb7ad" \
+    "f3e080487327f70758b13bc0583f4293d13288a0164a8e324779aa4f7ada26c1")
+
 const char *known_clients[] = { "cli1", "cli2", NULL };
 
 static struct sol_blob server_one_addr = {
@@ -76,20 +92,19 @@ static struct sol_blob binding = {
     .refcnt = 1
 };
 
-//FIXME: UNSEC: Hardcoded Crypto Keys
 static struct sol_blob psk_id_0 = {
     .type = &SOL_BLOB_TYPE_NO_FREE,
     .parent = NULL,
-    .mem = (void *)"cli1",
-    .size = sizeof("cli1") - 1,
+    .mem = (void *)CLIENT_SERVER_PSK_ID,
+    .size = sizeof(CLIENT_SERVER_PSK_ID) - 1,
     .refcnt = 1
 };
 
 static struct sol_blob psk_key_0 = {
     .type = &SOL_BLOB_TYPE_NO_FREE,
     .parent = NULL,
-    .mem = (void *)"0123456789ABCDEF",
-    .size = sizeof("0123456789ABCDEF") - 1,
+    .mem = (void *)CLIENT_SERVER_PSK_KEY,
+    .size = sizeof(CLIENT_SERVER_PSK_KEY) - 1,
     .refcnt = 1
 };
 
@@ -354,38 +369,31 @@ bootstrap_cb(void *data,
     }
 }
 
-static struct sol_blob psk_bs_id = {
-    .type = &SOL_BLOB_TYPE_NO_FREE,
-    .parent = NULL,
-    .mem = (void *)"cli1-bs",
-    .size = sizeof("cli1-bs") - 1,
-    .refcnt = 1
-};
-
-static struct sol_blob psk_bs_key = {
-    .type = &SOL_BLOB_TYPE_NO_FREE,
-    .parent = NULL,
-    .mem = (void *)"FEDCBA9876543210",
-    .size = sizeof("FEDCBA9876543210") - 1,
-    .refcnt = 1
-};
-
 int
 main(int argc, char *argv[])
 {
     struct sol_lwm2m_bootstrap_server *server;
-    uint16_t port = 5783;
-    int r;
-    enum sol_lwm2m_security_mode sec_mode = SOL_LWM2M_SECURITY_MODE_PRE_SHARED_KEY;
+    uint16_t port = 5783, i;
+    enum sol_lwm2m_security_mode sec_modes[2] = { };
+    int r, sec_modes_len = 0;
     char usage[256];
-    struct sol_lwm2m_security_psk *psk;
-    struct sol_vector known_keys = { };
+    struct sol_lwm2m_security_rpk my_rpk;
+    unsigned char buf_aux[RPK_PUBLIC_KEY_LEN];
+    struct sol_lwm2m_security_psk *known_keys[] = {
+        &((struct sol_lwm2m_security_psk) {
+            .id = NULL,
+            .key = NULL
+        }),
+        NULL
+    };
+    struct sol_blob *known_pub_keys[] = { NULL, NULL };
 
-    snprintf(usage, sizeof(usage), "Usage: ./lwm2m-sample-bs-server [-p PORT] [-s SEC_MODE]\n"
+    snprintf(usage, sizeof(usage), "Usage: ./lwm2m-sample-bs-server [-p PORT] -s SEC_MODE...\n"
         "Where default PORT=%" PRIu16 " and SEC_MODE is an integer as per:\n"
-        "\tPRE_SHARED_KEY=%d (default)\n"
+        "\tPRE_SHARED_KEY=%d\n"
         "\tRAW_PUBLIC_KEY=%d\n"
-        "\tCERTIFICATE=%d\n",
+        "\tCERTIFICATE=%d\n\n"
+        "For multiple SEC_MODEs, they must be passed in ascending order.\n",
         port,
         SOL_LWM2M_SECURITY_MODE_PRE_SHARED_KEY,
         SOL_LWM2M_SECURITY_MODE_RAW_PUBLIC_KEY,
@@ -397,8 +405,14 @@ main(int argc, char *argv[])
             port = atoi(optarg);
             break;
         case 's':
-            sec_mode = atoi(optarg);
-            if (sec_mode < 0 || sec_mode > 2) {
+            if (sec_modes_len < 2) {
+                sec_modes[sec_modes_len] = atoi(optarg);
+                if (sec_modes[sec_modes_len] < 0 || sec_modes[sec_modes_len] > 2) {
+                    fprintf(stderr, "%s", usage);
+                    return -1;
+                }
+                sec_modes_len++;
+            } else {
                 fprintf(stderr, "%s", usage);
                 return -1;
             }
@@ -412,14 +426,43 @@ main(int argc, char *argv[])
     printf("Using port %" PRIu16 " for DTLS\n", port);
     sol_init();
 
-    if (sec_mode == SOL_LWM2M_SECURITY_MODE_PRE_SHARED_KEY) {
-        sol_vector_init(&known_keys, sizeof(struct sol_lwm2m_security_psk));
-        psk = sol_vector_append(&known_keys);
-        psk->id = &psk_bs_id;
-        psk->key = &psk_bs_key;
+    for (i = 0; i < sec_modes_len; i++) {
+        if (sec_modes[i] == SOL_LWM2M_SECURITY_MODE_PRE_SHARED_KEY) {
+            known_keys[0]->id = sol_blob_new_dup(CLIENT_BS_PSK_ID, sizeof(CLIENT_BS_PSK_ID) - 1);
+            known_keys[0]->key = sol_blob_new_dup(CLIENT_BS_PSK_KEY, PSK_KEY_LEN);
+        } else if (sec_modes[i] == SOL_LWM2M_SECURITY_MODE_RAW_PUBLIC_KEY) {
+            r = sol_util_base16_decode(buf_aux, sizeof(buf_aux),
+                sol_str_slice_from_str(CLIENT_PUBLIC_KEY), SOL_DECODE_BOTH);
+            known_pub_keys[0] = sol_blob_new_dup(buf_aux, RPK_PUBLIC_KEY_LEN);
+
+            r = sol_util_base16_decode(buf_aux, sizeof(buf_aux),
+                sol_str_slice_from_str(BS_SERVER_PRIVATE_KEY), SOL_DECODE_BOTH);
+            my_rpk.private_key = sol_blob_new_dup(buf_aux, RPK_PRIVATE_KEY_LEN);
+            r = sol_util_base16_decode(buf_aux, sizeof(buf_aux),
+                sol_str_slice_from_str(BS_SERVER_PUBLIC_KEY), SOL_DECODE_BOTH);
+            my_rpk.public_key = sol_blob_new_dup(buf_aux, RPK_PUBLIC_KEY_LEN);
+        }
     }
 
-    server = sol_lwm2m_bootstrap_server_new(port, known_clients, sec_mode, &known_keys);
+    if (sec_modes_len == 1) {
+        if (sec_modes[0] == SOL_LWM2M_SECURITY_MODE_PRE_SHARED_KEY)
+            server = sol_lwm2m_bootstrap_server_new(port, known_clients,
+                sec_modes_len, sec_modes[0], known_keys);
+        else if (sec_modes[0] == SOL_LWM2M_SECURITY_MODE_RAW_PUBLIC_KEY)
+            server = sol_lwm2m_bootstrap_server_new(port, known_clients,
+                sec_modes_len, sec_modes[0], &my_rpk, known_pub_keys);
+        else {
+            fprintf(stderr, "%s", usage);
+            return -1;
+        }
+    } else if (sec_modes_len == 2) {
+        server = sol_lwm2m_bootstrap_server_new(port, known_clients,
+            sec_modes_len, sec_modes[0], known_keys,
+            sec_modes[1], &my_rpk, known_pub_keys);
+    } else {
+        fprintf(stderr, "%s", usage);
+        return -1;
+    }
     if (!server) {
         r = -1;
         fprintf(stderr, "Could not create the LWM2M bootstrap server\n");
@@ -439,7 +482,16 @@ main(int argc, char *argv[])
 exit_del:
     sol_lwm2m_bootstrap_server_del(server);
 exit:
-    sol_vector_clear(&known_keys);
+    for (i = 0; i < sec_modes_len; i++) {
+        if (sec_modes[i] == SOL_LWM2M_SECURITY_MODE_PRE_SHARED_KEY) {
+            sol_blob_unref(known_keys[0]->id);
+            sol_blob_unref(known_keys[0]->key);
+        } else if (sec_modes[i] == SOL_LWM2M_SECURITY_MODE_RAW_PUBLIC_KEY) {
+            sol_blob_unref(known_pub_keys[0]);
+            sol_blob_unref(my_rpk.private_key);
+            sol_blob_unref(my_rpk.public_key);
+        }
+    }
     sol_shutdown();
     return r;
 }
