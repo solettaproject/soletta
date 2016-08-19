@@ -221,7 +221,9 @@ struct sol_lwm2m_bootstrap_server {
     struct sol_ptr_vector clients;
     struct sol_monitors bootstrap;
     struct sol_lwm2m_security *security;
-    struct sol_vector known_psks;
+    struct sol_lwm2m_security_psk **known_psks;
+    struct sol_blob **known_pub_keys;
+    struct sol_lwm2m_security_rpk rpk_pair;
     const char **known_clients;
 };
 
@@ -231,6 +233,9 @@ enum sol_lwm2m_path_props {
     PATH_HAS_INSTANCE = (1 << 2),
     PATH_HAS_RESOURCE = (1 << 3)
 };
+
+const char *
+get_security_mode_str(enum sol_lwm2m_security_mode sec_mode);
 
 int
 read_resources(struct sol_lwm2m_client *client,

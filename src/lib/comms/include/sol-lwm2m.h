@@ -282,7 +282,7 @@ enum sol_lwm2m_resource_type {
 /**
  * @brief Struct that represents a Pre-Shared Key (PSK).
  *
- * A sol_vector holding elements of this type is used by the LWM2M Server
+ * An array holding elements of this type is used by the LWM2M Server
  * and LWM2M Bootstrap Server to keep a list of known Clients' Pre-Shared Keys.
  *
  * @see sol_lwm2m_server_new()
