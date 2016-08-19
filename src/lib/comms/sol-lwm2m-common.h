@@ -213,7 +213,9 @@ struct sol_lwm2m_server {
     struct lifetime_ctx lifetime_ctx;
     struct sol_coap_server *dtls_server;
     struct sol_lwm2m_security *security;
-    struct sol_vector known_psks;
+    struct sol_lwm2m_security_psk **known_psks;
+    struct sol_blob **known_pub_keys;
+    struct sol_lwm2m_security_rpk rpk_pair;
 };
 
 struct sol_lwm2m_bootstrap_server {
