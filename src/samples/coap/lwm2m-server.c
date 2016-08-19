@@ -38,6 +38,20 @@
 #define LATITUDE_ID (0)
 #define TIMESTAMP_ID (5)
 
+#define PSK_KEY_LEN 16
+#define RPK_PRIVATE_KEY_LEN 32
+#define RPK_PUBLIC_KEY_LEN (2 * RPK_PRIVATE_KEY_LEN)
+
+//FIXME: UNSEC: Hardcoded Crypto Keys
+#define CLIENT_SERVER_PSK_ID ("cli1")
+#define CLIENT_SERVER_PSK_KEY ("0123456789ABCDEF")
+
+#define CLIENT_PUBLIC_KEY ("D055EE14084D6E0615599DB583913E4A3E4526A2704D61F27A4CCFBA9758EF9A" \
+    "B418B64AFE8030DA1DDCF4F42E2F2631D043B1FB03E22F4D17DE43F9F9ADEE70")
+#define SERVER_PRIVATE_KEY ("65c5e815d0c40e8f99143e5c905cbd9026444395af207a914063d8f0a7e63f22")
+#define SERVER_PUBLIC_KEY ("3b88c213ca5ccfd9c5a7f73715760d7d9a5220768f2992d2628ae1389cbca4c6" \
+    "d1b73cc6d61ae58783135749fb03eaaa64a7a1adab8062ed5fc0d7b86ba2d5ca")
+
 enum location_object_status {
     LOCATION_OBJECT_NOT_FOUND,
     LOCATION_OBJECT_WITH_NO_INSTANCES,
@@ -278,23 +292,6 @@ registration_cb(void *data,
     }
 }
 
-//FIXME: UNSEC: Hardcoded Crypto Keys
-static struct sol_blob psk_id_0 = {
-    .type = &SOL_BLOB_TYPE_NO_FREE,
-    .parent = NULL,
-    .mem = (void *)"cli1",
-    .size = sizeof("cli1") - 1,
-    .refcnt = 1
-};
-
-static struct sol_blob psk_key_0 = {
-    .type = &SOL_BLOB_TYPE_NO_FREE,
-    .parent = NULL,
-    .mem = (void *)"0123456789ABCDEF",
-    .size = sizeof("0123456789ABCDEF") - 1,
-    .refcnt = 1
-};
-
 int
 main(int argc, char *argv[])
 {
@@ -304,8 +301,16 @@ main(int argc, char *argv[])
     int r;
     enum sol_lwm2m_security_mode sec_mode = SOL_LWM2M_SECURITY_MODE_NO_SEC;
     char usage[256];
-    struct sol_lwm2m_security_psk *psk;
-    struct sol_vector known_keys = { };
+    struct sol_lwm2m_security_rpk my_rpk;
+    unsigned char buf_aux[RPK_PUBLIC_KEY_LEN];
+    struct sol_lwm2m_security_psk *known_keys[] = {
+        &((struct sol_lwm2m_security_psk) {
+            .id = NULL,
+            .key = NULL
+        }),
+        NULL
+    };
+    struct sol_blob *known_pub_keys[] = { NULL, NULL };
 
     snprintf(usage, sizeof(usage),
         "Usage: ./lwm2m-sample-server [-c PORT] [-d PORT] [-s SEC_MODE]\n"
@@ -350,13 +355,26 @@ main(int argc, char *argv[])
     sol_init();
 
     if (sec_mode == SOL_LWM2M_SECURITY_MODE_PRE_SHARED_KEY) {
-        sol_vector_init(&known_keys, sizeof(struct sol_lwm2m_security_psk));
-        psk = sol_vector_append(&known_keys);
-        psk->id = &psk_id_0;
-        psk->key = &psk_key_0;
-    }
+        known_keys[0]->id = sol_blob_new_dup(CLIENT_SERVER_PSK_ID, sizeof(CLIENT_SERVER_PSK_ID) - 1);
+        known_keys[0]->key = sol_blob_new_dup(CLIENT_SERVER_PSK_KEY, PSK_KEY_LEN);
 
-    server = sol_lwm2m_server_new(coap_port, dtls_port, sec_mode, &known_keys);
+        server = sol_lwm2m_server_new(coap_port, 1, dtls_port, sec_mode, known_keys);
+    } else if (sec_mode == SOL_LWM2M_SECURITY_MODE_RAW_PUBLIC_KEY) {
+        r = sol_util_base16_decode(buf_aux, sizeof(buf_aux),
+            sol_str_slice_from_str(CLIENT_PUBLIC_KEY), SOL_DECODE_BOTH);
+        known_pub_keys[0] = sol_blob_new_dup(buf_aux, RPK_PUBLIC_KEY_LEN);
+
+        r = sol_util_base16_decode(buf_aux, sizeof(buf_aux),
+            sol_str_slice_from_str(SERVER_PRIVATE_KEY), SOL_DECODE_BOTH);
+        my_rpk.private_key = sol_blob_new_dup(buf_aux, RPK_PRIVATE_KEY_LEN);
+        r = sol_util_base16_decode(buf_aux, sizeof(buf_aux),
+            sol_str_slice_from_str(SERVER_PUBLIC_KEY), SOL_DECODE_BOTH);
+        my_rpk.public_key = sol_blob_new_dup(buf_aux, RPK_PUBLIC_KEY_LEN);
+
+        server = sol_lwm2m_server_new(coap_port, 1, dtls_port, sec_mode, &my_rpk, known_pub_keys);
+    } else { /* SOL_LWM2M_SECURITY_MODE_NO_SEC */
+        server = sol_lwm2m_server_new(coap_port, 0);
+    }
     if (!server) {
         r = -1;
         fprintf(stderr, "Could not create the LWM2M server\n");
@@ -376,7 +394,14 @@ main(int argc, char *argv[])
 exit_del:
     sol_lwm2m_server_del(server);
 exit:
-    sol_vector_clear(&known_keys);
+    if (sec_mode == SOL_LWM2M_SECURITY_MODE_PRE_SHARED_KEY) {
+        sol_blob_unref(known_keys[0]->id);
+        sol_blob_unref(known_keys[0]->key);
+    } else if (sec_mode == SOL_LWM2M_SECURITY_MODE_RAW_PUBLIC_KEY) {
+        sol_blob_unref(known_pub_keys[0]);
+        sol_blob_unref(my_rpk.private_key);
+        sol_blob_unref(my_rpk.public_key);
+    }
     sol_shutdown();
     return r;
 }
