@@ -74,6 +74,24 @@
 #define SECURITY_CLIENT_HOLD_OFF_TIME_RES_ID (11)
 #define SECURITY_BOOTSTRAP_SERVER_ACCOUNT_TIMEOUT_RES_ID (12)
 
+#define PSK_KEY_LEN 16
+#define RPK_PRIVATE_KEY_LEN 32
+#define RPK_PUBLIC_KEY_LEN (2 * RPK_PRIVATE_KEY_LEN)
+
+//FIXME: UNSEC: Hardcoded Crypto Keys
+#define CLIENT_BS_PSK_ID ("cli1-bs")
+#define CLIENT_BS_PSK_KEY ("FEDCBA9876543210")
+#define CLIENT_SERVER_PSK_ID ("cli1")
+#define CLIENT_SERVER_PSK_KEY ("0123456789ABCDEF")
+
+#define CLIENT_PRIVATE_KEY ("D9E2707A72DA6A0504995C86EDDBE3EFC7F1CD74838F7570C8072D0A76261BD4")
+#define CLIENT_PUBLIC_KEY ("D055EE14084D6E0615599DB583913E4A3E4526A2704D61F27A4CCFBA9758EF9A" \
+    "B418B64AFE8030DA1DDCF4F42E2F2631D043B1FB03E22F4D17DE43F9F9ADEE70")
+#define BS_SERVER_PUBLIC_KEY ("cd4110e97bbd6e7e5a800028079d02915c70b915ea4596402098deea585eb7ad" \
+    "f3e080487327f70758b13bc0583f4293d13288a0164a8e324779aa4f7ada26c1")
+#define SERVER_PUBLIC_KEY ("3b88c213ca5ccfd9c5a7f73715760d7d9a5220768f2992d2628ae1389cbca4c6" \
+    "d1b73cc6d61ae58783135749fb03eaaa64a7a1adab8062ed5fc0d7b86ba2d5ca")
+
 struct client_data_ctx {
     bool has_location_instance;
     bool is_bootstrap;
@@ -141,39 +159,6 @@ static struct sol_blob server_addr_dtls = {
     .parent = NULL,
     .mem = (void *)"coaps://localhost:5684",
     .size = sizeof("coaps://localhost:5684") - 1,
-    .refcnt = 1
-};
-
-//FIXME: UNSEC: Hardcoded Crypto Keys
-static struct sol_blob psk_id = {
-    .type = &SOL_BLOB_TYPE_NO_FREE,
-    .parent = NULL,
-    .mem = (void *)"cli1",
-    .size = sizeof("cli1") - 1,
-    .refcnt = 1
-};
-
-static struct sol_blob psk_key = {
-    .type = &SOL_BLOB_TYPE_NO_FREE,
-    .parent = NULL,
-    .mem = (void *)"0123456789ABCDEF",
-    .size = sizeof("0123456789ABCDEF") - 1,
-    .refcnt = 1
-};
-
-static struct sol_blob psk_bs_id = {
-    .type = &SOL_BLOB_TYPE_NO_FREE,
-    .parent = NULL,
-    .mem = (void *)"cli1-bs",
-    .size = sizeof("cli1-bs") - 1,
-    .refcnt = 1
-};
-
-static struct sol_blob psk_bs_key = {
-    .type = &SOL_BLOB_TYPE_NO_FREE,
-    .parent = NULL,
-    .mem = (void *)"FEDCBA9876543210",
-    .size = sizeof("FEDCBA9876543210") - 1,
     .refcnt = 1
 };
 
@@ -1218,6 +1203,8 @@ main(int argc, char *argv[])
     struct server_obj_instance_ctx *server_data;
     int r;
     enum sol_lwm2m_security_mode sec_mode = SOL_LWM2M_SECURITY_MODE_NO_SEC;
+    unsigned char buf_aux[RPK_PUBLIC_KEY_LEN];
+    struct sol_blob *public_key_or_id, *server_public_key, *secret_key;
     char *cli_name = NULL;
     char usage[256];
 
@@ -1263,6 +1250,48 @@ main(int argc, char *argv[])
         return -1;
     }
 
+    switch (sec_mode) {
+    case SOL_LWM2M_SECURITY_MODE_PRE_SHARED_KEY:
+        if (data_ctx.is_bootstrap) {
+            public_key_or_id = sol_blob_new_dup(CLIENT_BS_PSK_ID,
+                sizeof(CLIENT_BS_PSK_ID) - 1);
+            secret_key = sol_blob_new_dup(CLIENT_BS_PSK_KEY, PSK_KEY_LEN);
+        } else {
+            public_key_or_id = sol_blob_new_dup(CLIENT_SERVER_PSK_ID,
+                sizeof(CLIENT_SERVER_PSK_ID) - 1);
+            secret_key = sol_blob_new_dup(CLIENT_SERVER_PSK_KEY, PSK_KEY_LEN);
+        }
+        server_public_key = NULL;
+        break;
+    case SOL_LWM2M_SECURITY_MODE_RAW_PUBLIC_KEY:
+        r = sol_util_base16_decode(buf_aux, sizeof(buf_aux),
+            sol_str_slice_from_str(CLIENT_PRIVATE_KEY), SOL_DECODE_BOTH);
+        secret_key = sol_blob_new_dup(buf_aux, RPK_PRIVATE_KEY_LEN);
+        r = sol_util_base16_decode(buf_aux, sizeof(buf_aux),
+            sol_str_slice_from_str(CLIENT_PUBLIC_KEY), SOL_DECODE_BOTH);
+        public_key_or_id = sol_blob_new_dup(buf_aux, RPK_PUBLIC_KEY_LEN);
+
+        if (data_ctx.is_bootstrap) {
+            r = sol_util_base16_decode(buf_aux, sizeof(buf_aux),
+                sol_str_slice_from_str(BS_SERVER_PUBLIC_KEY), SOL_DECODE_BOTH);
+            server_public_key = sol_blob_new_dup(buf_aux, RPK_PUBLIC_KEY_LEN);
+        } else {
+            r = sol_util_base16_decode(buf_aux, sizeof(buf_aux),
+                sol_str_slice_from_str(SERVER_PUBLIC_KEY), SOL_DECODE_BOTH);
+            server_public_key = sol_blob_new_dup(buf_aux, RPK_PUBLIC_KEY_LEN);
+        }
+        break;
+    case SOL_LWM2M_SECURITY_MODE_CERTIFICATE:
+        fprintf(stderr, "Certificate security mode is not supported yet.\n");
+        return -1;
+    case SOL_LWM2M_SECURITY_MODE_NO_SEC:
+    default:
+        public_key_or_id = NULL;
+        server_public_key = NULL;
+        secret_key = NULL;
+        break;
+    }
+
     sol_init();
 
     client = sol_lwm2m_client_new(cli_name, NULL, NULL, objects, &data_ctx);
@@ -1281,6 +1310,9 @@ main(int argc, char *argv[])
 
     security_data->client = client;
     security_data->security_mode = sec_mode;
+    security_data->public_key_or_id = public_key_or_id;
+    security_data->server_public_key = server_public_key;
+    security_data->secret_key = secret_key;
 
     if (!data_ctx.is_bootstrap) {
         server_data = calloc(1, sizeof(struct server_obj_instance_ctx));
@@ -1304,8 +1336,6 @@ main(int argc, char *argv[])
         security_data->server_uri = (sec_mode == SOL_LWM2M_SECURITY_MODE_NO_SEC) ?
             &server_addr_coap : &server_addr_dtls;
         security_data->is_bootstrap = false;
-        security_data->public_key_or_id = &psk_id;
-        security_data->secret_key = &psk_key;
         security_data->server_id = 101;
     } else {
         r = sol_lwm2m_client_add_bootstrap_finish_monitor(client, bootstrap_cb,
@@ -1318,9 +1348,7 @@ main(int argc, char *argv[])
 
         security_data->server_uri = &bootstrap_server_addr;
         security_data->is_bootstrap = true;
-        security_data->public_key_or_id = &psk_bs_id;
-        security_data->secret_key = &psk_bs_key;
-        security_data->client_hold_off_time = 5;
+        security_data->client_hold_off_time = 0;
         security_data->bootstrap_server_account_timeout = 0;
     }
 
