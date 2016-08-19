@@ -613,6 +613,9 @@ global:
         sol_netctl_service_state_from_str;
         sol_netctl_service_state_to_str;
         sol_netctl_set_radios_offline;
+        sol_netctl_register_agent;
+        sol_netctl_report_error;
+        sol_netctl_request_input;
 
         sol_network_get_available_links;
         sol_network_get_hostname_address_info;
