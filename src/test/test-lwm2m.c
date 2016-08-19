@@ -49,7 +49,7 @@
  * F. 'nosec_server' ---[Unobserve /999/0/2]----> 'Soletta client test'
  * G. 'nosec_server' ------[Delete /999/0]------> 'Soletta client test'
  *
- * (2) bs_server <------------------------------> sec_client ('cli1') [Supports Objects /0, /1, /2 and /999]
+ * (2) bs_server ('RPK-Secured') <--------------> sec_client ('cli1') [Supports Objects /0, /1, /2 and /999]
  * client@client_start:                            Access Control object {Obj:999, Inst: 65535, ACL: {0: 16 (CREATE)} Owner: 65535} created at /2/0
  * A. -----------[Bootstrap Delete /]-----------> 'cli1'
  * client@handle_delete:                           Access Control object {Obj:999, Inst: 65535, ACL: {0: 16 (CREATE)} Owner: 65535} created at /2/0
@@ -157,6 +157,22 @@
 #define DUMMY_OBJECT_ARRAY_ID (7)
 #define DUMMY_OBJECT_EXECUTE_ID (8)
 
+#define PSK_KEY_LEN 16
+#define RPK_PRIVATE_KEY_LEN 32
+#define RPK_PUBLIC_KEY_LEN (2 * RPK_PRIVATE_KEY_LEN)
+
+#define CLIENT_BS_PSK_ID ("cli1-bs")
+#define CLIENT_BS_PSK_KEY ("FEDCBA9876543210")
+#define CLIENT_SERVER_PSK_ID ("cli1")
+#define CLIENT_SERVER_PSK_KEY ("0123456789ABCDEF")
+
+#define SEC_CLIENT_PRIVATE_KEY ("D9E2707A72DA6A0504995C86EDDBE3EFC7F1CD74838F7570C8072D0A76261BD4")
+#define SEC_CLIENT_PUBLIC_KEY ("D055EE14084D6E0615599DB583913E4A3E4526A2704D61F27A4CCFBA9758EF9A" \
+    "B418B64AFE8030DA1DDCF4F42E2F2631D043B1FB03E22F4D17DE43F9F9ADEE70")
+#define BS_SERVER_PRIVATE_KEY ("9b7dfec20e49fe2cacf23fb21d06a8dc496530c695ec24cdf6c002ce44afa5fb")
+#define BS_SERVER_PUBLIC_KEY ("cd4110e97bbd6e7e5a800028079d02915c70b915ea4596402098deea585eb7ad" \
+    "f3e080487327f70758b13bc0583f4293d13288a0164a8e324779aa4f7ada26c1")
+
 struct security_obj_instance_ctx {
     struct sol_lwm2m_client *client;
     struct sol_blob *server_uri;
@@ -220,17 +236,25 @@ static struct sol_blob nosec_server_coap_addr = {
 static struct sol_blob sec_server_psk_id = {
     .type = &SOL_BLOB_TYPE_NO_FREE,
     .parent = NULL,
-    .mem = (void *)"cli1",
-    .size = sizeof("cli1") - 1,
+    .mem = (void *)CLIENT_SERVER_PSK_ID,
+    .size = sizeof(CLIENT_SERVER_PSK_ID) - 1,
     .refcnt = 1
 };
 
 static struct sol_blob sec_server_psk_key = {
     .type = &SOL_BLOB_TYPE_NO_FREE,
     .parent = NULL,
-    .mem = (void *)"0123456789ABCDEF",
-    .size = sizeof("0123456789ABCDEF") - 1,
+    .mem = (void *)CLIENT_SERVER_PSK_KEY,
+    .size = sizeof(CLIENT_SERVER_PSK_KEY) - 1,
     .refcnt = 1
+};
+
+const struct sol_lwm2m_security_psk *sec_server_known_keys[] = {
+    &((struct sol_lwm2m_security_psk) {
+        .id = &sec_server_psk_id,
+        .key = &sec_server_psk_key
+    }),
+    NULL
 };
 
 static struct sol_blob sec_server_dtls_addr = {
@@ -249,17 +273,25 @@ const char *known_clients[] = { "cli1", NULL };
 static struct sol_blob bs_server_psk_id = {
     .type = &SOL_BLOB_TYPE_NO_FREE,
     .parent = NULL,
-    .mem = (void *)"cli1-bs",
-    .size = sizeof("cli1-bs") - 1,
+    .mem = (void *)CLIENT_BS_PSK_ID,
+    .size = sizeof(CLIENT_BS_PSK_ID) - 1,
     .refcnt = 1
 };
 
 static struct sol_blob bs_server_psk_key = {
     .type = &SOL_BLOB_TYPE_NO_FREE,
     .parent = NULL,
-    .mem = (void *)"FEDCBA9876543210",
-    .size = sizeof("FEDCBA9876543210") - 1,
+    .mem = (void *)CLIENT_BS_PSK_KEY,
+    .size = sizeof(CLIENT_BS_PSK_KEY) - 1,
     .refcnt = 1
+};
+
+const struct sol_lwm2m_security_psk *bs_server_known_keys[] = {
+    &((struct sol_lwm2m_security_psk) {
+        .id = &bs_server_psk_id,
+        .key = &bs_server_psk_key
+    }),
+    NULL
 };
 
 static struct sol_blob bs_server_addr = {
@@ -1591,12 +1623,13 @@ write_nosec_server_cb(void *data,
     enum sol_coap_response_code response_code)
 {
     int r;
+    char *server_type = data;
 
     ASSERT(response_code == SOL_COAP_RESPONSE_CODE_CHANGED);
     ASSERT(!strcmp("/0/1", path));
 
-    printf("DBG: [Bootstrap Finish]---> '%s'\n",
-        sol_lwm2m_bootstrap_client_info_get_name(bs_cinfo));
+    printf("DBG: '%s' ---[Bootstrap Finish]---> '%s'\n",
+        server_type, sol_lwm2m_bootstrap_client_info_get_name(bs_cinfo));
     r = sol_lwm2m_bootstrap_server_send_finish(server, bs_cinfo);
     ASSERT(r == 0);
 }
@@ -1610,6 +1643,7 @@ write_servers_cb(void *data,
     int r;
     uint16_t i;
     struct sol_lwm2m_resource nosec_server[4];
+    char *server_type = data;
 
     ASSERT(response_code == SOL_COAP_RESPONSE_CODE_CHANGED);
     ASSERT(!strcmp("/1", path));
@@ -1627,10 +1661,10 @@ write_servers_cb(void *data,
     SOL_LWM2M_RESOURCE_SINGLE_INT_INIT(r, &nosec_server[3], SECURITY_OBJECT_SERVER_ID, 101);
     ASSERT(r == 0);
 
-    printf("DBG: [Bootstrap Write /0/1]---> '%s'\n",
-        sol_lwm2m_bootstrap_client_info_get_name(bs_cinfo));
+    printf("DBG: '%s' ---[Bootstrap Write /0/1]---> '%s'\n",
+        server_type, sol_lwm2m_bootstrap_client_info_get_name(bs_cinfo));
     r = sol_lwm2m_bootstrap_server_write(server, bs_cinfo, "/0/1",
-        nosec_server, sol_util_array_size(nosec_server), write_nosec_server_cb, NULL);
+        nosec_server, sol_util_array_size(nosec_server), write_nosec_server_cb, data);
     ASSERT(r == 0);
 
     for (i = 0; i < sol_util_array_size(nosec_server); i++)
@@ -1655,6 +1689,7 @@ write_sec_server_cb(void *data,
     uint16_t servers_ids[2] = {
         0, 4
     };
+    char *server_type = data;
 
     ASSERT(response_code == SOL_COAP_RESPONSE_CODE_CHANGED);
     ASSERT(!strcmp("/0/0", path));
@@ -1677,10 +1712,10 @@ write_sec_server_cb(void *data,
         SOL_LWM2M_RESOURCE_DATA_TYPE_STRING, &binding);
     ASSERT(r == 0);
 
-    printf("DBG: [Bootstrap Write /1]---> '%s'\n",
-        sol_lwm2m_bootstrap_client_info_get_name(bs_cinfo));
+    printf("DBG: '%s' ---[Bootstrap Write /1]---> '%s'\n",
+        server_type, sol_lwm2m_bootstrap_client_info_get_name(bs_cinfo));
     r = sol_lwm2m_bootstrap_server_write_object(server, bs_cinfo, "/1",
-        servers, servers_len, servers_ids, sol_util_array_size(servers), write_servers_cb, NULL);
+        servers, servers_len, servers_ids, sol_util_array_size(servers), write_servers_cb, data);
     ASSERT(r == 0);
 
     for (i = 0; i < sol_util_array_size(servers); i++)
@@ -1697,6 +1732,7 @@ delete_all_cb(void *data,
     int r;
     uint16_t i;
     struct sol_lwm2m_resource sec_server[6];
+    char *server_type = data;
 
     ASSERT(response_code == SOL_COAP_RESPONSE_CODE_DELETED);
     ASSERT(!strcmp("/", path));
@@ -1720,10 +1756,10 @@ delete_all_cb(void *data,
     SOL_LWM2M_RESOURCE_SINGLE_INT_INIT(r, &sec_server[5], SECURITY_OBJECT_SERVER_ID, 102);
     ASSERT(r == 0);
 
-    printf("DBG: [Bootstrap Write /0/0]---> '%s'\n",
-        sol_lwm2m_bootstrap_client_info_get_name(bs_cinfo));
+    printf("DBG: '%s' ---[Bootstrap Write /0/0]---> '%s'\n",
+        server_type, sol_lwm2m_bootstrap_client_info_get_name(bs_cinfo));
     r = sol_lwm2m_bootstrap_server_write(server, bs_cinfo, "/0/0",
-        sec_server, sol_util_array_size(sec_server), write_sec_server_cb, NULL);
+        sec_server, sol_util_array_size(sec_server), write_sec_server_cb, data);
     ASSERT(r == 0);
 
     for (i = 0; i < sol_util_array_size(sec_server); i++)
@@ -1736,13 +1772,14 @@ bootstrap_request_cb(void *data,
     struct sol_lwm2m_bootstrap_client_info *bs_cinfo)
 {
     int r;
+    char *server_type = data;
 
     ASSERT(!strcmp("cli1", sol_lwm2m_bootstrap_client_info_get_name(bs_cinfo)));
 
-    printf("DBG: [Bootstrap Delete /]---> '%s'\n",
-        sol_lwm2m_bootstrap_client_info_get_name(bs_cinfo));
+    printf("DBG: '%s' ---[Bootstrap Delete /]---> '%s'\n",
+        server_type, sol_lwm2m_bootstrap_client_info_get_name(bs_cinfo));
     r = sol_lwm2m_bootstrap_server_delete_object_instance(server, bs_cinfo, "/",
-        delete_all_cb, NULL);
+        delete_all_cb, data);
     ASSERT(r == 0);
 }
 
@@ -1780,19 +1817,17 @@ main(int argc, char *argv[])
     { &security_object, &server_object,
       &access_control_object, &dummy_object, NULL };
     struct security_obj_instance_ctx *sec_security_data;
-    struct sol_lwm2m_security_psk *bs_psk, *sec_psk;
-    struct sol_vector bs_known_keys = SOL_VECTOR_INIT(struct sol_lwm2m_security_psk),
-        sec_known_keys = SOL_VECTOR_INIT(struct sol_lwm2m_security_psk);
     bool sec_first = true;
+    struct sol_lwm2m_security_rpk bs_server_rpk;
+    unsigned char buf_aux[RPK_PUBLIC_KEY_LEN];
+    struct sol_blob *bs_server_known_pub_keys[] = { NULL, NULL };
 #endif
 
     r = sol_init();
     ASSERT(!r);
 
     // ============================================== NoSec Server Initialization
-    nosec_server = sol_lwm2m_server_new(SOL_LWM2M_DEFAULT_SERVER_PORT_COAP,
-        SOL_LWM2M_DEFAULT_SERVER_PORT_DTLS,
-        SOL_LWM2M_SECURITY_MODE_NO_SEC, NULL);
+    nosec_server = sol_lwm2m_server_new(SOL_LWM2M_DEFAULT_SERVER_PORT_COAP, 0);
     ASSERT(nosec_server != NULL);
 
     r = sol_lwm2m_server_add_registration_monitor(nosec_server,
@@ -1833,14 +1868,9 @@ main(int argc, char *argv[])
 
 #ifdef DTLS
     // ======================================== PSK-Secured Server Initialization
-    sol_vector_init(&sec_known_keys, sizeof(struct sol_lwm2m_security_psk));
-    sec_psk = sol_vector_append(&sec_known_keys);
-    sec_psk->id = &sec_server_psk_id;
-    sec_psk->key = &sec_server_psk_key;
-
     sec_server = sol_lwm2m_server_new(5693,
-        SOL_LWM2M_DEFAULT_SERVER_PORT_DTLS,
-        SOL_LWM2M_SECURITY_MODE_PRE_SHARED_KEY, &sec_known_keys);
+        1, SOL_LWM2M_DEFAULT_SERVER_PORT_DTLS,
+        SOL_LWM2M_SECURITY_MODE_PRE_SHARED_KEY, sec_server_known_keys);
     ASSERT(sec_server != NULL);
 
     r = sol_lwm2m_server_add_registration_monitor(sec_server,
@@ -1848,17 +1878,24 @@ main(int argc, char *argv[])
     ASSERT_INT_EQ(r, 0);
 
     // ========================================== Bootstrap Server Initialization
-    sol_vector_init(&bs_known_keys, sizeof(struct sol_lwm2m_security_psk));
-    bs_psk = sol_vector_append(&bs_known_keys);
-    bs_psk->id = &bs_server_psk_id;
-    bs_psk->key = &bs_server_psk_key;
+    r = sol_util_base16_decode(buf_aux, sizeof(buf_aux),
+        sol_str_slice_from_str(SEC_CLIENT_PUBLIC_KEY), SOL_DECODE_BOTH);
+    bs_server_known_pub_keys[0] = sol_blob_new_dup(buf_aux, RPK_PUBLIC_KEY_LEN);
+
+    r = sol_util_base16_decode(buf_aux, sizeof(buf_aux),
+        sol_str_slice_from_str(BS_SERVER_PRIVATE_KEY), SOL_DECODE_BOTH);
+    bs_server_rpk.private_key = sol_blob_new_dup(buf_aux, RPK_PRIVATE_KEY_LEN);
+    r = sol_util_base16_decode(buf_aux, sizeof(buf_aux),
+        sol_str_slice_from_str(BS_SERVER_PUBLIC_KEY), SOL_DECODE_BOTH);
+    bs_server_rpk.public_key = sol_blob_new_dup(buf_aux, RPK_PUBLIC_KEY_LEN);
 
     bs_server = sol_lwm2m_bootstrap_server_new(5784, known_clients,
-        SOL_LWM2M_SECURITY_MODE_PRE_SHARED_KEY, &bs_known_keys);
+        1, SOL_LWM2M_SECURITY_MODE_RAW_PUBLIC_KEY,
+        &bs_server_rpk, bs_server_known_pub_keys);
     ASSERT(bs_server != NULL);
 
     r = sol_lwm2m_bootstrap_server_add_request_monitor(bs_server,
-        bootstrap_request_cb, NULL);
+        bootstrap_request_cb, "RPK-Secured");
     ASSERT_INT_EQ(r, 0);
 
     // ====================== PSK-Secured (+Access Control) Client Initialization
@@ -1876,9 +1913,16 @@ main(int argc, char *argv[])
     sec_security_data->client = sec_client;
     sec_security_data->server_uri = &bs_server_addr;
     sec_security_data->is_bootstrap = true;
-    sec_security_data->security_mode = SOL_LWM2M_SECURITY_MODE_PRE_SHARED_KEY;
-    sec_security_data->public_key_or_id = &bs_server_psk_id;
-    sec_security_data->secret_key = &bs_server_psk_key;
+    sec_security_data->security_mode = SOL_LWM2M_SECURITY_MODE_RAW_PUBLIC_KEY;
+    r = sol_util_base16_decode(buf_aux, sizeof(buf_aux),
+        sol_str_slice_from_str(SEC_CLIENT_PRIVATE_KEY), SOL_DECODE_BOTH);
+    sec_security_data->secret_key = sol_blob_new_dup(buf_aux, RPK_PRIVATE_KEY_LEN);
+    r = sol_util_base16_decode(buf_aux, sizeof(buf_aux),
+        sol_str_slice_from_str(SEC_CLIENT_PUBLIC_KEY), SOL_DECODE_BOTH);
+    sec_security_data->public_key_or_id = sol_blob_new_dup(buf_aux, RPK_PUBLIC_KEY_LEN);
+    r = sol_util_base16_decode(buf_aux, sizeof(buf_aux),
+        sol_str_slice_from_str(BS_SERVER_PUBLIC_KEY), SOL_DECODE_BOTH);
+    sec_security_data->server_public_key = sol_blob_new_dup(buf_aux, RPK_PUBLIC_KEY_LEN);
     sec_security_data->client_hold_off_time = 0;
 
     r = sol_lwm2m_client_add_object_instance(sec_client,
@@ -1899,8 +1943,10 @@ main(int argc, char *argv[])
     sol_lwm2m_client_del(sec_client);
     sol_lwm2m_server_del(sec_server);
     sol_lwm2m_bootstrap_server_del(bs_server);
-    sol_vector_clear(&sec_known_keys);
-    sol_vector_clear(&bs_known_keys);
+
+    sol_blob_unref(bs_server_known_pub_keys[0]);
+    sol_blob_unref(bs_server_rpk.private_key);
+    sol_blob_unref(bs_server_rpk.public_key);
 #endif
     sol_shutdown();
     return 0;
