@@ -161,7 +161,7 @@ struct server_conn_ctx {
     uint16_t addr_list_idx;
     time_t registration_time;
     char *location;
-    bool secure;
+    enum sol_lwm2m_security_mode sec_mode;
 };
 
 struct obj_instance {
@@ -189,8 +189,10 @@ struct sol_lwm2m_client {
     struct {
         struct sol_timeout *timeout;
         struct sol_blob *server_uri;
+        enum sol_lwm2m_security_mode sec_mode;
     } bootstrap_ctx;
-    struct sol_coap_server *dtls_server;
+    struct sol_coap_server *dtls_server_psk;
+    struct sol_coap_server *dtls_server_rpk;
     struct sol_lwm2m_security *security;
     const void *user_data;
     uint16_t splitted_path_len;
