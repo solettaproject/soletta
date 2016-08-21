@@ -27,6 +27,7 @@
 #include "sol-log-internal.h"
 #include "sol-util-internal.h"
 #include "sol-list.h"
+#include "sol-socket.h"
 #include "sol-lwm2m.h"
 #include "sol-lwm2m-common.h"
 #include "sol-lwm2m-server.h"
@@ -812,67 +813,104 @@ observer_entry_del_monitor(struct observer_entry *entry,
 }
 
 SOL_API struct sol_lwm2m_server *
-sol_lwm2m_server_new(uint16_t coap_port, uint16_t dtls_port,
-    enum sol_lwm2m_security_mode sec_mode, struct sol_vector *known_psks)
+sol_lwm2m_server_new(uint16_t coap_port, uint16_t num_sec_modes, ...)
 {
     struct sol_lwm2m_server *server;
     struct sol_network_link_addr servaddr_coap = { .family = SOL_NETWORK_FAMILY_INET6,
                                                    .port = coap_port };
     struct sol_network_link_addr servaddr_dtls = { .family = SOL_NETWORK_FAMILY_INET6,
-                                                   .port = dtls_port };
-    int r;
-    const char *sec_mode_str;
-    struct sol_lwm2m_security_psk *psk, *given_psk;
+                                                   .port = SOL_LWM2M_DEFAULT_SERVER_PORT_DTLS };
+    int r, dtls_port;
+    struct sol_lwm2m_security_psk **known_psks = NULL;
+    struct sol_lwm2m_security_rpk *my_rpk = NULL;
+    struct sol_blob **known_pub_keys = NULL;
+    enum sol_lwm2m_security_mode *sec_modes = NULL;
+    enum sol_socket_dtls_cipher *cipher_suites = NULL;
     uint16_t i;
+    va_list ap;
 
     SOL_LOG_INTERNAL_INIT_ONCE;
 
-    switch (sec_mode) {
-    case SOL_LWM2M_SECURITY_MODE_PRE_SHARED_KEY:
-        SOL_NULL_CHECK(known_psks, NULL);
-        sec_mode_str = "Pre-Shared Key";
-        break;
-    case SOL_LWM2M_SECURITY_MODE_RAW_PUBLIC_KEY:
-        sec_mode_str = "Raw Public Key";
-        SOL_WRN("Raw Public Key security mode is not supported yet.");
-        return NULL;
-    case SOL_LWM2M_SECURITY_MODE_CERTIFICATE:
-        sec_mode_str = "Certificate";
-        SOL_WRN("Certificate security mode is not supported yet.");
-        return NULL;
-    case SOL_LWM2M_SECURITY_MODE_NO_SEC:
-        sec_mode_str = "NoSec";
-        SOL_DBG("Using NoSec Security Mode (No DTLS).");
-        break;
-    default:
-        SOL_WRN("Unknown DTLS Security Mode: %d", sec_mode);
-        return NULL;
+    va_start(ap, num_sec_modes);
+
+    if (num_sec_modes > 0) {
+        cipher_suites = calloc(num_sec_modes, sizeof(enum sol_socket_dtls_cipher));
+        SOL_NULL_CHECK_GOTO(cipher_suites, err_va_list);
+
+        sec_modes = calloc(num_sec_modes, sizeof(enum sol_lwm2m_security_mode));
+        SOL_NULL_CHECK_GOTO(sec_modes, err_cipher_suites);
+
+        dtls_port = va_arg(ap, int);
+        SOL_INT_CHECK_GOTO(dtls_port, < 0, err_sec_modes);
+        servaddr_dtls.port = dtls_port;
+
+        for (i = 0; i < num_sec_modes; i++) {
+            sec_modes[i] = va_arg(ap, enum sol_lwm2m_security_mode);
+
+            switch (sec_modes[i]) {
+            case SOL_LWM2M_SECURITY_MODE_PRE_SHARED_KEY:
+                known_psks = va_arg(ap, struct sol_lwm2m_security_psk **);
+                SOL_NULL_CHECK_GOTO(known_psks, err_sec_modes);
+
+                cipher_suites[i] = SOL_SOCKET_DTLS_CIPHER_PSK_AES128_CCM8;
+                break;
+            case SOL_LWM2M_SECURITY_MODE_RAW_PUBLIC_KEY:
+                my_rpk = va_arg(ap, struct sol_lwm2m_security_rpk *);
+                SOL_NULL_CHECK_GOTO(my_rpk, err_sec_modes);
+                known_pub_keys = va_arg(ap, struct sol_blob **);
+                SOL_NULL_CHECK_GOTO(known_pub_keys, err_sec_modes);
+
+                cipher_suites[i] = SOL_SOCKET_DTLS_CIPHER_ECDHE_ECDSA_AES128_CCM8;
+                break;
+            case SOL_LWM2M_SECURITY_MODE_CERTIFICATE:
+                SOL_WRN("Certificate security mode is not supported yet.");
+                goto err_sec_modes;
+            case SOL_LWM2M_SECURITY_MODE_NO_SEC:
+                SOL_WRN("NoSec Security Mode (No DTLS) was found."
+                    "If DTLS should not be used, num_sec_modes should be 0");
+                goto err_sec_modes;
+            default:
+                SOL_WRN("Unknown DTLS Security Mode: %d", sec_modes[i]);
+                goto err_sec_modes;
+            }
+        }
     }
 
     server = calloc(1, sizeof(struct sol_lwm2m_server));
-    SOL_NULL_CHECK(server, NULL);
+    SOL_NULL_CHECK_GOTO(server, err_sec_modes);
 
     server->coap = sol_coap_server_new(&servaddr_coap, false);
     SOL_NULL_CHECK_GOTO(server->coap, err_coap);
 
-    if (sec_mode != SOL_LWM2M_SECURITY_MODE_NO_SEC) {
-        if (sec_mode == SOL_LWM2M_SECURITY_MODE_PRE_SHARED_KEY) {
-            sol_vector_init(&server->known_psks, sizeof(sol_lwm2m_security_psk));
+    if (num_sec_modes > 0) {
+        for (i = 0; i < num_sec_modes; i++) {
+            if (sec_modes[i] == SOL_LWM2M_SECURITY_MODE_PRE_SHARED_KEY) {
+                server->known_psks = known_psks;
+            } else if (sec_modes[i] == SOL_LWM2M_SECURITY_MODE_RAW_PUBLIC_KEY) {
+                server->rpk_pair.private_key = sol_blob_ref(my_rpk->private_key);
+                server->rpk_pair.public_key = sol_blob_ref(my_rpk->public_key);
 
-            SOL_VECTOR_FOREACH_IDX (known_psks, given_psk, i) {
-                psk = sol_vector_append(&server->known_psks);
-                SOL_NULL_CHECK_GOTO(psk, err_psk);
-                psk->id = sol_blob_ref(given_psk->id);
-                psk->key = sol_blob_ref(given_psk->key);
+                server->known_pub_keys = known_pub_keys;
             }
         }
 
-        server->dtls_server = sol_coap_server_new(&servaddr_dtls, true);
-        SOL_NULL_CHECK_GOTO(server->dtls_server, err_dtls);
+        server->dtls_server = sol_coap_server_new_by_cipher_suites(&servaddr_dtls,
+            cipher_suites, num_sec_modes);
+        SOL_NULL_CHECK_GOTO(server->dtls_server, err_rpk_pair);
 
-        server->security = sol_lwm2m_server_security_add(server, sec_mode);
-        SOL_NULL_CHECK_GOTO(server->security, err_security);
-        SOL_DBG("Using %s security mode", sec_mode_str);
+        for (i = 0; i < num_sec_modes; i++) {
+            server->security = sol_lwm2m_server_security_add(server, sec_modes[i]);
+            if (!server->security) {
+                SOL_ERR("Could not enable %s security mode for LWM2M Server",
+                    get_security_mode_str(sec_modes[i]));
+                goto err_security;
+            } else {
+                SOL_DBG("Using %s security mode", get_security_mode_str(sec_modes[i]));
+            }
+        }
+
+        free(sec_modes);
+        free(cipher_suites);
     }
 
     sol_ptr_vector_init(&server->clients);
@@ -882,7 +920,7 @@ sol_lwm2m_server_new(uint16_t coap_port, uint16_t dtls_port,
 
     r = sol_coap_server_register_resource(server->coap,
         &registration_interface, server);
-    SOL_INT_CHECK_GOTO(r, < 0, err_register_coap);
+    SOL_INT_CHECK_GOTO(r, < 0, err_security);
 
     if (server->security) {
         r = sol_coap_server_register_resource(server->dtls_server,
@@ -890,29 +928,33 @@ sol_lwm2m_server_new(uint16_t coap_port, uint16_t dtls_port,
         SOL_INT_CHECK_GOTO(r, < 0, err_register_dtls);
     }
 
+    va_end(ap);
+
     return server;
 
 err_register_dtls:
     if (sol_coap_server_unregister_resource(server->coap, &registration_interface) < 0)
         SOL_WRN("Could not unregister resource for"
             " Registration Interface at insecure CoAP Server");
-err_register_coap:
-    if (sec_mode != SOL_LWM2M_SECURITY_MODE_NO_SEC)
-        sol_lwm2m_server_security_del(server->security);
 err_security:
     sol_coap_server_unref(server->dtls_server);
-err_dtls:
+    sol_lwm2m_server_security_del(server->security);
+err_rpk_pair:
     sol_coap_server_unref(server->coap);
-err_psk:
-    if (sec_mode == SOL_LWM2M_SECURITY_MODE_PRE_SHARED_KEY) {
-        SOL_VECTOR_FOREACH_IDX (&server->known_psks, psk, i) {
-            sol_blob_unref(psk->id);
-            sol_blob_unref(psk->key);
+    for (i = 0; i < num_sec_modes; i++) {
+        if (sec_modes[i] == SOL_LWM2M_SECURITY_MODE_PRE_SHARED_KEY) {
+            sol_blob_unref(server->rpk_pair.private_key);
+            sol_blob_unref(server->rpk_pair.public_key);
         }
-        sol_vector_clear(&server->known_psks);
     }
 err_coap:
     free(server);
+err_sec_modes:
+    free(sec_modes);
+err_cipher_suites:
+    free(cipher_suites);
+err_va_list:
+    va_end(ap);
     return NULL;
 }
 
@@ -932,16 +974,13 @@ sol_lwm2m_server_del(struct sol_lwm2m_server *server)
 
     if (server->security) {
         sol_coap_server_unref(server->dtls_server);
-        sol_lwm2m_server_security_del(server->security);
-        if (&server->known_psks) {
-            struct sol_lwm2m_security_psk *psk;
 
-            SOL_VECTOR_FOREACH_IDX (&server->known_psks, psk, i) {
-                sol_blob_unref(psk->id);
-                sol_blob_unref(psk->key);
-            }
-            sol_vector_clear(&server->known_psks);
+        if (sol_lwm2m_security_supports_security_mode(server->security,
+            SOL_LWM2M_SECURITY_MODE_RAW_PUBLIC_KEY)) {
+            sol_blob_unref(server->rpk_pair.private_key);
+            sol_blob_unref(server->rpk_pair.public_key);
         }
+        sol_lwm2m_server_security_del(server->security);
     }
 
     SOL_PTR_VECTOR_FOREACH_IDX (&server->clients, cinfo, i)

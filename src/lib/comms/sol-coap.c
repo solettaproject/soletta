@@ -48,7 +48,7 @@ SOL_LOG_INTERNAL_DECLARE(_sol_coap_log_domain, "coap");
  * FIXME: use a random number between ACK_TIMEOUT (2000ms)
  * and ACK_TIMEOUT * ACK_RANDOM_FACTOR (3000ms)
  */
-#define ACK_TIMEOUT_MS 2345
+#define ACK_TIMEOUT_MS 12345
 #define MAX_RETRANSMIT 4
 #define MAX_PKT_TIMEOUT_MS (ACK_TIMEOUT_MS << MAX_RETRANSMIT)
 
@@ -1885,6 +1885,9 @@ sol_coap_server_new_full(struct sol_socket_ip_options *options, const struct sol
         goto err_bind;
     }
 
+    SOL_DBG("server=%p, socket=%p, addr=%p, port=%" PRIu16 ", reuse_addr=%s binded!",
+        server, s, servaddr, servaddr->port, options->reuse_addr ? "True" : "False");
+
     server->refcnt = 1;
 
     sol_vector_init(&server->contexts, sizeof(struct resource_context));
@@ -1944,19 +1947,43 @@ err:
 }
 
 SOL_API struct sol_coap_server *
-sol_coap_server_new(const struct sol_network_link_addr *addr, bool secure)
+sol_coap_server_new(const struct sol_network_link_addr *addr,
+    bool secure)
 {
     return sol_coap_server_new_full(&((struct sol_socket_ip_options) {
-        .base = {
-            SOL_SET_API_VERSION(.api_version = SOL_SOCKET_OPTIONS_API_VERSION, )
-            SOL_SET_API_VERSION(.sub_api = SOL_SOCKET_IP_OPTIONS_SUB_API_VERSION, )
-            .on_can_read = on_can_read,
-            .on_can_write = on_can_write,
-        },
-        .family = addr->family,
-        .secure = secure,
-        .reuse_addr = addr->port ? true : false,
-    }), addr);
+            .base = {
+                SOL_SET_API_VERSION(.api_version = SOL_SOCKET_OPTIONS_API_VERSION, )
+                SOL_SET_API_VERSION(.sub_api = SOL_SOCKET_IP_OPTIONS_SUB_API_VERSION, )
+                .on_can_read = on_can_read,
+                .on_can_write = on_can_write,
+            },
+            .family = addr->family,
+            .secure = secure,
+            .cipher_suites = secure ?
+            (enum sol_socket_dtls_cipher []){ SOL_SOCKET_DTLS_CIPHER_PSK_AES128_CCM8 } : NULL,
+            .cipher_suites_len = secure ? 1 : 0,
+            .reuse_addr = addr->port ? true : false,
+        }), addr);
+}
+
+SOL_API struct sol_coap_server *
+sol_coap_server_new_by_cipher_suites(
+    const struct sol_network_link_addr *addr,
+    enum sol_socket_dtls_cipher *cipher_suites, uint16_t cipher_suites_len)
+{
+    return sol_coap_server_new_full(&((struct sol_socket_ip_options) {
+            .base = {
+                SOL_SET_API_VERSION(.api_version = SOL_SOCKET_OPTIONS_API_VERSION, )
+                SOL_SET_API_VERSION(.sub_api = SOL_SOCKET_IP_OPTIONS_SUB_API_VERSION, )
+                .on_can_read = on_can_read,
+                .on_can_write = on_can_write,
+            },
+            .family = addr->family,
+            .secure = true,
+            .cipher_suites = cipher_suites,
+            .cipher_suites_len = cipher_suites_len,
+            .reuse_addr = addr->port ? true : false,
+        }), addr);
 }
 
 SOL_API bool

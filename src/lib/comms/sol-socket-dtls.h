@@ -28,11 +28,9 @@
 #define SOL_DTLS_PSK_ID_LEN 16
 #define SOL_DTLS_PSK_KEY_LEN 16
 
-enum sol_socket_dtls_cipher {
-    SOL_SOCKET_DTLS_CIPHER_ECDH_ANON_AES128_CBC_SHA256,
-    SOL_SOCKET_DTLS_CIPHER_PSK_AES128_CCM8,
-    SOL_SOCKET_DTLS_CIPHER_ECDHE_ECDSA_AES128_CCM8
-};
+#define SOL_DTLS_ECDSA_PRIV_KEY_LEN 32
+#define SOL_DTLS_ECDSA_PUB_KEY_X_LEN 32
+#define SOL_DTLS_ECDSA_PUB_KEY_Y_LEN 32
 
 struct sol_socket_dtls_credential_cb {
     const void *data;
@@ -44,6 +42,16 @@ struct sol_socket_dtls_credential_cb {
         char *id, size_t id_len);
     ssize_t (*get_psk)(const void *creds, struct sol_str_slice id,
         char *psk, size_t psk_len);
+
+    int (*get_ecdsa_priv_key)(const void *creds, struct sol_network_link_addr *addr,
+        unsigned char *ecdsa_priv_key);
+    int (*get_ecdsa_pub_key_x)(const void *creds, struct sol_network_link_addr *addr,
+        unsigned char *ecdsa_pub_key_x);
+    int (*get_ecdsa_pub_key_y)(const void *creds, struct sol_network_link_addr *addr,
+        unsigned char *ecdsa_pub_key_y);
+    int (*verify_ecdsa_key)(const void *creds, struct sol_network_link_addr *addr,
+        const unsigned char *other_pub_x, const unsigned char *other_pub_y,
+        size_t key_size);
 };
 
 struct sol_socket *sol_socket_dtls_wrap_socket(struct sol_socket *socket);

@@ -44,6 +44,23 @@ SOL_LOG_INTERNAL_DECLARE_STATIC(_lwm2m_common_domain, "lwm2m-common");
 int sol_lwm2m_common_init(void);
 void sol_lwm2m_common_shutdown(void);
 
+const char *
+get_security_mode_str(enum sol_lwm2m_security_mode sec_mode)
+{
+    switch (sec_mode) {
+    case SOL_LWM2M_SECURITY_MODE_PRE_SHARED_KEY:
+        return "Pre-Shared Key";
+    case SOL_LWM2M_SECURITY_MODE_RAW_PUBLIC_KEY:
+        return "Raw Public Key";
+    case SOL_LWM2M_SECURITY_MODE_CERTIFICATE:
+        return "Certificate";
+    case SOL_LWM2M_SECURITY_MODE_NO_SEC:
+        return "NoSec";
+    default:
+        return "Unknown";
+    }
+}
+
 int
 read_resources(struct sol_lwm2m_client *client,
     struct obj_ctx *obj_ctx, struct obj_instance *instance,
