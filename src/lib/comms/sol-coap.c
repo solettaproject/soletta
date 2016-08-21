@@ -48,7 +48,7 @@ SOL_LOG_INTERNAL_DECLARE(_sol_coap_log_domain, "coap");
  * FIXME: use a random number between ACK_TIMEOUT (2000ms)
  * and ACK_TIMEOUT * ACK_RANDOM_FACTOR (3000ms)
  */
-#define ACK_TIMEOUT_MS 2345
+#define ACK_TIMEOUT_MS 12345
 #define MAX_RETRANSMIT 4
 #define MAX_PKT_TIMEOUT_MS (ACK_TIMEOUT_MS << MAX_RETRANSMIT)
 
