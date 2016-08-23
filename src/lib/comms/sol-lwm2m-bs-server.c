@@ -27,6 +27,7 @@
 #include "sol-log-internal.h"
 #include "sol-util-internal.h"
 #include "sol-list.h"
+#include "sol-socket.h"
 #include "sol-lwm2m.h"
 #include "sol-lwm2m-common.h"
 #include "sol-lwm2m-bs-server.h"
@@ -212,66 +213,109 @@ static const struct sol_coap_resource bootstrap_request_interface = {
 
 SOL_API struct sol_lwm2m_bootstrap_server *
 sol_lwm2m_bootstrap_server_new(uint16_t port, const char **known_clients,
-    enum sol_lwm2m_security_mode sec_mode, struct sol_vector *known_psks)
+    uint16_t num_sec_modes, ...)
 {
     struct sol_lwm2m_bootstrap_server *server;
     struct sol_network_link_addr servaddr = { .family = SOL_NETWORK_FAMILY_INET6,
                                               .port = port };
     int r;
-    const char *sec_mode_str;
-    struct sol_lwm2m_security_psk *psk, *given_psk;
-    uint16_t i;
+    struct sol_lwm2m_security_psk **known_psks = NULL, *cli_psk;
+    struct sol_lwm2m_security_rpk *my_rpk = NULL;
+    struct sol_blob **known_pub_keys = NULL, *cli_pub_key;
+    enum sol_lwm2m_security_mode *sec_modes;
+    enum sol_socket_dtls_cipher *cipher_suites;
+    uint16_t i, j;
+    va_list ap;
 
     SOL_LOG_INTERNAL_INIT_ONCE;
 
     SOL_NULL_CHECK(known_clients, NULL);
-    switch (sec_mode) {
-    case SOL_LWM2M_SECURITY_MODE_PRE_SHARED_KEY:
-        SOL_NULL_CHECK(known_psks, NULL);
-        sec_mode_str = "Pre-Shared Key";
-        break;
-    case SOL_LWM2M_SECURITY_MODE_RAW_PUBLIC_KEY:
-        sec_mode_str = "Raw Public Key";
-        SOL_WRN("Raw Public Key security mode is not supported yet.");
-        return NULL;
-    case SOL_LWM2M_SECURITY_MODE_CERTIFICATE:
-        sec_mode_str = "Certificate";
-        SOL_WRN("Certificate security mode is not supported yet.");
-        return NULL;
-    case SOL_LWM2M_SECURITY_MODE_NO_SEC:
-        SOL_WRN("Bootstrap Server MUST use DTLS.");
-        return NULL;
-    default:
-        SOL_WRN("Unknown DTLS Security Mode: %d", sec_mode);
-        return NULL;
-    }
+    SOL_INT_CHECK(num_sec_modes, == 0, NULL);
 
-    server = calloc(1, sizeof(struct sol_lwm2m_bootstrap_server));
-    SOL_NULL_CHECK(server, NULL);
+    va_start(ap, num_sec_modes);
 
-    //LWM2M Bootstrap Server MUST always use DTLS
-    if (sec_mode == SOL_LWM2M_SECURITY_MODE_PRE_SHARED_KEY) {
-        sol_vector_init(&server->known_psks, sizeof(sol_lwm2m_security_psk));
+    cipher_suites = calloc(num_sec_modes, sizeof(enum sol_socket_dtls_cipher));
+    SOL_NULL_CHECK_GOTO(cipher_suites, err_va_list);
 
-        SOL_VECTOR_FOREACH_IDX (known_psks, given_psk, i) {
-            psk = sol_vector_append(&server->known_psks);
-            SOL_NULL_CHECK_GOTO(psk, err_psk);
-            psk->id = sol_blob_ref(given_psk->id);
-            psk->key = sol_blob_ref(given_psk->key);
+    sec_modes = calloc(num_sec_modes, sizeof(enum sol_lwm2m_security_mode));
+    SOL_NULL_CHECK_GOTO(sec_modes, err_cipher_suites);
+
+    for (i = 0; i < num_sec_modes; i++) {
+        sec_modes[i] = va_arg(ap, enum sol_lwm2m_security_mode);
+        SOL_EXP_CHECK_GOTO(sec_mode_is_repeated(sec_modes[i], sec_modes, i), err_sec_modes);
+
+        switch (sec_modes[i]) {
+        case SOL_LWM2M_SECURITY_MODE_PRE_SHARED_KEY:
+            known_psks = va_arg(ap, struct sol_lwm2m_security_psk **);
+            SOL_NULL_CHECK_GOTO(known_psks, err_sec_modes);
+
+            cipher_suites[i] = SOL_SOCKET_DTLS_CIPHER_PSK_AES128_CCM8;
+            break;
+        case SOL_LWM2M_SECURITY_MODE_RAW_PUBLIC_KEY:
+            my_rpk = va_arg(ap, struct sol_lwm2m_security_rpk *);
+            SOL_NULL_CHECK_GOTO(my_rpk, err_sec_modes);
+            known_pub_keys = va_arg(ap, struct sol_blob **);
+            SOL_NULL_CHECK_GOTO(known_pub_keys, err_sec_modes);
+
+            cipher_suites[i] = SOL_SOCKET_DTLS_CIPHER_ECDHE_ECDSA_AES128_CCM8;
+            break;
+        case SOL_LWM2M_SECURITY_MODE_CERTIFICATE:
+            SOL_WRN("Certificate security mode is not supported yet.");
+            goto err_sec_modes;
+        case SOL_LWM2M_SECURITY_MODE_NO_SEC:
+            SOL_WRN("Bootstrap Server MUST use DTLS.");
+            goto err_sec_modes;
+        default:
+            SOL_WRN("Unknown DTLS Security Mode: %d", sec_modes[i]);
+            goto err_sec_modes;
         }
     }
 
-    server->coap = sol_coap_server_new(&servaddr, true);
-    SOL_NULL_CHECK_GOTO(server->coap, err_coap);
+    server = calloc(1, sizeof(struct sol_lwm2m_bootstrap_server));
+    SOL_NULL_CHECK_GOTO(server, err_sec_modes);
 
-    server->security = sol_lwm2m_bootstrap_server_security_add(server, sec_mode);
-    if (!server->security) {
-        SOL_ERR("Could not enable %s security mode for LWM2M Bootstrap Server",
-            sec_mode_str);
-        goto err_security;
-    } else {
-        SOL_DBG("Using %s security mode", sec_mode_str);
+    //LWM2M Bootstrap Server MUST always use DTLS
+    for (i = 0; i < num_sec_modes; i++) {
+        if (sec_modes[i] == SOL_LWM2M_SECURITY_MODE_PRE_SHARED_KEY) {
+            sol_vector_init(&server->known_psks, sizeof(sol_lwm2m_security_psk));
+
+            for (j = 0; known_psks[j]; j++) {
+                cli_psk = sol_vector_append(&server->known_psks);
+                SOL_NULL_CHECK_GOTO(cli_psk, err_copy_keys);
+                cli_psk->id = sol_blob_ref(known_psks[j]->id);
+                cli_psk->key = sol_blob_ref(known_psks[j]->key);
+            }
+        } else if (sec_modes[i] == SOL_LWM2M_SECURITY_MODE_RAW_PUBLIC_KEY) {
+            sol_ptr_vector_init(&server->known_pub_keys);
+
+            for (j = 0; known_pub_keys[j]; j++) {
+                r = sol_ptr_vector_append(&server->known_pub_keys,
+                    sol_blob_ref(known_pub_keys[j]));
+                SOL_INT_CHECK_GOTO(r, < 0, err_copy_keys);
+            }
+
+            server->rpk_pair.private_key = sol_blob_ref(my_rpk->private_key);
+            server->rpk_pair.public_key = sol_blob_ref(my_rpk->public_key);
+        }
     }
+
+    server->coap = sol_coap_server_new_by_cipher_suites(&servaddr,
+        cipher_suites, num_sec_modes);
+    SOL_NULL_CHECK_GOTO(server->coap, err_copy_keys);
+
+    for (i = 0; i < num_sec_modes; i++) {
+        server->security = sol_lwm2m_bootstrap_server_security_add(server, sec_modes[i]);
+        if (!server->security) {
+            SOL_ERR("Could not enable %s security mode for LWM2M Bootstrap Server",
+                get_security_mode_str(sec_modes[i]));
+            goto err_security;
+        } else {
+            SOL_DBG("Using %s security mode", get_security_mode_str(sec_modes[i]));
+        }
+    }
+
+    free(sec_modes);
+    free(cipher_suites);
 
     server->known_clients = known_clients;
 
@@ -283,20 +327,38 @@ sol_lwm2m_bootstrap_server_new(uint16_t port, const char **known_clients,
         &bootstrap_request_interface, server);
     SOL_INT_CHECK_GOTO(r, < 0, err_security);
 
+    va_end(ap);
+
     return server;
 
 err_security:
     sol_coap_server_unref(server->coap);
-err_psk:
-    if (sec_mode == SOL_LWM2M_SECURITY_MODE_PRE_SHARED_KEY) {
-        SOL_VECTOR_FOREACH_IDX (&server->known_psks, psk, i) {
-            sol_blob_unref(psk->id);
-            sol_blob_unref(psk->key);
+    sol_lwm2m_bootstrap_server_security_del(server->security);
+err_copy_keys:
+    for (i = 0; i < num_sec_modes; i++) {
+        if (sec_modes[i] == SOL_LWM2M_SECURITY_MODE_PRE_SHARED_KEY) {
+            SOL_VECTOR_FOREACH_IDX (&server->known_psks, cli_psk, j) {
+                sol_blob_unref(cli_psk->id);
+                sol_blob_unref(cli_psk->key);
+            }
+            sol_vector_clear(&server->known_psks);
+        } else if (sec_modes[i] == SOL_LWM2M_SECURITY_MODE_RAW_PUBLIC_KEY) {
+            SOL_PTR_VECTOR_FOREACH_IDX (&server->known_pub_keys, cli_pub_key, j)
+                sol_blob_unref(cli_pub_key);
+            sol_ptr_vector_clear(&server->known_pub_keys);
+
+            sol_blob_unref(server->rpk_pair.private_key);
+            sol_blob_unref(server->rpk_pair.public_key);
         }
-        sol_vector_clear(&server->known_psks);
     }
-err_coap:
+
     free(server);
+err_sec_modes:
+    free(sec_modes);
+err_cipher_suites:
+    free(cipher_suites);
+err_va_list:
+    va_end(ap);
     return NULL;
 }
 
@@ -305,21 +367,32 @@ sol_lwm2m_bootstrap_server_del(struct sol_lwm2m_bootstrap_server *server)
 {
     uint16_t i;
     struct sol_lwm2m_bootstrap_client_info *bs_cinfo;
+    struct sol_lwm2m_security_psk *cli_psk;
+    struct sol_blob *cli_pub_key;
 
     SOL_NULL_CHECK(server);
 
     sol_coap_server_unref(server->coap);
 
-    sol_lwm2m_bootstrap_server_security_del(server->security);
-    if (&server->known_psks) {
-        struct sol_lwm2m_security_psk *psk;
-
-        SOL_VECTOR_FOREACH_IDX (&server->known_psks, psk, i) {
-            sol_blob_unref(psk->id);
-            sol_blob_unref(psk->key);
+    if (sol_lwm2m_security_supports_security_mode(server->security,
+        SOL_LWM2M_SECURITY_MODE_PRE_SHARED_KEY)) {
+        SOL_VECTOR_FOREACH_IDX (&server->known_psks, cli_psk, i) {
+            sol_blob_unref(cli_psk->id);
+            sol_blob_unref(cli_psk->key);
         }
         sol_vector_clear(&server->known_psks);
     }
+    if (sol_lwm2m_security_supports_security_mode(server->security,
+        SOL_LWM2M_SECURITY_MODE_RAW_PUBLIC_KEY)) {
+        SOL_PTR_VECTOR_FOREACH_IDX (&server->known_pub_keys, cli_pub_key, i)
+            sol_blob_unref(cli_pub_key);
+        sol_ptr_vector_clear(&server->known_pub_keys);
+
+        sol_blob_unref(server->rpk_pair.private_key);
+        sol_blob_unref(server->rpk_pair.public_key);
+    }
+
+    sol_lwm2m_bootstrap_server_security_del(server->security);
 
     SOL_PTR_VECTOR_FOREACH_IDX (&server->clients, bs_cinfo, i)
         bootstrap_client_info_del(bs_cinfo);

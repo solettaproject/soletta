@@ -59,14 +59,21 @@ typedef struct sol_lwm2m_bootstrap_client_info sol_lwm2m_bootstrap_client_info;
  * The server will be immediately operational and waiting for connections.
  *
  * @param port The UDP port to be used.
- * @param known_clients An array with the name of all clients this server has Bootstrap Information for.
- * @param sec_mode The DTLS Security Mode to be used.
- * @param known_psks The Clients' Pre-Shared Keys this Bootstrap Server has previous knowledge of.
+ * @param known_clients A NULL-terminated array with the name of all clients this server has Bootstrap Information for.
+ * @param num_sec_modes The number of DTLS Security Modes this Bootstrap Server will support.
+ * @param ... At least one @c sol_lwm2m_security_mode followed by its relevant parameters, as per the table below:
+ *
+ * Security Mode | Follow-up arguments | Description
+ * ------------- | ------------------- | ------------------
+ * SOL_LWM2M_SECURITY_MODE_PRE_SHARED_KEY | struct sol_lwm2m_security_psk **known_psks | @c known_psks The Clients' Pre-Shared Keys this Bootstrap Server has previous knowledge of.  It MUST be a NULL-terminated array.
+ * SOL_LWM2M_SECURITY_MODE_RAW_PUBLIC_KEY | struct sol_lwm2m_security_rpk *rpk, struct sol_blob **known_pub_keys | @c rpk This Bootstrap Server's Key Pair - @c known_pub_keys The Clients' Public Keys this Bootstrap Server has previous knowledge of.  It MUST be a NULL-terminated array.
+ *
+ * @note: SOL_LWM2M_SECURITY_MODE_CERTIFICATE is not supported yet.
+ *
  * @return The LWM2M bootstrap server or @c NULL on error.
  */
 struct sol_lwm2m_bootstrap_server *sol_lwm2m_bootstrap_server_new(uint16_t port,
-    const char **known_clients, enum sol_lwm2m_security_mode sec_mode,
-    struct sol_vector *known_psks);
+    const char **known_clients, uint16_t num_sec_modes, ...);
 
 /**
  * @brief Adds a bootstrap request monitor to the server.

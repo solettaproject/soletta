@@ -52,7 +52,7 @@ extern "C" {
  * - Observation interface.
  * - TLV format.
  * - Data Access Control.
- * - CoAP Data Encryption.
+ * - CoAP Data Encryption (Pre-Shared Key and Raw Public Key modes).
  *
  * Unsupported features for now:
  * - LWM2M JSON.
@@ -143,7 +143,7 @@ enum sol_lwm2m_binding_mode {
 /**
  * @brief Enum that represents the UDP Security Mode.
  *
- * @note Only Pre-Shared Key and NoSec modes are currently supported.
+ * @note Certificate mode is not supported yet.
  */
 enum sol_lwm2m_security_mode {
     /**
@@ -156,8 +156,8 @@ enum sol_lwm2m_security_mode {
     /**
      * Raw Public Key security mode with Cipher Suite TLS_ECDHE_ECDSA_WITH_AES_128_CCM_8
      * In this case, the following Resource IDs have to be filled as well:
-     * /3 "Public Key or Identity":                    Client's Raw Public Key [256-bit ECC key; 32 Opaque bytes];
-     * /4 "Server Public Key or Identity Resource":    [Expected] Server's Raw Public Key [256-bit ECC key; 32 Opaque bytes];
+     * /3 "Public Key or Identity":                    Client's Raw Public Key [2x256-bit ECC key (one for each ECC Coordinate); 64 Opaque bytes];
+     * /4 "Server Public Key or Identity Resource":    [Expected] Server's Raw Public Key [2x256-bit ECC key (one for each ECC Coordinate); 64 Opaque bytes];
      * /5 "Secret Key":                                Client's Private Key [256-bit ECC key; 32 Opaque bytes];
      */
     SOL_LWM2M_SECURITY_MODE_RAW_PUBLIC_KEY = 1,
@@ -282,7 +282,7 @@ enum sol_lwm2m_resource_type {
 /**
  * @brief Struct that represents a Pre-Shared Key (PSK).
  *
- * A sol_vector holding elements of this type is used by the LWM2M Server
+ * A @c sol_vector holding elements of this type is used by the LWM2M Server
  * and LWM2M Bootstrap Server to keep a list of known Clients' Pre-Shared Keys.
  *
  * @see sol_lwm2m_server_new()
@@ -294,6 +294,28 @@ typedef struct sol_lwm2m_security_psk {
     /** @brief The PSK Key, composed of an Opaque 16-bytes (128-bit) AES Key */
     struct sol_blob *key;
 } sol_lwm2m_security_psk;
+
+/**
+ * @brief Struct that represents a Raw Public Key (RPK) pair.
+ *
+ * An element of this type is used by the LWM2M Server
+ * and LWM2M Bootstrap Server to store its own Private and Public keys.
+ *
+ * @see sol_lwm2m_server_new()
+ * @see sol_lwm2m_bootstrap_server_new()
+ */
+typedef struct sol_lwm2m_security_rpk {
+    /** @brief The Private Key, composed of an Opaque 32-bytes (128-bit) ECC key */
+    struct sol_blob *private_key;
+    /** @brief The Public Key, composed of an Opaque 64-bytes (2x256-bit) ECC key.
+     *
+     * This represents the X and Y coordinates in a contiguous set of bytes.
+     * A @c sol_ptr_vector of @c sol_blob following this structure is used
+     * by the LWM2M Server and LWM2M Bootstrap Server to keep a list of known
+     * Clients' Public Keys.
+     */
+    struct sol_blob *public_key;
+} sol_lwm2m_security_rpk;
 
 /**
  * @brief Struct that represents TLV data.
@@ -503,11 +525,11 @@ void sol_lwm2m_resource_clear(struct sol_lwm2m_resource *resource);
  *
  * Resource type | Last argument type
  * ------------- | ------------------
- * SOL_LWM2M_RESOURCE_DATA_TYPE_STRING | struct sol_str_slice
+ * SOL_LWM2M_RESOURCE_DATA_TYPE_STRING | struct sol_blob *
  * SOL_LWM2M_RESOURCE_DATA_TYPE_INT | int64_t
  * SOL_LWM2M_RESOURCE_DATA_TYPE_FLOAT | double
  * SOL_LWM2M_RESOURCE_DATA_TYPE_BOOL | bool
- * SOL_LWM2M_RESOURCE_DATA_TYPE_OPAQUE | struct sol_str_slice
+ * SOL_LWM2M_RESOURCE_DATA_TYPE_OPAQUE | struct sol_blob *
  * SOL_LWM2M_RESOURCE_DATA_TYPE_TIME | int64_t
  * SOL_LWM2M_RESOURCE_DATA_TYPE_OBJ_LINK | uint16_t, uint16_t
  *

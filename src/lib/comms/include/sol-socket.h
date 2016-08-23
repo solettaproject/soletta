@@ -42,6 +42,15 @@ struct sol_socket;
 typedef struct sol_socket sol_socket;
 
 /**
+ * @brief Represents supported Cipher Suites for use with DTLS.
+ */
+enum sol_socket_dtls_cipher {
+    SOL_SOCKET_DTLS_CIPHER_ECDH_ANON_AES128_CBC_SHA256,
+    SOL_SOCKET_DTLS_CIPHER_PSK_AES128_CCM8,
+    SOL_SOCKET_DTLS_CIPHER_ECDHE_ECDSA_AES128_CCM8,
+};
+
+/**
  * @brief Defines the behaviour of a socket instance
  */
 typedef struct sol_socket_options {
@@ -116,6 +125,19 @@ typedef struct sol_socket_ip_options {
      * sol_socket_bind()
      */
     bool reuse_addr;
+
+    /**
+     * @brief If @c secure is true, this should be considered.
+     * It indicates which DTLS cipher suites are supported and could
+     * be used for communication.
+     */
+    enum sol_socket_dtls_cipher *cipher_suites;
+
+    /**
+     * @brief If @c secure is true, this should be considered.
+     * It indicates the length of the @c cipher_suites array.
+     */
+    uint16_t cipher_suites_len;
 } sol_socket_ip_options;
 
 /**

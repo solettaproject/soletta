@@ -44,6 +44,10 @@ struct sol_lwm2m_security {
     void *entity;
 };
 
+bool
+sol_lwm2m_security_supports_security_mode(struct sol_lwm2m_security *security,
+    enum sol_lwm2m_security_mode sec_mode);
+
 struct sol_lwm2m_security *sol_lwm2m_client_security_add(
     struct sol_lwm2m_client *lwm2m_client, enum sol_lwm2m_security_mode sec_mode);
 

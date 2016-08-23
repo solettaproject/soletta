@@ -161,7 +161,7 @@ struct server_conn_ctx {
     uint16_t addr_list_idx;
     time_t registration_time;
     char *location;
-    bool secure;
+    enum sol_lwm2m_security_mode sec_mode;
 };
 
 struct obj_instance {
@@ -189,8 +189,10 @@ struct sol_lwm2m_client {
     struct {
         struct sol_timeout *timeout;
         struct sol_blob *server_uri;
+        enum sol_lwm2m_security_mode sec_mode;
     } bootstrap_ctx;
-    struct sol_coap_server *dtls_server;
+    struct sol_coap_server *dtls_server_psk;
+    struct sol_coap_server *dtls_server_rpk;
     struct sol_lwm2m_security *security;
     const void *user_data;
     uint16_t splitted_path_len;
@@ -214,6 +216,8 @@ struct sol_lwm2m_server {
     struct sol_coap_server *dtls_server;
     struct sol_lwm2m_security *security;
     struct sol_vector known_psks;
+    struct sol_ptr_vector known_pub_keys;
+    struct sol_lwm2m_security_rpk rpk_pair;
 };
 
 struct sol_lwm2m_bootstrap_server {
@@ -222,6 +226,8 @@ struct sol_lwm2m_bootstrap_server {
     struct sol_monitors bootstrap;
     struct sol_lwm2m_security *security;
     struct sol_vector known_psks;
+    struct sol_ptr_vector known_pub_keys;
+    struct sol_lwm2m_security_rpk rpk_pair;
     const char **known_clients;
 };
 
@@ -231,6 +237,13 @@ enum sol_lwm2m_path_props {
     PATH_HAS_INSTANCE = (1 << 2),
     PATH_HAS_RESOURCE = (1 << 3)
 };
+
+bool
+sec_mode_is_repeated(enum sol_lwm2m_security_mode new_sec_mode,
+    enum sol_lwm2m_security_mode *sec_modes, uint16_t sec_modes_len);
+
+const char *
+get_security_mode_str(enum sol_lwm2m_security_mode sec_mode);
 
 int
 read_resources(struct sol_lwm2m_client *client,

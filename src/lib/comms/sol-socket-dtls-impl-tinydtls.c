@@ -47,6 +47,8 @@ struct sol_socket_dtls {
     struct sol_socket *wrapped;
     struct sol_timeout *retransmit_timeout;
     dtls_context_t *context;
+    dtls_handler_t handler;
+    dtls_ecdsa_key_t ecdsa_key;
     struct {
         bool (*cb)(void *data, struct sol_socket *s);
         struct sol_vector queue;
@@ -171,6 +173,10 @@ sol_socket_dtls_del(struct sol_socket *socket)
     dtls_free_context(s->context);
 
     sol_socket_del(s->wrapped);
+
+    free(s->ecdsa_key.priv_key);
+    free(s->ecdsa_key.pub_key_x);
+    free(s->ecdsa_key.pub_key_y);
 
     sol_util_clear_memory_secure(s, sizeof(*s));
     free(s);
@@ -655,6 +661,100 @@ get_psk_info(struct dtls_context_t *ctx, const session_t *session,
     return r;
 }
 
+static int
+get_ecdsa_key(struct dtls_context_t *ctx, const session_t *session,
+    const dtls_ecdsa_key_t **result)
+{
+    struct sol_socket_dtls *socket = dtls_get_app_data(ctx);
+    struct sol_network_link_addr addr;
+    int r;
+
+    SOL_DBG("Peer asked for ECDSA Key");
+
+    SOL_NULL_CHECK(socket->credentials,
+        dtls_alert_fatal_create(DTLS_ALERT_INTERNAL_ERROR));
+    SOL_NULL_CHECK(socket->credentials->get_ecdsa_priv_key,
+        dtls_alert_fatal_create(DTLS_ALERT_INTERNAL_ERROR));
+    SOL_NULL_CHECK(socket->credentials->get_ecdsa_pub_key_x,
+        dtls_alert_fatal_create(DTLS_ALERT_INTERNAL_ERROR));
+    SOL_NULL_CHECK(socket->credentials->get_ecdsa_pub_key_y,
+        dtls_alert_fatal_create(DTLS_ALERT_INTERNAL_ERROR));
+
+    if (socket->credentials->init &&
+        socket->credentials->init(socket->credentials->data) < 0) {
+        SOL_WRN("Could not initialize credential storage");
+        return dtls_alert_fatal_create(DTLS_ALERT_INTERNAL_ERROR);
+    }
+
+    if (from_sockaddr(&session->addr.sa, session->size, &addr) < 0) {
+        SOL_DBG("Could not get link address from session");
+        return -EINVAL;
+    }
+
+    socket->ecdsa_key.priv_key = calloc(SOL_DTLS_ECDSA_PRIV_KEY_LEN, sizeof(unsigned char));
+    SOL_NULL_CHECK(socket->ecdsa_key.priv_key, -ENOMEM);
+
+    socket->ecdsa_key.pub_key_x = calloc(SOL_DTLS_ECDSA_PUB_KEY_X_LEN, sizeof(unsigned char));
+    SOL_NULL_CHECK(socket->ecdsa_key.pub_key_x, -ENOMEM);
+
+    socket->ecdsa_key.pub_key_y = calloc(SOL_DTLS_ECDSA_PUB_KEY_Y_LEN, sizeof(unsigned char));
+    SOL_NULL_CHECK(socket->ecdsa_key.pub_key_y, -ENOMEM);
+
+    r = socket->credentials->get_ecdsa_priv_key(socket->credentials->data,
+        &addr, socket->ecdsa_key.priv_key);
+    SOL_INT_CHECK(r, < 0, r);
+
+    r = socket->credentials->get_ecdsa_pub_key_x(socket->credentials->data,
+        &addr, socket->ecdsa_key.pub_key_x);
+    SOL_INT_CHECK(r, < 0, r);
+
+    r = socket->credentials->get_ecdsa_pub_key_y(socket->credentials->data,
+        &addr, socket->ecdsa_key.pub_key_y);
+    SOL_INT_CHECK(r, < 0, r);
+
+    /* From CoAP [RFC7252], Section 9.1.3.2. Raw Public Key Certificates:
+       Implementations in RawPublicKey mode MUST support the mandatory-to-implement
+       cipher suite TLS_ECDHE_ECDSA_WITH_AES_128_CCM_8 as specified in [RFC7251],
+       [RFC5246], and [RFC4492].  The key used MUST be ECDSA capable.
+       The curve secp256r1 MUST be supported [RFC4492]; this curve is equivalent to
+       the NIST P-256 curve.  The hash algorithm is SHA-256. */
+    socket->ecdsa_key.curve = DTLS_ECDH_CURVE_SECP256R1;
+
+    *result = &socket->ecdsa_key;
+
+    if (socket->credentials->clear)
+        socket->credentials->clear(socket->credentials->data);
+
+    return 0;
+}
+
+static int
+verify_ecdsa_key(struct dtls_context_t *ctx, const session_t *session,
+    const unsigned char *other_pub_x, const unsigned char *other_pub_y,
+    size_t key_size)
+{
+    struct sol_socket_dtls *socket = dtls_get_app_data(ctx);
+    struct sol_network_link_addr addr;
+
+    SOL_DBG("Verifying peer's ECDSA Public Key");
+
+    SOL_INT_CHECK(key_size, != SOL_DTLS_ECDSA_PUB_KEY_X_LEN, -EINVAL);
+    SOL_INT_CHECK(key_size, != SOL_DTLS_ECDSA_PUB_KEY_Y_LEN, -EINVAL);
+
+    SOL_NULL_CHECK(socket->credentials,
+        dtls_alert_fatal_create(DTLS_ALERT_INTERNAL_ERROR));
+    SOL_NULL_CHECK(socket->credentials->verify_ecdsa_key,
+        dtls_alert_fatal_create(DTLS_ALERT_INTERNAL_ERROR));
+
+    if (from_sockaddr(&session->addr.sa, session->size, &addr) < 0) {
+        SOL_DBG("Could not get link address from session");
+        return -EINVAL;
+    }
+
+    return socket->credentials->verify_ecdsa_key(socket->credentials->data,
+        &addr, other_pub_x, other_pub_y, key_size);
+}
+
 struct sol_socket *
 sol_socket_default_dtls_new(const struct sol_socket_options *options)
 {
@@ -668,15 +768,10 @@ sol_socket_default_dtls_new(const struct sol_socket_options *options)
         .set_read_monitor = sol_socket_dtls_set_read_monitor,
         .del = sol_socket_dtls_del
     };
-    static const dtls_handler_t dtls_handler = {
-        .write = write_encrypted,
-        .read = call_user_read_cb,
-        .event = handle_dtls_event,
-        .get_psk_info = get_psk_info
-    };
     struct sol_socket_ip_options opts;
     struct sol_socket_dtls *s;
     int r = 0;
+    uint16_t i;
 
     SOL_SOCKET_OPTIONS_CHECK_SUB_API_VERSION(options, SOL_SOCKET_IP_OPTIONS_SUB_API_VERSION, NULL);
 
@@ -708,13 +803,45 @@ sol_socket_default_dtls_new(const struct sol_socket_options *options)
         goto err;
     }
 
-    dtls_set_handler(s->context, &dtls_handler);
+    s->handler.write = write_encrypted;
+    s->handler.read = call_user_read_cb;
+    s->handler.event = handle_dtls_event;
+
+    for (i = 0; i < opts.cipher_suites_len; i++) {
+        switch (opts.cipher_suites[i]) {
+        case SOL_SOCKET_DTLS_CIPHER_PSK_AES128_CCM8:
+            SOL_DBG("Adding get_psk_info callback to %p handler", &s->handler);
+            s->handler.get_psk_info = get_psk_info;
+            break;
+        case SOL_SOCKET_DTLS_CIPHER_ECDHE_ECDSA_AES128_CCM8:
+            SOL_DBG("Adding get_ecdsa_* callbacks to %p handler", &s->handler);
+            s->handler.get_ecdsa_key = get_ecdsa_key;
+            s->handler.verify_ecdsa_key = verify_ecdsa_key;
+            break;
+        case SOL_SOCKET_DTLS_CIPHER_ECDH_ANON_AES128_CBC_SHA256:
+            SOL_WRN("Unsupported DTLS Cipher Suite at position %" PRIu16
+                ": %d", i, opts.cipher_suites[i]);
+            errno = EINVAL;
+            return NULL;
+        default:
+            SOL_WRN("Unsupported DTLS Cipher Suite at position %" PRIu16
+                ": %d", i, opts.cipher_suites[i]);
+            errno = EINVAL;
+            return NULL;
+        }
+    }
+
+    dtls_set_handler(s->context, &s->handler);
 
     s->base.type = &type;
     s->dtls_magic = dtls_magic;
 
     sol_vector_init(&s->write.queue, sizeof(struct queue_item));
     sol_vector_init(&s->read.queue, sizeof(struct queue_item));
+
+    SOL_DBG("sol_socket_dtls %p with wrapped socket %p, base socket %p,"
+        " base.type %p, context %p and handler %p created!",
+        s, s->wrapped, &s->base, s->base.type, s->context, &s->handler);
 
     return &s->base;
 

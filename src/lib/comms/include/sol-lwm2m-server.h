@@ -85,14 +85,20 @@ enum sol_lwm2m_registration_event {
  * The server will be immediately operational and waiting for connections.
  *
  * @param coap_port The UDP port to be used for the NoSec CoAP Server.
- * @param dtls_port The UDP port to be used for the Secure DTLS Server.
- * @param sec_mode The DTLS Security Mode to be used for the Secure CoAP Server.
- * @param known_psks The Clients' Pre-Shared Keys this Server has previous knowledge of.
+ * @param num_sec_modes The number of DTLS Security Modes this Bootstrap Server will support.
+ * @param ... An @c uint16_t indicating the UDP port to be used for the Secure DTLS Server; and at least one @c sol_lwm2m_security_mode followed by its relevant parameters, as per the table below:
+ *
+ * Security Mode | Follow-up arguments | Description
+ * ------------- | ------------------- | ------------------
+ * SOL_LWM2M_SECURITY_MODE_PRE_SHARED_KEY | struct sol_lwm2m_security_psk **known_psks | @c known_psks The Clients' Pre-Shared Keys this Server has previous knowledge of. It MUST be a NULL-terminated array.
+ * SOL_LWM2M_SECURITY_MODE_RAW_PUBLIC_KEY | struct sol_lwm2m_security_rpk *rpk, struct sol_blob **known_pub_keys | @c rpk This Server's Key Pair - @c known_pub_keys The Clients' Public Keys this Bootstrap Server has previous knowledge of. It MUST be a NULL-terminated array.
+ *
+ * @note: SOL_LWM2M_SECURITY_MODE_CERTIFICATE is not supported yet.
+ *
  * @return The LWM2M server or @c NULL on error.
  */
 struct sol_lwm2m_server *sol_lwm2m_server_new(uint16_t coap_port,
-    uint16_t dtls_port, enum sol_lwm2m_security_mode sec_mode,
-    struct sol_vector *known_psks);
+    uint16_t num_sec_modes, ...);
 
 /**
  * @brief Adds a registration monitor.
