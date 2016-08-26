@@ -275,6 +275,8 @@ gyroscope_open(struct sol_flow_node *node, void *data, const struct sol_flow_nod
 
     mdata->iio_base.config.buffer_size = opts->buffer_size;
     mdata->iio_base.config.sampling_frequency = opts->sampling_frequency;
+    snprintf(mdata->iio_base.config.sampling_frequency_name,
+        sizeof(mdata->iio_base.config.sampling_frequency_name), "%s", "in_anglvel_");
 
     if (mdata->iio_base.buffer_enabled) {
         mdata->iio_base.config.sol_iio_reader_cb = type->reader_cb;
@@ -354,6 +356,9 @@ magnet_open(struct sol_flow_node *node, void *data, const struct sol_flow_node_o
 
     mdata->iio_base.config.buffer_size = opts->buffer_size;
     mdata->iio_base.config.sampling_frequency = opts->sampling_frequency;
+    snprintf(mdata->iio_base.config.sampling_frequency_name,
+        sizeof(mdata->iio_base.config.sampling_frequency_name), "%s", "in_magn_");
+
     if (mdata->iio_base.buffer_enabled) {
         mdata->iio_base.config.sol_iio_reader_cb = type->reader_cb;
         mdata->iio_base.config.data = node;
@@ -666,6 +671,9 @@ accelerate_open(struct sol_flow_node *node, void *data, const struct sol_flow_no
 
     mdata->iio_base.config.buffer_size = opts->buffer_size;
     mdata->iio_base.config.sampling_frequency = opts->sampling_frequency;
+    snprintf(mdata->iio_base.config.sampling_frequency_name,
+        sizeof(mdata->iio_base.config.sampling_frequency_name), "%s", "in_accel_");
+
     if (mdata->iio_base.buffer_enabled) {
         mdata->iio_base.config.sol_iio_reader_cb = type->reader_cb;
         mdata->iio_base.config.data = node;
