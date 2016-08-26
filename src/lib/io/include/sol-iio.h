@@ -69,7 +69,7 @@ typedef struct sol_iio_channel sol_iio_channel;
  */
 typedef struct sol_iio_config {
 #ifndef SOL_NO_API_VERSION
-#define SOL_IIO_CONFIG_API_VERSION (1)
+#define SOL_IIO_CONFIG_API_VERSION (2)
     uint16_t api_version; /**< The API version */
 #endif
     const char *trigger_name; /**< Name of IIO trigger to be used on this device. If NULL or empty, will try to use device current trigger. If device has no current trigger, will create a 'sysfs_trigger' and use it. */
@@ -77,6 +77,7 @@ typedef struct sol_iio_config {
     const void *data; /**< User defined data to be sent to sol_iio_reader_cb */
     int buffer_size; /**< The size of reading buffer. 0: use device default; -1: disable buffer and readings will be performed on channel files on sysfs. */
     int sampling_frequency; /**< Device sampling frequency. -1 uses device default */
+    char sampling_frequency_name[NAME_MAX]; /**< Sampling frequency sysfs node name. Some drivers expose the sampling frequency that is shared by channel type. Such as in_magn_sampling_frequency, in_accel_sampling_frequency. */
 } sol_iio_config;
 
 /**

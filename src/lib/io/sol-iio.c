@@ -116,6 +116,8 @@ struct resolve_absolute_path_data {
 #define CHANNEL_SCAN_TYPE_PATH SYSFS_DEVICES_PATH "/iio:device%d/scan_elements/%s_type"
 
 #define SAMPLING_FREQUENCY_DEVICE_PATH SYSFS_DEVICES_PATH "/iio:device%d/sampling_frequency"
+#define CHANNEL_SAMPLING_FREQUENCY_DEVICE_PATH SYSFS_DEVICES_PATH "/iio:device%d/%ssampling_frequency"
+
 #define SAMPLING_FREQUENCY_BUFFER_PATH SYSFS_DEVICES_PATH "/iio:device%d/buffer/sampling_frequency"
 #define SAMPLING_FREQUENCY_TRIGGER_PATH SYSFS_DEVICES_PATH "/trigger%d/sampling_frequency"
 
@@ -521,14 +523,22 @@ channel_get_pure_name(struct sol_iio_channel *channel)
 }
 
 static bool
-iio_set_sampling_frequency(struct sol_iio_device *device, int frequency)
+iio_set_sampling_frequency(struct sol_iio_device *device, const struct sol_iio_config *config)
 {
     char path[PATH_MAX];
+    int frequency = config->sampling_frequency;
 
     SOL_NULL_CHECK(device, false);
 
     if (craft_filename_path(path, sizeof(path), SAMPLING_FREQUENCY_DEVICE_PATH,
         device->device_id)) {
+
+        if (sol_util_write_file(path, "%d", frequency) > 0)
+            return true;
+    }
+
+    if (craft_filename_path(path, sizeof(path), CHANNEL_SAMPLING_FREQUENCY_DEVICE_PATH,
+        device->device_id, config->sampling_frequency_name)) {
 
         if (sol_util_write_file(path, "%d", frequency) > 0)
             return true;
@@ -772,7 +782,7 @@ sol_iio_open(int device_id, const struct sol_iio_config *config)
     }
 
     if (config->sampling_frequency > -1) {
-        if (!iio_set_sampling_frequency(device, config->sampling_frequency))
+        if (!iio_set_sampling_frequency(device, config))
             SOL_WRN("Could not set device%d sampling frequency", device->device_id);
     }
 
