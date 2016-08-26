@@ -1,3 +1,4 @@
+
 /*
  * This file is part of the Soletta (TM) Project
  *
@@ -43,9 +44,21 @@ struct sol_netctl_service {
     char *path;
     char *name;
     char *type;
+    char *error;
     int32_t strength;
+    bool favorite;
+    bool immutable;
+    bool autoconnect;
+    bool roaming;
     enum sol_netctl_service_state state;
+    struct sol_ptr_vector security;
+    struct sol_ptr_vector nameservers;
+    struct sol_ptr_vector timeservers;
+    struct sol_ptr_vector domains;
     struct sol_network_link link;
+    struct sol_netctl_proxy proxy;
+    struct sol_netctl_provider provider;
+    struct sol_netctl_ethernet ethernet;
 };
 
 struct ctx {
@@ -144,17 +157,66 @@ static void
 _init_connman_service(struct sol_netctl_service *service)
 {
     SOL_SET_API_VERSION(service->link.api_version = SOL_NETWORK_LINK_API_VERSION; )
+    SOL_SET_API_VERSION(service->proxy.api_version = SOL_NETCTL_PROXY_API_VERSION; )
+    SOL_SET_API_VERSION(service->provider.api_version = SOL_NETCTL_PROVIDER_API_VERSION; )
+    SOL_SET_API_VERSION(service->ethernet.api_version = SOL_NETCTL_ETHERNET_API_VERSION; )
     sol_vector_init(&service->link.addrs, sizeof(struct sol_netctl_network_params));
+    sol_ptr_vector_init(&service->proxy.servers);
+    sol_ptr_vector_init(&service->proxy.excludes);
+    sol_ptr_vector_init(&service->security);
+    sol_ptr_vector_init(&service->nameservers);
+    sol_ptr_vector_init(&service->timeservers);
+    sol_ptr_vector_init(&service->domains);
 }
 
 static void
 _free_connman_service(struct sol_netctl_service *service)
 {
+    uint16_t i;
+    char *data;
+
     service->slot = sd_bus_slot_unref(service->slot);
 
     free(service->path);
+    free(service->name);
     free(service->type);
+    free(service->error);
+    free(service->proxy.url);
+    free(service->provider.host);
+    free(service->provider.domain);
+    free(service->provider.name);
+    free(service->provider.type);
+    free(service->ethernet.method);
+    free(service->ethernet.interface);
+    free(service->ethernet.address);
+    free(service->ethernet.duplex);
+
     sol_vector_clear(&service->link.addrs);
+
+    SOL_PTR_VECTOR_FOREACH_IDX (&service->proxy.servers, data, i)
+        free(data);
+    sol_ptr_vector_clear(&service->proxy.servers);
+
+    SOL_PTR_VECTOR_FOREACH_IDX (&service->proxy.excludes, data, i)
+        free(data);
+    sol_ptr_vector_clear(&service->proxy.excludes);
+
+    SOL_PTR_VECTOR_FOREACH_IDX (&service->security, data, i)
+        free(data);
+    sol_ptr_vector_clear(&service->security);
+
+    SOL_PTR_VECTOR_FOREACH_IDX (&service->nameservers, data, i)
+        free(data);
+    sol_ptr_vector_clear(&service->nameservers);
+
+    SOL_PTR_VECTOR_FOREACH_IDX (&service->timeservers, data, i)
+        free(data);
+    sol_ptr_vector_clear(&service->timeservers);
+
+    SOL_PTR_VECTOR_FOREACH_IDX (&service->domains, data, i)
+        free(data);
+    sol_ptr_vector_clear(&service->domains);
+
     free(service);
 }
 
@@ -174,12 +236,109 @@ sol_netctl_service_get_type(const struct sol_netctl_service *service)
     return service->type;
 }
 
+SOL_API const char *
+sol_netctl_service_get_error(const struct sol_netctl_service *service)
+{
+    SOL_NULL_CHECK(service, NULL);
+
+    return service->error;
+}
+
 SOL_API enum sol_netctl_service_state
 sol_netctl_service_get_state(const struct sol_netctl_service *service)
 {
     SOL_NULL_CHECK(service, SOL_NETCTL_SERVICE_STATE_UNKNOWN);
 
     return service->state;
+}
+
+
+SOL_API const struct sol_ptr_vector *
+sol_netctl_service_get_security(const struct sol_netctl_service *service)
+{
+    SOL_NULL_CHECK(service, NULL);
+
+    return &service->security;
+}
+
+SOL_API bool
+sol_netctl_service_is_favorite(const struct sol_netctl_service *service)
+{
+    SOL_NULL_CHECK(service, false);
+
+    return service->favorite;
+}
+
+SOL_API bool
+sol_netctl_service_is_immutable(const struct sol_netctl_service *service)
+{
+    SOL_NULL_CHECK(service, false);
+
+    return service->immutable;
+}
+
+SOL_API bool
+sol_netctl_service_is_autoconnect(const struct sol_netctl_service *service)
+{
+    SOL_NULL_CHECK(service, false);
+
+    return service->autoconnect;
+}
+
+SOL_API bool
+sol_netctl_service_is_roaming(const struct sol_netctl_service *service)
+{
+    SOL_NULL_CHECK(service, false);
+
+    return service->roaming;
+}
+
+SOL_API const struct sol_ptr_vector *
+sol_netctl_service_get_nameservers(const struct sol_netctl_service *service)
+{
+    SOL_NULL_CHECK(service, NULL);
+
+    return &service->nameservers;
+}
+
+SOL_API const struct sol_ptr_vector *
+sol_netctl_service_get_timeservers(const struct sol_netctl_service *service)
+{
+    SOL_NULL_CHECK(service, NULL);
+
+    return &service->timeservers;
+}
+
+SOL_API const struct sol_ptr_vector *
+sol_netctl_service_get_domains(const struct sol_netctl_service *service)
+{
+    SOL_NULL_CHECK(service, NULL);
+
+    return &service->domains;
+}
+
+SOL_API const struct sol_netctl_proxy *
+sol_netctl_service_get_proxy(const struct sol_netctl_service *service)
+{
+    SOL_NULL_CHECK(service, NULL);
+
+    return &service->proxy;
+}
+
+SOL_API const struct sol_netctl_provider *
+sol_netctl_service_get_provider(const struct sol_netctl_service *service)
+{
+    SOL_NULL_CHECK(service, NULL);
+
+    return &service->provider;
+}
+
+SOL_API const struct sol_netctl_ethernet *
+sol_netctl_service_get_ethernet(const struct sol_netctl_service *service)
+{
+    SOL_NULL_CHECK(service, NULL);
+
+    return &service->ethernet;
 }
 
 SOL_API int
@@ -265,7 +424,7 @@ get_service_ip(sd_bus_message *m,
     struct sol_network_link *link, enum sol_network_family family)
 {
     char *str;
-    int r;
+    int r, exit;
 
     SOL_NULL_CHECK(link, -EINVAL);
 
@@ -274,10 +433,10 @@ get_service_ip(sd_bus_message *m,
 
     do {
         r = sd_bus_message_enter_container(m, SD_BUS_TYPE_DICT_ENTRY, "sv");
-        SOL_INT_CHECK_GOTO(r, < 1, end);
+        SOL_INT_CHECK(r, < 0, r);
 
         r = sd_bus_message_read_basic(m, SD_BUS_TYPE_STRING, &str);
-        SOL_INT_CHECK(r, < 0, r);
+        SOL_INT_CHECK_GOTO(r, < 0, end);
         if (streq(str, "Address")) {
             char *address;
 
@@ -285,7 +444,7 @@ get_service_ip(sd_bus_message *m,
             SOL_INT_CHECK(r, < 0, r);
 
             r = sd_bus_message_read_basic(m, SD_BUS_TYPE_STRING, &address);
-            SOL_INT_CHECK(r, < 0, r);
+            SOL_INT_CHECK_GOTO(r, < 0, end);
 
             get_address_ip(link, address, family);
 
@@ -298,7 +457,7 @@ get_service_ip(sd_bus_message *m,
             SOL_INT_CHECK(r, < 0, r);
 
             r = sd_bus_message_read_basic(m, SD_BUS_TYPE_STRING, &netmask);
-            SOL_INT_CHECK(r, < 0, r);
+            SOL_INT_CHECK_GOTO(r, < 0, end);
 
             get_netmask(link, netmask, family);
 
@@ -311,7 +470,7 @@ get_service_ip(sd_bus_message *m,
             SOL_INT_CHECK(r, < 0, r);
 
             r = sd_bus_message_read_basic(m, SD_BUS_TYPE_STRING, &gateway);
-            SOL_INT_CHECK(r, < 0, r);
+            SOL_INT_CHECK_GOTO(r, < 0, end);
 
             get_gateway(link, gateway, family);
 
@@ -328,8 +487,317 @@ get_service_ip(sd_bus_message *m,
     } while (1);
 
 end:
-    if (r == 0)
+    exit = sd_bus_message_exit_container(m);
+    SOL_INT_CHECK(exit, < 0, exit);
+
+    return r;
+}
+
+static int
+get_proxy_info(sd_bus_message *m, struct sol_netctl_proxy *proxy)
+{
+    char *str;
+    uint16_t i;
+    int r, exit;
+
+    r = sd_bus_message_enter_container(m, SD_BUS_TYPE_ARRAY, "{sv}");
+    SOL_INT_CHECK(r, < 0, r);
+
+    do {
+        r = sd_bus_message_enter_container(m, SD_BUS_TYPE_DICT_ENTRY, "sv");
+        SOL_INT_CHECK(r, < 0, r);
+
+        r = sd_bus_message_read_basic(m, SD_BUS_TYPE_STRING, &str);
+        SOL_INT_CHECK_GOTO(r, < 0, end);
+        if (streq(str, "Method")) {
+            char *method;
+
+            static const struct sol_str_table table[] = {
+                SOL_STR_TABLE_ITEM("direct",
+                    SOL_NETCTL_PROXY_METHOD_DIRECT),
+                SOL_STR_TABLE_ITEM("auto",
+                    SOL_NETCTL_PROXY_METHOD_AUTO),
+                SOL_STR_TABLE_ITEM("manual",
+                    SOL_NETCTL_PROXY_METHOD_MANUAL),
+                { }
+            };
+
+            r = sd_bus_message_enter_container(m, SD_BUS_TYPE_VARIANT, "s");
+            SOL_INT_CHECK(r, < 0, r);
+
+            r = sd_bus_message_read_basic(m, SD_BUS_TYPE_STRING, &method);
+            SOL_INT_CHECK_GOTO(r, < 0, end);
+
+            if (method)
+                proxy->method = sol_str_table_lookup_fallback(table,
+                    sol_str_slice_from_str(method),
+                    SOL_NETCTL_PROXY_METHOD_DIRECT);
+
+            r = sd_bus_message_exit_container(m);
+            SOL_INT_CHECK(r, < 0, r);
+        } else if (streq(str, "URL")) {
+            char *url;
+
+            r = sd_bus_message_enter_container(m, SD_BUS_TYPE_VARIANT, "s");
+            SOL_INT_CHECK(r, < 0, r);
+
+            r = sd_bus_message_read_basic(m, SD_BUS_TYPE_STRING, &url);
+            SOL_INT_CHECK_GOTO(r, < 0, end);
+
+            r = sol_util_replace_str_if_changed(&proxy->url, url);
+            SOL_INT_CHECK_GOTO(r, < 0, end);
+
+            r = sd_bus_message_exit_container(m);
+            SOL_INT_CHECK(r, < 0, r);
+        } else if (streq(str, "Servers")) {
+            char *server;
+
+            SOL_PTR_VECTOR_FOREACH_IDX (&proxy->servers, server, i)
+                free(server);
+            sol_ptr_vector_clear(&proxy->servers);
+
+            r = sd_bus_message_enter_container(m, 'a', "s");
+            SOL_INT_CHECK(r, < 0, r);
+
+            while (sd_bus_message_read_basic(m, 's', &server) > 0) {
+                r = sol_ptr_vector_append(&proxy->servers, server);
+                SOL_INT_CHECK_GOTO(r, < 0, end);
+            }
+
+            r = sd_bus_message_exit_container(m);
+            SOL_INT_CHECK(r, < 0, r);
+        } else if (streq(str, "Excludes")) {
+            char *exclude;
+
+            SOL_PTR_VECTOR_FOREACH_IDX (&proxy->excludes, exclude, i)
+                free(exclude);
+            sol_ptr_vector_clear(&proxy->excludes);
+
+            r = sd_bus_message_enter_container(m, 'a', "s");
+            SOL_INT_CHECK(r, < 0, r);
+
+            while (sd_bus_message_read_basic(m, 's', &exclude) > 0) {
+                r = sol_ptr_vector_append(&proxy->excludes, exclude);
+                SOL_INT_CHECK_GOTO(r, < 0, end);
+            }
+
+            r = sd_bus_message_exit_container(m);
+            SOL_INT_CHECK(r, < 0, r);
+        } else {
+            SOL_DBG("Ignored service proxy property: %s", str);
+            r = sd_bus_message_skip(m, "v");
+            SOL_INT_CHECK(r, < 0, r);
+        }
+
         r = sd_bus_message_exit_container(m);
+        SOL_INT_CHECK(r, < 0, r);
+    } while (1);
+
+end:
+    exit = sd_bus_message_exit_container(m);
+    SOL_INT_CHECK(exit, < 0, exit);
+
+    return r;
+}
+
+static int
+get_provider_info(sd_bus_message *m, struct sol_netctl_provider *provider)
+{
+    char *str;
+    int r, exit;
+
+    r = sd_bus_message_enter_container(m, SD_BUS_TYPE_ARRAY, "{sv}");
+    SOL_INT_CHECK(r, < 0, r);
+
+    do {
+        r = sd_bus_message_enter_container(m, SD_BUS_TYPE_DICT_ENTRY, "sv");
+        SOL_INT_CHECK(r, < 0, r);
+
+        r = sd_bus_message_read_basic(m, SD_BUS_TYPE_STRING, &str);
+        SOL_INT_CHECK_GOTO(r, < 0, end);
+        if (streq(str, "Host")) {
+            char *host;
+
+            r = sd_bus_message_enter_container(m, SD_BUS_TYPE_VARIANT, "s");
+            SOL_INT_CHECK(r, < 0, r);
+
+            r = sd_bus_message_read_basic(m, SD_BUS_TYPE_STRING, &host);
+            SOL_INT_CHECK_GOTO(r, < 0, end);
+
+            r = sol_util_replace_str_if_changed(&provider->host, host);
+            SOL_INT_CHECK_GOTO(r, < 0, end);
+
+            r = sd_bus_message_exit_container(m);
+            SOL_INT_CHECK(r, < 0, r);
+        } else if (streq(str, "Domain")) {
+            char *domain;
+
+            r = sd_bus_message_enter_container(m, SD_BUS_TYPE_VARIANT, "s");
+            SOL_INT_CHECK(r, < 0, r);
+
+            r = sd_bus_message_read_basic(m, SD_BUS_TYPE_STRING, &domain);
+            SOL_INT_CHECK_GOTO(r, < 0, end);
+
+            r = sol_util_replace_str_if_changed(&provider->domain, domain);
+            SOL_INT_CHECK_GOTO(r, < 0, end);
+
+            r = sd_bus_message_exit_container(m);
+            SOL_INT_CHECK(r, < 0, r);
+        } else if (streq(str, "Name")) {
+            char *name;
+
+            r = sd_bus_message_enter_container(m, SD_BUS_TYPE_VARIANT, "s");
+            SOL_INT_CHECK(r, < 0, r);
+
+            r = sd_bus_message_read_basic(m, SD_BUS_TYPE_STRING, &name);
+            SOL_INT_CHECK_GOTO(r, < 0, end);
+
+            r = sol_util_replace_str_if_changed(&provider->name, name);
+            SOL_INT_CHECK_GOTO(r, < 0, end);
+
+            r = sd_bus_message_exit_container(m);
+            SOL_INT_CHECK(r, < 0, r);
+        } else if (streq(str, "Type")) {
+            char *type;
+
+            r = sd_bus_message_enter_container(m, SD_BUS_TYPE_VARIANT, "s");
+            SOL_INT_CHECK(r, < 0, r);
+
+            r = sd_bus_message_read_basic(m, SD_BUS_TYPE_STRING, &type);
+            SOL_INT_CHECK_GOTO(r, < 0, end);
+
+            r = sol_util_replace_str_if_changed(&provider->type, type);
+            SOL_INT_CHECK_GOTO(r, < 0, end);
+
+            r = sd_bus_message_exit_container(m);
+            SOL_INT_CHECK(r, < 0, r);
+        } else {
+            SOL_DBG("Ignored service provider property: %s", str);
+            r = sd_bus_message_skip(m, "v");
+            SOL_INT_CHECK(r, < 0, r);
+        }
+
+        r = sd_bus_message_exit_container(m);
+        SOL_INT_CHECK(r, < 0, r);
+    } while (1);
+
+end:
+    exit = sd_bus_message_exit_container(m);
+    SOL_INT_CHECK(exit, < 0, exit);
+
+    return r;
+}
+
+static int
+get_ethernet_info(sd_bus_message *m, struct sol_netctl_ethernet *ethernet)
+{
+    char *str;
+    int r, exit;
+
+    r = sd_bus_message_enter_container(m, SD_BUS_TYPE_ARRAY, "{sv}");
+    SOL_INT_CHECK(r, < 0, r);
+
+    do {
+        r = sd_bus_message_enter_container(m, SD_BUS_TYPE_DICT_ENTRY, "sv");
+        SOL_INT_CHECK(r, < 0, r);
+
+        r = sd_bus_message_read_basic(m, SD_BUS_TYPE_STRING, &str);
+        SOL_INT_CHECK_GOTO(r, < 0, end);
+        if (streq(str, "Method")) {
+            char *method;
+
+            r = sd_bus_message_enter_container(m, SD_BUS_TYPE_VARIANT, "s");
+            SOL_INT_CHECK(r, < 0, r);
+
+            r = sd_bus_message_read_basic(m, SD_BUS_TYPE_STRING, &method);
+            SOL_INT_CHECK_GOTO(r, < 0, end);
+
+            r = sol_util_replace_str_if_changed(&ethernet->method, method);
+            SOL_INT_CHECK_GOTO(r, < 0, end);
+
+            r = sd_bus_message_exit_container(m);
+            SOL_INT_CHECK(r, < 0, r);
+        } else if (streq(str, "Interface")) {
+            char *interface;
+
+            r = sd_bus_message_enter_container(m, SD_BUS_TYPE_VARIANT, "s");
+            SOL_INT_CHECK(r, < 0, r);
+
+            r = sd_bus_message_read_basic(m, SD_BUS_TYPE_STRING, &interface);
+            SOL_INT_CHECK_GOTO(r, < 0, end);
+
+            r = sol_util_replace_str_if_changed(&ethernet->interface, interface);
+            SOL_INT_CHECK_GOTO(r, < 0, end);
+
+            r = sd_bus_message_exit_container(m);
+            SOL_INT_CHECK(r, < 0, r);
+        } else if (streq(str, "Address")) {
+            char *address;
+
+            r = sd_bus_message_enter_container(m, SD_BUS_TYPE_VARIANT, "s");
+            SOL_INT_CHECK(r, < 0, r);
+
+            r = sd_bus_message_read_basic(m, SD_BUS_TYPE_STRING, &address);
+            SOL_INT_CHECK_GOTO(r, < 0, end);
+
+            r = sol_util_replace_str_if_changed(&ethernet->address, address);
+            SOL_INT_CHECK_GOTO(r, < 0, end);
+
+            r = sd_bus_message_exit_container(m);
+            SOL_INT_CHECK(r, < 0, r);
+        } else if (streq(str, "MTU")) {
+            uint16_t mtu = 0;
+
+            r = sd_bus_message_enter_container(m, SD_BUS_TYPE_VARIANT, "q");
+            SOL_INT_CHECK(r, < 0, r);
+
+            r = sd_bus_message_read_basic(m, SD_BUS_TYPE_UINT16, &mtu);
+            SOL_INT_CHECK_GOTO(r, < 0, end);
+
+            ethernet->mtu = mtu;
+
+            r = sd_bus_message_exit_container(m);
+            SOL_INT_CHECK(r, < 0, r);
+        } else if (streq(str, "Speed")) {
+            uint16_t speed = 0;
+
+            r = sd_bus_message_enter_container(m, SD_BUS_TYPE_VARIANT, "q");
+            SOL_INT_CHECK(r, < 0, r);
+
+            r = sd_bus_message_read_basic(m, SD_BUS_TYPE_UINT16, &speed);
+            SOL_INT_CHECK_GOTO(r, < 0, end);
+
+            ethernet->speed = speed;
+
+            r = sd_bus_message_exit_container(m);
+            SOL_INT_CHECK(r, < 0, r);
+        } else if (streq(str, "Duplex")) {
+            char *duplex;
+
+            r = sd_bus_message_enter_container(m, SD_BUS_TYPE_VARIANT, "s");
+            SOL_INT_CHECK(r, < 0, r);
+
+            r = sd_bus_message_read_basic(m, SD_BUS_TYPE_STRING, &duplex);
+            SOL_INT_CHECK_GOTO(r, < 0, end);
+
+            r = sol_util_replace_str_if_changed(&ethernet->duplex, duplex);
+            SOL_INT_CHECK_GOTO(r, < 0, end);
+
+            r = sd_bus_message_exit_container(m);
+            SOL_INT_CHECK(r, < 0, r);
+        } else {
+            SOL_DBG("Ignored service ethernet property: %s", str);
+            r = sd_bus_message_skip(m, "v");
+            SOL_INT_CHECK(r, < 0, r);
+        }
+
+        r = sd_bus_message_exit_container(m);
+        SOL_INT_CHECK(r, < 0, r);
+    } while (1);
+
+end:
+    exit = sd_bus_message_exit_container(m);
+    SOL_INT_CHECK(exit, < 0, exit);
 
     return r;
 }
@@ -393,7 +861,8 @@ fail_append:
 static int
 get_services_properties(sd_bus_message *m, const char *path)
 {
-    int r;
+    int r, exit;
+    uint16_t i;
     struct sol_netctl_service *service;
 
     service = find_service_by_path(path);
@@ -406,10 +875,10 @@ get_services_properties(sd_bus_message *m, const char *path)
         char *str;
 
         r = sd_bus_message_enter_container(m, SD_BUS_TYPE_DICT_ENTRY, "sv");
-        SOL_INT_CHECK_GOTO(r, < 1, end);
+        SOL_INT_CHECK(r, < 0, r);
 
         r = sd_bus_message_read_basic(m, SD_BUS_TYPE_STRING, &str);
-        SOL_INT_CHECK(r, < 0, r);
+        SOL_INT_CHECK_GOTO(r, < 0, end);
         if (streq(str, "Name")) {
             char *name;
 
@@ -417,10 +886,10 @@ get_services_properties(sd_bus_message *m, const char *path)
             SOL_INT_CHECK(r, < 0, r);
 
             r = sd_bus_message_read_basic(m, SD_BUS_TYPE_STRING, &name);
-            SOL_INT_CHECK(r, < 0, r);
+            SOL_INT_CHECK_GOTO(r, < 0, end);
 
             r = sol_util_replace_str_if_changed(&service->name, name);
-            SOL_INT_CHECK(r, < 0, r);
+            SOL_INT_CHECK_GOTO(r, < 0, end);
 
             r = sd_bus_message_exit_container(m);
             SOL_INT_CHECK(r, < 0, r);
@@ -448,12 +917,26 @@ get_services_properties(sd_bus_message *m, const char *path)
             SOL_INT_CHECK(r, < 0, r);
 
             r = sd_bus_message_read_basic(m, SD_BUS_TYPE_STRING, &state);
-            SOL_INT_CHECK(r, < 0, r);
+            SOL_INT_CHECK_GOTO(r, < 0, end);
 
             if (state)
                 service->state = sol_str_table_lookup_fallback(table,
                     sol_str_slice_from_str(state),
                     SOL_NETCTL_SERVICE_STATE_UNKNOWN);
+
+            r = sd_bus_message_exit_container(m);
+            SOL_INT_CHECK(r, < 0, r);
+        } else if (streq(str, "Error")) {
+            char *error;
+
+            r = sd_bus_message_enter_container(m, SD_BUS_TYPE_VARIANT, "s");
+            SOL_INT_CHECK(r, < 0, r);
+
+            r = sd_bus_message_read_basic(m, SD_BUS_TYPE_STRING, &error);
+            SOL_INT_CHECK_GOTO(r, < 0, end);
+
+            r = sol_util_replace_str_if_changed(&service->error, error);
+            SOL_INT_CHECK_GOTO(r, < 0, end);
 
             r = sd_bus_message_exit_container(m);
             SOL_INT_CHECK(r, < 0, r);
@@ -464,7 +947,7 @@ get_services_properties(sd_bus_message *m, const char *path)
             SOL_INT_CHECK(r, < 0, r);
 
             r = sd_bus_message_read_basic(m, SD_BUS_TYPE_BYTE, &strength);
-            SOL_INT_CHECK(r, < 0, r);
+            SOL_INT_CHECK_GOTO(r, < 0, end);
 
             service->strength = strength;
 
@@ -477,10 +960,130 @@ get_services_properties(sd_bus_message *m, const char *path)
             SOL_INT_CHECK(r, < 0, r);
 
             r = sd_bus_message_read_basic(m, SD_BUS_TYPE_STRING, &type);
-            SOL_INT_CHECK(r, < 0, r);
+            SOL_INT_CHECK_GOTO(r, < 0, end);
 
             r = sol_util_replace_str_if_changed(&service->type, type);
+            SOL_INT_CHECK_GOTO(r, < 0, end);
+
+            r = sd_bus_message_exit_container(m);
             SOL_INT_CHECK(r, < 0, r);
+        }  else if (streq(str, "Security")) {
+            char *security;
+
+            SOL_PTR_VECTOR_FOREACH_IDX (&service->security, security, i)
+                free(security);
+            sol_ptr_vector_clear(&service->security);
+
+            r = sd_bus_message_enter_container(m, 'a', "s");
+            SOL_INT_CHECK(r, < 0, r);
+
+            while (sd_bus_message_read_basic(m, 's', &security) > 0) {
+                r = sol_ptr_vector_append(&service->security, security);
+                SOL_INT_CHECK_GOTO(r, < 0, end);
+            }
+
+            r = sd_bus_message_exit_container(m);
+            SOL_INT_CHECK(r, < 0, r);
+        } else if (streq(str, "Favorite")) {
+            bool favorite;
+
+            r = sd_bus_message_enter_container(m, SD_BUS_TYPE_VARIANT, "b");
+            SOL_INT_CHECK(r, < 0, r);
+
+            r = sd_bus_message_read_basic(m, 'b', &favorite);
+            SOL_INT_CHECK_GOTO(r, < 0, end);
+
+            service->favorite = favorite;
+
+            r = sd_bus_message_exit_container(m);
+            SOL_INT_CHECK(r, < 0, r);
+        } else if (streq(str, "Immutable")) {
+            bool immutable;
+
+            r = sd_bus_message_enter_container(m, SD_BUS_TYPE_VARIANT, "b");
+            SOL_INT_CHECK(r, < 0, r);
+
+            r = sd_bus_message_read_basic(m, 'b', &immutable);
+            SOL_INT_CHECK_GOTO(r, < 0, end);
+
+            service->immutable = immutable;
+
+            r = sd_bus_message_exit_container(m);
+            SOL_INT_CHECK(r, < 0, r);
+        } else if (streq(str, "AutoConnect")) {
+            bool autoconnect;
+
+            r = sd_bus_message_enter_container(m, SD_BUS_TYPE_VARIANT, "b");
+            SOL_INT_CHECK(r, < 0, r);
+
+            r = sd_bus_message_read_basic(m, 'b', &autoconnect);
+            SOL_INT_CHECK_GOTO(r, < 0, end);
+
+            service->autoconnect = autoconnect;
+
+            r = sd_bus_message_exit_container(m);
+            SOL_INT_CHECK(r, < 0, r);
+        } else if (streq(str, "Roaming")) {
+            bool roaming;
+
+            r = sd_bus_message_enter_container(m, SD_BUS_TYPE_VARIANT, "b");
+            SOL_INT_CHECK(r, < 0, r);
+
+            r = sd_bus_message_read_basic(m, 'b', &roaming);
+            SOL_INT_CHECK_GOTO(r, < 0, end);
+
+            service->roaming = roaming;
+
+            r = sd_bus_message_exit_container(m);
+            SOL_INT_CHECK(r, < 0, r);
+        } else if (streq(str, "Nameservers")) {
+            char *nameserver;
+
+            SOL_PTR_VECTOR_FOREACH_IDX (&service->nameservers, nameserver, i)
+                free(nameserver);
+            sol_ptr_vector_clear(&service->nameservers);
+
+            r = sd_bus_message_enter_container(m, 'a', "s");
+            SOL_INT_CHECK(r, < 0, r);
+
+            while (sd_bus_message_read_basic(m, 's', &nameserver) > 0) {
+                r = sol_ptr_vector_append(&service->nameservers, nameserver);
+                SOL_INT_CHECK_GOTO(r, < 0, end);
+            }
+
+            r = sd_bus_message_exit_container(m);
+            SOL_INT_CHECK(r, < 0, r);
+        } else if (streq(str, "Timeservers")) {
+            char *timeserver;
+
+            SOL_PTR_VECTOR_FOREACH_IDX (&service->timeservers, timeserver, i)
+                free(timeserver);
+            sol_ptr_vector_clear(&service->timeservers);
+
+            r = sd_bus_message_enter_container(m, 'a', "s");
+            SOL_INT_CHECK(r, < 0, r);
+
+            while (sd_bus_message_read_basic(m, 's', &timeserver) > 0) {
+                r = sol_ptr_vector_append(&service->timeservers, timeserver);
+                SOL_INT_CHECK_GOTO(r, < 0, end);
+            }
+
+            r = sd_bus_message_exit_container(m);
+            SOL_INT_CHECK(r, < 0, r);
+        } else if (streq(str, "Domains")) {
+            char *domain;
+
+            SOL_PTR_VECTOR_FOREACH_IDX (&service->domains, domain, i)
+                free(domain);
+            sol_ptr_vector_clear(&service->domains);
+
+            r = sd_bus_message_enter_container(m, 'a', "s");
+            SOL_INT_CHECK(r, < 0, r);
+
+            while (sd_bus_message_read_basic(m, 's', &domain) > 0) {
+                r = sol_ptr_vector_append(&service->domains, domain);
+                SOL_INT_CHECK_GOTO(r, < 0, end);
+            }
 
             r = sd_bus_message_exit_container(m);
             SOL_INT_CHECK(r, < 0, r);
@@ -488,7 +1091,8 @@ get_services_properties(sd_bus_message *m, const char *path)
             r = sd_bus_message_enter_container(m, SD_BUS_TYPE_VARIANT, "a{sv}");
             SOL_INT_CHECK(r, < 0, r);
 
-            get_service_ip(m, &service->link, SOL_NETWORK_FAMILY_INET);
+            r = get_service_ip(m, &service->link, SOL_NETWORK_FAMILY_INET);
+            SOL_INT_CHECK_GOTO(r, < 0, end);
 
             r = sd_bus_message_exit_container(m);
             SOL_INT_CHECK(r, < 0, r);
@@ -496,11 +1100,39 @@ get_services_properties(sd_bus_message *m, const char *path)
             r = sd_bus_message_enter_container(m, SD_BUS_TYPE_VARIANT, "a{sv}");
             SOL_INT_CHECK(r, < 0, r);
 
-            get_service_ip(m, &service->link, SOL_NETWORK_FAMILY_INET6);
+            r = get_service_ip(m, &service->link, SOL_NETWORK_FAMILY_INET6);
+            SOL_INT_CHECK_GOTO(r, < 0, end);
 
             r = sd_bus_message_exit_container(m);
             SOL_INT_CHECK(r, < 0, r);
-        }  else {
+        } else if (streq(str, "Proxy")) {
+            r = sd_bus_message_enter_container(m, SD_BUS_TYPE_VARIANT, "a{sv}");
+            SOL_INT_CHECK(r, < 0, r);
+
+            r = get_proxy_info(m, &service->proxy);
+            SOL_INT_CHECK_GOTO(r, < 0, end);
+
+            r = sd_bus_message_exit_container(m);
+            SOL_INT_CHECK(r, < 0, r);
+        } else if (streq(str, "Provider")) {
+            r = sd_bus_message_enter_container(m, SD_BUS_TYPE_VARIANT, "a{sv}");
+            SOL_INT_CHECK(r, < 0, r);
+
+            r = get_provider_info(m, &service->provider);
+            SOL_INT_CHECK_GOTO(r, < 0, end);
+
+            r = sd_bus_message_exit_container(m);
+            SOL_INT_CHECK(r, < 0, r);
+        } else if (streq(str, "Ethernet")) {
+            r = sd_bus_message_enter_container(m, SD_BUS_TYPE_VARIANT, "a{sv}");
+            SOL_INT_CHECK(r, < 0, r);
+
+            r = get_ethernet_info(m, &service->ethernet);
+            SOL_INT_CHECK_GOTO(r, < 0, end);
+
+            r = sd_bus_message_exit_container(m);
+            SOL_INT_CHECK(r, < 0, r);
+        } else {
             SOL_DBG("Ignored service property: %s", str);
             r = sd_bus_message_skip(m, NULL);
             SOL_INT_CHECK(r, < 0, r);
@@ -510,15 +1142,12 @@ get_services_properties(sd_bus_message *m, const char *path)
     } while (1);
 
 end:
-    if (r == 0) {
-        r = sd_bus_message_exit_container(m);
-        SOL_INT_CHECK(r, < 0, r);
-    } else
-        return r;
+    exit = sd_bus_message_exit_container(m);
+    SOL_INT_CHECK(exit, < 0, exit);
 
     call_service_monitor_callback(service);
 
-    return 0;
+    return r;
 }
 
 static int
