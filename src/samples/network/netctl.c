@@ -196,6 +196,9 @@ startup(void)
 
     r = sol_netctl_register_agent(&agent, NULL);
     printf("register agent return value r = %d\n", r);
+
+    r = sol_netctl_scan();
+    printf("scan devices return value r = %d\n", r);
 }
 
 SOL_MAIN_DEFAULT(startup, shutdown);
