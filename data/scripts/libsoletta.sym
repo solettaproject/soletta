@@ -885,3 +885,11 @@ global:
 local:
         *;
 };
+
+LIBSOLETTA_2 {
+global:
+        sol_netctl_register_agent;
+        sol_netctl_report_error;
+        sol_netctl_request_input;
+        sol_netctl_scan;
+} LIBSOLETTA_1;
