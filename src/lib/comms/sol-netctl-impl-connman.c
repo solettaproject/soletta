@@ -1452,6 +1452,76 @@ _agent_callback(sd_bus_message *reply, void *userdata,
 }
 
 SOL_API int
+sol_netctl_request_input(struct sol_netctl_service *service,
+    const struct sol_vector *inputs)
+{
+    int r;
+    uint16_t i;
+    sd_bus_message *reply = NULL;
+    sol_netctl_agent_input *input;
+
+    SOL_NULL_CHECK(service, -EINVAL);
+    SOL_NULL_CHECK(inputs, -EINVAL);
+    SOL_NULL_CHECK(_ctx.agent, -EINVAL);
+    SOL_NULL_CHECK(_ctx.agent_msg, -EINVAL);
+
+    if (_ctx.auth_service != service) {
+        SOL_WRN("The connection is not the one being authenticated");
+        return -EINVAL;
+    }
+
+    r = sd_bus_message_new_method_return(_ctx.agent_msg, &reply);
+    SOL_INT_CHECK_GOTO(r, < 0, fail);
+
+    r = sd_bus_message_open_container(reply, 'a', "{sv}");
+    SOL_INT_CHECK_GOTO(r, < 0, fail);
+
+    SOL_VECTOR_FOREACH_IDX (inputs, input, i) {
+        if (!input->input || !input->type)
+            continue;
+        if (streq(input->type, SOL_NETCTL_AGENT_NAME)) {
+            r = sd_bus_message_append(reply, "{sv}", "Name", "s", input->input);
+            SOL_INT_CHECK_GOTO(r, < 0, fail);
+        } else if (streq(input->type, SOL_NETCTL_AGENT_PASSPHRASE)) {
+            r = sd_bus_message_append(reply, "{sv}", "Passphrase", "s", input->input);
+            SOL_INT_CHECK_GOTO(r, < 0, fail);
+        } else if (streq(input->type, SOL_NETCTL_AGENT_IDENTITY)) {
+            r = sd_bus_message_append(reply, "{sv}", "Identity", "s", input->input);
+            SOL_INT_CHECK_GOTO(r, < 0, fail);
+        } else if (streq(input->type, SOL_NETCTL_AGENT_WPS)) {
+            r = sd_bus_message_append(reply, "{sv}", "WPS", "s", input->input);
+            SOL_INT_CHECK_GOTO(r, < 0, fail);
+        } else if (streq(input->type, SOL_NETCTL_AGENT_USERNAME)) {
+            r = sd_bus_message_append(reply, "{sv}", "Username", "s", input->input);
+            SOL_INT_CHECK_GOTO(r, < 0, fail);
+        } else if (streq(input->type, SOL_NETCTL_AGENT_PASSWORD)) {
+            r = sd_bus_message_append(reply, "{sv}", "Password", "s", input->input);
+            SOL_INT_CHECK_GOTO(r, < 0, fail);
+        } else {
+            SOL_WRN("The input type is not right");
+            break;
+        }
+    }
+
+    r = sd_bus_message_close_container(reply);
+    SOL_INT_CHECK_GOTO(r, < 0, fail);
+
+    r = sd_bus_send(NULL, reply, NULL);
+    sd_bus_message_unref(reply);
+
+    _ctx.agent_msg = sd_bus_message_unref(_ctx.agent_msg);
+
+    return 0;
+fail:
+    sd_bus_message_unref(reply);
+
+    if (r < 0)
+        return r;
+
+    return -EINVAL;
+}
+
+SOL_API int
 sol_netctl_report_error(struct sol_netctl_service *service,
     bool is_type)
 {
