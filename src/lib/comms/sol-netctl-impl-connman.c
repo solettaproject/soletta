@@ -406,6 +406,7 @@ get_services_properties(sd_bus_message *m, const char *path)
 {
     int r;
     struct sol_netctl_service *service;
+    bool is_changed = false;
 
     service = find_service_by_path(path);
     SOL_NULL_CHECK(service, -ENOMEM);
@@ -435,6 +436,8 @@ get_services_properties(sd_bus_message *m, const char *path)
 
             r = sd_bus_message_exit_container(m);
             SOL_INT_CHECK(r, < 0, r);
+
+            is_changed = true;
         } else if (streq(str, "State")) {
             char *state;
             static const struct sol_str_table table[] = {
@@ -468,6 +471,8 @@ get_services_properties(sd_bus_message *m, const char *path)
 
             r = sd_bus_message_exit_container(m);
             SOL_INT_CHECK(r, < 0, r);
+
+            is_changed = true;
         } else if (streq(str, "Strength")) {
             uint8_t strength = 0;
 
@@ -481,6 +486,8 @@ get_services_properties(sd_bus_message *m, const char *path)
 
             r = sd_bus_message_exit_container(m);
             SOL_INT_CHECK(r, < 0, r);
+
+            is_changed = true;
         } else if (streq(str, "Type")) {
             char *type;
 
@@ -495,6 +502,8 @@ get_services_properties(sd_bus_message *m, const char *path)
 
             r = sd_bus_message_exit_container(m);
             SOL_INT_CHECK(r, < 0, r);
+
+            is_changed = true;
         } else if (streq(str, "IPv4")) {
             r = sd_bus_message_enter_container(m, SD_BUS_TYPE_VARIANT, "a{sv}");
             SOL_INT_CHECK(r, < 0, r);
@@ -503,6 +512,8 @@ get_services_properties(sd_bus_message *m, const char *path)
 
             r = sd_bus_message_exit_container(m);
             SOL_INT_CHECK(r, < 0, r);
+
+            is_changed = true;
         } else if (streq(str, "IPv6")) {
             r = sd_bus_message_enter_container(m, SD_BUS_TYPE_VARIANT, "a{sv}");
             SOL_INT_CHECK(r, < 0, r);
@@ -511,6 +522,8 @@ get_services_properties(sd_bus_message *m, const char *path)
 
             r = sd_bus_message_exit_container(m);
             SOL_INT_CHECK(r, < 0, r);
+
+            is_changed = true;
         }  else {
             SOL_DBG("Ignored service property: %s", str);
             r = sd_bus_message_skip(m, NULL);
@@ -527,7 +540,8 @@ end:
     } else
         return r;
 
-    call_service_monitor_callback(service);
+    if (is_changed)
+        call_service_monitor_callback(service);
 
     return 0;
 }
