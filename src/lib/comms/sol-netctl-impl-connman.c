@@ -1452,6 +1452,54 @@ _agent_callback(sd_bus_message *reply, void *userdata,
 }
 
 SOL_API int
+sol_netctl_report_error(struct sol_netctl_service *service,
+    bool is_type)
+{
+    int r = 0;
+    sd_bus_message *reply = false;
+    const char *interface;
+
+    SOL_NULL_CHECK(service, -EINVAL);
+    SOL_NULL_CHECK(_ctx.agent, -EINVAL);
+    SOL_NULL_CHECK(_ctx.agent_msg, -EINVAL);
+
+    if (_ctx.auth_service != service) {
+        SOL_WRN("The connection is not the one being authenticated");
+        return -EINVAL;
+    }
+
+    if (is_type) {
+        interface = sd_bus_message_get_interface(_ctx.agent_msg);
+        SOL_NULL_CHECK_GOTO(interface, fail);
+        if (strcmp(interface, CONNMAN_AGENT_INTERFACE) == 0)
+            r = sd_bus_message_new_method_errorf(_ctx.agent_msg, &reply,
+                "net.connman.Agent.Error.Retry", NULL);
+        else
+            r = sd_bus_message_new_method_errorf(_ctx.agent_msg, &reply,
+                "net.connman.vpn.Agent.Error.Retry", NULL);
+        SOL_INT_CHECK_GOTO(r, < 0, fail);
+
+        r = sd_bus_send(NULL, reply, NULL);
+        sd_bus_message_unref(reply);
+        SOL_INT_CHECK_GOTO(r, < 0, fail);
+    } else {
+        r = sd_bus_reply_method_return(_ctx.agent_msg, NULL);
+        SOL_INT_CHECK_GOTO(r, < 0, fail);
+    }
+
+    _ctx.agent_msg = sd_bus_message_unref(_ctx.agent_msg);
+
+    return 0;
+fail:
+    sd_bus_message_unref(reply);
+
+    if (r < 0)
+        return r;
+
+    return -EINVAL;
+}
+
+SOL_API int
 sol_netctl_register_agent(const struct sol_netctl_agent *agent, const void *data)
 {
     int r;
