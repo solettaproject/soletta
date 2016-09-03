@@ -272,7 +272,7 @@ set_service_name(struct sol_flow_node *node, void *data, uint16_t port, uint16_t
         sol_flow_send_error_packet(node, -r, "Could not handle pending connection to service: %s: %s",
             mdata->service_name, sol_util_strerrora(-r));
 
-    mdata->pending == NONE;
+    mdata->pending = NONE;
 
 done:
     return state_dispatch(node, mdata);
