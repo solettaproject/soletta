@@ -71,7 +71,7 @@ open_list_services(struct sol_flow_node *node, void *data, const struct sol_flow
 
     service_list = sol_netctl_get_services();
     if (!service_list)
-        return NULL;
+        return -ENOENT;
 
     SOL_PTR_VECTOR_FOREACH_IDX (service_list, service, i) {
         enum sol_netctl_service_state state = sol_netctl_service_get_state(service);
