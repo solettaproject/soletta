@@ -32,7 +32,7 @@ struct network_service_data {
     } pending;
 };
 
-void
+static void
 service_list_cb(void *data, const struct sol_netctl_service *service)
 {
     struct sol_flow_node *node = data;
@@ -99,7 +99,7 @@ close_list_services(struct sol_flow_node *node, void *data)
         SOL_WRN("Could not delete service monitor !");
 }
 
-void
+static void
 service_status_cb(void *data, const struct sol_netctl_service *service)
 {
     struct sol_flow_node *node = data;
@@ -146,7 +146,7 @@ error:
     SOL_WRN("service %s failed to send online state", name);
 }
 
-void
+static void
 error_cb(void *data, const struct sol_netctl_service *service,
     unsigned int error)
 {
@@ -322,7 +322,7 @@ close_network_service(struct sol_flow_node *node, void *data)
         SOL_WRN("Could not delete error monitor !");
 }
 
-void
+static void
 manager_cb(void *data)
 {
     struct sol_flow_node *node = data;
