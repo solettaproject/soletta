@@ -266,7 +266,6 @@ sol_log_impl_shutdown(void)
     _main_pid = 0;
 #ifdef PTHREAD
     _main_thread = 0;
-    pthread_mutex_destroy(&_mutex);
 #endif
 }
 
