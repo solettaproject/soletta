@@ -153,6 +153,57 @@ enum sol_netctl_service_state {
     SOL_NETCTL_SERVICE_STATE_REMOVE,
 };
 
+/**
+ * @brief method of proxy generated for a network link.
+ *
+ */
+enum sol_proxy_method {
+    SOL_PROXY_METHOD_DIRECT,
+    SOL_PROXY_METHOD_AUTO,
+    SOL_PROXY_METHOD_MANUAL,
+};
+
+/**
+ * @brief Structure to represent a network proxy.
+ *
+ * This struct contains the necessary information to present a
+ * network proxy for user.
+ */
+struct sol_proxy {
+    enum sol_proxy_method method;
+    char *url;
+    sol_ptr_vector servers;
+    sol_ptr_vector excludes;
+};
+
+/**
+ * @brief Structure to represent a network provider.
+ *
+ * This struct contains the necessary information to present a
+ * network provider for user.
+ */
+struct sol_provider {
+    char *host;
+    char *domain;
+    char *name;
+    char *type;
+};
+
+/**
+ * @brief Structure to represent a network ethernet.
+ *
+ * This struct contains the necessary information to present a
+ * network ethernet for user.
+ */
+struct sol_ethernet {
+    char *method;
+    char *interface;
+    char *address;
+    uint16_t mtu;
+    uint16_t speed;
+    char *duplex;
+};
+
 #define SOL_NETCTL_SERVICE_TYPE_ETHERNET   "ethernet"  /**< @brief ethernet service type string */
 #define SOL_NETCTL_SERVICE_TYPE_WIFI       "wifi"      /**< @brief wifi service type string */
 #define SOL_NETCTL_SERVICE_TYPE_BLUETOOTH  "bluetooth" /**< @brief bluetooth service type string */
@@ -268,6 +319,21 @@ enum sol_netctl_service_state sol_netctl_service_get_state(
     const struct sol_netctl_service *service);
 
 /**
+ * @brief Gets the service error
+ *
+ * This function gets the error for the netctl service,
+ * after the service is to give by service monitor.
+ *
+ * @param service The service structure which the name is desired
+ *
+ * @return The error. When error occur during connection or disconnection
+ * the detailed information is represented in this property
+ *
+ */
+const char *sol_netctl_service_get_error(
+    const struct sol_netctl_service *service);
+
+/**
  * @brief Gets the service type
  *
  * This function gets the type for the netctl service,
@@ -307,6 +373,146 @@ int sol_netctl_service_get_network_address(
  */
 int32_t sol_netctl_service_get_strength(
     const struct sol_netctl_service *service);
+
+/**
+ * @brief Gets the service favorite
+ *
+ * This function gets the service favorite for the netctl service,
+ * after the service is to give by service monitor.
+ *
+ * @param service The service structure which the service favorite is
+ * desired
+ *
+ * @return 0-100 on success, -errno on failure.
+ */
+bool sol_netctl_service_get_favorite(
+    const struct sol_netctl_service *service);
+
+/**
+ * @brief Gets the service immutable
+ *
+ * This function gets the service immutable for the netctl service,
+ * after the service is to give by service monitor.
+ *
+ * @param service The service structure which the service immutable is
+ * desired
+ *
+ * @return 0-100 on success, -errno on failure.
+ */
+bool sol_netctl_service_get_immutable(
+    const struct sol_netctl_service *service);
+
+/**
+ * @brief Gets the service autoconnect
+ *
+ * This function gets the service autoconnect for the netctl service,
+ * after the service is to give by service monitor.
+ *
+ * @param service The service structure which the service autoconnect is
+ * desired
+ *
+ * @return 0-100 on success, -errno on failure.
+ */
+bool sol_netctl_service_get_autoconnect(
+    const struct sol_netctl_service *service);
+
+/**
+ * @brief Gets the service roaming
+ *
+ * This function gets the service roaming for the netctl service,
+ * after the service is to give by service monitor.
+ *
+ * @param service The service structure which the service roaming is
+ * desired
+ *
+ * @return 0-100 on success, -errno on failure.
+ */
+bool sol_netctl_service_get_roaming(
+    const struct sol_netctl_service *service);
+
+/**
+ * @brief Gets the service nameservers
+ *
+ * This function gets the service nameservers for the netctl service,
+ * after the service is to give by service monitor.
+ *
+ * @param service The service structure which the service nameservers is
+ * desired
+ *
+ * @return 0-100 on success, -errno on failure.
+ */
+const struct sol_ptr_vector *
+sol_netctl_service_get_nameservers(const struct sol_netctl_service *service);
+
+/**
+ * @brief Gets the service timeservers
+ *
+ * This function gets the service timeservers for the netctl service,
+ * after the service is to give by service monitor.
+ *
+ * @param service The service structure which the service timeservers is
+ * desired
+ *
+ * @return 0-100 on success, -errno on failure.
+ */
+const struct sol_ptr_vector *
+sol_netctl_service_get_timeservers(const struct sol_netctl_service *service);
+
+/**
+ * @brief Gets the service domains
+ *
+ * This function gets the service domains for the netctl service,
+ * after the service is to give by service monitor.
+ *
+ * @param service The service structure which the service domains is
+ * desired
+ *
+ * @return 0-100 on success, -errno on failure.
+ */
+const struct sol_ptr_vector *
+sol_netctl_service_get_domains(const struct sol_netctl_service *service);
+
+/**
+ * @brief Gets the service proxy
+ *
+ * This function gets the service proxy for the netctl service,
+ * after the service is to give by service monitor.
+ *
+ * @param service The service structure which the service proxy is
+ * desired
+ *
+ * @return 0-100 on success, -errno on failure.
+ */
+const struct sol_proxy *
+sol_netctl_service_get_proxy(const struct sol_netctl_service *service);
+
+/**
+ * @brief Gets the service provider
+ *
+ * This function gets the service provider for the netctl service,
+ * after the service is to give by service monitor.
+ *
+ * @param service The service structure which the service provider is
+ * desired
+ *
+ * @return 0-100 on success, -errno on failure.
+ */
+const struct sol_provider *
+sol_netctl_service_get_provider(const struct sol_netctl_service *service);
+
+/**
+ * @brief Gets the service ethernet
+ *
+ * This function gets the service ethernet for the netctl service,
+ * after the service is to give by service monitor.
+ *
+ * @param service The service structure which the service ethernet is
+ * desired
+ *
+ * @return 0-100 on success, -errno on failure.
+ */
+const struct sol_ethernet *
+sol_netctl_service_get_ethernet(const struct sol_netctl_service *service);
 
 /**
  * @brief Gets the global connection state of system
@@ -500,9 +706,9 @@ const struct sol_ptr_vector *sol_netctl_get_services(void);
  */
 enum sol_netctl_service_state sol_netctl_service_state_from_str(const char *state)
 #ifndef DOXYGEN_RUN
-    SOL_ATTR_WARN_UNUSED_RESULT
+SOL_ATTR_WARN_UNUSED_RESULT
 #endif
-    ;
+;
 
 /**
  * @brief Converts sol_netctl_service_state to a string name.
@@ -517,9 +723,9 @@ enum sol_netctl_service_state sol_netctl_service_state_from_str(const char *stat
  */
 const char *sol_netctl_service_state_to_str(enum sol_netctl_service_state state)
 #ifndef DOXYGEN_RUN
-    SOL_ATTR_WARN_UNUSED_RESULT
+SOL_ATTR_WARN_UNUSED_RESULT
 #endif
-    ;
+;
 
 /**
  * @brief get so_netctl_service structure from serivce name.

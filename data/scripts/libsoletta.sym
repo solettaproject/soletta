@@ -605,6 +605,17 @@ global:
         sol_netctl_get_radios_offline;
         sol_netctl_get_services;
         sol_netctl_get_state;
+        sol_netctl_service_get_error;
+        sol_netctl_service_get_favorite;
+        sol_netctl_service_get_immutable;
+        sol_netctl_service_get_autoconnect;
+        sol_netctl_service_get_roaming;
+        sol_netctl_service_get_nameservers;
+        sol_netctl_service_get_timeservers;
+        sol_netctl_service_get_domains;
+        sol_netctl_service_get_proxy;
+        sol_netctl_service_get_provider;
+        sol_netctl_service_get_ethernet;
         sol_netctl_service_connect;
         sol_netctl_service_disconnect;
         sol_netctl_service_get_name;
