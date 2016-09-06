@@ -148,7 +148,7 @@ bootstrap_request(void *data, struct sol_coap_server *coap,
     struct sol_lwm2m_bootstrap_client_info *bs_cinfo;
     struct sol_lwm2m_bootstrap_server *server = data;
     struct sol_coap_packet *response;
-    struct sol_str_slice client_name = SOL_STR_SLICE_EMPTY;
+    struct sol_str_slice client_name = SOL_STR_SLICE_EMPTY, *known_client;
     int r;
     size_t i;
     bool know_client = false;
@@ -161,8 +161,8 @@ bootstrap_request(void *data, struct sol_coap_server *coap,
     r = extract_bootstrap_client_info(req, &client_name);
     SOL_INT_CHECK_GOTO(r, < 0, err_exit);
 
-    for (i = 0; server->known_clients[i]; i++) {
-        if (sol_str_slice_str_eq(client_name, server->known_clients[i]))
+    SOL_VECTOR_FOREACH_IDX (&server->known_clients, known_client, i) {
+        if (sol_str_slice_eq(client_name, *known_client))
             know_client = true;
     }
 
@@ -224,6 +224,7 @@ sol_lwm2m_bootstrap_server_new(uint16_t port, const char **known_clients,
     struct sol_blob **known_pub_keys = NULL, *cli_pub_key;
     enum sol_lwm2m_security_mode *sec_modes;
     enum sol_socket_dtls_cipher *cipher_suites;
+    struct sol_str_slice *known_client;
     uint16_t i, j;
     va_list ap;
 
@@ -314,10 +315,13 @@ sol_lwm2m_bootstrap_server_new(uint16_t port, const char **known_clients,
         }
     }
 
-    free(sec_modes);
-    free(cipher_suites);
+    sol_vector_init(&server->known_clients, sizeof(struct sol_str_slice));
 
-    server->known_clients = known_clients;
+    for (i = 0; known_clients[i]; i++) {
+        known_client = sol_vector_append(&server->known_clients);
+        SOL_NULL_CHECK_GOTO(known_client, err_security);
+        *known_client = sol_str_slice_from_str(known_clients[i]);
+    }
 
     sol_ptr_vector_init(&server->clients);
 
@@ -325,12 +329,17 @@ sol_lwm2m_bootstrap_server_new(uint16_t port, const char **known_clients,
 
     r = sol_coap_server_register_resource(server->coap,
         &bootstrap_request_interface, server);
-    SOL_INT_CHECK_GOTO(r, < 0, err_security);
+    SOL_INT_CHECK_GOTO(r, < 0, err_known_clients);
+
+    free(sec_modes);
+    free(cipher_suites);
 
     va_end(ap);
 
     return server;
 
+err_known_clients:
+    sol_vector_clear(&server->known_clients);
 err_security:
     sol_coap_server_unref(server->coap);
     sol_lwm2m_bootstrap_server_security_del(server->security);
@@ -399,6 +408,7 @@ sol_lwm2m_bootstrap_server_del(struct sol_lwm2m_bootstrap_server *server)
 
     sol_monitors_clear(&server->bootstrap);
     sol_ptr_vector_clear(&server->clients);
+    sol_vector_clear(&server->known_clients);
     free(server);
 }
 
