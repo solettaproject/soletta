@@ -35,6 +35,9 @@
 
 SOL_LOG_INTERNAL_DECLARE_STATIC(_sol_netctl_log_domain, "netctl");
 
+#define CONNMAN_AGENT_PATH "/net/solettaproject/connman"
+#define CONNMAN_AGENT_INTERFACE "net.connman.Agent"
+
 int sol_netctl_init(void);
 void sol_netctl_shutdown(void);
 
@@ -58,8 +61,16 @@ struct ctx {
     sd_bus_slot *manager_slot;
     sd_bus_slot *service_slot;
     sd_bus_slot *state_slot;
+    sd_bus_slot *agent_slot;
+    sd_bus_slot *vtable_slot;
+    sd_bus_slot *scan_slot;
+    sd_bus_message *agent_msg;
+    struct sol_netctl_service *auth_service;
+    const struct sol_netctl_agent *agent;
+    const void *agent_data;
     enum sol_netctl_state connman_state;
     int32_t refcount;
+    struct sol_vector agent_vector;
 };
 
 static struct ctx _ctx;
@@ -395,6 +406,7 @@ get_services_properties(sd_bus_message *m, const char *path)
 {
     int r;
     struct sol_netctl_service *service;
+    bool is_changed = false;
 
     service = find_service_by_path(path);
     SOL_NULL_CHECK(service, -ENOMEM);
@@ -424,6 +436,8 @@ get_services_properties(sd_bus_message *m, const char *path)
 
             r = sd_bus_message_exit_container(m);
             SOL_INT_CHECK(r, < 0, r);
+
+            is_changed = true;
         } else if (streq(str, "State")) {
             char *state;
             static const struct sol_str_table table[] = {
@@ -457,6 +471,8 @@ get_services_properties(sd_bus_message *m, const char *path)
 
             r = sd_bus_message_exit_container(m);
             SOL_INT_CHECK(r, < 0, r);
+
+            is_changed = true;
         } else if (streq(str, "Strength")) {
             uint8_t strength = 0;
 
@@ -470,6 +486,8 @@ get_services_properties(sd_bus_message *m, const char *path)
 
             r = sd_bus_message_exit_container(m);
             SOL_INT_CHECK(r, < 0, r);
+
+            is_changed = true;
         } else if (streq(str, "Type")) {
             char *type;
 
@@ -484,6 +502,8 @@ get_services_properties(sd_bus_message *m, const char *path)
 
             r = sd_bus_message_exit_container(m);
             SOL_INT_CHECK(r, < 0, r);
+
+            is_changed = true;
         } else if (streq(str, "IPv4")) {
             r = sd_bus_message_enter_container(m, SD_BUS_TYPE_VARIANT, "a{sv}");
             SOL_INT_CHECK(r, < 0, r);
@@ -492,6 +512,8 @@ get_services_properties(sd_bus_message *m, const char *path)
 
             r = sd_bus_message_exit_container(m);
             SOL_INT_CHECK(r, < 0, r);
+
+            is_changed = true;
         } else if (streq(str, "IPv6")) {
             r = sd_bus_message_enter_container(m, SD_BUS_TYPE_VARIANT, "a{sv}");
             SOL_INT_CHECK(r, < 0, r);
@@ -500,6 +522,8 @@ get_services_properties(sd_bus_message *m, const char *path)
 
             r = sd_bus_message_exit_container(m);
             SOL_INT_CHECK(r, < 0, r);
+
+            is_changed = true;
         }  else {
             SOL_DBG("Ignored service property: %s", str);
             r = sd_bus_message_skip(m, NULL);
@@ -516,7 +540,8 @@ end:
     } else
         return r;
 
-    call_service_monitor_callback(service);
+    if (is_changed)
+        call_service_monitor_callback(service);
 
     return 0;
 }
@@ -797,6 +822,23 @@ sol_netctl_service_disconnect(struct sol_netctl_service *service)
         "net.connman.Service", "Disconnect", _service_disconnect, service, NULL);
 }
 
+static void
+_destory_agent_vector(struct sol_vector *vector)
+{
+    uint16_t i;
+    sol_netctl_agent_input *input;
+
+    if (!vector)
+        return;
+
+    SOL_VECTOR_FOREACH_IDX (vector, input, i) {
+        if (input->type)
+            free(input->type);
+    }
+
+    sol_vector_clear(vector);
+}
+
 int
 sol_netctl_init(void)
 {
@@ -822,6 +864,8 @@ sol_netctl_shutdown(void)
         sd_bus_slot_unref(_ctx.manager_slot);
     _ctx.service_slot =
         sd_bus_slot_unref(_ctx.service_slot);
+    _ctx.scan_slot =
+        sd_bus_slot_unref(_ctx.scan_slot);
 
     SOL_PTR_VECTOR_FOREACH_IDX (&_ctx.service_vector, service, id)
         _free_connman_service(service);
@@ -830,6 +874,7 @@ sol_netctl_shutdown(void)
     sol_monitors_clear(&_ctx.service_ms);
     sol_monitors_clear(&_ctx.manager_ms);
     sol_monitors_clear(&_ctx.error_ms);
+    _destory_agent_vector(&_ctx.agent_vector);
 
     _ctx.connman_state = SOL_NETCTL_STATE_UNKNOWN;
 }
@@ -861,6 +906,7 @@ sol_netctl_init_lazy(void)
     sol_monitors_init(&_ctx.service_ms, NULL);
     sol_monitors_init(&_ctx.manager_ms, NULL);
     sol_monitors_init(&_ctx.error_ms, NULL);
+    sol_vector_init(&_ctx.agent_vector, sizeof(sol_netctl_agent_input));
 
     return 0;
 }
@@ -887,6 +933,8 @@ sol_netctl_shutdown_lazy(void)
         sd_bus_slot_unref(_ctx.manager_slot);
     _ctx.service_slot =
         sd_bus_slot_unref(_ctx.service_slot);
+    _ctx.scan_slot =
+        sd_bus_slot_unref(_ctx.scan_slot);
 
     SOL_PTR_VECTOR_FOREACH_IDX (&_ctx.service_vector, service, id)
         _free_connman_service(service);
@@ -895,6 +943,7 @@ sol_netctl_shutdown_lazy(void)
     sol_monitors_clear(&_ctx.service_ms);
     sol_monitors_clear(&_ctx.manager_ms);
     sol_monitors_clear(&_ctx.error_ms);
+    _destory_agent_vector(&_ctx.agent_vector);
 
     _ctx.connman_state = SOL_NETCTL_STATE_UNKNOWN;
 }
@@ -1211,4 +1260,416 @@ sol_netctl_service_state_to_str(enum sol_netctl_service_state state)
         return service_states[state];
 
     return NULL;
+}
+
+static void
+_release_agent(struct ctx *pending)
+{
+    pending->agent_slot = sd_bus_slot_unref(pending->agent_slot);
+    pending->vtable_slot = sd_bus_slot_unref(pending->vtable_slot);
+    pending->agent = NULL;
+    pending->agent_data = NULL;
+
+    _ctx.agent_msg = sd_bus_message_unref(_ctx.agent_msg);
+    _ctx.auth_service = NULL;
+}
+
+static int
+agent_cancel(sd_bus_message *m, void *data, sd_bus_error *ret_error)
+{
+    struct ctx *context = (struct ctx *)data;
+    const struct sol_netctl_agent *agent = context->agent;
+    void *userdata = (void *)context->agent_data;
+
+    context->agent_msg = sd_bus_message_unref(context->agent_msg);
+    context->agent_msg = sd_bus_message_unref(context->agent_msg);
+    context->auth_service = NULL;
+
+    _destory_agent_vector(&context->agent_vector);
+
+    if (agent->cancel)
+        agent->cancel(userdata);
+
+    return 0;
+}
+
+static int
+agent_release(sd_bus_message *m, void *data, sd_bus_error *ret_error)
+{
+    struct ctx *context = (struct ctx *)data;
+    const struct sol_netctl_agent *agent = context->agent;
+    void *userdata = (void *)context->agent_data;
+
+    _destory_agent_vector(&context->agent_vector);
+    _release_agent(context);
+
+    if (agent->release)
+        agent->release(userdata);
+
+    return 0;
+}
+
+static int
+agent_report_error(sd_bus_message *m, void *data, sd_bus_error *ret_error)
+{
+    struct sol_netctl_service *service;
+    struct ctx *context = (struct ctx *)data;
+    const struct sol_netctl_agent *agent = context->agent;
+    const char *path, *err;
+    int r;
+
+    if (sol_bus_log_callback(m, data, ret_error) < 0)
+        goto error;
+
+    r = sd_bus_message_read(m, "os", &path, &err);
+    SOL_INT_CHECK(r, < 0, r);
+
+    service = find_service_by_path(path);
+    SOL_NULL_CHECK_GOTO(service, error);
+
+    context->agent_msg = sd_bus_message_unref(context->agent_msg);
+    context->agent_msg = sd_bus_message_ref(m);
+    context->auth_service = service;
+    if (agent->report_error)
+        agent->report_error((void *)context->agent_data,
+            (const struct sol_netctl_service *)service, err);
+
+    return 0;
+error:
+    sd_bus_reply_method_return(m, NULL);
+    return -EINVAL;
+}
+
+static int
+_agent_input_properties(sd_bus_message *m, struct ctx *context)
+{
+    const struct sol_netctl_agent *agent = context->agent;
+    char *str;
+    sol_netctl_agent_input *input;
+    int r;
+    bool is_wps = false;
+
+    r = sd_bus_message_enter_container(m, SD_BUS_TYPE_ARRAY, "{sv}");
+    SOL_INT_CHECK(r, < 0, r);
+
+    _destory_agent_vector(&_ctx.agent_vector);
+    sol_vector_init(&_ctx.agent_vector, sizeof(sol_netctl_agent_input));
+
+    do {
+        r = sd_bus_message_enter_container(m, SD_BUS_TYPE_DICT_ENTRY, "sv");
+        SOL_INT_CHECK_GOTO(r, < 1, end);
+
+        str = NULL;
+        r = sd_bus_message_read_basic(m, SD_BUS_TYPE_STRING, &str);
+        SOL_INT_CHECK_GOTO(r, < 0, fail);
+
+        if (str != NULL) {
+            if (streq(str, SOL_NETCTL_AGENT_WPS)) {
+                _destory_agent_vector(&_ctx.agent_vector);
+                sol_vector_init(&_ctx.agent_vector,
+                    sizeof(sol_netctl_agent_input));
+                is_wps = true;
+            }
+
+            input = sol_vector_append(&_ctx.agent_vector);
+            SOL_NULL_CHECK_GOTO(input, fail);
+            input->type = strdup(str);
+            SOL_NULL_CHECK_GOTO(input->type, fail);
+        }
+
+        r = sd_bus_message_skip(m, "v");
+        SOL_INT_CHECK_GOTO(r, < 0, fail);
+
+        r = sd_bus_message_exit_container(m);
+        SOL_INT_CHECK_GOTO(r, < 0, fail);
+
+        if (is_wps) {
+            r = 0;
+            break;
+        }
+    } while (1);
+
+end:
+    if (r == 0) {
+        r = sd_bus_message_exit_container(m);
+        SOL_INT_CHECK_GOTO(r, < 0, fail);
+
+        if (agent->request_input)
+            agent->request_input((void *)context->agent_data,
+                (const struct sol_netctl_service *)context->auth_service,
+                (const struct sol_vector *)&_ctx.agent_vector);
+    }
+
+    return r;
+
+fail:
+    _destory_agent_vector(&_ctx.agent_vector);
+
+    if (r < 0)
+        return r;
+
+    return -ENOMEM;
+}
+
+static int
+agent_request_input(sd_bus_message *m, void *data, sd_bus_error *ret_error)
+{
+    struct sol_netctl_service *service;
+    const char *path;
+    struct ctx *context = (struct ctx *)data;
+    int r;
+
+    if (sol_bus_log_callback(m, data, ret_error) < 0)
+        goto error;
+
+    r = sd_bus_message_read(m, "o", &path);
+    SOL_INT_CHECK(r, < 0, r);
+
+    service = find_service_by_path(path);
+    SOL_NULL_CHECK_GOTO(service, error);
+
+    context->agent_msg = sd_bus_message_unref(context->agent_msg);
+    context->agent_msg = sd_bus_message_ref(m);
+    context->auth_service = service;
+
+    return _agent_input_properties(m, context);
+
+error:
+    sd_bus_reply_method_return(m, NULL);
+    return -EINVAL;
+}
+
+static const sd_bus_vtable agent_vtable[] = {
+    SD_BUS_VTABLE_START(0),
+    SD_BUS_METHOD("Release", NULL, NULL,
+        agent_release, SD_BUS_VTABLE_UNPRIVILEGED),
+    SD_BUS_METHOD("ReportError", "os", NULL,
+        agent_report_error, SD_BUS_VTABLE_UNPRIVILEGED),
+    SD_BUS_METHOD("RequestInput", "oa{sv}", "a{sv}",
+        agent_request_input, SD_BUS_VTABLE_UNPRIVILEGED),
+    SD_BUS_METHOD("Cancel", NULL, NULL, agent_cancel,
+        SD_BUS_VTABLE_UNPRIVILEGED | SD_BUS_VTABLE_METHOD_NO_REPLY),
+    SD_BUS_VTABLE_END,
+};
+
+static int
+_agent_callback(sd_bus_message *reply, void *userdata,
+    sd_bus_error *ret_error)
+{
+    struct ctx *pending = userdata;
+    const sd_bus_error *error;
+
+    pending->agent_slot = sd_bus_slot_unref(pending->agent_slot);
+
+    if (sol_bus_log_callback(reply, userdata, ret_error) < 0) {
+        error = sd_bus_message_get_error(reply);
+        _release_agent(pending);
+        _set_error_to_callback(NULL, error);
+    }
+
+    return 0;
+}
+
+SOL_API int
+sol_netctl_request_input(struct sol_netctl_service *service,
+    const struct sol_vector *inputs)
+{
+    int r;
+    uint16_t i;
+    sd_bus_message *reply = NULL;
+    sol_netctl_agent_input *input;
+
+    SOL_NULL_CHECK(service, -EINVAL);
+    SOL_NULL_CHECK(inputs, -EINVAL);
+    SOL_NULL_CHECK(_ctx.agent, -EINVAL);
+    SOL_NULL_CHECK(_ctx.agent_msg, -EINVAL);
+
+    if (_ctx.auth_service != service) {
+        SOL_WRN("The connection is not the one being authenticated");
+        return -EINVAL;
+    }
+
+    r = sd_bus_message_new_method_return(_ctx.agent_msg, &reply);
+    SOL_INT_CHECK_GOTO(r, < 0, fail);
+
+    r = sd_bus_message_open_container(reply, 'a', "{sv}");
+    SOL_INT_CHECK_GOTO(r, < 0, fail);
+
+    SOL_VECTOR_FOREACH_IDX (inputs, input, i) {
+        if (!input->input || !input->type)
+            continue;
+        if (streq(input->type, SOL_NETCTL_AGENT_NAME)) {
+            r = sd_bus_message_append(reply, "{sv}", "Name", "s", input->input);
+            SOL_INT_CHECK_GOTO(r, < 0, fail);
+        } else if (streq(input->type, SOL_NETCTL_AGENT_PASSPHRASE)) {
+            r = sd_bus_message_append(reply, "{sv}", "Passphrase", "s", input->input);
+            SOL_INT_CHECK_GOTO(r, < 0, fail);
+        } else if (streq(input->type, SOL_NETCTL_AGENT_IDENTITY)) {
+            r = sd_bus_message_append(reply, "{sv}", "Identity", "s", input->input);
+            SOL_INT_CHECK_GOTO(r, < 0, fail);
+        } else if (streq(input->type, SOL_NETCTL_AGENT_WPS)) {
+            r = sd_bus_message_append(reply, "{sv}", "WPS", "s", input->input);
+            SOL_INT_CHECK_GOTO(r, < 0, fail);
+        } else if (streq(input->type, SOL_NETCTL_AGENT_USERNAME)) {
+            r = sd_bus_message_append(reply, "{sv}", "Username", "s", input->input);
+            SOL_INT_CHECK_GOTO(r, < 0, fail);
+        } else if (streq(input->type, SOL_NETCTL_AGENT_PASSWORD)) {
+            r = sd_bus_message_append(reply, "{sv}", "Password", "s", input->input);
+            SOL_INT_CHECK_GOTO(r, < 0, fail);
+        } else {
+            SOL_WRN("The input type is not right");
+            break;
+        }
+    }
+
+    r = sd_bus_message_close_container(reply);
+    SOL_INT_CHECK_GOTO(r, < 0, fail);
+
+    r = sd_bus_send(NULL, reply, NULL);
+    sd_bus_message_unref(reply);
+
+    _ctx.agent_msg = sd_bus_message_unref(_ctx.agent_msg);
+
+    return 0;
+fail:
+    sd_bus_message_unref(reply);
+
+    if (r < 0)
+        return r;
+
+    return -EINVAL;
+}
+
+SOL_API int
+sol_netctl_report_error(struct sol_netctl_service *service,
+    bool is_type)
+{
+    int r = 0;
+    sd_bus_message *reply = false;
+    const char *interface;
+
+    SOL_NULL_CHECK(service, -EINVAL);
+    SOL_NULL_CHECK(_ctx.agent, -EINVAL);
+    SOL_NULL_CHECK(_ctx.agent_msg, -EINVAL);
+
+    if (_ctx.auth_service != service) {
+        SOL_WRN("The connection is not the one being authenticated");
+        return -EINVAL;
+    }
+
+    if (is_type) {
+        interface = sd_bus_message_get_interface(_ctx.agent_msg);
+        SOL_NULL_CHECK_GOTO(interface, fail);
+        if (strcmp(interface, CONNMAN_AGENT_INTERFACE) == 0)
+            r = sd_bus_message_new_method_errorf(_ctx.agent_msg, &reply,
+                "net.connman.Agent.Error.Retry", NULL);
+        else
+            r = sd_bus_message_new_method_errorf(_ctx.agent_msg, &reply,
+                "net.connman.vpn.Agent.Error.Retry", NULL);
+        SOL_INT_CHECK_GOTO(r, < 0, fail);
+
+        r = sd_bus_send(NULL, reply, NULL);
+        sd_bus_message_unref(reply);
+        SOL_INT_CHECK_GOTO(r, < 0, fail);
+    } else {
+        r = sd_bus_reply_method_return(_ctx.agent_msg, NULL);
+        SOL_INT_CHECK_GOTO(r, < 0, fail);
+    }
+
+    _ctx.agent_msg = sd_bus_message_unref(_ctx.agent_msg);
+
+    return 0;
+fail:
+    sd_bus_message_unref(reply);
+
+    if (r < 0)
+        return r;
+
+    return -EINVAL;
+}
+
+SOL_API int
+sol_netctl_register_agent(const struct sol_netctl_agent *agent, const void *data)
+{
+    int r;
+    sd_bus *bus = sol_bus_client_get_bus(_ctx.connman);
+    const char *path = CONNMAN_AGENT_PATH;
+
+    SOL_NULL_CHECK(bus, -EINVAL);
+
+    if (_ctx.agent && agent)
+        return -EEXIST;
+
+    if (!agent) {
+        _release_agent(&_ctx);
+
+        r = sd_bus_call_method_async(bus, NULL,
+            "net.connman", "/", "net.connman.Manager", "UnregisterAgent",
+            sol_bus_log_callback, NULL, "o", path);
+
+        SOL_INT_CHECK(r, < 0, r);
+
+        return 0;
+    }
+
+    _ctx.agent = agent;
+    _ctx.agent_data = data;
+
+    r = sd_bus_add_object_vtable(bus, &_ctx.vtable_slot, path,
+        "net.connman.Agent", agent_vtable, &_ctx);
+    SOL_INT_CHECK(r, < 0, -ENOMEM);
+
+    r = sd_bus_call_method_async(bus, &_ctx.agent_slot,
+        "net.connman", "/", "net.connman.Manager", "RegisterAgent",
+        _agent_callback, &_ctx, "o", path);
+    SOL_INT_CHECK_GOTO(r, < 0, error);
+
+    return 0;
+
+error:
+    _release_agent(&_ctx);
+
+    return 0;
+}
+
+static int
+_scan_return(sd_bus_message *reply, void *userdata,
+    sd_bus_error *ret_error)
+{
+    const sd_bus_error *error;
+
+    _ctx.scan_slot = sd_bus_slot_unref(_ctx.scan_slot);
+
+    if (sol_bus_log_callback(reply, userdata, ret_error) < 0) {
+        error = sd_bus_message_get_error(reply);
+        _set_error_to_callback(NULL, error);
+    }
+
+    return 0;
+}
+
+static int
+_scan_services(void)
+{
+    sd_bus *bus = sol_bus_client_get_bus(_ctx.connman);
+
+    SOL_NULL_CHECK(bus, -EINVAL);
+
+    if (_ctx.scan_slot)
+        return -EBUSY;
+
+    return sd_bus_call_method_async(bus, &_ctx.scan_slot, "net.connman",
+        "/net/connman/technology/wifi", "net.connman.Technology",
+        "Scan", _scan_return, NULL, NULL);
+}
+
+SOL_API int
+sol_netctl_scan(void)
+{
+    int r;
+
+    r = _scan_services();
+    SOL_INT_CHECK(r, < 0, r);
+
+    return 0;
 }
