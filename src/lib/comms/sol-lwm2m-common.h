@@ -228,7 +228,7 @@ struct sol_lwm2m_bootstrap_server {
     struct sol_vector known_psks;
     struct sol_ptr_vector known_pub_keys;
     struct sol_lwm2m_security_rpk rpk_pair;
-    const char **known_clients;
+    struct sol_ptr_vector known_clients;
 };
 
 enum sol_lwm2m_path_props {
