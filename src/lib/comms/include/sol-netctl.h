@@ -75,6 +75,13 @@ typedef struct sol_netctl_network_params {
     struct sol_network_link_addr gateway;
 } sol_netctl_network_params;
 
+#define SOL_NETCTL_AGENT_NAME         "Name"    /**< @brief the agent input name type string */
+#define SOL_NETCTL_AGENT_IDENTITY     "Identity"    /**< @brief the agent input identity type string */
+#define SOL_NETCTL_AGENT_PASSPHRASE   "Passphrase"    /**< @brief the agent input passphrase type string */
+#define SOL_NETCTL_AGENT_WPS          "WPS"    /**< @brief the agent input WPS type string */
+#define SOL_NETCTL_AGENT_USERNAME     "Username"    /**< @brief the agent input username type string */
+#define SOL_NETCTL_AGENT_PASSWORD     "Password"    /**< @brief the agent input password type string */
+
 /**
  * @enum sol_netctl_service_state
  *
@@ -207,6 +214,60 @@ enum sol_netctl_state {
      */
     SOL_NETCTL_STATE_OFFLINE,
 };
+
+/**
+ * @brief agent input struct
+ *
+ * This struct contains the information of agent input.
+ */
+typedef struct sol_netctl_agent_input {
+    /**
+     * @brief The agent prompt type
+     */
+    char *type;
+    /**
+     * @brief The agent input value
+     */
+    char *input;
+} sol_netctl_agent_input;
+
+/**
+ * @brief agent callback functions
+ *
+ * This struct contains the callback functions of agent.
+ */
+typedef struct sol_netctl_agent {
+    /**
+     * @brief connection error callback used to inform connection failure
+     *
+     * @param data the user data
+     * @param service the connection failure service
+     * @param error the error information
+     */
+    void (*report_error)(void *data, const struct sol_netctl_service *service,
+        const char *error);
+    /**
+     * @brief connection input callback used to inform connection login input
+     *
+     * @param data the user data
+     * @param service the connection login input service
+     * @param inputs the vector of login input type
+     */
+    void (*request_input)(void *data, const struct sol_netctl_service *service,
+        const struct sol_vector *inputs);
+    /**
+     * @brief connection cancel callback used to inform connection cancel
+     *
+     * @param data the user data
+     */
+    void (*cancel)(void *data);
+    /**
+     * @brief agent release callback used to inform agent release
+     *
+     * @param data the user data
+     */
+    void (*release)(void *data);
+} sol_netctl_agent;
 
 /**
  * @brief Service monitor callback used to inform a service changed
@@ -551,6 +612,73 @@ sol_netctl_find_service_by_name(const char *service_name)
     }
     return NULL;
 }
+
+/**
+ * @brief register a agent for network connection
+ *
+ * A single agent is registered for an application that registering a new agent.
+ *
+ * @see struct sol_netctl_agent
+ *
+ * @param agent the agent Callback struct to be called when the related information is updated.
+ * @param data Add a user data per callback.
+ *
+ * @return 0 on success, -errno on failure.
+ */
+int sol_netctl_register_agent(const struct sol_netctl_agent *agent, const void *data);
+
+/**
+ * @brief unregister a agent for network connection
+ *
+ * unregister the previous and to unregister the last agent you should use it.
+ *
+ * @see sol_netctl_register_agent
+ *
+ * @return 0 on success, -errno on failure.
+ */
+int sol_netctl_unregister_agent(void);
+
+/**
+ * @brief request retry the connection or not when error type is reported
+ *
+ * Request retry the network connection or not when error type is reported.
+ * When the network connection failure, the user can select retry the connection or
+ * not retry it. The function can be used to select it.
+ * If retry connection is selected, the failure network connection will be tried to
+ * connect. If not retry connection is selected, the failure network connection will
+ * not be tried to connect.
+ * The connection failure information is informed via the agent callback.
+ * The agent must be registered before using sol_netctl_request_retry.
+ *
+ * @see sol_netctl_register_agent
+ *
+ * @param service The service structure which the network connection is desired.
+ * @param is_type True is retry the failure selected network connection,
+ * false is not retry the failure selected network connection.
+ *
+ * @return 0 on success, -errno on failure.
+ */
+int sol_netctl_request_retry(struct sol_netctl_service *service,
+    bool is_type);
+
+/**
+ * @brief request the login input to connection
+ *
+ * Request the login input for network connection.
+ * When the login information is needed in the process of network connection,
+ * the funcation can be used to input the login information for network connection.
+ * The login input information is informed via the agent callback.
+ * The agent must be registered before using sol_netctl_request_input.
+ *
+ * @see sol_netctl_register_agent
+ *
+ * @param service The service structure which the network connection is desired.
+ * @param inputs the vector of input types and inputs from the user.
+ *
+ * @return 0 on success, -errno on failure.
+ */
+int sol_netctl_request_input(struct sol_netctl_service *service,
+    const struct sol_vector *inputs);
 
 /**
  * @}
