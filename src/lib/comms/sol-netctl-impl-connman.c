@@ -63,6 +63,7 @@ struct ctx {
     sd_bus_slot *state_slot;
     sd_bus_slot *agent_slot;
     sd_bus_slot *vtable_slot;
+    sd_bus_slot *scan_slot;
     sd_bus_message *agent_msg;
     struct sol_netctl_service *auth_service;
     const struct sol_netctl_agent *agent;
@@ -849,6 +850,8 @@ sol_netctl_shutdown(void)
         sd_bus_slot_unref(_ctx.manager_slot);
     _ctx.service_slot =
         sd_bus_slot_unref(_ctx.service_slot);
+    _ctx.scan_slot =
+        sd_bus_slot_unref(_ctx.scan_slot);
 
     SOL_PTR_VECTOR_FOREACH_IDX (&_ctx.service_vector, service, id)
         _free_connman_service(service);
@@ -916,6 +919,8 @@ sol_netctl_shutdown_lazy(void)
         sd_bus_slot_unref(_ctx.manager_slot);
     _ctx.service_slot =
         sd_bus_slot_unref(_ctx.service_slot);
+    _ctx.scan_slot =
+        sd_bus_slot_unref(_ctx.scan_slot);
 
     SOL_PTR_VECTOR_FOREACH_IDX (&_ctx.service_vector, service, id)
         _free_connman_service(service);
@@ -1617,6 +1622,48 @@ sol_netctl_unregister_agent(void)
         "net.connman", "/", "net.connman.Manager", "UnregisterAgent",
         sol_bus_log_callback, NULL, "o", path);
 
+    SOL_INT_CHECK(r, < 0, r);
+
+    return 0;
+}
+
+static int
+_scan_return(sd_bus_message *reply, void *userdata,
+    sd_bus_error *ret_error)
+{
+    const sd_bus_error *error;
+
+    _ctx.scan_slot = sd_bus_slot_unref(_ctx.scan_slot);
+
+    if (sol_bus_log_callback(reply, userdata, ret_error) < 0) {
+        error = sd_bus_message_get_error(reply);
+        _set_error_to_callback(NULL, error);
+    }
+
+    return 0;
+}
+
+static int
+_scan_services(void)
+{
+    sd_bus *bus = sol_bus_client_get_bus(_ctx.connman);
+
+    SOL_NULL_CHECK(bus, -EINVAL);
+
+    if (_ctx.scan_slot)
+        return -EBUSY;
+
+    return sd_bus_call_method_async(bus, &_ctx.scan_slot, "net.connman",
+        "/net/connman/technology/wifi", "net.connman.Technology",
+        "Scan", _scan_return, NULL, NULL);
+}
+
+SOL_API int
+sol_netctl_scan(void)
+{
+    int r;
+
+    r = _scan_services();
     SOL_INT_CHECK(r, < 0, r);
 
     return 0;
