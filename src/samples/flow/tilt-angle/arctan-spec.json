@@ -1,0 +1,33 @@
+{
+  "$schema": "http://solettaproject.github.io/soletta/schemas/node-type-genspec.schema",
+  "name": "arctangent",
+  "meta": {
+    "author": "Intel Corporation",
+    "license": "Apache-2.0",
+    "version": "1"
+  },
+  "types": [
+    {
+      "category": "logic",
+      "description": "Calculate arctangent from float input",
+      "name": "arctangent/logic",
+      "in_ports": [
+        {
+          "data_type": "float",
+          "description": "Float input",
+          "methods": {
+            "process": "logic_process"
+          },
+          "name": "IN"
+        }
+      ],
+      "out_ports": [
+        {
+          "data_type": "float",
+          "description": "Arctangent output",
+          "name": "OUT"
+        }
+      ]
+    }
+  ]
+}

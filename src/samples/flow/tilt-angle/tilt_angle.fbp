@@ -1,0 +1,59 @@
+#!/usr/bin/env sol-fbp-runner
+
+# This file is part of the Soletta (TM) Project
+#
+# Copyright (C) 2016 Intel Corporation. All rights reserved.
+#
+# Licensed under the Apache License, Version 2.0 (the "License");
+# you may not use this file except in compliance with the License.
+# You may obtain a copy of the License at
+#
+#     http://www.apache.org/licenses/LICENSE-2.0
+#
+# Unless required by applicable law or agreed to in writing, software
+# distributed under the License is distributed on an "AS IS" BASIS,
+# WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+# See the License for the specific language governing permissions and
+# limitations under the License.
+
+# This fbp code is used to measure tilt angle of accelerometer 3 dimensionally
+# respective to axis x (pitch)and y (roll), which later displayed on console.
+# Formulas used are as below:
+#
+#     Pitch = arctan(X/squareroot(Y^2+Z^2)
+#     Roll = arctan(Y/squareroot(X^2+Z^2)
+#
+# For detailed explanation refer to :
+#
+#     http://www.hobbytronics.co.uk/accelerometer-info
+
+## Nodes naming define
+accel(iio/accelerometer:iio_device="accel_3d", buffer_size=0)
+# arctangent custom node logic in arctan-node.c
+arctanx(arctangent/logic)
+arctany(arctangent/logic)
+converter(converter/direction-vector-to-float)
+powx(float/pow)
+powy(float/pow)
+powz(float/pow)
+two(constant/float:value=2)
+add(float/addition)
+add2(float/addition)
+div(float/division)
+div2(float/division)
+concatenate(string/concatenate:separator="        ")
+
+## Nodes routing
+_(constant/empty) OUT -> IN _(console:prefix="Tilt Angle (degree) :-")
+accel OUT -> IN converter
+converter X -> BASE powx OUT -> OPERAND[0] add OUT -> IN _(float/sqrt) OUT -> DIVISOR div
+converter Y -> BASE powy OUT -> OPERAND[0] add2 OUT -> IN _(float/sqrt) OUT -> DIVISOR div2
+converter Z -> BASE powz OUT -> OPERAND[1] add
+two OUT -> EXPONENT powz OUT -> OPERAND[1] add2
+two OUT -> EXPONENT powy
+two OUT -> EXPONENT powx
+converter X -> DIVIDEND div2 OUT -> IN arctanx
+arctanx OUT -> IN _(converter/float-to-string:format_prefix="Pitch Angle (x-axis): ") OUT -> IN[0] concatenate
+converter Y -> DIVIDEND div OUT -> IN arctany
+arctany OUT -> IN _(converter/float-to-string:format_prefix="Roll Angle (y-axis): ") OUT -> IN[1] concatenate
+concatenate OUT -> IN _(console:prefix="")

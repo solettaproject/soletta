@@ -231,6 +231,7 @@ source "src/samples/flow/trash-disposer/Kconfig"
 source "src/samples/flow/unix-socket/Kconfig"
 source "src/samples/flow/webservices/Kconfig"
 source "src/samples/flow/iio+network/Kconfig"
+source "src/samples/flow/tilt-angle/Kconfig"
 
 endmenu
 

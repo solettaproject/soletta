@@ -1,0 +1,44 @@
+This example gets 3-axis raw data inputs from iio accelerometer and converts
+into pitch angle and roll angle as outputs.
+It showcases below:
+------------------
+* perform arithmetic in Soletta FBP programming model
+* custom node creation & compilation by using generation tool (sol-flow-node-type-gen.py)
+* sensor configuration/setting in FBP format
+* iio buffered with default buffer size
+* non-timer triggered data sampling
+* in-tree & out-of-tree makefile
+* fbp conversion & compilation by using conversion tool (sol-fbp-generator)
+
+Out-of-tree makefile environment variables usage:
+------------------------------------------------
+There are 5 environment variables available for user to configure if needed.
+* CC                User can choose different compiler toolchain.
+                    (default is 'gcc')
+* SYSROOT           User can input different system root path.
+                    (default is '/')
+* LIBDIR            This is to cater multilib system where the libsoletta.so installed.
+                    e.g. /usr/lib64/ or /usr/lib32/ (default is '/usr/lib/')
+* DESTDIR           User can choose to install built binary at different path.
+                    (default is SYSROOT value)
+* SOLINSTALLEDPATH  This is to cater user build Soletta source manually and install the Soletta different directory.
+                    It should be the same path as if 'make install DEST=XXX' after the Soletta built.
+                    (default is SYSROOT value)
+examples:
+1.)# CC=XXX-gcc SYSROOT=/XXX/XXX/ LIBDIR=/XXX/XXX/ SOLINSTALLEDPATH=/XXX/XXX/ make all
+2.)# make install DESTDIR=/XXX/XXX/
+
+
+Out-of-tree Compilation & Installation:
+======================================
+# make all
+# make install
+
+Execution directly from FBP:
+===========================
+# ./tilt_angle.fbp
+
+Execution from built binaries:
+=============================
+# make tilt_angle
+# ./tilt_angle
