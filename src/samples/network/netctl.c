@@ -28,6 +28,9 @@
 #include "sol-log.h"
 
 #define CONN_AP "Guest"
+#define INPUT   "12345678"
+
+struct sol_netctl_agent agent;
 
 static void
 manager_cb(void *data)
@@ -94,8 +97,84 @@ error_cb(void *data, const struct sol_netctl_service *service,
 }
 
 static void
+report_error(void *data, const struct sol_netctl_service *service,
+    const char *error)
+{
+    int r;
+
+    printf("The agent action error is %s\n", error);
+    r = sol_netctl_request_retry((struct sol_netctl_service *)service,
+        false);
+    printf("The agent request retry return value is %d\n", r);
+}
+
+static void
+request_input(void *data, const struct sol_netctl_service *service,
+    const struct sol_vector *vector)
+{
+    int r;
+    uint16_t i;
+    struct sol_netctl_agent_input *input, *value;
+    struct sol_vector input_vector;
+
+    printf("The agent action is input\n");
+    sol_vector_init(&input_vector, sizeof(sol_netctl_agent_input));
+
+    SOL_VECTOR_FOREACH_IDX (vector, value, i) {
+        printf("The agent input type is %s\n", value->type);
+        input = sol_vector_append(&input_vector);
+        if (!input) {
+            printf("No Memory for the agent input\n");
+            goto fail;
+        }
+
+        input->type = strdup(value->type);
+        if (!input->type) {
+            printf("No Memory for the agent input\n");
+            goto fail;
+        }
+
+        input->input = strdup(INPUT);
+        if (!input->input) {
+            printf("No Memory for the agent input\n");
+            goto fail;
+        }
+    }
+
+    r = sol_netctl_request_input((struct sol_netctl_service *)service,
+        &input_vector);
+    printf("The agent report input return value is %d\n", r);
+
+fail:
+    SOL_VECTOR_FOREACH_IDX (&input_vector, value, i) {
+        if (value->input)
+            free(value->input);
+        if (value->type)
+            free(value->type);
+    }
+
+    sol_vector_clear(&input_vector);
+}
+
+static void
+cancel(void *data)
+{
+    printf("The agent action is cancelled\n");
+}
+
+static void
+release(void *data)
+{
+    printf("The agent action is release\n");
+}
+
+static void
 shutdown(void)
 {
+    int r;
+
+    r = sol_netctl_unregister_agent();
+    printf("unregister agent return value r = %d\n", r);
     sol_netctl_del_manager_monitor(manager_cb, NULL);
     sol_netctl_del_service_monitor(service_cb, NULL);
     sol_netctl_del_error_monitor(error_cb, NULL);
@@ -104,9 +183,22 @@ shutdown(void)
 static void
 startup(void)
 {
+    int r;
+
     sol_netctl_add_service_monitor(service_cb, NULL);
     sol_netctl_add_manager_monitor(manager_cb, NULL);
     sol_netctl_add_error_monitor(error_cb, NULL);
+
+    agent.report_error = report_error;
+    agent.request_input = request_input;
+    agent.cancel = cancel;
+    agent.release = release;
+
+    r = sol_netctl_register_agent(&agent, NULL);
+    printf("register agent return value r = %d\n", r);
+
+    r = sol_netctl_scan();
+    printf("scan devices return value r = %d\n", r);
 }
 
 SOL_MAIN_DEFAULT(startup, shutdown);
