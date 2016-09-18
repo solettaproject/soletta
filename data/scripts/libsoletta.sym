@@ -885,3 +885,20 @@ global:
 local:
         *;
 };
+
+LIBSOLETTA_2 {
+global:
+        sol_netctl_service_get_error;
+        sol_netctl_service_is_favorite;
+        sol_netctl_service_is_immutable;
+        sol_netctl_service_is_autoconnect;
+        sol_netctl_service_is_roaming;
+        sol_netctl_service_get_nameservers;
+        sol_netctl_service_get_timeservers;
+        sol_netctl_service_get_domains;
+        sol_netctl_service_get_proxy;
+        sol_netctl_service_get_provider;
+        sol_netctl_service_get_ethernet;
+local:
+        *;
+};
