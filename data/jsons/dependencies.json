@@ -203,7 +203,7 @@
       "headers": [
         "<mosquitto.h>"
       ],
-      "fragment": "mosquitto_opts_set(0, 0, 0);",
+      "fragment": "#if LIBMOSQUITTO_VERSION_NUMBER < 1004002\n#error \"Unsupported LIBMOSQUITTO version\"\n#endif",
       "ldflags": {
         "value": "-lmosquitto"
       }
