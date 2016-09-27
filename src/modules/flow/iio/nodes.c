@@ -255,7 +255,7 @@ gyroscope_open(struct sol_flow_node *node, void *data, const struct sol_flow_nod
 {
     struct iio_direction_vector_data *mdata = data;
     const struct sol_flow_node_type_iio_gyroscope_options *opts;
-    int device_id;
+    int device_id, ret;
     struct iio_node_type *type;
 
     type = (struct iio_node_type *)sol_flow_node_get_type(node);
@@ -275,8 +275,10 @@ gyroscope_open(struct sol_flow_node *node, void *data, const struct sol_flow_nod
 
     mdata->iio_base.config.buffer_size = opts->buffer_size;
     mdata->iio_base.config.sampling_frequency = opts->sampling_frequency;
-    snprintf(mdata->iio_base.config.sampling_frequency_name,
+    ret = snprintf(mdata->iio_base.config.sampling_frequency_name,
         sizeof(mdata->iio_base.config.sampling_frequency_name), "%s", "in_anglvel_");
+    SOL_INT_CHECK_GOTO(ret, >= (int)sizeof(mdata->iio_base.config.sampling_frequency_name), err);
+    SOL_INT_CHECK_GOTO(ret, < 0, err);
 
     if (mdata->iio_base.buffer_enabled) {
         mdata->iio_base.config.sol_iio_reader_cb = type->reader_cb;
@@ -336,7 +338,7 @@ magnet_open(struct sol_flow_node *node, void *data, const struct sol_flow_node_o
 {
     struct iio_direction_vector_data *mdata = data;
     const struct sol_flow_node_type_iio_magnetometer_options *opts;
-    int device_id;
+    int device_id, ret;
     struct iio_node_type *type;
 
     type = (struct iio_node_type *)sol_flow_node_get_type(node);
@@ -356,8 +358,10 @@ magnet_open(struct sol_flow_node *node, void *data, const struct sol_flow_node_o
 
     mdata->iio_base.config.buffer_size = opts->buffer_size;
     mdata->iio_base.config.sampling_frequency = opts->sampling_frequency;
-    snprintf(mdata->iio_base.config.sampling_frequency_name,
+    ret = snprintf(mdata->iio_base.config.sampling_frequency_name,
         sizeof(mdata->iio_base.config.sampling_frequency_name), "%s", "in_magn_");
+    SOL_INT_CHECK_GOTO(ret, >= (int)sizeof(mdata->iio_base.config.sampling_frequency_name), err);
+    SOL_INT_CHECK_GOTO(ret, < 0, err);
 
     if (mdata->iio_base.buffer_enabled) {
         mdata->iio_base.config.sol_iio_reader_cb = type->reader_cb;
@@ -651,7 +655,7 @@ accelerate_open(struct sol_flow_node *node, void *data, const struct sol_flow_no
 {
     struct iio_direction_vector_data *mdata = data;
     const struct sol_flow_node_type_iio_accelerometer_options *opts;
-    int device_id;
+    int device_id, ret;
     struct iio_node_type *type;
 
     type = (struct iio_node_type *)sol_flow_node_get_type(node);
@@ -671,8 +675,10 @@ accelerate_open(struct sol_flow_node *node, void *data, const struct sol_flow_no
 
     mdata->iio_base.config.buffer_size = opts->buffer_size;
     mdata->iio_base.config.sampling_frequency = opts->sampling_frequency;
-    snprintf(mdata->iio_base.config.sampling_frequency_name,
+    ret = snprintf(mdata->iio_base.config.sampling_frequency_name,
         sizeof(mdata->iio_base.config.sampling_frequency_name), "%s", "in_accel_");
+    SOL_INT_CHECK_GOTO(ret, >= (int)sizeof(mdata->iio_base.config.sampling_frequency_name), err);
+    SOL_INT_CHECK_GOTO(ret, < 0, err);
 
     if (mdata->iio_base.buffer_enabled) {
         mdata->iio_base.config.sol_iio_reader_cb = type->reader_cb;
