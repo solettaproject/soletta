@@ -679,6 +679,18 @@ int sol_netctl_request_input(struct sol_netctl_service *service,
     const struct sol_ptr_vector *inputs);
 
 /**
+ * @brief request scan the surrounding devices
+ *
+ * Request scan for the surrounding devices.
+ * This must be inovked AFTER sol_netctl_add_service_monitor.
+ *
+ * @see sol_netctl_add_service_monitor
+ *
+ * @return 0 on success, -errno on failure.
+ */
+int sol_netctl_scan(void);
+
+/**
  * @}
  */
 
