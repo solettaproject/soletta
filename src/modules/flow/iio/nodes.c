@@ -490,7 +490,7 @@ pressure_open(struct sol_flow_node *node, void *data, const struct sol_flow_node
 {
     struct iio_double_data *mdata = data;
     const struct sol_flow_node_type_iio_pressure_sensor_options *opts;
-    int device_id;
+    int device_id, ret;
     struct iio_node_type *type;
 
     type = (struct iio_node_type *)sol_flow_node_get_type(node);
@@ -510,6 +510,11 @@ pressure_open(struct sol_flow_node *node, void *data, const struct sol_flow_node
 
     mdata->iio_base.config.buffer_size = opts->buffer_size;
     mdata->iio_base.config.sampling_frequency = opts->sampling_frequency;
+    ret = snprintf(mdata->iio_base.config.sampling_frequency_name,
+        sizeof(mdata->iio_base.config.sampling_frequency_name), "%s", "in_pressure_");
+    SOL_INT_CHECK_GOTO(ret, >= (int)sizeof(mdata->iio_base.config.sampling_frequency_name), err);
+    SOL_INT_CHECK_GOTO(ret, < 0, err);
+
     if (mdata->iio_base.buffer_enabled) {
         mdata->iio_base.config.sol_iio_reader_cb = type->reader_cb;
         mdata->iio_base.config.data = node;
@@ -884,7 +889,7 @@ light_open(struct sol_flow_node *node, void *data, const struct sol_flow_node_op
 {
     struct iio_double_data *mdata = data;
     const struct sol_flow_node_type_iio_light_sensor_options *opts;
-    int device_id;
+    int device_id, ret;
     struct iio_node_type *type;
 
     type = (struct iio_node_type *)sol_flow_node_get_type(node);
@@ -904,6 +909,11 @@ light_open(struct sol_flow_node *node, void *data, const struct sol_flow_node_op
 
     mdata->iio_base.config.buffer_size = opts->buffer_size;
     mdata->iio_base.config.sampling_frequency = opts->sampling_frequency;
+    ret = snprintf(mdata->iio_base.config.sampling_frequency_name,
+        sizeof(mdata->iio_base.config.sampling_frequency_name), "%s", "in_illuminance_");
+    SOL_INT_CHECK_GOTO(ret, >= (int)sizeof(mdata->iio_base.config.sampling_frequency_name), err);
+    SOL_INT_CHECK_GOTO(ret, < 0, err);
+
     if (mdata->iio_base.buffer_enabled) {
         mdata->iio_base.config.sol_iio_reader_cb = type->reader_cb;
         mdata->iio_base.config.data = node;
