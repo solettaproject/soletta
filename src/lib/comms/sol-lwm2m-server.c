@@ -922,9 +922,6 @@ sol_lwm2m_server_new(uint16_t coap_port, uint16_t num_sec_modes, ...)
                 SOL_DBG("Using %s security mode", get_security_mode_str(sec_modes[i]));
             }
         }
-
-        free(sec_modes);
-        free(cipher_suites);
     }
 
     sol_ptr_vector_init(&server->clients);
@@ -943,6 +940,9 @@ sol_lwm2m_server_new(uint16_t coap_port, uint16_t num_sec_modes, ...)
     }
 
     va_end(ap);
+
+    free(sec_modes);
+    free(cipher_suites);
 
     return server;
 
