@@ -72,7 +72,7 @@ typedef struct sol_iio_config {
 #define SOL_IIO_CONFIG_API_VERSION (2)
     uint16_t api_version; /**< The API version */
 #endif
-    const char *trigger_name; /**< Name of IIO trigger to be used on this device. If NULL or empty, will try to use device current trigger. If device has no current trigger, will create a 'sysfs_trigger' and use it. */
+    const char *trigger_name; /**< Name of IIO trigger to be used on this device. Set to hrtimer:trigger name if want to use hrtimer trigger. If NULL or empty, will try to use device current trigger. If device has no current trigger, will create a sysfs or hrtimer trigger and use it. */
     void (*sol_iio_reader_cb)(void *data, struct sol_iio_device *device); /**< Callback to be called when get new device readings on buffer */
     const void *data; /**< User defined data to be sent to sol_iio_reader_cb */
     int buffer_size; /**< The size of reading buffer. 0: use device default; -1: disable buffer and readings will be performed on channel files on sysfs. */

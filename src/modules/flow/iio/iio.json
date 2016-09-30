@@ -53,7 +53,7 @@
          },
          {
            "data_type": "string",
-           "description": "IIO trigger name. Name of IIO trigger that should be associated to this device for buffered readings. If not set and buffer enabled, will try to use device current trigger, if any. If none, will attempt to create a sysfs trigger",
+           "description": "IIO trigger name. Name of IIO trigger that should be associated to this device for buffered readings. Set to hrtimer:<trigger name> if want to use hrtimer trigger. If not set and buffer enabled, will try to use device current trigger, if any. If none, will attempt to create a sysfs or hrtimer trigger",
            "name": "iio_trigger_name",
            "default": null
          },
@@ -154,7 +154,7 @@
          },
          {
            "data_type": "string",
-           "description": "IIO trigger name. Name of IIO trigger that should be associated to this device for buffered readings. If not set and buffer enabled, will try to use device current trigger, if any. If none, will attempt to create a sysfs trigger",
+           "description": "IIO trigger name. Name of IIO trigger that should be associated to this device for buffered readings. Set to hrtimer:<trigger name> if want to use hrtimer trigger. If not set and buffer enabled, will try to use device current trigger, if any. If none, will attempt to create a sysfs or hrtimer trigger",
            "name": "iio_trigger_name",
            "default": null
          },
@@ -256,7 +256,7 @@
          },
          {
            "data_type": "string",
-           "description": "IIO trigger name. Name of IIO trigger that should be associated to this device for buffered readings. If not set and buffer enabled, will try to use device current trigger, if any. If none, will attempt to create a sysfs trigger",
+           "description": "IIO trigger name. Name of IIO trigger that should be associated to this device for buffered readings. Set to hrtimer:<trigger name> if want to use hrtimer trigger. If not set and buffer enabled, will try to use device current trigger, if any. If none, will attempt to create a sysfs or hrtimer trigger",
            "name": "iio_trigger_name",
            "default": null
          },
@@ -358,7 +358,7 @@
          },
          {
            "data_type": "string",
-           "description": "IIO trigger name. Name of IIO trigger that should be associated to this device for buffered readings. If not set and buffer enabled, will try to use device current trigger, if any. If none, will attempt to create a sysfs trigger",
+           "description": "IIO trigger name. Name of IIO trigger that should be associated to this device for buffered readings. Set to hrtimer:<trigger name> if want to use hrtimer trigger. If not set and buffer enabled, will try to use device current trigger, if any. If none, will attempt to create a sysfs or hrtimer trigger",
            "name": "iio_trigger_name",
            "default": null
          },
@@ -460,7 +460,7 @@
          },
          {
            "data_type": "string",
-           "description": "IIO trigger name. Name of IIO trigger that should be associated to this device for buffered readings. If not set and buffer enabled, will try to use device current trigger, if any. If none, will attempt to create a sysfs trigger",
+           "description": "IIO trigger name. Name of IIO trigger that should be associated to this device for buffered readings. Set to hrtimer:<trigger name> if want to use hrtimer trigger. If not set and buffer enabled, will try to use device current trigger, if any. If none, will attempt to create a sysfs or hrtimer trigger",
            "name": "iio_trigger_name",
            "default": null
          },
@@ -584,7 +584,7 @@
          },
          {
            "data_type": "string",
-           "description": "IIO trigger name. Name of IIO trigger that should be associated to this device for buffered readings. If not set and buffer enabled, will try to use device current trigger, if any. If none, will attempt to create a sysfs trigger",
+           "description": "IIO trigger name. Name of IIO trigger that should be associated to this device for buffered readings. Set to hrtimer:<trigger name> if want to use hrtimer trigger. If not set and buffer enabled, will try to use device current trigger, if any. If none, will attempt to create a sysfs or hrtimer trigger",
            "name": "iio_trigger_name",
            "default": null
          },
@@ -685,7 +685,7 @@
          },
          {
            "data_type": "string",
-           "description": "IIO trigger name. Name of IIO trigger that should be associated to this device for buffered readings. If not set and buffer enabled, will try to use device current trigger, if any. If none, will attempt to create a sysfs trigger",
+           "description": "IIO trigger name. Name of IIO trigger that should be associated to this device for buffered readings. Set to hrtimer:<trigger name> if want to use hrtimer trigger. If not set and buffer enabled, will try to use device current trigger, if any. If none, will attempt to create a sysfs or hrtimer trigger",
            "name": "iio_trigger_name",
            "default": null
          },
@@ -787,7 +787,7 @@
          },
          {
            "data_type": "string",
-           "description": "IIO trigger name. Name of IIO trigger that should be associated to this device for buffered readings. If not set and buffer enabled, will try to use device current trigger, if any. If none, will attempt to create a sysfs trigger",
+           "description": "IIO trigger name. Name of IIO trigger that should be associated to this device for buffered readings. Set to hrtimer:<trigger name> if want to use hrtimer trigger. If not set and buffer enabled, will try to use device current trigger, if any. If none, will attempt to create a sysfs or hrtimer trigger",
            "name": "iio_trigger_name",
            "default": null
          },
@@ -889,7 +889,7 @@
          },
          {
            "data_type": "string",
-           "description": "IIO trigger name. Name of IIO trigger that should be associated to this device for buffered readings. If not set and buffer enabled, will try to use device current trigger, if any. If none, will attempt to create a sysfs trigger",
+           "description": "IIO trigger name. Name of IIO trigger that should be associated to this device for buffered readings. Set to hrtimer:<trigger name> if want to use hrtimer trigger. If not set and buffer enabled, will try to use device current trigger, if any. If none, will attempt to create a sysfs or hrtimer trigger",
            "name": "iio_trigger_name",
            "default": null
          },
@@ -988,7 +988,7 @@
          },
          {
            "data_type": "string",
-           "description": "IIO trigger name. Name of IIO trigger that should be associated to this device for buffered readings. If not set and buffer enabled, will try to use device current trigger, if any. If none, will attempt to create a sysfs trigger",
+           "description": "IIO trigger name. Name of IIO trigger that should be associated to this device for buffered readings. Set to hrtimer:<trigger name> if want to use hrtimer trigger. If not set and buffer enabled, will try to use device current trigger, if any. If none, will attempt to create a sysfs or hrtimer trigger",
            "name": "iio_trigger_name",
            "default": null
          },
