@@ -92,6 +92,10 @@ struct resolve_absolute_path_data {
 #define SYSFS_DEVICES_PATH "/sys/bus/iio/devices"
 #define SYSFS_DEVICE_PATH "/sys/bus/iio/devices/%s"
 
+#define CONFIGFS_IIO_HRTIMER_TRIGGERS_PATH "/sys/kernel/config/iio/triggers/hrtimer"
+#define CONFIGFS_IIO_HRTIMER_TRIGGER_PATH "/sys/kernel/config/iio/triggers/hrtimer/%s"
+#define HRTIMER_TRIGGER_PREFIX "hrtimer:"
+
 #define DEVICE_NAME_PATH SYSFS_DEVICES_PATH "/iio:device%d/name"
 #define DEVICE_NAME_PATH_BY_DEVICE_DIR SYSFS_DEVICES_PATH "/%s/name"
 
@@ -315,7 +319,57 @@ error:
 }
 
 static bool
-check_trigger(struct sol_iio_device *device)
+create_hrtimer_trigger(struct sol_iio_device *device, const char *trigger_name)
+{
+    int success, id, len;
+    bool r = false;
+    char *name = NULL, *replace;
+    char path[PATH_MAX];
+
+    if (check_file_existence(CONFIGFS_IIO_HRTIMER_TRIGGERS_PATH)) {
+        if (strlen(trigger_name) == 0) {
+            id = rand();
+            len = asprintf(&name, "%d", id);
+        } else
+            len = asprintf(&name, "%s", trigger_name);
+
+        if (len < 0)
+            goto error;
+
+        r = craft_filename_path(path, sizeof(path), CONFIGFS_IIO_HRTIMER_TRIGGER_PATH, name);
+        if (!r) {
+            goto error;
+        }
+
+        success = mkdir(path, S_IRWXU);
+        if (success == 0) {
+            r = set_current_trigger(device, name);
+            if (r)
+                device->trigger_name = name;
+            else {
+                goto error;
+            }
+        } else {
+            SOL_WRN("Could not create hrtimer trigger dir: %s - %s",
+                path, sol_util_strerrora(errno));
+            goto error;
+        }
+    } else {
+        SOL_WRN("IIO triggers folder '"CONFIGFS_IIO_HRTIMER_TRIGGERS_PATH "' does not exist.");
+        goto error;
+    }
+
+    return r;
+
+error:
+    free(name);
+    SOL_WRN("Could not create hrtimer trigger.");
+
+    return false;
+}
+
+static bool
+check_trigger(struct sol_iio_device *device, const struct sol_iio_config *config)
 {
     char path[PATH_MAX];
     char *name = NULL;
@@ -330,10 +384,17 @@ check_trigger(struct sol_iio_device *device)
 
     len = sol_util_read_file(path, "%ms", &name);
     if (len < 0) {
-        SOL_INF("No current trigger for iio:device%d. Creating a sysfs one.",
-            device->device_id);
-        if (!create_sysfs_trigger(device))
-            return false;
+        if (config->trigger_name && strstartswith(config->trigger_name, HRTIMER_TRIGGER_PREFIX)) {
+            SOL_INF("No current trigger for iio:device%d. Creating a hrtimer one.",
+                device->device_id);
+            if (!create_hrtimer_trigger(device, config->trigger_name + strlen(HRTIMER_TRIGGER_PREFIX)))
+                return false;
+        } else {
+            SOL_INF("No current trigger for iio:device%d. Creating a sysfs one.",
+                device->device_id);
+            if (!create_sysfs_trigger(device))
+                return false;
+        }
     } else
         device->trigger_name = name;
 
@@ -687,6 +748,7 @@ get_mount_matrix(struct sol_iio_device *device, double *mount_matrix)
 SOL_API struct sol_iio_device *
 sol_iio_open(int device_id, const struct sol_iio_config *config)
 {
+    int prefix_len = strlen(HRTIMER_TRIGGER_PREFIX);
     bool r;
     bool buffer_existence;
     char path[PATH_MAX];
@@ -746,13 +808,19 @@ sol_iio_open(int device_id, const struct sol_iio_config *config)
         device->reader_cb_data = config->data;
 
         if (config->trigger_name && config->trigger_name[0] != '\0') {
-            if (!set_current_trigger(device, config->trigger_name)) {
-                SOL_WRN("Could not set device%d current trigger",
-                    device->device_id);
+            /* if name start with HRTIMER_TRIGGER_PREFIX, it is a hrtimer trigger */
+            if (strstartswith(config->trigger_name, HRTIMER_TRIGGER_PREFIX)) {
+                if (config->trigger_name[prefix_len] != '\0') {
+                    if (!set_current_trigger(device, config->trigger_name + prefix_len))
+                        SOL_WRN("Could not set device%d current trigger", device->device_id);
+                }
+            } else {
+                if (!set_current_trigger(device, config->trigger_name))
+                    SOL_WRN("Could not set device%d current trigger", device->device_id);
             }
         }
 
-        if (!check_trigger(device)) {
+        if (!check_trigger(device, config)) {
             SOL_WRN("No trigger available for device%d", device->device_id);
             goto error;
         }
