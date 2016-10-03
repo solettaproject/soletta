@@ -684,6 +684,7 @@ server_object_delete(void *instance_data, void *user_data,
     return 0;
 }
 
+#ifdef DTLS
 // ======================================================== Access Control Object
 static int
 access_control_object_read(void *instance_data, void *user_data,
@@ -882,6 +883,7 @@ access_control_object_delete(void *instance_data, void *user_data,
     free(instance_ctx);
     return 0;
 }
+#endif
 
 // ================================================================= Dummy Object
 /*
@@ -1127,6 +1129,7 @@ static const struct sol_lwm2m_object server_object = {
     .del = server_object_delete
 };
 
+#ifdef DTLS
 static const struct sol_lwm2m_object access_control_object = {
     SOL_SET_API_VERSION(.api_version = SOL_LWM2M_OBJECT_API_VERSION, )
     .id = ACCESS_CONTROL_OBJECT_ID,
@@ -1137,6 +1140,7 @@ static const struct sol_lwm2m_object access_control_object = {
     .create = access_control_object_create,
     .del = access_control_object_delete
 };
+#endif
 
 //This is a dummy object, it's not defined by OMA!
 static const struct sol_lwm2m_object dummy_object = {
