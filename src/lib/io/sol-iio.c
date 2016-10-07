@@ -1036,15 +1036,23 @@ sol_iio_add_channel(struct sol_iio_device *device, const char *name, const struc
     channel->device = device;
     channel->processed = processed;
 
+    r = 0;
     if (config->scale > -1)
-        iio_set_channel_scale(channel, config->scale);
-    else
-        channel_get_scale(channel);
+        r = !!iio_set_channel_scale(channel, config->scale);
 
+    if (!r) {
+        SOL_WRN("Could not set scale (%g) to the channel %s\n", config->scale, name);
+        channel_get_scale(channel);
+    }
+
+    r = 0;
     if (config->use_custom_offset)
-        iio_set_channel_offset(channel, config->offset);
-    else
+        r = !!iio_set_channel_offset(channel, config->offset);
+
+    if (!r) {
+        SOL_WRN("Could not set offset (%d) to the channel %s\n", config->offset, name);
         channel_get_offset(channel);
+    }
 
     if (device->buffer_enabled) {
         if (!enable_channel_scan(channel)) {
