@@ -1036,14 +1036,18 @@ sol_iio_add_channel(struct sol_iio_device *device, const char *name, const struc
     channel->device = device;
     channel->processed = processed;
 
+    r = 0;
     if (config->scale > -1)
-        iio_set_channel_scale(channel, config->scale);
-    else
+        r = !!iio_set_channel_scale(channel, config->scale);
+
+    if (!r)
         channel_get_scale(channel);
 
+    r = 0;
     if (config->use_custom_offset)
-        iio_set_channel_offset(channel, config->offset);
-    else
+        r = !!iio_set_channel_offset(channel, config->offset);
+
+    if (!r)
         channel_get_offset(channel);
 
     if (device->buffer_enabled) {
