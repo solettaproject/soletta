@@ -892,4 +892,5 @@ global:
         sol_netctl_unregister_agent;
         sol_netctl_request_retry;
         sol_netctl_request_input;
+        sol_netctl_scan;
 } LIBSOLETTA_1;
