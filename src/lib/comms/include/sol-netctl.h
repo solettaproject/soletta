@@ -153,6 +153,86 @@ enum sol_netctl_service_state {
     SOL_NETCTL_SERVICE_STATE_REMOVE,
 };
 
+/**
+ * @brief method of proxy generated for a network link.
+ *
+ */
+enum sol_netctl_proxy_method {
+    SOL_NETCTL_PROXY_METHOD_DIRECT,
+    SOL_NETCTL_PROXY_METHOD_AUTO,
+    SOL_NETCTL_PROXY_METHOD_MANUAL,
+};
+
+/**
+ * @brief struct to represent a network proxy.
+ *
+ * This struct contains the necessary information to present a
+ * network proxy for user.
+ */
+typedef struct sol_netctl_proxy {
+#ifndef SOL_NO_API_VERSION
+#define SOL_NETCTL_PROXY_API_VERSION (1)
+    /** @brief API version */
+    uint16_t api_version;
+#endif
+    /** @brief proxy method provided */
+    enum sol_netctl_proxy_method method;
+    /** @brief automatic proxy configuration URL */
+    char *url;
+    /** @brief List of proxy URIs when manual method is set */
+    sol_ptr_vector servers;
+    /** @brief List of host can be accessed directly */
+    sol_ptr_vector excludes;
+} sol_netctl_proxy;
+
+/**
+ * @brief struct to represent a network provider.
+ *
+ * This struct contains the necessary information to present a
+ * network provider for user.
+ */
+typedef struct sol_netctl_provider {
+#ifndef SOL_NO_API_VERSION
+#define SOL_NETCTL_PROVIDER_API_VERSION (1)
+    /** @brief API version */
+    uint16_t api_version;
+#endif
+    /** @brief VPN host IP */
+    char *host;
+    /** @brief VPN Domain */
+    char *domain;
+    /** @brief provider name */
+    char *name;
+    /** @brief provider type */
+    char *type;
+} sol_netctl_provider;
+
+/**
+ * @brief struct to represent a network ethernet.
+ *
+ * This struct contains the necessary information to present a
+ * network ethernet for user.
+ */
+typedef struct sol_netctl_ethernet {
+#ifndef SOL_NO_API_VERSION
+#define SOL_NETCTL_ETHERNET_API_VERSION (1)
+    /** @brief API version */
+    uint16_t api_version;
+#endif
+    /** @brief Possible value are auto and manual */
+    char *method;
+    /** @brief Interface name */
+    char *interface;
+    /** @brief Ethernet device address */
+    char *address;
+    /** @brief Selected duplex settings of line */
+    char *duplex;
+    /** @brief The ethernet MTU */
+    uint16_t mtu;
+    /** @brief Selected speed of line */
+    uint16_t speed;
+} sol_netctl_ethernet;
+
 #define SOL_NETCTL_SERVICE_TYPE_ETHERNET   "ethernet"  /**< @brief ethernet service type string */
 #define SOL_NETCTL_SERVICE_TYPE_WIFI       "wifi"      /**< @brief wifi service type string */
 #define SOL_NETCTL_SERVICE_TYPE_BLUETOOTH  "bluetooth" /**< @brief bluetooth service type string */
@@ -242,7 +322,7 @@ typedef void (*sol_netctl_error_monitor_cb)
  * This function gets the name for the netctl service,
  * after the service is to give by service monitor.
  *
- * @param service The service structure which the name is desired
+ * @param service The service struct which the name is desired
  *
  * @return The name of the services on success, NULL on failure.
  */
@@ -259,7 +339,7 @@ const char *sol_netctl_service_get_name(
  * the service has been removed. When it is notified,
  * the service has been removed in the system.
  *
- * @param service The service structure which the state is desired
+ * @param service The service struct which the state is desired
  *
  * @return The state of the services on success,
  * SOL_NETCTL_SERVICE_STATE_UNKNOWN on failure.
@@ -268,12 +348,26 @@ enum sol_netctl_service_state sol_netctl_service_get_state(
     const struct sol_netctl_service *service);
 
 /**
+ * @brief Gets the service error
+ *
+ * This function gets the error for the netctl service,
+ * after the service is to give by service monitor.
+ *
+ * @param service The service struct which the name is desired
+ *
+ * @return The error during connection or disconnection, NULL if no
+ * error occur.
+ */
+const char *sol_netctl_service_get_error(
+    const struct sol_netctl_service *service);
+
+/**
  * @brief Gets the service type
  *
  * This function gets the type for the netctl service,
  * after the service is to give by service monitor.
  *
- * @param service The service structure which the type is desired
+ * @param service The service struct which the type is desired
  *
  * @return The type of the services on success, NULL on failure.
  */
@@ -286,7 +380,7 @@ const char *sol_netctl_service_get_type(
  * This function gets the network address for the netctl service,
  * after the service is to give by service monitor.
  *
- * @param service The service structure which the network address is desired
+ * @param service The service struct which the network address is desired
  * @param link The retrieved content
  *
  * @return 0 on success, -errno on failure.
@@ -300,13 +394,153 @@ int sol_netctl_service_get_network_address(
  * This function gets the service strength for the netctl service,
  * after the service is to give by service monitor.
  *
- * @param service The service structure which the service strength is
+ * @param service The service struct which the service strength is
  * desired
  *
- * @return 0-100 on success, -errno on failure.
+ * @return The strength of the services on success, 0 on failure.
  */
 int32_t sol_netctl_service_get_strength(
     const struct sol_netctl_service *service);
+
+/**
+ * @brief Gets the service favorite
+ *
+ * This function checks if the service is favorite or not for the netctl
+ * service, after the service is to give by service monitor.
+ *
+ * @param service The service struct which the service favorite is
+ * desired
+ *
+ * @return @c true if the service is favorite, otherwise @c false.
+ */
+bool sol_netctl_service_is_favorite(
+    const struct sol_netctl_service *service);
+
+/**
+ * @brief Gets the service immutable
+ *
+ * This function checks if the service is immutable or not for the netctl
+ * service, after the service is to give by service monitor.
+ *
+ * @param service The service struct which the service immutable is
+ * desired
+ *
+ * @return @c true if the service is immutable, otherwise @c false.
+ */
+bool sol_netctl_service_is_immutable(
+    const struct sol_netctl_service *service);
+
+/**
+ * @brief Gets the service autoconnect
+ *
+ * This function checks if the service is autoconnect or not for the netctl
+ * service, after the service is to give by service monitor.
+ *
+ * @param service The service struct which the service autoconnect is
+ * desired
+ *
+ * @return @c true if the service is autoconnect, otherwise @c false.
+ */
+bool sol_netctl_service_is_autoconnect(
+    const struct sol_netctl_service *service);
+
+/**
+ * @brief Gets the service roaming
+ *
+ * This function checks if the service is autoconnect or not for the netctl
+ * service, after the service is to give by service monitor.
+ *
+ * @param service The service struct which the service roaming is
+ * desired
+ *
+ * @return @c true if the service is roaming, otherwise @c false.
+ */
+bool sol_netctl_service_is_roaming(
+    const struct sol_netctl_service *service);
+
+/**
+ * @brief Gets the service nameservers
+ *
+ * This function gets the service nameservers for the netctl service,
+ * after the service is to give by service monitor.
+ *
+ * @param service The service struct which the service nameservers is
+ * desired
+ *
+ * @return The retrieved content on success, NULL on failure.
+ */
+const struct sol_ptr_vector *
+sol_netctl_service_get_nameservers(const struct sol_netctl_service *service);
+
+/**
+ * @brief Gets the service timeservers
+ *
+ * This function gets the service timeservers for the netctl service,
+ * after the service is to give by service monitor.
+ *
+ * @param service The service struct which the service timeservers is
+ * desired
+ *
+ * @return The retrieved content on success, NULL on failure.
+ */
+const struct sol_ptr_vector *
+sol_netctl_service_get_timeservers(const struct sol_netctl_service *service);
+
+/**
+ * @brief Gets the service domains
+ *
+ * This function gets the service domains for the netctl service,
+ * after the service is to give by service monitor.
+ *
+ * @param service The service struct which the service domains is
+ * desired
+ *
+ * @return The retrieved content on success, NULL on failure.
+ */
+const struct sol_ptr_vector *
+sol_netctl_service_get_domains(const struct sol_netctl_service *service);
+
+/**
+ * @brief Gets the service proxy
+ *
+ * This function gets the service proxy for the netctl service,
+ * after the service is to give by service monitor.
+ *
+ * @param service The service struct which the service proxy is
+ * desired
+ *
+ * @return sol_netctl_proxy struct on success, NULL on failure.
+ */
+const struct sol_netctl_proxy *
+sol_netctl_service_get_proxy(const struct sol_netctl_service *service);
+
+/**
+ * @brief Gets the service provider
+ *
+ * This function gets the service provider for the netctl service,
+ * after the service is to give by service monitor.
+ *
+ * @param service The service struct which the service provider is
+ * desired
+ *
+ * @return sol_netctl_provider struct on success, NULL on failure.
+ */
+const struct sol_netctl_provider *
+sol_netctl_service_get_provider(const struct sol_netctl_service *service);
+
+/**
+ * @brief Gets the service ethernet
+ *
+ * This function gets the service ethernet for the netctl service,
+ * after the service is to give by service monitor.
+ *
+ * @param service The service struct which the service ethernet is
+ * desired
+ *
+ * @return sol_netctl_ethernet struct on success, NULL on failure.
+ */
+const struct sol_netctl_ethernet *
+sol_netctl_service_get_ethernet(const struct sol_netctl_service *service);
 
 /**
  * @brief Gets the global connection state of system
@@ -343,7 +577,7 @@ int sol_netctl_set_radios_offline(bool enabled);
  * added BEFORE sol_netctl_get_radios_offline() is called
  * to ensure no messages are lost.
  *
- * @return True if the offline is enabled, false otherwise.
+ * @return @c true if the offline is enabled, otherwise @c false.
  */
 bool sol_netctl_get_radios_offline(void);
 
@@ -358,7 +592,7 @@ bool sol_netctl_get_radios_offline(void);
  * sol_netctl_add_error_monitor must be added BEFORE the sol_netctl_service_connect()
  * is called to ensure no messages are lost.
  *
- * @param service The service structure which the connection is desired
+ * @param service The service struct which the connection is desired
  *
  * @return 0 on success, -errno on failure.
  */
@@ -375,7 +609,7 @@ int sol_netctl_service_connect(struct sol_netctl_service *service);
  * sol_netctl_add_error_monitor must be added BEFORE the sol_netctl_service_disconnect()
  * is called to ensure no messages are lost.
  *
- * @param service The service structure which the disconnection is desired
+ * @param service The service struct which the disconnection is desired
  *
  * @return 0 on success, -errno on failure.
  */
@@ -500,9 +734,9 @@ const struct sol_ptr_vector *sol_netctl_get_services(void);
  */
 enum sol_netctl_service_state sol_netctl_service_state_from_str(const char *state)
 #ifndef DOXYGEN_RUN
-    SOL_ATTR_WARN_UNUSED_RESULT
+SOL_ATTR_WARN_UNUSED_RESULT
 #endif
-    ;
+;
 
 /**
  * @brief Converts sol_netctl_service_state to a string name.
@@ -517,20 +751,20 @@ enum sol_netctl_service_state sol_netctl_service_state_from_str(const char *stat
  */
 const char *sol_netctl_service_state_to_str(enum sol_netctl_service_state state)
 #ifndef DOXYGEN_RUN
-    SOL_ATTR_WARN_UNUSED_RESULT
+SOL_ATTR_WARN_UNUSED_RESULT
 #endif
-    ;
+;
 
 /**
- * @brief get so_netctl_service structure from serivce name.
+ * @brief get so_netctl_service struct from serivce name.
  *
- * This function return sol_netctl_service structure by a string service name.
+ * This function return sol_netctl_service struct by a string service name.
  *
  * @see sol_netctl_find_service_by_name.
  *
  * @param service_name Pointer to service name
  *
- * @return data structure of the sol_netctl_service.
+ * @return data struct of the sol_netctl_service.
  */
 static inline struct sol_netctl_service *
 sol_netctl_find_service_by_name(const char *service_name)
