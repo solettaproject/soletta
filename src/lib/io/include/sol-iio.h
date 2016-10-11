@@ -21,6 +21,8 @@
 #include <sol-buffer.h>
 #include <sol-common-buildopts.h>
 
+#include <linux/limits.h>
+
 #ifdef __cplusplus
 extern "C" {
 #endif
