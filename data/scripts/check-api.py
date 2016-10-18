@@ -35,7 +35,7 @@ if __name__ == "__main__":
     missingSymbols = {}
 
     with open(args.version_script) as fData:
-        versionScriptSymbols = re.findall('\s*(\w+);\s*', fData.read())
+        versionScriptSymbols = re.findall('(?<!})\s+(\w+);', fData.read())
 
     for root, dirs, files in os.walk(args.src_dir):
         if not root.endswith("include"):
