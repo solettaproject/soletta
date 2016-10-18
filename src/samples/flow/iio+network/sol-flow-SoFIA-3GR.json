@@ -1,0 +1,21 @@
+{
+  "$schema": "http://solettaproject.github.io/soletta/schemas/config.schema",
+  "nodetypes": [
+    {
+      "name": "MyLight",
+      "type": "iio/light-sensor",
+      "options": {
+        "iio_device": "apds99X0",
+        "buffer_size": -1
+      }
+    },
+    {
+      "name": "MyProximity",
+      "type": "iio/proximity-sensor",
+      "options": {
+        "iio_device": "apds99X0",
+        "buffer_size": -1
+      }
+    }
+  ]
+}

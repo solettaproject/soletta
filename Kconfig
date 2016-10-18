@@ -229,6 +229,7 @@ source "src/samples/flow/semaphore-monitor/Kconfig"
 source "src/samples/flow/trash-disposer/Kconfig"
 source "src/samples/flow/unix-socket/Kconfig"
 source "src/samples/flow/webservices/Kconfig"
+source "src/samples/flow/iio+network/Kconfig"
 
 endmenu
 
