@@ -110,6 +110,8 @@ typedef struct sol_iio_channel_config {
 /**
  * @brief Open an IIO device
  *
+ * Using different channel_id and the same configuration, one device can be opened
+ * multiple times
  * @param id Id of iio device. It's the number which identifies device
  * on file system. Can be found at '/sys/bus/iio/devices/iio:deviceX'.
  * @param config IIO config.
