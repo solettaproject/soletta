@@ -1108,19 +1108,15 @@ sol_iio_add_channel(struct sol_iio_device *device, const char *name, const struc
     if (config->scale > -1)
         r = !!iio_set_channel_scale(channel, config->scale);
 
-    if (!r) {
-        SOL_WRN("Could not set scale (%g) to the channel %s\n", config->scale, name);
+    if (!r)
         channel_get_scale(channel);
-    }
 
     r = 0;
     if (config->use_custom_offset)
         r = !!iio_set_channel_offset(channel, config->offset);
 
-    if (!r) {
-        SOL_WRN("Could not set offset (%d) to the channel %s\n", config->offset, name);
+    if (!r)
         channel_get_offset(channel);
-    }
 
     if (device->buffer_enabled) {
         if (!enable_channel_scan(channel)) {
