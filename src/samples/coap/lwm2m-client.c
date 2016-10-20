@@ -28,7 +28,7 @@
    This LWM2M client sample expect a server-initiated bootstrap.
    If it doesn't happen in 5s, it will try to connect to a LWM2M bootstrap server
    @ localhost:5783 and perform client-initiated bootstrap.
-   If the bootstrap is successfull, it will try to connect and register with the
+   If the bootstrap is successful, it will try to connect and register with the
    server(s) received in the bootstrap information.
  */
 
