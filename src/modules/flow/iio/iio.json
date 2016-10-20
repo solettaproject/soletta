@@ -822,6 +822,12 @@
              "name": "sampling_frequency"
          },
          {
+             "data_type": "int",
+             "default": -1,
+             "description": "Channel id. If -1, use the default channel",
+             "name": "channel_id"
+         },
+         {
              "data_type": "drange-spec",
              "default": {
                "max": "DBL_MAX",
@@ -924,6 +930,12 @@
              "name": "sampling_frequency"
          },
          {
+             "data_type": "int",
+             "default": -1,
+             "description": "Channel id. If -1, use the default channel",
+             "name": "channel_id"
+         },
+         {
              "data_type": "drange-spec",
              "default": {
                "max": "DBL_MAX",
@@ -1021,6 +1033,12 @@
              "default": -1,
              "description": "Sampling frequency of the sensor. If -1, use device default",
              "name": "sampling_frequency"
+         },
+         {
+             "data_type": "int",
+             "default": -1,
+             "description": "Channel id. If -1, use the default channel",
+             "name": "channel_id"
          },
          {
              "data_type": "drange-spec",

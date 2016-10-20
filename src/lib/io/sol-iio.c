@@ -42,11 +42,15 @@
 #include <sol-i2c.h>
 #endif
 
+struct reader_cb_data {
+    void (*reader_cb)(void *data, struct sol_iio_device *device);
+    const void *data;
+};
+
 struct sol_iio_device {
     double *mount_matrix;
     char *trigger_name;
-    void (*reader_cb)(void *data, struct sol_iio_device *device);
-    const void *reader_cb_data;
+    struct sol_vector reader_cb_list;
     struct sol_fd *fd_handler;
     struct sol_buffer buffer;
     size_t buffer_size;
@@ -87,6 +91,14 @@ struct resolve_absolute_path_data {
     const char *path;
     int id;
 };
+
+struct iio_opened_device {
+    struct sol_iio_device *device;
+    struct sol_iio_config *config;
+    int refcount;
+};
+
+static struct sol_vector iio_opened_devices = SOL_VECTOR_INIT(struct iio_opened_device);
 
 #define DEVICE_PATH "/dev/iio:device%d"
 #define SYSFS_DEVICES_PATH "/sys/bus/iio/devices"
@@ -437,6 +449,22 @@ set_buffer_enabled(struct sol_iio_device *device, bool enabled)
 }
 
 static bool
+get_buffer_value(struct sol_iio_device *device, int *value)
+{
+    char path[PATH_MAX];
+    bool r;
+
+    r = craft_filename_path(path, sizeof(path), BUFFER_ENABLE_DEVICE_PATH, device->device_id);
+    if (!r)
+        return false;
+
+    if (sol_util_read_file(path, "%d", value) < 0)
+        return false;
+
+    return true;
+}
+
+static bool
 set_channel_enabled(struct sol_iio_device *device, const char *channel_name, bool enabled)
 {
     char path[PATH_MAX];
@@ -472,8 +500,10 @@ static bool
 device_reader_cb(void *data, int fd, uint32_t active_flags)
 {
     struct sol_iio_device *device = data;
+    struct reader_cb_data *reader_cb_data_elem = NULL;
     bool result = true;
     ssize_t ret;
+    int i;
 
     if (active_flags & (SOL_FD_FLAGS_ERR | SOL_FD_FLAGS_HUP | SOL_FD_FLAGS_NVAL)) {
         SOL_WRN("Unexpected reading");
@@ -484,8 +514,8 @@ device_reader_cb(void *data, int fd, uint32_t active_flags)
     if (ret <= 0) {
         result = false;
     } else if (device->buffer.used == device->buffer_size) {
-        if (device->reader_cb) {
-            device->reader_cb((void *)device->reader_cb_data, device);
+        SOL_VECTOR_FOREACH_IDX (&device->reader_cb_list, reader_cb_data_elem, i) {
+            reader_cb_data_elem->reader_cb((void *)reader_cb_data_elem->data, device);
         }
         sol_buffer_reset(&device->buffer);
     }
@@ -748,11 +778,14 @@ get_mount_matrix(struct sol_iio_device *device, double *mount_matrix)
 SOL_API struct sol_iio_device *
 sol_iio_open(int device_id, const struct sol_iio_config *config)
 {
+    int i;
     int prefix_len = strlen(HRTIMER_TRIGGER_PREFIX);
     bool r;
     bool buffer_existence;
     char path[PATH_MAX];
     struct sol_iio_device *device = NULL;
+    struct iio_opened_device *entry = NULL;
+    struct reader_cb_data *reader_cb_data_elem = NULL;
 
     SOL_NULL_CHECK(config, NULL);
 #ifndef SOL_NO_API_VERSION
@@ -762,12 +795,31 @@ sol_iio_open(int device_id, const struct sol_iio_config *config)
         return NULL;
     }
 #endif
+    SOL_VECTOR_FOREACH_IDX (&iio_opened_devices, entry, i) {
+        if (device_id == entry->device->device_id) {
+            if ((config->buffer_size == entry->config->buffer_size)
+                && (config->sampling_frequency == entry->config->sampling_frequency)) {
+                device = entry->device;
+                reader_cb_data_elem = sol_vector_append(&device->reader_cb_list);
+                SOL_NULL_CHECK(reader_cb_data_elem, NULL);
+                reader_cb_data_elem->data = config->data;
+                reader_cb_data_elem->reader_cb = config->sol_iio_reader_cb;
+                entry->refcount++;
+                return device;
+            } else {
+                SOL_ERR("device%d is already open, but could not reuse it with different config",
+                    device_id);
+                return NULL;
+            }
+        }
+    }
 
     device = calloc(1, sizeof(struct sol_iio_device));
     SOL_NULL_CHECK(device, NULL);
     sol_ptr_vector_init(&device->channels);
     device->buffer = SOL_BUFFER_INIT_EMPTY;
     device->fd = -1;
+    sol_vector_init(&device->reader_cb_list, sizeof(struct reader_cb_data));
 
     device->device_id = device_id;
 
@@ -804,8 +856,11 @@ sol_iio_open(int device_id, const struct sol_iio_config *config)
                 " was defined.'", device->device_id);
             goto error;
         }
-        device->reader_cb = config->sol_iio_reader_cb;
-        device->reader_cb_data = config->data;
+
+        reader_cb_data_elem = sol_vector_append(&device->reader_cb_list);
+        SOL_NULL_CHECK_GOTO(reader_cb_data_elem, error);
+        reader_cb_data_elem->reader_cb = config->sol_iio_reader_cb;
+        reader_cb_data_elem->data = config->data;
 
         if (config->trigger_name && config->trigger_name[0] != '\0') {
             /* if name start with HRTIMER_TRIGGER_PREFIX, it is a hrtimer trigger */
@@ -868,8 +923,19 @@ sol_iio_open(int device_id, const struct sol_iio_config *config)
         device->buffer_enabled, device->manual_triggering, device->trigger_name,
         device->trigger_id, device->mount_matrix);
 
+    entry = sol_vector_append(&iio_opened_devices);
+    SOL_NULL_CHECK_GOTO(entry, error);
+    entry->device = device;
+
+    entry->config = calloc(1, sizeof(struct sol_iio_config));
+    SOL_NULL_CHECK_GOTO(entry->config, error_config);
+    memcpy(entry->config, config, sizeof(struct sol_iio_config));
+
+    entry->refcount = 1;
     return device;
 
+error_config:
+    sol_vector_del_last(&iio_opened_devices);
 error:
     sol_iio_close(device);
 
@@ -881,7 +947,7 @@ enable_channel_scan(struct sol_iio_channel *channel)
 {
     struct sol_iio_device *device = channel->device;
     char path[PATH_MAX];
-    int current_value, len;
+    int current_value, len, ret, buffer_enable;
 
     if (!craft_filename_path(path, sizeof(path), CHANNEL_SCAN_ENABLE_PATH,
         device->device_id, channel->name)) {
@@ -896,9 +962,32 @@ enable_channel_scan(struct sol_iio_channel *channel)
         return false;
     }
 
-    if (current_value != 1)
-        return sol_util_write_file(path, "%d", 1) > 0;
+    if (current_value != 1) {
+        if (!get_buffer_value(device, &buffer_enable)) {
+            SOL_WRN("Coult not get buffer status for device%d", device->device_id);
+            return false;
+        }
 
+        if (buffer_enable) {
+            if (!set_buffer_enabled(device, false)) {
+                SOL_WRN("Could not disable buffer for device%d", device->device_id);
+                return false;
+            }
+        }
+
+        ret = sol_util_write_file(path, "%d", 1);
+        if (ret < 0) {
+            SOL_WRN("Could not enable scan %s for device%d", path, device->device_id);
+        }
+
+        if (buffer_enable) {
+            if (!set_buffer_enabled(device, true)) {
+                SOL_WRN("Could not enable buffer for device%d", device->device_id);
+                return false;
+            }
+        }
+        return ret > 0;
+    }
     return true;
 }
 
@@ -1031,8 +1120,31 @@ sol_iio_close(struct sol_iio_device *device)
 {
     int i;
     struct sol_iio_channel *channel;
+    struct iio_opened_device *entry = NULL;
+    struct iio_opened_device *remove_entry = NULL;
 
     SOL_NULL_CHECK(device);
+
+    SOL_VECTOR_FOREACH_IDX (&iio_opened_devices, entry, i) {
+        if (device->device_id == entry->device->device_id) {
+            entry->refcount--;
+            if (entry->refcount == 0) {
+                SOL_DBG("Close device%d", device->device_id);
+                remove_entry = entry;
+                free(entry->config);
+            } else {
+                SOL_DBG("Won't close device%d refcount=%d > 0", device->device_id, entry->refcount);
+                return;
+            }
+            break;
+        }
+    }
+
+    if (remove_entry)
+        sol_vector_del_element(&iio_opened_devices, remove_entry);
+
+    if (iio_opened_devices.len == 0)
+        sol_vector_clear(&iio_opened_devices);
 
     SOL_PTR_VECTOR_FOREACH_REVERSE_IDX (&device->channels, channel, i) {
         iio_del_channel(device, channel);
@@ -1046,6 +1158,8 @@ sol_iio_close(struct sol_iio_device *device)
     if (device->fd > -1) close(device->fd);
     if (device->name_fd > -1) close(device->name_fd);
     free(device->mount_matrix);
+
+    sol_vector_clear(&device->reader_cb_list);
 
     sol_buffer_fini(&device->buffer);
     free(device->trigger_name);

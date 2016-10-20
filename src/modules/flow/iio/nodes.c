@@ -25,6 +25,17 @@
 
 #include <sol-iio.h>
 
+#define GEN_CHANNEL_NAME(_channel_name, _name, _error, _id) \
+    if (_id >= 0) { \
+        int _ret; \
+        _ret = snprintf(_channel_name, sizeof(_channel_name), _name "%d", _id); \
+        SOL_INT_CHECK_GOTO(_ret, >= (int)sizeof(_channel_name), _error); \
+        SOL_INT_CHECK_GOTO(_ret, < 0, _error); \
+    } else { \
+        strncpy(_channel_name, _name, sizeof(_channel_name) - 1); \
+        _channel_name[sizeof(_channel_name) - 1] = '\0'; \
+    }
+
 struct iio_device_config {
     struct sol_iio_config config;
     struct sol_drange_spec out_range;
@@ -787,12 +798,16 @@ err:
 }
 
 static bool
-adc_create_channels(struct iio_double_data *mdata, int device_id)
+adc_create_channels(struct iio_double_data *mdata, int device_id, const int channel_id)
 {
+    char channel_name[NAME_MAX];
+
     mdata->iio_base.device = sol_iio_open(device_id, &mdata->iio_base.config);
     SOL_NULL_CHECK(mdata->iio_base.device, false);
 
-    mdata->channel_val = iio_add_channel(mdata->scale, mdata->offset, "in_voltage0", &mdata->iio_base);
+    GEN_CHANNEL_NAME(channel_name, "in_voltage", error, channel_id);
+
+    mdata->channel_val = iio_add_channel(mdata->scale, mdata->offset, channel_name, &mdata->iio_base);
     SOL_NULL_CHECK_GOTO(mdata->channel_val, error);
 
     sol_iio_device_start_buffer(mdata->iio_base.device);
@@ -849,7 +864,7 @@ adc_open(struct sol_flow_node *node, void *data, const struct sol_flow_node_opti
         goto err;
     }
 
-    if (!adc_create_channels(mdata, device_id))
+    if (!adc_create_channels(mdata, device_id, opts->channel_id))
         goto err;
 
     return 0;
@@ -861,16 +876,17 @@ err:
 }
 
 static bool
-light_create_channels(struct iio_double_data *mdata, int device_id)
+light_create_channels(struct iio_double_data *mdata, int device_id, const int channel_id)
 {
+    char channel_name[NAME_MAX];
+
     mdata->iio_base.device = sol_iio_open(device_id, &mdata->iio_base.config);
     SOL_NULL_CHECK(mdata->iio_base.device, false);
 
-    mdata->channel_val = iio_add_channel(mdata->scale, mdata->offset, "in_illuminance0", &mdata->iio_base);
-    if (!mdata->channel_val) {
-        mdata->channel_val = iio_add_channel(mdata->scale, mdata->offset, "in_illuminance", &mdata->iio_base);
-        SOL_NULL_CHECK_GOTO(mdata->channel_val, error);
-    }
+    GEN_CHANNEL_NAME(channel_name, "in_illuminance", error, channel_id);
+
+    mdata->channel_val = iio_add_channel(mdata->scale, mdata->offset, channel_name, &mdata->iio_base);
+    SOL_NULL_CHECK_GOTO(mdata->channel_val, error);
 
     sol_iio_device_start_buffer(mdata->iio_base.device);
 
@@ -931,7 +947,7 @@ light_open(struct sol_flow_node *node, void *data, const struct sol_flow_node_op
         goto err;
     }
 
-    if (!light_create_channels(mdata, device_id))
+    if (!light_create_channels(mdata, device_id, opts->channel_id))
         goto err;
 
     return 0;
@@ -943,16 +959,17 @@ err:
 }
 
 static bool
-proximity_create_channels(struct iio_double_data *mdata, int device_id)
+proximity_create_channels(struct iio_double_data *mdata, int device_id, const int channel_id)
 {
+    char channel_name[NAME_MAX];
+
     mdata->iio_base.device = sol_iio_open(device_id, &mdata->iio_base.config);
     SOL_NULL_CHECK(mdata->iio_base.device, false);
 
-    mdata->channel_val = iio_add_channel(mdata->scale, mdata->offset, "in_proximity", &mdata->iio_base);
-    if (!mdata->channel_val) {
-        mdata->channel_val = iio_add_channel(mdata->scale, mdata->offset, "in_proximity2", &mdata->iio_base);
-        SOL_NULL_CHECK_GOTO(mdata->channel_val, error);
-    }
+    GEN_CHANNEL_NAME(channel_name, "in_proximity", error, channel_id);
+
+    mdata->channel_val = iio_add_channel(mdata->scale, mdata->offset, channel_name, &mdata->iio_base);
+    SOL_NULL_CHECK_GOTO(mdata->channel_val, error);
 
     sol_iio_device_start_buffer(mdata->iio_base.device);
 
@@ -1008,7 +1025,7 @@ proximity_open(struct sol_flow_node *node, void *data, const struct sol_flow_nod
         goto err;
     }
 
-    if (!proximity_create_channels(mdata, device_id))
+    if (!proximity_create_channels(mdata, device_id, opts->channel_id))
         goto err;
 
     return 0;
