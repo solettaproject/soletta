@@ -129,6 +129,13 @@ request_input(void *data, const struct sol_netctl_service *service,
             goto fail;
         }
 
+        r = sol_ptr_vector_append(&input_vector, input);
+        if (r < 0) {
+            printf("append the agent input error\n");
+            free(input);
+            goto fail;
+        }
+
         input->type = strdup(value);
         if (!input->type) {
             printf("No Memory for the agent input\n");
@@ -141,11 +148,6 @@ request_input(void *data, const struct sol_netctl_service *service,
             goto fail;
         }
 
-        r = sol_ptr_vector_append(&input_vector, input);
-        if (r < 0) {
-            printf("append the agent input error\n");
-            goto fail;
-        }
     }
 
     r = sol_netctl_request_input((struct sol_netctl_service *)service,
@@ -158,6 +160,7 @@ fail:
             free(input->input);
         if (input->type)
             free(input->type);
+        free(input);
     }
 
     sol_ptr_vector_clear(&input_vector);
