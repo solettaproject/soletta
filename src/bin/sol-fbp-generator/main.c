@@ -1418,7 +1418,6 @@ generate_memory_map_struct(const struct sol_ptr_vector *maps, int *elements)
 
         out("\nstatic const struct sol_str_table_ptr _memmap%d_entries[] = {\n", i);
         for (iter = map->entries, entry_idx = 0; iter->key; iter++, entry_idx++) {
-            entry = iter->val;
             out("   SOL_STR_TABLE_PTR_ITEM(\"%s\", &map%d_entry%d),\n",
                 iter->key, i, entry_idx);
         }
