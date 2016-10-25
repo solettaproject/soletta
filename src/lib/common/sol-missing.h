@@ -22,6 +22,8 @@
 extern "C" {
 #endif
 
+#include "sol-common-buildopts.h"
+
 #ifndef HAVE_DECL_STRNDUPA
 #include <alloca.h>
 
@@ -183,6 +185,11 @@ err_free:
 
 #ifndef I2C_RDRW_IOCTL_MAX_MSGS
 #define I2C_RDRW_IOCTL_MAX_MSGS 42
+#endif
+
+#if !defined(RB_SW_SUSPEND) && defined(SOL_PLATFORM_LINUX)
+#include <linux/reboot.h>
+#define RB_SW_SUSPEND LINUX_REBOOT_CMD_SW_SUSPEND /* for uclibc */
 #endif
 
 #ifdef __cplusplus
