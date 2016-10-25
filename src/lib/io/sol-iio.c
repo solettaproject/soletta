@@ -335,7 +335,7 @@ create_hrtimer_trigger(struct sol_iio_device *device, const char *trigger_name)
 {
     int success, id, len;
     bool r = false;
-    char *name = NULL, *replace;
+    char *name = NULL;
     char path[PATH_MAX];
 
     if (check_file_existence(CONFIGFS_IIO_HRTIMER_TRIGGERS_PATH)) {
@@ -565,6 +565,7 @@ setup_device_reader(struct sol_iio_device *device)
 
 /* Some channels are named on the form  <type>[_x|_y|_z]
  * This function shall return the name without <x|y|z> components.
+ * And remove both/ir/uv suffix frome some light internsity sensors.
  * The form <type>[Y][_modifier] is also common (Y is a number), and this function
  * remove numbers too, in an attempt to get the 'pure' name.
  * TODO there are other esoteric combinations - for them, if we care about,
@@ -572,19 +573,35 @@ setup_device_reader(struct sol_iio_device *device)
 static char *
 channel_get_pure_name(struct sol_iio_channel *channel)
 {
+    char channel_name[NAME_MAX];
     size_t channel_name_len;
     char *channel_pure_name;
     bool modified = false;
 
-    channel_name_len = strlen(channel->name);
+    strncpy(channel_name, channel->name, sizeof(channel_name) - 1);
+    channel_name[sizeof(channel_name) - 1] = '\0';
+
+    channel_name_len = strlen(channel_name);
+    if (strendswith(channel_name, "_both")) {
+        channel_name[channel_name_len - 5] = '\0';
+        modified = true;
+    }
+
+    if (strendswith(channel_name, "_ir") ||
+        strendswith(channel_name, "_uv")) {
+        channel_name[channel_name_len - 3] = '\0';
+        modified = true;
+    }
+
+    channel_name_len = strlen(channel_name);
     if (channel_name_len > 2) {
         char *channel_name_suffix;
 
-        channel_name_suffix = channel->name + channel_name_len - 2;
+        channel_name_suffix = channel_name + channel_name_len - 2;
         if (streq(channel_name_suffix,  "_x") ||
             streq(channel_name_suffix,  "_y") || streq(channel_name_suffix,  "_z")) {
 
-            channel_pure_name = strndup(channel->name, channel_name_len - 2);
+            channel_pure_name = strndup(channel_name, channel_name_len - 2);
             return channel_pure_name;
         } else {
             /* Recreate channel name without Y_ components (Y is a number).
@@ -595,9 +612,10 @@ channel_get_pure_name(struct sol_iio_channel *channel)
             channel_pure_name = calloc(1, channel_name_len + 1);
             original_channel_pure_name = channel_pure_name;
             for (i = 0; i < channel_name_len; i++) {
-                if (isalpha((uint8_t)channel->name[i]) || channel->name[i] == '-' || channel->name[i] == '_')
-                    *channel_pure_name++ = channel->name[i];
-                else if (isdigit((uint8_t)channel->name[i])) {
+                if (isalpha((uint8_t)channel_name[i]) || channel_name[i] == '-'
+                    || channel_name[i] == '_')
+                    *channel_pure_name++ = channel_name[i];
+                else if (isdigit((uint8_t)channel_name[i])) {
                     modified = true;
                     continue;
                 }
@@ -608,6 +626,11 @@ channel_get_pure_name(struct sol_iio_channel *channel)
             free(original_channel_pure_name);
             return NULL;
         }
+    }
+
+    if (modified) {
+        channel_pure_name = strndup(channel_name, channel_name_len);
+        return channel_pure_name;
     }
 
     return NULL;
@@ -664,7 +687,7 @@ iio_set_channel_scale(struct sol_iio_channel *channel, double scale)
     if (craft_filename_path(path, sizeof(path), CHANNEL_SCALE_PATH,
         channel->device->device_id, channel->name)) {
 
-        if (sol_util_write_file(path, "%lf", scale) > 0) {
+        if (sol_util_write_file(path, "%.9lf", scale) > 0) {
             channel->scale = scale;
             return true;
         }
@@ -673,15 +696,15 @@ iio_set_channel_scale(struct sol_iio_channel *channel, double scale)
     /* If failed, try channel pure name */
     pure_name = channel_get_pure_name(channel);
     if (pure_name && craft_filename_path(path, sizeof(path), CHANNEL_SCALE_PATH,
-        channel->device->device_id, channel->name)) {
+        channel->device->device_id, pure_name)) {
 
-        result = (sol_util_write_file(path, "%lf", scale) > 0);
+        result = (sol_util_write_file(path, "%.9lf", scale) > 0);
         if (result)
             channel->scale = scale;
     }
 
     if (!result)
-        SOL_WRN("Could not set scale to %lf on channel [%s] of device%d",
+        SOL_WRN("Could not set scale to %.9lf on channel [%s] of device%d",
             scale, channel->name, channel->device->device_id);
 
     free(pure_name);
@@ -709,7 +732,7 @@ iio_set_channel_offset(struct sol_iio_channel *channel, int offset)
     /* If failed, try channel pure name */
     pure_name = channel_get_pure_name(channel);
     if (pure_name && craft_filename_path(path, sizeof(path), CHANNEL_OFFSET_PATH,
-        channel->device->device_id, channel->name)) {
+        channel->device->device_id, pure_name)) {
 
         result = sol_util_write_file(path, "%d", offset) > 0;
         if (result)
@@ -1262,7 +1285,7 @@ sol_iio_add_channel(struct sol_iio_device *device, const char *name, const struc
         SOL_WRN("Could not activate device channel [%s] in device%d",
             name, device->device_id);
 
-    SOL_DBG("channel [%s] added. scale: %lf - offset: %d - storagebits: %d"
+    SOL_DBG("channel [%s] added. scale: %.9lf - offset: %d - storagebits: %d"
         " - bits: %d - mask: %" PRIu64, channel->name, channel->scale,
         channel->offset, channel->storagebits, channel->bits, channel->mask);
 
