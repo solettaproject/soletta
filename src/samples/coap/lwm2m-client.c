@@ -1199,8 +1199,8 @@ main(int argc, char *argv[])
     static const struct sol_lwm2m_object *objects[] =
     { &security_object, &server_object, &access_control_object, &location_object, NULL };
     struct client_data_ctx data_ctx = { 0 };
-    struct security_obj_instance_ctx *security_data;
-    struct server_obj_instance_ctx *server_data;
+    struct security_obj_instance_ctx *security_data = NULL;
+    struct server_obj_instance_ctx *server_data = NULL;
     int r;
     enum sol_lwm2m_security_mode sec_mode = SOL_LWM2M_SECURITY_MODE_NO_SEC;
     unsigned char buf_aux[RPK_PUBLIC_KEY_LEN];
@@ -1305,7 +1305,8 @@ main(int argc, char *argv[])
     security_data = calloc(1, sizeof(struct security_obj_instance_ctx));
     if (!security_data) {
         fprintf(stderr, "Could not alloc memory for security object context\n");
-        return -ENOMEM;
+        r = -ENOMEM;
+        goto exit_del;
     }
 
     security_data->client = client;
@@ -1318,7 +1319,8 @@ main(int argc, char *argv[])
         server_data = calloc(1, sizeof(struct server_obj_instance_ctx));
         if (!server_data) {
             fprintf(stderr, "Could not alloc memory for server object context\n");
-            return -ENOMEM;
+            r = -ENOMEM;
+            goto exit_del;
         }
 
         server_data->client = client;
@@ -1368,6 +1370,8 @@ main(int argc, char *argv[])
 
 exit_del:
     sol_lwm2m_client_del(client);
+    free(security_data);
+    free(server_data);
 exit:
     sol_shutdown();
     return r;
