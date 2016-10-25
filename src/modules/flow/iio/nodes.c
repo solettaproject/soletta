@@ -959,6 +959,178 @@ err:
 }
 
 static bool
+intensity_both_create_channels(struct iio_double_data *mdata, int device_id, const int channel_id)
+{
+    char channel_name[NAME_MAX];
+    int ret = 0;
+
+    mdata->iio_base.device = sol_iio_open(device_id, &mdata->iio_base.config);
+    SOL_NULL_CHECK(mdata->iio_base.device, false);
+
+    if (channel_id >= 0) {
+        ret = snprintf(channel_name, sizeof(channel_name), "in_intensity%d_both", channel_id);
+        SOL_INT_CHECK_GOTO(ret, >= (int)sizeof(channel_name), error);
+        SOL_INT_CHECK_GOTO(ret, < 0, error);
+    } else {
+        strncpy(channel_name, "in_intensity_both", sizeof(channel_name) - 1);
+        channel_name[sizeof(channel_name) - 1] = '\0';
+    }
+
+    mdata->channel_val = iio_add_channel(mdata->scale, mdata->offset, channel_name, &mdata->iio_base);
+    SOL_NULL_CHECK_GOTO(mdata->channel_val, error);
+
+    sol_iio_device_start_buffer(mdata->iio_base.device);
+
+    return true;
+
+error:
+    SOL_WRN("Could not create iio/intensity-both-sensor node. Failed to open IIO"
+        " device %d", device_id);
+
+    sol_iio_close(mdata->iio_base.device);
+    return false;
+}
+
+static int
+intensity_both_open(struct sol_flow_node *node, void *data, const struct sol_flow_node_options *options)
+{
+    struct iio_double_data *mdata = data;
+    const struct sol_flow_node_type_iio_intensity_both_sensor_options *opts;
+    int device_id;
+    struct iio_node_type *type;
+
+    type = (struct iio_node_type *)sol_flow_node_get_type(node);
+
+    SOL_FLOW_NODE_OPTIONS_SUB_API_CHECK(options, SOL_FLOW_NODE_TYPE_IIO_INTENSITY_BOTH_SENSOR_OPTIONS_API_VERSION,
+        -EINVAL);
+    opts = (const struct sol_flow_node_type_iio_intensity_both_sensor_options *)options;
+
+    mdata->iio_base.buffer_enabled = opts->buffer_size > -1;
+
+    SOL_SET_API_VERSION(mdata->iio_base.config.api_version = SOL_IIO_CONFIG_API_VERSION; )
+
+    if (opts->iio_trigger_name) {
+        mdata->iio_base.config.trigger_name = strdup(opts->iio_trigger_name);
+        SOL_NULL_CHECK(mdata->iio_base.config.trigger_name, -ENOMEM);
+    }
+
+    mdata->iio_base.config.buffer_size = opts->buffer_size;
+    mdata->iio_base.config.sampling_frequency = opts->sampling_frequency;
+    if (mdata->iio_base.buffer_enabled) {
+        mdata->iio_base.config.sol_iio_reader_cb = type->reader_cb;
+        mdata->iio_base.config.data = node;
+    }
+    mdata->iio_base.use_device_default_scale = opts->use_device_default_scale;
+    mdata->iio_base.use_device_default_offset = opts->use_device_default_offset;
+    mdata->scale = opts->scale;
+    mdata->offset = opts->offset;
+    mdata->iio_base.out_range = opts->out_range;
+
+    device_id = sol_iio_address_device(opts->iio_device);
+    if (device_id < 0) {
+        SOL_WRN("Could not create iio/intensity-both-sensor node. Failed to open"
+            " IIO device %s", opts->iio_device);
+        goto err;
+    }
+
+    if (!intensity_both_create_channels(mdata, device_id, opts->channel_id))
+        goto err;
+
+    return 0;
+
+err:
+    free((char *)mdata->iio_base.config.trigger_name);
+    return -EINVAL;
+
+}
+
+static bool
+intensity_ir_create_channels(struct iio_double_data *mdata, int device_id, const int channel_id)
+{
+    char channel_name[NAME_MAX];
+    int ret = 0;
+
+    mdata->iio_base.device = sol_iio_open(device_id, &mdata->iio_base.config);
+    SOL_NULL_CHECK(mdata->iio_base.device, false);
+
+    if (channel_id >= 0) {
+        ret = snprintf(channel_name, sizeof(channel_name), "in_intensity%d_ir", channel_id);
+        SOL_INT_CHECK_GOTO(ret, >= (int)sizeof(channel_name), error);
+        SOL_INT_CHECK_GOTO(ret, < 0, error);
+    } else {
+        strncpy(channel_name, "in_intensity_ir", sizeof(channel_name) - 1);
+        channel_name[sizeof(channel_name) - 1] = '\0';
+    }
+
+    mdata->channel_val = iio_add_channel(mdata->scale, mdata->offset, channel_name, &mdata->iio_base);
+    SOL_NULL_CHECK_GOTO(mdata->channel_val, error);
+
+    sol_iio_device_start_buffer(mdata->iio_base.device);
+
+    return true;
+
+error:
+    SOL_WRN("Could not create iio/intensity-ir-sensor node. Failed to open IIO"
+        " device %d", device_id);
+
+    sol_iio_close(mdata->iio_base.device);
+    return false;
+}
+
+static int
+intensity_ir_open(struct sol_flow_node *node, void *data, const struct sol_flow_node_options *options)
+{
+    struct iio_double_data *mdata = data;
+    const struct sol_flow_node_type_iio_intensity_ir_sensor_options *opts;
+    int device_id;
+    struct iio_node_type *type;
+
+    type = (struct iio_node_type *)sol_flow_node_get_type(node);
+
+    SOL_FLOW_NODE_OPTIONS_SUB_API_CHECK(options, SOL_FLOW_NODE_TYPE_IIO_INTENSITY_IR_SENSOR_OPTIONS_API_VERSION,
+        -EINVAL);
+    opts = (const struct sol_flow_node_type_iio_intensity_ir_sensor_options *)options;
+
+    mdata->iio_base.buffer_enabled = opts->buffer_size > -1;
+
+    SOL_SET_API_VERSION(mdata->iio_base.config.api_version = SOL_IIO_CONFIG_API_VERSION; )
+
+    if (opts->iio_trigger_name) {
+        mdata->iio_base.config.trigger_name = strdup(opts->iio_trigger_name);
+        SOL_NULL_CHECK(mdata->iio_base.config.trigger_name, -ENOMEM);
+    }
+
+    mdata->iio_base.config.buffer_size = opts->buffer_size;
+    mdata->iio_base.config.sampling_frequency = opts->sampling_frequency;
+    if (mdata->iio_base.buffer_enabled) {
+        mdata->iio_base.config.sol_iio_reader_cb = type->reader_cb;
+        mdata->iio_base.config.data = node;
+    }
+    mdata->iio_base.use_device_default_scale = opts->use_device_default_scale;
+    mdata->iio_base.use_device_default_offset = opts->use_device_default_offset;
+    mdata->scale = opts->scale;
+    mdata->offset = opts->offset;
+    mdata->iio_base.out_range = opts->out_range;
+
+    device_id = sol_iio_address_device(opts->iio_device);
+    if (device_id < 0) {
+        SOL_WRN("Could not create iio/intensity-ir-sensor node. Failed to open"
+            " IIO device %s", opts->iio_device);
+        goto err;
+    }
+
+    if (!intensity_ir_create_channels(mdata, device_id, opts->channel_id))
+        goto err;
+
+    return 0;
+
+err:
+    free((char *)mdata->iio_base.config.trigger_name);
+    return -EINVAL;
+
+}
+
+static bool
 proximity_create_channels(struct iio_double_data *mdata, int device_id, const int channel_id)
 {
     char channel_name[NAME_MAX];
