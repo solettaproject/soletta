@@ -42,6 +42,10 @@ int sol_netctl_init(void);
 void sol_netctl_shutdown(void);
 
 struct sol_netctl_service {
+#ifndef SOL_NO_API_VERSION
+#define SOL_NETCTL_SERVICE_API_VERSION (1)
+    uint16_t api_version;
+#endif
     sd_bus_slot *slot;
     char *path;
     char *name;
@@ -166,6 +170,7 @@ _set_error_to_callback(struct sol_netctl_service *service,
 static void
 _init_connman_service(struct sol_netctl_service *service)
 {
+    SOL_SET_API_VERSION(service->api_version = SOL_NETCTL_SERVICE_API_VERSION; )
     SOL_SET_API_VERSION(service->link.api_version = SOL_NETWORK_LINK_API_VERSION; )
     SOL_SET_API_VERSION(service->proxy.api_version = SOL_NETCTL_PROXY_API_VERSION; )
     SOL_SET_API_VERSION(service->provider.api_version = SOL_NETCTL_PROVIDER_API_VERSION; )
@@ -384,6 +389,7 @@ get_network_link(
 
     network_addr = sol_vector_append(&link->addrs);
     SOL_NULL_CHECK(network_addr, NULL);
+    SOL_SET_API_VERSION(network_addr->api_version = SOL_NETCTL_NETWORK_PARAMS_API_VERSION; )
 
     return network_addr;
 }
