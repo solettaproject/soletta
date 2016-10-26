@@ -61,6 +61,11 @@ typedef struct sol_netctl_service sol_netctl_service;
  * netmask and its gateway of network.
  */
 typedef struct sol_netctl_network_params {
+#ifndef SOL_NO_API_VERSION
+#define SOL_NETCTL_NETWORK_PARAMS_API_VERSION (1)
+    /** @brief API version */
+    uint16_t api_version;
+#endif
     /**
      * @brief The network devices address
      */
@@ -301,6 +306,11 @@ enum sol_netctl_state {
  * This struct contains the information of agent input.
  */
 typedef struct sol_netctl_agent_input {
+#ifndef SOL_NO_API_VERSION
+#define SOL_NETCTL_AGENT_INPUT_API_VERSION (1)
+    /** @brief API version */
+    uint16_t api_version;
+#endif
     /**
      * @brief The agent prompt type
      */
@@ -317,6 +327,10 @@ typedef struct sol_netctl_agent_input {
  * This struct contains the callback functions of agent.
  */
 typedef struct sol_netctl_agent {
+#ifndef SOL_NO_API_VERSION
+#define SOL_NETCTL_AGENT_API_VERSION (1)
+    uint16_t api_version;
+#endif
     /**
      * @brief connection error callback used to inform connection failure
      *
