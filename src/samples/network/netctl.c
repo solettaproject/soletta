@@ -136,6 +136,7 @@ request_input(void *data, const struct sol_netctl_service *service,
             goto fail;
         }
 
+        SOL_SET_API_VERSION(input->api_version = SOL_NETCTL_AGENT_INPUT_API_VERSION; )
         input->type = strdup(value);
         if (!input->type) {
             printf("No Memory for the agent input\n");
@@ -199,6 +200,7 @@ startup(void)
     sol_netctl_add_manager_monitor(manager_cb, NULL);
     sol_netctl_add_error_monitor(error_cb, NULL);
 
+    SOL_SET_API_VERSION(agent.api_version = SOL_NETCTL_AGENT_API_VERSION; )
     agent.report_error = report_error;
     agent.request_input = request_input;
     agent.cancel = cancel;
