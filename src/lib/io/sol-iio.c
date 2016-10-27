@@ -578,6 +578,7 @@ channel_get_pure_name(struct sol_iio_channel *channel)
     char *channel_pure_name;
     bool modified = false;
 
+    SOL_NULL_CHECK(channel->name, NULL);
     strncpy(channel_name, channel->name, sizeof(channel_name) - 1);
     channel_name[sizeof(channel_name) - 1] = '\0';
 
@@ -602,6 +603,7 @@ channel_get_pure_name(struct sol_iio_channel *channel)
             streq(channel_name_suffix,  "_y") || streq(channel_name_suffix,  "_z")) {
 
             channel_pure_name = strndup(channel_name, channel_name_len - 2);
+            SOL_NULL_CHECK(channel_pure_name, NULL);
             return channel_pure_name;
         } else {
             /* Recreate channel name without Y_ components (Y is a number).
@@ -610,6 +612,7 @@ channel_get_pure_name(struct sol_iio_channel *channel)
             char *original_channel_pure_name;
 
             channel_pure_name = calloc(1, channel_name_len + 1);
+            SOL_NULL_CHECK(channel_pure_name, NULL);
             original_channel_pure_name = channel_pure_name;
             for (i = 0; i < channel_name_len; i++) {
                 if (isalpha((uint8_t)channel_name[i]) || channel_name[i] == '-'
@@ -630,6 +633,7 @@ channel_get_pure_name(struct sol_iio_channel *channel)
 
     if (modified) {
         channel_pure_name = strndup(channel_name, channel_name_len);
+        SOL_NULL_CHECK(channel_pure_name, NULL);
         return channel_pure_name;
     }
 
@@ -767,7 +771,7 @@ get_mount_matrix(struct sol_iio_device *device, double *mount_matrix)
     else if (check_file_existence(SYSFS_IN_MOUNT_MATRIX, device->device_id))
         base = SYSFS_IN_MOUNT_MATRIX;
     else {
-        SOL_WRN("Could not find mount_matrix for device%d", device->device_id);
+        SOL_DBG("Could not find mount_matrix for device%d", device->device_id);
         return false;
     }
 
@@ -1075,10 +1079,12 @@ channel_get_scale(struct sol_iio_channel *channel)
 
 #define GET_SCALE(_name) \
     do { \
-        r = craft_filename_path(path, sizeof(path), CHANNEL_SCALE_PATH, \
-            device->device_id, _name); \
-        if (r && sol_util_read_file(path, "%lf", &channel->scale) > 0) { \
-            goto end; \
+        if (_name) { \
+            r = craft_filename_path(path, sizeof(path), CHANNEL_SCALE_PATH, \
+                device->device_id, _name); \
+            if (r && sol_util_read_file(path, "%lf", &channel->scale) > 0) { \
+                goto end; \
+            } \
         } \
     } while (0)
 
@@ -1107,10 +1113,12 @@ channel_get_offset(struct sol_iio_channel *channel)
 
 #define GET_OFFSET(_name) \
     do { \
-        r = craft_filename_path(path, sizeof(path), CHANNEL_OFFSET_PATH, \
-            device->device_id, _name); \
-        if (r && sol_util_read_file(path, "%d", &channel->offset) > 0) { \
-            goto end; \
+        if (_name) { \
+            r = craft_filename_path(path, sizeof(path), CHANNEL_OFFSET_PATH, \
+                device->device_id, _name); \
+            if (r && sol_util_read_file(path, "%d", &channel->offset) > 0) { \
+                goto end; \
+            } \
         } \
     } while (0)
 
