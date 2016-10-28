@@ -43,6 +43,9 @@ struct iio_device_config {
     bool buffer_enabled : 1;
     bool use_device_default_scale : 1;
     bool use_device_default_offset : 1;
+    enum iio_data_type {
+        DOUBLE, DIRECTION_VECTOR, COLOR,
+    } data_type;
 };
 
 /* Make sure the iio_device_config is the first element */
@@ -78,6 +81,15 @@ struct iio_color_data {
 struct iio_node_type {
     struct sol_flow_node_type base;
     uint16_t out_port;
+    uint16_t scale_port;
+    uint16_t scale_red_port;
+    uint16_t scale_green_port;
+    uint16_t scale_blue_port;
+    uint16_t offset_port;
+    uint16_t offset_red_port;
+    uint16_t offset_green_port;
+    uint16_t offset_blue_port;
+    uint16_t sampling_frequency_port;
     void (*reader_cb)(void *data, struct sol_iio_device *device);
 };
 
@@ -101,6 +113,7 @@ iio_common_close(struct sol_flow_node *node, void *data)
     struct iio_device_config *mdata = data;
 
     free((char *)mdata->config.trigger_name);
+
     if (mdata->device)
         sol_iio_close(mdata->device);
 }
@@ -127,6 +140,122 @@ error:
     sol_flow_send_error_packet(node, EIO, "%s", errmsg);
     SOL_WRN("%s reader_cb=%p", errmsg, type->reader_cb);
 
+    return -EIO;
+}
+
+static int
+iio_get_info(struct sol_flow_node *node, void *data, uint16_t port, uint16_t conn_id, const struct sol_flow_packet *packet)
+{
+    static const char *errmsg = "Could not read configuration attribute";
+    struct iio_device_config *device_config = data;
+    struct sol_iio_device *device = device_config->device;
+    struct iio_node_type *type = (struct iio_node_type *)sol_flow_node_get_type(node);
+    char *sampling_frequency_name = device_config->config.sampling_frequency_name;
+    int frequency, r;
+
+    if (device_config->data_type == DOUBLE) {
+        struct iio_double_data *mdata = data;
+        char *name;
+        double value;
+
+        name = sol_iio_channel_get_name(mdata->channel_val);
+        SOL_NULL_CHECK_GOTO(name, error);
+
+        r = sol_iio_device_get_scale(device, name, &value);
+        SOL_INT_CHECK_GOTO(r, < 0, error);
+
+        r = sol_flow_send_drange_value_packet(node, type->scale_port, value);
+        SOL_INT_CHECK_GOTO(r, < 0, error);
+
+        r = sol_iio_device_get_offset(device, name, &value);
+        SOL_INT_CHECK_GOTO(r, < 0, error);
+
+        r = sol_flow_send_drange_value_packet(node, type->offset_port, value);
+        SOL_INT_CHECK_GOTO(r, < 0, error);
+    } else if (device_config->data_type == DIRECTION_VECTOR) {
+        struct iio_direction_vector_data *mdata = data;
+        char *name_x, *name_y, *name_z;
+        double value_x, value_y, value_z;
+
+        name_x = sol_iio_channel_get_name(mdata->channel_x);
+        SOL_NULL_CHECK_GOTO(name_x, error);
+        name_y = sol_iio_channel_get_name(mdata->channel_y);
+        SOL_NULL_CHECK_GOTO(name_y, error);
+        name_z = sol_iio_channel_get_name(mdata->channel_z);
+        SOL_NULL_CHECK_GOTO(name_z, error);
+
+        r = sol_iio_device_get_scale(device, name_x, &value_x);
+        SOL_INT_CHECK_GOTO(r, < 0, error);
+        r = sol_iio_device_get_scale(device, name_y, &value_y);
+        SOL_INT_CHECK_GOTO(r, < 0, error);
+        r = sol_iio_device_get_scale(device, name_z, &value_z);
+        SOL_INT_CHECK_GOTO(r, < 0, error);
+
+        r = sol_flow_send_direction_vector_components_packet(node,
+            type->scale_port, value_x, value_y, value_z);
+        SOL_INT_CHECK_GOTO(r, < 0, error);
+
+        r = sol_iio_device_get_offset(device, name_x, &value_x);
+        SOL_INT_CHECK_GOTO(r, < 0, error);
+        r = sol_iio_device_get_offset(device, name_y, &value_y);
+        SOL_INT_CHECK_GOTO(r, < 0, error);
+        r = sol_iio_device_get_offset(device, name_z, &value_z);
+        SOL_INT_CHECK_GOTO(r, < 0, error);
+
+        r = sol_flow_send_direction_vector_components_packet(node,
+            type->offset_port, value_x, value_y, value_z);
+        SOL_INT_CHECK_GOTO(r, < 0, error);
+    } else if (device_config->data_type == COLOR) {
+        struct iio_color_data *mdata = data;
+        char *name_red, *name_green, *name_blue;
+        double value_red, value_green, value_blue;
+
+        name_red = sol_iio_channel_get_name(mdata->channel_red);
+        SOL_NULL_CHECK_GOTO(name_red, error);
+        name_green = sol_iio_channel_get_name(mdata->channel_green);
+        SOL_NULL_CHECK_GOTO(name_green, error);
+        name_blue = sol_iio_channel_get_name(mdata->channel_blue);
+        SOL_NULL_CHECK_GOTO(name_blue, error);
+
+        r = sol_iio_device_get_scale(device, name_red, &value_red);
+        SOL_INT_CHECK_GOTO(r, < 0, error);
+        r = sol_flow_send_drange_value_packet(node, type->scale_red_port, value_red);
+        SOL_INT_CHECK_GOTO(r, < 0, error);
+
+        r = sol_iio_device_get_scale(device, name_green, &value_green);
+        SOL_INT_CHECK_GOTO(r, < 0, error);
+        r = sol_flow_send_drange_value_packet(node, type->scale_green_port, value_green);
+        SOL_INT_CHECK_GOTO(r, < 0, error);
+
+        r = sol_iio_device_get_scale(device, name_blue, &value_blue);
+        SOL_INT_CHECK_GOTO(r, < 0, error);
+        r = sol_flow_send_drange_value_packet(node, type->scale_blue_port, value_blue);
+        SOL_INT_CHECK_GOTO(r, < 0, error);
+
+        r = sol_iio_device_get_offset(device, name_red, &value_red);
+        SOL_INT_CHECK_GOTO(r, < 0, error);
+        r = sol_flow_send_drange_value_packet(node, type->offset_red_port, value_red);
+        SOL_INT_CHECK_GOTO(r, < 0, error);
+
+        r = sol_iio_device_get_offset(device, name_green, &value_green);
+        SOL_INT_CHECK_GOTO(r, < 0, error);
+        r = sol_flow_send_drange_value_packet(node, type->offset_green_port, value_green);
+        SOL_INT_CHECK_GOTO(r, < 0, error);
+
+        r = sol_iio_device_get_offset(device, name_blue, &value_blue);
+        SOL_INT_CHECK_GOTO(r, < 0, error);
+        r = sol_flow_send_drange_value_packet(node, type->offset_blue_port, value_blue);
+        SOL_INT_CHECK_GOTO(r, < 0, error);
+    }
+
+    r = sol_iio_device_get_sampling_frequency(device, sampling_frequency_name, &frequency);
+    SOL_INT_CHECK_GOTO(r, < 0, error);
+
+    r = sol_flow_send_irange_value_packet(node, type->sampling_frequency_port, frequency);
+    SOL_INT_CHECK_GOTO(r, < 0, error);
+
+error:
+    sol_flow_send_error_packet(node, EIO, "%s", errmsg);
     return -EIO;
 }
 
@@ -284,6 +413,7 @@ gyroscope_open(struct sol_flow_node *node, void *data, const struct sol_flow_nod
         SOL_NULL_CHECK(mdata->iio_base.config.trigger_name, -ENOMEM);
     }
 
+    mdata->iio_base.data_type = DIRECTION_VECTOR;
     mdata->iio_base.config.buffer_size = opts->buffer_size;
     mdata->iio_base.config.sampling_frequency = opts->sampling_frequency;
     ret = snprintf(mdata->iio_base.config.sampling_frequency_name,
@@ -367,6 +497,7 @@ magnet_open(struct sol_flow_node *node, void *data, const struct sol_flow_node_o
         SOL_NULL_CHECK(mdata->iio_base.config.trigger_name, -ENOMEM);
     }
 
+    mdata->iio_base.data_type = DIRECTION_VECTOR;
     mdata->iio_base.config.buffer_size = opts->buffer_size;
     mdata->iio_base.config.sampling_frequency = opts->sampling_frequency;
     ret = snprintf(mdata->iio_base.config.sampling_frequency_name,
@@ -445,6 +576,7 @@ temperature_open(struct sol_flow_node *node, void *data, const struct sol_flow_n
         SOL_NULL_CHECK(mdata->iio_base.config.trigger_name, -ENOMEM);
     }
 
+    mdata->iio_base.data_type = DOUBLE;
     mdata->iio_base.config.buffer_size = opts->buffer_size;
     mdata->iio_base.config.sampling_frequency = opts->sampling_frequency;
     if (mdata->iio_base.buffer_enabled) {
@@ -519,6 +651,7 @@ pressure_open(struct sol_flow_node *node, void *data, const struct sol_flow_node
         SOL_NULL_CHECK(mdata->iio_base.config.trigger_name, -ENOMEM);
     }
 
+    mdata->iio_base.data_type = DOUBLE;
     mdata->iio_base.config.buffer_size = opts->buffer_size;
     mdata->iio_base.config.sampling_frequency = opts->sampling_frequency;
     ret = snprintf(mdata->iio_base.config.sampling_frequency_name,
@@ -603,6 +736,7 @@ color_open(struct sol_flow_node *node, void *data, const struct sol_flow_node_op
         SOL_NULL_CHECK(mdata->iio_base.config.trigger_name, -ENOMEM);
     }
 
+    mdata->iio_base.data_type = COLOR;
     mdata->iio_base.config.buffer_size = opts->buffer_size;
     mdata->iio_base.config.sampling_frequency = opts->sampling_frequency;
     if (mdata->iio_base.buffer_enabled) {
@@ -689,6 +823,7 @@ accelerate_open(struct sol_flow_node *node, void *data, const struct sol_flow_no
         SOL_NULL_CHECK(mdata->iio_base.config.trigger_name, -ENOMEM);
     }
 
+    mdata->iio_base.data_type = DIRECTION_VECTOR;
     mdata->iio_base.config.buffer_size = opts->buffer_size;
     mdata->iio_base.config.sampling_frequency = opts->sampling_frequency;
     ret = snprintf(mdata->iio_base.config.sampling_frequency_name,
@@ -767,6 +902,7 @@ humidity_open(struct sol_flow_node *node, void *data, const struct sol_flow_node
         SOL_NULL_CHECK(mdata->iio_base.config.trigger_name, -ENOMEM);
     }
 
+    mdata->iio_base.data_type = DOUBLE;
     mdata->iio_base.config.buffer_size = opts->buffer_size;
     mdata->iio_base.config.sampling_frequency = opts->sampling_frequency;
     if (mdata->iio_base.buffer_enabled) {
@@ -845,6 +981,7 @@ adc_open(struct sol_flow_node *node, void *data, const struct sol_flow_node_opti
         SOL_NULL_CHECK(mdata->iio_base.config.trigger_name, -ENOMEM);
     }
 
+    mdata->iio_base.data_type = DOUBLE;
     mdata->iio_base.config.buffer_size = opts->buffer_size;
     mdata->iio_base.config.sampling_frequency = opts->sampling_frequency;
     if (mdata->iio_base.buffer_enabled) {
@@ -923,6 +1060,7 @@ light_open(struct sol_flow_node *node, void *data, const struct sol_flow_node_op
         SOL_NULL_CHECK(mdata->iio_base.config.trigger_name, -ENOMEM);
     }
 
+    mdata->iio_base.data_type = DOUBLE;
     mdata->iio_base.config.buffer_size = opts->buffer_size;
     mdata->iio_base.config.sampling_frequency = opts->sampling_frequency;
     ret = snprintf(mdata->iio_base.config.sampling_frequency_name,
@@ -1014,6 +1152,7 @@ intensity_both_open(struct sol_flow_node *node, void *data, const struct sol_flo
         SOL_NULL_CHECK(mdata->iio_base.config.trigger_name, -ENOMEM);
     }
 
+    mdata->iio_base.data_type = DOUBLE;
     mdata->iio_base.config.buffer_size = opts->buffer_size;
     mdata->iio_base.config.sampling_frequency = opts->sampling_frequency;
     if (mdata->iio_base.buffer_enabled) {
@@ -1100,6 +1239,7 @@ intensity_ir_open(struct sol_flow_node *node, void *data, const struct sol_flow_
         SOL_NULL_CHECK(mdata->iio_base.config.trigger_name, -ENOMEM);
     }
 
+    mdata->iio_base.data_type = DOUBLE;
     mdata->iio_base.config.buffer_size = opts->buffer_size;
     mdata->iio_base.config.sampling_frequency = opts->sampling_frequency;
     if (mdata->iio_base.buffer_enabled) {
@@ -1178,6 +1318,7 @@ proximity_open(struct sol_flow_node *node, void *data, const struct sol_flow_nod
         SOL_NULL_CHECK(mdata->iio_base.config.trigger_name, -ENOMEM);
     }
 
+    mdata->iio_base.data_type = DOUBLE;
     mdata->iio_base.config.buffer_size = opts->buffer_size;
     mdata->iio_base.config.sampling_frequency = opts->sampling_frequency;
     if (mdata->iio_base.buffer_enabled) {

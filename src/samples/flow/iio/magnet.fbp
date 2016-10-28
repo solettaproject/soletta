@@ -23,5 +23,7 @@
 
 magnet(MyMagnet)
 timer(timer)
+tick(constant/empty)
 
+tick OUT -> TRIGGER magnet SCALE -> IN _(console:prefix="scale:")
 timer OUT -> TICK magnet OUT -> IN _(console)
