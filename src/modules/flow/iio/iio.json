@@ -18,6 +18,14 @@
           "methods": {
             "process": "iio_common_tick"
           }
+        },
+        {
+          "data_type": "any",
+          "description": "Packets sent in here will trigger a gyroscope configuration attribute reading.",
+          "name": "TRIGGER",
+          "methods": {
+            "process": "iio_get_info"
+          }
         }
       ],
       "methods": {
@@ -31,6 +39,8 @@
         "data_type": "struct iio_node_type",
         "extra_methods": {
             "out_port": "SOL_FLOW_NODE_TYPE_IIO_GYROSCOPE__OUT__OUT",
+            "scale_port": "SOL_FLOW_NODE_TYPE_IIO_GYROSCOPE__OUT__SCALE",
+            "offset_port": "SOL_FLOW_NODE_TYPE_IIO_GYROSCOPE__OUT__OFFSET",
             "reader_cb": "iio_direction_vector_reader_cb"
        }
       },
@@ -104,6 +114,21 @@
          "data_type": "direction-vector",
          "description": "Angular speed in all X/Y/Z axes, in radians per second.",
          "name": "OUT"
+        },
+        {
+         "data_type": "direction-vector",
+         "description": "Scale to applied to device raw readings",
+         "name": "SCALE"
+        },
+        {
+         "data_type": "direction-vector",
+         "description": "Offset to be added to device raw readings",
+         "name": "OFFSET"
+        },
+        {
+         "data_type": "int",
+         "description": "Sampling frequency of the sensor. If -1, use device default",
+         "name": "SAMPLING_FREQUENCY"
         }
       ],
       "private_data_type": "iio_direction_vector_data"
@@ -119,6 +144,14 @@
           "methods": {
             "process": "iio_common_tick"
           }
+        },
+        {
+          "data_type": "any",
+          "description": "Packets sent in here will trigger a magnet configuration attribute reading.",
+          "name": "TRIGGER",
+          "methods": {
+            "process": "iio_get_info"
+          }
         }
       ],
       "methods": {
@@ -132,6 +165,8 @@
         "data_type": "struct iio_node_type",
         "extra_methods": {
             "out_port": "SOL_FLOW_NODE_TYPE_IIO_MAGNETOMETER__OUT__OUT",
+            "scale_port": "SOL_FLOW_NODE_TYPE_IIO_MAGNETOMETER__OUT__SCALE",
+            "offset_port": "SOL_FLOW_NODE_TYPE_IIO_MAGNETOMETER__OUT__OFFSET",
             "reader_cb": "iio_direction_vector_reader_cb"
        }
       },
@@ -206,6 +241,21 @@
          "data_type": "direction-vector",
          "description": "Magnet location in all X/Y/Z axes, in Gauss.",
          "name": "OUT"
+        },
+        {
+         "data_type": "direction-vector",
+         "description": "Scale to applied to device raw readings",
+         "name": "SCALE"
+        },
+        {
+         "data_type": "direction-vector",
+         "description": "Offset to be added to device raw readings",
+         "name": "OFFSET"
+        },
+        {
+         "data_type": "int",
+         "description": "Sampling frequency of the sensor. If -1, use device default",
+         "name": "SAMPLING_FREQUENCY"
         }
       ],
       "private_data_type": "iio_direction_vector_data"
@@ -221,6 +271,14 @@
           "methods": {
             "process": "iio_common_tick"
           }
+        },
+        {
+          "data_type": "any",
+          "description": "Packets sent in here will trigger a temperature configuration attribute reading.",
+          "name": "TRIGGER",
+          "methods": {
+            "process": "iio_get_info"
+          }
         }
       ],
       "methods": {
@@ -234,6 +292,8 @@
         "data_type": "struct iio_node_type",
         "extra_methods": {
             "out_port": "SOL_FLOW_NODE_TYPE_IIO_THERMOMETER__OUT__OUT",
+            "scale_port": "SOL_FLOW_NODE_TYPE_IIO_THERMOMETER__OUT__SCALE",
+            "offset_port": "SOL_FLOW_NODE_TYPE_IIO_THERMOMETER__OUT__OFFSET",
             "reader_cb": "iio_double_reader_cb"
        }
       },
@@ -308,6 +368,21 @@
          "data_type": "float",
          "description": "Temperature read, in milli degrees Celsius",
          "name": "OUT"
+        },
+        {
+         "data_type": "float",
+         "description": "Scale to applied to device raw readings",
+         "name": "SCALE"
+        },
+        {
+         "data_type": "float",
+         "description": "Offset to be added to device raw readings",
+         "name": "OFFSET"
+        },
+        {
+         "data_type": "int",
+         "description": "Sampling frequency of the sensor. If -1, use device default",
+         "name": "SAMPLING_FREQUENCY"
         }
       ],
       "private_data_type": "iio_double_data"
@@ -323,6 +398,14 @@
           "methods": {
             "process": "iio_common_tick"
           }
+        },
+        {
+          "data_type": "any",
+          "description": "Packets sent in here will trigger a pressure configuration attribute reading.",
+          "name": "TRIGGER",
+          "methods": {
+            "process": "iio_get_info"
+          }
         }
       ],
       "methods": {
@@ -336,6 +419,8 @@
         "data_type": "struct iio_node_type",
         "extra_methods": {
             "out_port": "SOL_FLOW_NODE_TYPE_IIO_PRESSURE_SENSOR__OUT__OUT",
+            "scale_port": "SOL_FLOW_NODE_TYPE_IIO_PRESSURE_SENSOR__OUT__SCALE",
+            "offset_port": "SOL_FLOW_NODE_TYPE_IIO_PRESSURE_SENSOR__OUT__OFFSET",
             "reader_cb": "iio_double_reader_cb"
        }
       },
@@ -410,6 +495,21 @@
          "data_type": "float",
          "description": "Pressure data read in Kpa.",
          "name": "OUT"
+        },
+        {
+         "data_type": "float",
+         "description": "Scale to applied to device raw readings",
+         "name": "SCALE"
+        },
+        {
+         "data_type": "float",
+         "description": "Offset to be added to device raw readings",
+         "name": "OFFSET"
+        },
+        {
+         "data_type": "int",
+         "description": "Sampling frequency of the sensor. If -1, use device default",
+         "name": "SAMPLING_FREQUENCY"
         }
       ],
       "private_data_type": "iio_double_data"
@@ -425,6 +525,14 @@
           "methods": {
             "process": "iio_common_tick"
           }
+        },
+        {
+          "data_type": "any",
+          "description": "Packets sent in here will trigger a color configuration attribute reading.",
+          "name": "TRIGGER",
+          "methods": {
+            "process": "iio_get_info"
+          }
         }
       ],
       "methods": {
@@ -438,6 +546,12 @@
         "data_type": "struct iio_node_type",
         "extra_methods": {
             "out_port": "SOL_FLOW_NODE_TYPE_IIO_COLOR_SENSOR__OUT__OUT",
+            "scale_red_port": "SOL_FLOW_NODE_TYPE_IIO_COLOR_SENSOR__OUT__SCALE_RED",
+            "scale_green_port": "SOL_FLOW_NODE_TYPE_IIO_COLOR_SENSOR__OUT__SCALE_GREEN",
+            "scale_blue_port": "SOL_FLOW_NODE_TYPE_IIO_COLOR_SENSOR__OUT__SCALE_BLUE",
+            "offset_red_port": "SOL_FLOW_NODE_TYPE_IIO_COLOR_SENSOR__OUT__OFFSET_RED",
+            "offset_green_port": "SOL_FLOW_NODE_TYPE_IIO_COLOR_SENSOR__OUT__OFFSET_GREEN",
+            "offset_blue_port": "SOL_FLOW_NODE_TYPE_IIO_COLOR_SENSOR__OUT__OFFSET_BLUE",
             "reader_cb": "iio_color_reader_cb"
        }
       },
@@ -534,6 +648,41 @@
          "data_type": "rgb",
          "description": "Color Sensor data read.",
          "name": "OUT"
+        },
+        {
+         "data_type": "float",
+         "description": "Scale to applied to device raw readings",
+         "name": "SCALE_RED"
+        },
+        {
+         "data_type": "float",
+         "description": "Scale to applied to device raw readings",
+         "name": "SCALE_GREEN"
+        },
+        {
+         "data_type": "float",
+         "description": "Scale to applied to device raw readings",
+         "name": "SCALE_BLUE"
+        },
+        {
+         "data_type": "float",
+         "description": "Offset to be added to device raw readings",
+         "name": "OFFSET_RED"
+        },
+        {
+         "data_type": "float",
+         "description": "Offset to be added to device raw readings",
+         "name": "OFFSET_GREEN"
+        },
+        {
+         "data_type": "float",
+         "description": "Offset to be added to device raw readings",
+         "name": "OFFSET_BLUE"
+        },
+        {
+         "data_type": "int",
+         "description": "Sampling frequency of the sensor. If -1, use device default",
+         "name": "SAMPLING_FREQUENCY"
         }
       ],
       "private_data_type": "iio_color_data"
@@ -549,6 +698,14 @@
           "methods": {
             "process": "iio_common_tick"
           }
+        },
+        {
+          "data_type": "any",
+          "description": "Packets sent in here will trigger a accelerate configuration attribute reading.",
+          "name": "TRIGGER",
+          "methods": {
+            "process": "iio_get_info"
+          }
         }
       ],
       "methods": {
@@ -562,6 +719,8 @@
         "data_type": "struct iio_node_type",
         "extra_methods": {
             "out_port": "SOL_FLOW_NODE_TYPE_IIO_ACCELEROMETER__OUT__OUT",
+            "scale_port": "SOL_FLOW_NODE_TYPE_IIO_ACCELEROMETER__OUT__SCALE",
+            "offset_port": "SOL_FLOW_NODE_TYPE_IIO_ACCELEROMETER__OUT__OFFSET",
             "reader_cb": "iio_direction_vector_reader_cb"
        }
       },
@@ -635,6 +794,21 @@
          "data_type": "direction-vector",
          "description": "Accelerate data read, in m/s^2.",
          "name": "OUT"
+        },
+        {
+         "data_type": "direction-vector",
+         "description": "Scale to applied to device raw readings",
+         "name": "SCALE"
+        },
+        {
+         "data_type": "direction-vector",
+         "description": "Offset to be added to device raw readings",
+         "name": "OFFSET"
+        },
+        {
+         "data_type": "int",
+         "description": "Sampling frequency of the sensor. If -1, use device default",
+         "name": "SAMPLING_FREQUENCY"
         }
       ],
       "private_data_type": "iio_direction_vector_data"
@@ -650,6 +824,14 @@
           "methods": {
             "process": "iio_common_tick"
           }
+        },
+        {
+          "data_type": "any",
+          "description": "Packets sent in here will trigger a humidity configuration attribute reading.",
+          "name": "TRIGGER",
+          "methods": {
+            "process": "iio_get_info"
+          }
         }
       ],
       "methods": {
@@ -663,6 +845,8 @@
         "data_type": "struct iio_node_type",
         "extra_methods": {
             "out_port": "SOL_FLOW_NODE_TYPE_IIO_HUMIDITY_SENSOR__OUT__OUT",
+            "scale_port": "SOL_FLOW_NODE_TYPE_IIO_HUMIDITY_SENSOR__OUT__SCALE",
+            "offset_port": "SOL_FLOW_NODE_TYPE_IIO_HUMIDITY_SENSOR__OUT__OFFSET",
             "reader_cb": "iio_double_reader_cb"
        }
       },
@@ -737,6 +921,21 @@
          "data_type": "float",
          "description": "Relative humidity data read, in percentage(%rh).",
          "name": "OUT"
+        },
+        {
+         "data_type": "float",
+         "description": "Scale to applied to device raw readings",
+         "name": "SCALE"
+        },
+        {
+         "data_type": "float",
+         "description": "Offset to be added to device raw readings",
+         "name": "OFFSET"
+        },
+        {
+         "data_type": "int",
+         "description": "Sampling frequency of the sensor. If -1, use device default",
+         "name": "SAMPLING_FREQUENCY"
         }
       ],
       "private_data_type": "iio_double_data"
@@ -752,6 +951,14 @@
           "methods": {
             "process": "iio_common_tick"
           }
+        },
+        {
+          "data_type": "any",
+          "description": "Packets sent in here will trigger a adc configuration attribute reading.",
+          "name": "TRIGGER",
+          "methods": {
+            "process": "iio_get_info"
+          }
         }
       ],
       "methods": {
@@ -765,6 +972,8 @@
         "data_type": "struct iio_node_type",
         "extra_methods": {
             "out_port": "SOL_FLOW_NODE_TYPE_IIO_ADC__OUT__OUT",
+            "scale_port": "SOL_FLOW_NODE_TYPE_IIO_ADC__OUT__SCALE",
+            "offset_port": "SOL_FLOW_NODE_TYPE_IIO_ADC__OUT__OFFSET",
             "reader_cb": "iio_double_reader_cb"
        }
       },
@@ -845,6 +1054,21 @@
          "data_type": "float",
          "description": "ADC data read from analog signal, in milivolts(mV)",
          "name": "OUT"
+        },
+        {
+         "data_type": "float",
+         "description": "Scale to applied to device raw readings",
+         "name": "SCALE"
+        },
+        {
+         "data_type": "float",
+         "description": "Offset to be added to device raw readings",
+         "name": "OFFSET"
+        },
+        {
+         "data_type": "int",
+         "description": "Sampling frequency of the sensor. If -1, use device default",
+         "name": "SAMPLING_FREQUENCY"
         }
       ],
       "private_data_type": "iio_double_data"
@@ -860,6 +1084,14 @@
           "methods": {
             "process": "iio_common_tick"
           }
+        },
+        {
+          "data_type": "any",
+          "description": "Packets sent in here will trigger a light configuration attribute reading.",
+          "name": "TRIGGER",
+          "methods": {
+            "process": "iio_get_info"
+          }
         }
       ],
       "methods": {
@@ -873,6 +1105,8 @@
         "data_type": "struct iio_node_type",
         "extra_methods": {
             "out_port": "SOL_FLOW_NODE_TYPE_IIO_LIGHT_SENSOR__OUT__OUT",
+            "scale_port": "SOL_FLOW_NODE_TYPE_IIO_LIGHT_SENSOR__OUT__SCALE",
+            "offset_port": "SOL_FLOW_NODE_TYPE_IIO_LIGHT_SENSOR__OUT__OFFSET",
             "reader_cb": "iio_double_reader_cb"
        }
       },
@@ -953,6 +1187,21 @@
          "data_type": "float",
          "description": "Light data read in lux.",
          "name": "OUT"
+        },
+        {
+         "data_type": "float",
+         "description": "Scale to applied to device raw readings",
+         "name": "SCALE"
+        },
+        {
+         "data_type": "float",
+         "description": "Offset to be added to device raw readings",
+         "name": "OFFSET"
+        },
+        {
+         "data_type": "int",
+         "description": "Sampling frequency of the sensor. If -1, use device default",
+         "name": "SAMPLING_FREQUENCY"
         }
       ],
       "private_data_type": "iio_double_data"
@@ -968,6 +1217,14 @@
           "methods": {
             "process": "iio_common_tick"
           }
+        },
+        {
+          "data_type": "any",
+          "description": "Packets sent in here will trigger a light configuration attribute reading.",
+          "name": "TRIGGER",
+          "methods": {
+            "process": "iio_get_info"
+          }
         }
       ],
       "methods": {
@@ -981,6 +1238,8 @@
         "data_type": "struct iio_node_type",
         "extra_methods": {
             "out_port": "SOL_FLOW_NODE_TYPE_IIO_INTENSITY_BOTH_SENSOR__OUT__OUT",
+            "scale_port": "SOL_FLOW_NODE_TYPE_IIO_INTENSITY_BOTH_SENSOR__OUT__SCALE",
+            "offset_port": "SOL_FLOW_NODE_TYPE_IIO_INTENSITY_BOTH_SENSOR__OUT__OFFSET",
             "reader_cb": "iio_double_reader_cb"
        }
       },
@@ -1061,6 +1320,21 @@
          "data_type": "float",
          "description": "Unit-less light intensity.",
          "name": "OUT"
+        },
+        {
+         "data_type": "float",
+         "description": "Scale to applied to device raw readings",
+         "name": "SCALE"
+        },
+        {
+         "data_type": "float",
+         "description": "Offset to be added to device raw readings",
+         "name": "OFFSET"
+        },
+        {
+         "data_type": "int",
+         "description": "Sampling frequency of the sensor. If -1, use device default",
+         "name": "SAMPLING_FREQUENCY"
         }
       ],
       "private_data_type": "iio_double_data"
@@ -1076,6 +1350,14 @@
           "methods": {
             "process": "iio_common_tick"
           }
+        },
+        {
+          "data_type": "any",
+          "description": "Packets sent in here will trigger a light configuration attribute reading.",
+          "name": "TRIGGER",
+          "methods": {
+            "process": "iio_get_info"
+          }
         }
       ],
       "methods": {
@@ -1089,6 +1371,8 @@
         "data_type": "struct iio_node_type",
         "extra_methods": {
             "out_port": "SOL_FLOW_NODE_TYPE_IIO_INTENSITY_IR_SENSOR__OUT__OUT",
+            "scale_port": "SOL_FLOW_NODE_TYPE_IIO_INTENSITY_IR_SENSOR__OUT__SCALE",
+            "offset_port": "SOL_FLOW_NODE_TYPE_IIO_INTENSITY_IR_SENSOR__OUT__OFFSET",
             "reader_cb": "iio_double_reader_cb"
        }
       },
@@ -1169,6 +1453,21 @@
          "data_type": "float",
          "description": "Unit-less light intensity.",
          "name": "OUT"
+        },
+        {
+         "data_type": "float",
+         "description": "Scale to applied to device raw readings",
+         "name": "SCALE"
+        },
+        {
+         "data_type": "float",
+         "description": "Offset to be added to device raw readings",
+         "name": "OFFSET"
+        },
+        {
+         "data_type": "int",
+         "description": "Sampling frequency of the sensor. If -1, use device default",
+         "name": "SAMPLING_FREQUENCY"
         }
       ],
       "private_data_type": "iio_double_data"
@@ -1184,6 +1483,14 @@
           "methods": {
             "process": "iio_common_tick"
           }
+        },
+        {
+          "data_type": "any",
+          "description": "Packets sent in here will trigger a proximity configuration attribute reading.",
+          "name": "TRIGGER",
+          "methods": {
+            "process": "iio_get_info"
+          }
         }
       ],
       "methods": {
@@ -1197,6 +1504,8 @@
         "data_type": "struct iio_node_type",
         "extra_methods": {
             "out_port": "SOL_FLOW_NODE_TYPE_IIO_PROXIMITY_SENSOR__OUT__OUT",
+            "scale_port": "SOL_FLOW_NODE_TYPE_IIO_PROXIMITY_SENSOR__OUT__SCALE",
+            "offset_port": "SOL_FLOW_NODE_TYPE_IIO_PROXIMITY_SENSOR__OUT__OFFSET",
             "reader_cb": "iio_double_reader_cb"
        }
       },
@@ -1274,6 +1583,21 @@
          "data_type": "float",
          "description": "proximity data read.",
          "name": "OUT"
+        },
+        {
+         "data_type": "float",
+         "description": "Scale to applied to device raw readings",
+         "name": "SCALE"
+        },
+        {
+         "data_type": "float",
+         "description": "Offset to be added to device raw readings",
+         "name": "OFFSET"
+        },
+        {
+         "data_type": "int",
+         "description": "Sampling frequency of the sensor. If -1, use device default",
+         "name": "SAMPLING_FREQUENCY"
         }
       ],
       "private_data_type": "iio_double_data"

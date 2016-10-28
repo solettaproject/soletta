@@ -571,15 +571,16 @@ setup_device_reader(struct sol_iio_device *device)
  * TODO there are other esoteric combinations - for them, if we care about,
  * we will probably need API calls to get the 'scale' and 'offset' file names */
 static char *
-channel_get_pure_name(struct sol_iio_channel *channel)
+channel_get_pure_name(const char *name)
 {
     char channel_name[NAME_MAX];
     size_t channel_name_len;
     char *channel_pure_name;
     bool modified = false;
 
-    SOL_NULL_CHECK(channel->name, NULL);
-    strncpy(channel_name, channel->name, sizeof(channel_name) - 1);
+    SOL_NULL_CHECK(name, NULL);
+
+    strncpy(channel_name, name, sizeof(channel_name) - 1);
     channel_name[sizeof(channel_name) - 1] = '\0';
 
     channel_name_len = strlen(channel_name);
@@ -698,7 +699,7 @@ iio_set_channel_scale(struct sol_iio_channel *channel, double scale)
     }
 
     /* If failed, try channel pure name */
-    pure_name = channel_get_pure_name(channel);
+    pure_name = channel_get_pure_name(channel->name);
     if (pure_name && craft_filename_path(path, sizeof(path), CHANNEL_SCALE_PATH,
         channel->device->device_id, pure_name)) {
 
@@ -734,7 +735,7 @@ iio_set_channel_offset(struct sol_iio_channel *channel, int offset)
     }
 
     /* If failed, try channel pure name */
-    pure_name = channel_get_pure_name(channel);
+    pure_name = channel_get_pure_name(channel->name);
     if (pure_name && craft_filename_path(path, sizeof(path), CHANNEL_OFFSET_PATH,
         channel->device->device_id, pure_name)) {
 
@@ -1069,72 +1070,96 @@ read_channel_scan_info(struct sol_iio_channel *channel)
     return false;
 }
 
-static void
-channel_get_scale(struct sol_iio_channel *channel)
+static int
+get_scale(const struct sol_iio_device *device, const char *prefix_name, double *scale)
 {
     char path[PATH_MAX];
-    char *channel_pure_name = NULL;
-    struct sol_iio_device *device = channel->device;
-    bool r;
+    char *pure_name = NULL;
+    int r = 0;
 
 #define GET_SCALE(_name) \
     do { \
-        if (_name) { \
-            r = craft_filename_path(path, sizeof(path), CHANNEL_SCALE_PATH, \
-                device->device_id, _name); \
-            if (r && sol_util_read_file(path, "%lf", &channel->scale) > 0) { \
+        if (craft_filename_path(path, sizeof(path), CHANNEL_SCALE_PATH, \
+            device->device_id, _name)) { \
+            r = sol_util_read_file(path, "%lf", scale); \
+            if (r > 0) \
                 goto end; \
-            } \
         } \
     } while (0)
 
-    GET_SCALE(channel->name);
-    /* No scale. If channel has x, y, z or Y component, look for scale file without it */
-    channel_pure_name = channel_get_pure_name(channel);
-    GET_SCALE(channel_pure_name);
+    GET_SCALE(prefix_name);
+    pure_name = channel_get_pure_name(prefix_name);
+    GET_SCALE(pure_name);
 
     SOL_INF("Could not get scale for channel [%s] in device%d. Assuming 1.0",
-        channel->name, device->device_id);
-    channel->scale = 1.0;
+        prefix_name, device->device_id);
+    *scale = 1.0;
 
 #undef GET_SCALE
 
 end:
-    free(channel_pure_name);
+    if (pure_name)
+        free(pure_name);
+
+    if (r > 0)
+        return 0;
+
+    return r;
 }
 
-static void
-channel_get_offset(struct sol_iio_channel *channel)
+static int
+channel_get_scale(struct sol_iio_channel *channel)
+{
+    SOL_NULL_CHECK(channel->device, -EINVAL);
+    SOL_NULL_CHECK(channel->name, -EINVAL);
+
+    return get_scale(channel->device, channel->name, &channel->scale);
+}
+
+static int
+get_offset(const struct sol_iio_device *device, const char *prefix_name, double *offset)
 {
     char path[PATH_MAX];
-    char *channel_pure_name = NULL;
-    struct sol_iio_device *device = channel->device;
-    bool r;
+    char *pure_name = NULL;
+    int r = 0;
 
 #define GET_OFFSET(_name) \
     do { \
-        if (_name) { \
-            r = craft_filename_path(path, sizeof(path), CHANNEL_OFFSET_PATH, \
-                device->device_id, _name); \
-            if (r && sol_util_read_file(path, "%d", &channel->offset) > 0) { \
+        if (craft_filename_path(path, sizeof(path), CHANNEL_OFFSET_PATH, \
+            device->device_id, _name)) { \
+            r = sol_util_read_file(path, "%lf", offset); \
+            if (r > 0) \
                 goto end; \
-            } \
         } \
     } while (0)
 
-    GET_OFFSET(channel->name);
-    /* No scale. If channel has x, y or z component, look for scale file without it */
-    channel_pure_name = channel_get_pure_name(channel);
-    GET_OFFSET(channel_pure_name);
+    GET_OFFSET(prefix_name);
+    pure_name = channel_get_pure_name(prefix_name);
+    GET_OFFSET(pure_name);
 
     SOL_INF("Could not get offset for channel [%s] in device%d. Assuming 0",
-        channel->name, device->device_id);
-    channel->offset = 0;
+        prefix_name, device->device_id);
+    *offset = 0.0;
 
 #undef GET_OFFSET
 
 end:
-    free(channel_pure_name);
+    if (pure_name)
+        free(pure_name);
+
+    if (r > 0)
+        return 0;
+
+    return r;
+}
+
+static int
+channel_get_offset(struct sol_iio_channel *channel)
+{
+    SOL_NULL_CHECK(channel->device, -EINVAL);
+    SOL_NULL_CHECK(channel->name, -EINVAL);
+
+    return get_offset(channel->device, channel->name, (double *)&channel->offset);
 }
 
 static void
@@ -1768,5 +1793,59 @@ sol_iio_mount_calibration(struct sol_iio_device *device, sol_direction_vector *v
     value->y = tmp[1];
     value->z = tmp[2];
     SOL_DBG("%f-%f-%f", value->x, value->y, value->z);
+    return 0;
+}
+
+SOL_API const char *
+sol_iio_channel_get_name(const struct sol_iio_channel *channel)
+{
+    SOL_NULL_CHECK(channel, NULL);
+
+    return channel->name;
+}
+
+SOL_API int
+sol_iio_device_get_scale(const struct sol_iio_device *device, const char *prefix_name, double *scale)
+{
+    SOL_NULL_CHECK(device, -EINVAL);
+    SOL_NULL_CHECK(prefix_name, -EINVAL);
+    SOL_NULL_CHECK(scale, -EINVAL);
+
+    return get_scale(device, prefix_name, scale);
+}
+
+SOL_API int
+sol_iio_device_get_offset(const struct sol_iio_device *device, const char *prefix_name, double *offset)
+{
+    SOL_NULL_CHECK(device, -EINVAL);
+    SOL_NULL_CHECK(prefix_name, -EINVAL);
+    SOL_NULL_CHECK(offset, -EINVAL);
+
+    return get_offset(device, prefix_name, offset);
+}
+
+SOL_API int
+sol_iio_device_get_sampling_frequency(const struct sol_iio_device *device, const char *prefix_name, int *sampling_frequency)
+{
+    char path[PATH_MAX];
+    int r;
+
+    SOL_NULL_CHECK(device, -EINVAL);
+    SOL_NULL_CHECK(prefix_name, -EINVAL);
+    SOL_NULL_CHECK(sampling_frequency, -EINVAL);
+
+
+    if (craft_filename_path(path, sizeof(path), CHANNEL_SAMPLING_FREQUENCY_DEVICE_PATH,
+        device->device_id, prefix_name)) {
+        r = sol_util_read_file(path, "%d", sampling_frequency);
+        SOL_INT_CHECK(r, < 0, r);
+    }
+
+    if (craft_filename_path(path, sizeof(path), SAMPLING_FREQUENCY_DEVICE_PATH,
+        device->device_id)) {
+        r = sol_util_read_file(path, "%d", sampling_frequency);
+        SOL_INT_CHECK(r, < 0, r);
+    }
+
     return 0;
 }
