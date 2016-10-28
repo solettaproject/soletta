@@ -309,7 +309,7 @@ res_payload_do(CborEncoder *encoder,
     uint16_t idx;
 
     cbor_encoder_init(encoder, buf, buflen, 0);
-    *encoder_start = encoder->ptr;
+    *encoder_start = encoder->data.ptr;
 
     err = cbor_encoder_create_array(encoder, &array, 1);
     err |= cbor_encoder_create_map(&array, &device_map, 2);
@@ -471,8 +471,8 @@ _sol_oic_server_res(void *data, struct sol_coap_server *server,
     if (err != CborErrorOutOfMemory)
         goto err;
 
-    SOL_DBG("Ensuring OIC (cbor) payload of size %td", encoder.bytes_needed);
-    r = sol_buffer_ensure(buf, encoder.bytes_needed + offset);
+    SOL_DBG("Ensuring OIC (cbor) payload of size %td", cbor_encoder_get_extra_bytes_needed(&encoder));
+    r = sol_buffer_ensure(buf, cbor_encoder_get_extra_bytes_needed(&encoder) + offset);
     if (r < 0) {
         sol_coap_packet_unref(resp);
         return r;
@@ -480,7 +480,7 @@ _sol_oic_server_res(void *data, struct sol_coap_server *server,
 
     /* now encode for sure */
     err = res_payload_do(&encoder, sol_buffer_at(buf, offset),
-        encoder.bytes_needed, query_rt, query_if, &dev_id, &encoder_start);
+        cbor_encoder_get_extra_bytes_needed(&encoder), query_rt, query_if, &dev_id, &encoder_start);
 
 err:
     if (err != CborNoError) {
@@ -496,7 +496,7 @@ err:
         sol_coap_header_set_code(resp, SOL_COAP_RESPONSE_CODE_CONTENT);
         /* Ugly, but since tinycbor operates on memory slices
          * directly, we have to resort to that */
-        buf->used += encoder.ptr - encoder_start;
+        buf->used += encoder.data.ptr - encoder_start;
     }
 
     return sol_coap_send_packet(get_server_for_response(server), resp, cliaddr);
