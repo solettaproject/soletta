@@ -64,6 +64,7 @@ obj-tinycbor-y = \
     $(TINYCBOR_SRC_PATH)/cborencoder.o \
     $(TINYCBOR_SRC_PATH)/cborerrorstrings.o \
     $(TINYCBOR_SRC_PATH)/cborparser.o \
+    $(TINYCBOR_SRC_PATH)/cborparser_dup_string.o \
     $(TINYCBOR_SRC_PATH)/cborpretty.o
 
 obj-tinycbor-private-headers += \

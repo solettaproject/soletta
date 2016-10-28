@@ -63,7 +63,7 @@ initialize_cbor_payload(struct sol_oic_map_writer *encoder)
 
     cbor_encoder_init(&encoder->encoder, encoder->payload,
         buf->capacity - offset, 0);
-    old_ptr = encoder->encoder.ptr;
+    old_ptr = encoder->encoder.data.ptr;
 
     encoder->type = SOL_OIC_MAP_CONTENT;
 
@@ -72,7 +72,7 @@ initialize_cbor_payload(struct sol_oic_map_writer *encoder)
     err = cbor_encoder_create_map(&encoder->encoder, &encoder->rep_map,
         CborIndefiniteLength);
     if (err == CborNoError) {
-        new_ptr = encoder->rep_map.ptr;
+        new_ptr = encoder->rep_map.data.ptr;
         r = buffer_used_bump(encoder, new_ptr - old_ptr);
         if (r < 0)
             err = CborErrorUnknownType;
@@ -113,12 +113,12 @@ enlarge_buffer(struct sol_oic_map_writer *writer,
     writer->rep_map = orig_map;
 
     /* update all encoder states */
-    writer->payload = writer->encoder.ptr = sol_buffer_at(buf, offset);
+    writer->payload = writer->encoder.data.ptr = sol_buffer_at(buf, offset);
     /* sol_buffer_at() directly to somewhere past the used portion fails*/
     writer->encoder.end = (uint8_t *)sol_buffer_at(buf, 0) + buf->capacity;
 
     /* new offset + how much it had progressed so far */
-    writer->rep_map.ptr = writer->payload + (orig_map.ptr - old_payload);
+    writer->rep_map.data.ptr = writer->payload + (orig_map.data.ptr - old_payload);
     writer->rep_map.end = writer->encoder.end;
 
     return 0;
@@ -146,13 +146,13 @@ sol_oic_packet_cbor_close(struct sol_coap_packet *pkt,
         /* When you close an encoder, it will get its ptr set to the
          * topmost container's. Also, this would append one byte to the
          * payload, thus '1' below */
-        old_ptr = writer->rep_map.ptr;
+        old_ptr = writer->rep_map.data.ptr;
         err = cbor_encoder_close_container(&writer->encoder, &writer->rep_map);
         if (err & CborErrorOutOfMemory) {
             r = enlarge_buffer(writer, orig_encoder, orig_map, 1);
             SOL_INT_CHECK_GOTO(r, < 0, end);
         } else if (err == CborNoError) {
-            r = buffer_used_bump(writer, writer->encoder.ptr - old_ptr);
+            r = buffer_used_bump(writer, writer->encoder.data.ptr - old_ptr);
             if (r < 0) {
                 err = CborErrorUnknownType;
                 goto end;
@@ -195,7 +195,7 @@ sol_oic_packet_cbor_append(struct sol_oic_map_writer *writer,
             r = enlarge_buffer(writer, orig_encoder, orig_map, next_buf_sz);
             SOL_INT_CHECK_GOTO(r, < 0, end);
         } else if (err == CborNoError) {
-            r = buffer_used_bump(writer, writer->rep_map.ptr - orig_map.ptr);
+            r = buffer_used_bump(writer, writer->rep_map.data.ptr - orig_map.data.ptr);
             if (r < 0) {
                 err = CborErrorUnknownType;
                 goto end;
@@ -262,7 +262,7 @@ sol_oic_packet_cbor_append(struct sol_oic_map_writer *writer,
             r = enlarge_buffer(writer, orig_encoder, orig_map, next_buf_sz);
             SOL_INT_CHECK_GOTO(r, < 0, end);
         } else if (err == CborNoError) {
-            r = buffer_used_bump(writer, writer->rep_map.ptr - orig_map.ptr);
+            r = buffer_used_bump(writer, writer->rep_map.data.ptr - orig_map.data.ptr);
             if (r < 0) {
                 err = CborErrorUnknownType;
                 goto end;
