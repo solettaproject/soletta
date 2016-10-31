@@ -423,6 +423,21 @@ enum sol_netctl_service_state sol_netctl_service_get_state(
     const struct sol_netctl_service *service);
 
 /**
+ * @brief Gets the service security methods
+ *
+ * This function gets the list of security methods or key management settings.
+ * Possible values are "none", "wep", "psk", "ieee8021x" and "wps".
+ *
+ * @param service The service struct which the security is desired
+ *
+ * @return A list of security methods for the given service.
+ *
+ * @note This methods might be only present for WiFi services.
+ */
+const struct sol_ptr_vector *
+    sol_netctl_service_get_security(const struct sol_netctl_service *service);
+
+/**
  * @brief Gets the service error
  *
  * This function gets the error for the netctl service,
