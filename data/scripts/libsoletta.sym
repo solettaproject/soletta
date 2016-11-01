@@ -415,10 +415,14 @@ global:
         sol_iio_close;
         sol_iio_device_start_buffer;
         sol_iio_device_trigger;
+        sol_iio_device_get_scale;
+        sol_iio_device_get_offset;
+        sol_iio_device_get_sampling_frequency;
         sol_iio_open;
         sol_iio_read_channel_raw_buffer;
         sol_iio_read_channel_value;
         sol_iio_mount_calibration;
+        sol_iio_channel_get_name;
 
         sol_init;
 
