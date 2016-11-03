@@ -904,4 +904,5 @@ global:
         sol_netctl_service_get_proxy;
         sol_netctl_service_get_provider;
         sol_netctl_service_get_ethernet;
+        sol_netctl_service_get_security;
 } LIBSOLETTA_1;
