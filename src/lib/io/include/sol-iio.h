@@ -249,6 +249,49 @@ int
 sol_iio_mount_calibration(struct sol_iio_device *device, sol_direction_vector *value);
 
 /**
+ * @brief Gets the configuration attribute name of a channel.
+ *
+ * @param channel sol_iio_channel structure which the name is desired.
+ * @return The configuration attribute name of the channel on success, @c NULL on error.
+ *
+ */
+char *sol_iio_channel_get_name(struct sol_iio_channel *channel);
+
+
+/**
+ * @brief Gets the configuration scale attribute from one device
+ *
+ * @param device The sol_iio_device structure which the scale is desired
+ * @param prefix_name pointer to the attribute name Eg: "in_anglvel_x"
+ * @param scale data to be get from attribute name
+ *
+ * @return 0 on success, -errno on failure.
+ */
+int sol_iio_device_get_scale(struct sol_iio_device *device, const char *prefix_name, double *scale);
+
+/**
+ * @brief Gets the configuration offset attribute from one device
+ *
+ * @param device The sol_iio_device structure which the offset is desired
+ * @param prefix_name pointer to the attribute name Eg: "in_anglvel_x"
+ * @param offset data to be get from attribute name
+ *
+ * @return 0 on success, -errno on failure.
+ */
+int sol_iio_device_get_offset(struct sol_iio_device *device, const char *prefix_name, double *offset);
+
+/**
+ * @brief Gets the configuration sampling_frequency attribute from one device
+ *
+ * @param device The sol_iio_device structure which the sampling_frequency is desired
+ * @param prefix_name pointer to the attribute name Eg: "in_anglvel"
+ * @param sampling_frequency data to be get from attribute name
+ *
+ * @return 0 on success, -errno on failure.
+ */
+int sol_iio_device_get_sampling_frequency(struct sol_iio_device *device, const char *prefix_name, int *sampling_frequency);
+
+/**
  * @}
  */
 
