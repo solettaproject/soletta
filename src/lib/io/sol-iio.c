@@ -584,8 +584,19 @@ channel_get_pure_name(const char *name)
     channel_name[sizeof(channel_name) - 1] = '\0';
 
     channel_name_len = strlen(channel_name);
-    if (strendswith(channel_name, "_both")) {
+    if (strendswith(channel_name, "_green")) {
+        channel_name[channel_name_len - 6] = '\0';
+        modified = true;
+    }
+
+    if (strendswith(channel_name, "_both") ||
+        strendswith(channel_name, "_blue")) {
         channel_name[channel_name_len - 5] = '\0';
+        modified = true;
+    }
+
+    if (strendswith(channel_name, "_red")) {
+        channel_name[channel_name_len - 4] = '\0';
         modified = true;
     }
 
