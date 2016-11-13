@@ -20,6 +20,7 @@
 #include <dirent.h>
 #include <errno.h>
 #include <fcntl.h>
+#include <glob.h>
 #include <limits.h>
 #include <stddef.h>
 #include <stdio.h>
@@ -1572,6 +1573,34 @@ resolve_absolute_path_cb(void *data, const char *dir_path, struct dirent *ent)
     return SOL_UTIL_ITERATE_DIR_CONTINUE;
 }
 
+static char *
+resolve_path(const char *path, char *resolved_path)
+{
+    int r;
+    char *p;
+    glob_t result;
+
+    r = glob(path, GLOB_MARK | GLOB_TILDE, NULL, &result);
+    if (r != 0) {
+        switch (r) {
+        case GLOB_NOMATCH:
+            errno = ENOENT;
+            return NULL;
+        case GLOB_NOSPACE:
+            errno = ENOMEM;
+            return NULL;
+        case GLOB_ABORTED:
+        default:
+            errno = EINVAL;
+            return NULL;
+        }
+    }
+
+    p = realpath(result.gl_pathv[0], resolved_path);
+    globfree(&result);
+    return p ? resolved_path : NULL;
+}
+
 static int
 resolve_absolute_path(const char *address)
 {
@@ -1585,7 +1614,7 @@ resolve_absolute_path(const char *address)
     while (result.id == -1) {
         struct timespec elapsed, now;
 
-        if (realpath(address, real_path)) {
+        if (resolve_path(address, real_path)) {
             result.path = real_path;
             SOL_DBG("resolve_absolute_path - Real path: %s", real_path);
             sol_util_iterate_dir(SYSFS_DEVICES_PATH, resolve_absolute_path_cb, &result);
