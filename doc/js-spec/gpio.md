@@ -71,7 +71,7 @@ The API implementation should register a callback with  the Soletta function ```
 
 #### Example
 ```javascript
-  var gpio = require("soletta/gpio");
+  var gpio = require('soletta/gpio');
   var pin3 = null;
 
   gpio.open({
