@@ -20,6 +20,7 @@
 
 #include <sol-buffer.h>
 #include <sol-common-buildopts.h>
+#include <sol-str-table.h>
 
 #include <linux/limits.h>
 
@@ -80,6 +81,8 @@ typedef struct sol_iio_config {
     int buffer_size; /**< The size of reading buffer. 0: use device default; -1: disable buffer and readings will be performed on channel files on sysfs. */
     int sampling_frequency; /**< Device sampling frequency. -1 uses device default */
     char sampling_frequency_name[NAME_MAX]; /**< Sampling frequency sysfs node name. Some drivers expose the sampling frequency that is shared by channel type. Such as in_magn_sampling_frequency, in_accel_sampling_frequency. */
+    struct sol_str_table *oversampling_ratio_table; /**< Hardware applied number of measurements for acquiring one data point. The HW will do [_name]_oversampling_ratio measurements and return the average value as output data. */
+
 } sol_iio_config;
 
 /**

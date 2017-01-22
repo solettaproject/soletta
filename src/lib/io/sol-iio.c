@@ -135,6 +135,8 @@ static struct sol_vector iio_opened_devices = SOL_VECTOR_INIT(struct iio_opened_
 #define SAMPLING_FREQUENCY_DEVICE_PATH SYSFS_DEVICES_PATH "/iio:device%d/sampling_frequency"
 #define CHANNEL_SAMPLING_FREQUENCY_DEVICE_PATH SYSFS_DEVICES_PATH "/iio:device%d/%ssampling_frequency"
 
+#define CHANNEL_OVERSAMPLING_RATIO_DEVICE_PATH SYSFS_DEVICES_PATH "/iio:device%d/%soversampling_ratio"
+
 #define SAMPLING_FREQUENCY_BUFFER_PATH SYSFS_DEVICES_PATH "/iio:device%d/buffer/sampling_frequency"
 #define SAMPLING_FREQUENCY_TRIGGER_PATH SYSFS_DEVICES_PATH "/trigger%d/sampling_frequency"
 
@@ -654,6 +656,34 @@ channel_get_pure_name(const char *name)
 }
 
 static bool
+iio_set_oversampling_ratio(struct sol_iio_device *device, const struct sol_iio_config *config)
+{
+    char path[PATH_MAX];
+    struct sol_str_table *iter;
+
+    SOL_NULL_CHECK(device, false);
+
+    for (iter = config->oversampling_ratio_table; iter->key; iter++) {
+        if (!iter->val)
+            continue;
+
+        if (!craft_filename_path(path, sizeof(path), CHANNEL_OVERSAMPLING_RATIO_DEVICE_PATH,
+            device->device_id, iter->key)) {
+            SOL_WRN("Could not set oversampling ratio");
+            return false;
+        }
+
+        if (sol_util_write_file(path, "%d", iter->val) <= 0) {
+            SOL_WRN("Could not set oversampling ratio to %d at '%s'",
+                iter->val, path);
+            return false;
+        }
+    }
+
+    return true;
+}
+
+static bool
 iio_set_sampling_frequency(struct sol_iio_device *device, const struct sol_iio_config *config)
 {
     char path[PATH_MAX];
@@ -947,6 +977,11 @@ sol_iio_open(int device_id, const struct sol_iio_config *config)
     if (config->sampling_frequency > -1) {
         if (!iio_set_sampling_frequency(device, config))
             SOL_WRN("Could not set device%d sampling frequency", device->device_id);
+    }
+
+    if (config->oversampling_ratio_table) {
+        if (!iio_set_oversampling_ratio(device, config))
+            SOL_WRN("Could not set device%d oversampling ratio", device->device_id);
     }
 
     device->mount_matrix = calloc(MOUNT_MATRIX_LEN, sizeof(double));

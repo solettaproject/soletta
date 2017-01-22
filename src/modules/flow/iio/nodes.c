@@ -29,12 +29,19 @@
     if (_id >= 0) { \
         int _ret; \
         _ret = snprintf(_channel_name, sizeof(_channel_name), _name "%d", _id); \
-        SOL_INT_CHECK_GOTO(_ret, >= (int)sizeof(_channel_name), _error); \
-        SOL_INT_CHECK_GOTO(_ret, < 0, _error); \
+        SOL_EXP_CHECK_GOTO(_ret < 0 || _ret >= (int)sizeof(_channel_name), _error); \
     } else { \
         strncpy(_channel_name, _name, sizeof(_channel_name) - 1); \
         _channel_name[sizeof(_channel_name) - 1] = '\0'; \
     }
+
+#define GEN_SOL_STR_TABLE(key, len, val, name, value) \
+    do { \
+        key = strdup(name); \
+        SOL_NULL_CHECK(key, -ENOMEM); \
+        len = strlen(key); \
+        val = value; \
+    } while (0)
 
 struct iio_device_config {
     struct sol_iio_config config;
@@ -111,9 +118,19 @@ static void
 iio_common_close(struct sol_flow_node *node, void *data)
 {
     struct iio_device_config *mdata = data;
+    struct sol_str_table *iter;
 
     free((char *)mdata->config.trigger_name);
 
+    if (!mdata->config.oversampling_ratio_table)
+        goto end;
+
+    for (iter = mdata->config.oversampling_ratio_table; iter->key; iter++)
+        free(iter->key);
+
+    free(mdata->config.oversampling_ratio_table);
+
+end:
     if (mdata->device)
         sol_iio_close(mdata->device);
 }
@@ -418,8 +435,7 @@ gyroscope_open(struct sol_flow_node *node, void *data, const struct sol_flow_nod
     mdata->iio_base.config.sampling_frequency = opts->sampling_frequency;
     ret = snprintf(mdata->iio_base.config.sampling_frequency_name,
         sizeof(mdata->iio_base.config.sampling_frequency_name), "%s", "in_anglvel_");
-    SOL_INT_CHECK_GOTO(ret, >= (int)sizeof(mdata->iio_base.config.sampling_frequency_name), err);
-    SOL_INT_CHECK_GOTO(ret, < 0, err);
+    SOL_EXP_CHECK_GOTO(ret < 0 || ret >= (int)sizeof(mdata->iio_base.config.sampling_frequency_name), err);
 
     if (mdata->iio_base.buffer_enabled) {
         mdata->iio_base.config.sol_iio_reader_cb = type->reader_cb;
@@ -481,6 +497,7 @@ magnet_open(struct sol_flow_node *node, void *data, const struct sol_flow_node_o
     const struct sol_flow_node_type_iio_magnetometer_options *opts;
     int device_id, ret;
     struct iio_node_type *type;
+    struct sol_str_table *table;
 
     type = (struct iio_node_type *)sol_flow_node_get_type(node);
 
@@ -502,8 +519,20 @@ magnet_open(struct sol_flow_node *node, void *data, const struct sol_flow_node_o
     mdata->iio_base.config.sampling_frequency = opts->sampling_frequency;
     ret = snprintf(mdata->iio_base.config.sampling_frequency_name,
         sizeof(mdata->iio_base.config.sampling_frequency_name), "%s", "in_magn_");
-    SOL_INT_CHECK_GOTO(ret, >= (int)sizeof(mdata->iio_base.config.sampling_frequency_name), err);
-    SOL_INT_CHECK_GOTO(ret, < 0, err);
+    SOL_EXP_CHECK_GOTO(ret < 0 || ret >= (int)sizeof(mdata->iio_base.config.sampling_frequency_name), err);
+
+    mdata->iio_base.config.oversampling_ratio_table = calloc(4, sizeof(struct sol_str_table));
+    SOL_NULL_CHECK(mdata->iio_base.config.oversampling_ratio_table, -ENOMEM);
+
+    table = mdata->iio_base.config.oversampling_ratio_table;
+    GEN_SOL_STR_TABLE(table->key, table->len, table->val,
+        "in_magn_x_", (int16_t)opts->oversampling_ratio.x);
+    table++;
+    GEN_SOL_STR_TABLE(table->key, table->len, table->val,
+        "in_magn_y_", (int16_t)opts->oversampling_ratio.y);
+    table++;
+    GEN_SOL_STR_TABLE(table->key, table->len, table->val,
+        "in_magn_z_", (int16_t)opts->oversampling_ratio.z);
 
     if (mdata->iio_base.buffer_enabled) {
         mdata->iio_base.config.sol_iio_reader_cb = type->reader_cb;
@@ -558,8 +587,9 @@ temperature_open(struct sol_flow_node *node, void *data, const struct sol_flow_n
 {
     struct iio_double_data *mdata = data;
     const struct sol_flow_node_type_iio_thermometer_options *opts;
-    int device_id;
+    int device_id, ret;
     struct iio_node_type *type;
+    struct sol_str_table *table;
 
     type = (struct iio_node_type *)sol_flow_node_get_type(node);
 
@@ -579,6 +609,17 @@ temperature_open(struct sol_flow_node *node, void *data, const struct sol_flow_n
     mdata->iio_base.data_type = DOUBLE;
     mdata->iio_base.config.buffer_size = opts->buffer_size;
     mdata->iio_base.config.sampling_frequency = opts->sampling_frequency;
+    ret = snprintf(mdata->iio_base.config.sampling_frequency_name,
+        sizeof(mdata->iio_base.config.sampling_frequency_name), "%s", "in_temp_");
+    SOL_EXP_CHECK_GOTO(ret < 0 || ret >= (int)sizeof(mdata->iio_base.config.sampling_frequency_name), err);
+
+    mdata->iio_base.config.oversampling_ratio_table = calloc(2, sizeof(struct sol_str_table));
+    SOL_NULL_CHECK(mdata->iio_base.config.oversampling_ratio_table, -ENOMEM);
+
+    table = mdata->iio_base.config.oversampling_ratio_table;
+    GEN_SOL_STR_TABLE(table->key, table->len, table->val,
+        "in_temp_", opts->oversampling_ratio);
+
     if (mdata->iio_base.buffer_enabled) {
         mdata->iio_base.config.sol_iio_reader_cb = type->reader_cb;
         mdata->iio_base.config.data = node;
@@ -635,6 +676,7 @@ pressure_open(struct sol_flow_node *node, void *data, const struct sol_flow_node
     const struct sol_flow_node_type_iio_pressure_sensor_options *opts;
     int device_id, ret;
     struct iio_node_type *type;
+    struct sol_str_table *table;
 
     type = (struct iio_node_type *)sol_flow_node_get_type(node);
 
@@ -656,8 +698,14 @@ pressure_open(struct sol_flow_node *node, void *data, const struct sol_flow_node
     mdata->iio_base.config.sampling_frequency = opts->sampling_frequency;
     ret = snprintf(mdata->iio_base.config.sampling_frequency_name,
         sizeof(mdata->iio_base.config.sampling_frequency_name), "%s", "in_pressure_");
-    SOL_INT_CHECK_GOTO(ret, >= (int)sizeof(mdata->iio_base.config.sampling_frequency_name), err);
-    SOL_INT_CHECK_GOTO(ret, < 0, err);
+    SOL_EXP_CHECK_GOTO(ret < 0 || ret >= (int)sizeof(mdata->iio_base.config.sampling_frequency_name), err);
+
+    mdata->iio_base.config.oversampling_ratio_table = calloc(2, sizeof(struct sol_str_table));
+    SOL_NULL_CHECK(mdata->iio_base.config.oversampling_ratio_table, -ENOMEM);
+
+    table = mdata->iio_base.config.oversampling_ratio_table;
+    GEN_SOL_STR_TABLE(table->key, table->len, table->val,
+        "in_pressure_", opts->oversampling_ratio);
 
     if (mdata->iio_base.buffer_enabled) {
         mdata->iio_base.config.sol_iio_reader_cb = type->reader_cb;
@@ -828,8 +876,7 @@ accelerate_open(struct sol_flow_node *node, void *data, const struct sol_flow_no
     mdata->iio_base.config.sampling_frequency = opts->sampling_frequency;
     ret = snprintf(mdata->iio_base.config.sampling_frequency_name,
         sizeof(mdata->iio_base.config.sampling_frequency_name), "%s", "in_accel_");
-    SOL_INT_CHECK_GOTO(ret, >= (int)sizeof(mdata->iio_base.config.sampling_frequency_name), err);
-    SOL_INT_CHECK_GOTO(ret, < 0, err);
+    SOL_EXP_CHECK_GOTO(ret < 0 || ret >= (int)sizeof(mdata->iio_base.config.sampling_frequency_name), err);
 
     if (mdata->iio_base.buffer_enabled) {
         mdata->iio_base.config.sol_iio_reader_cb = type->reader_cb;
@@ -1065,8 +1112,7 @@ light_open(struct sol_flow_node *node, void *data, const struct sol_flow_node_op
     mdata->iio_base.config.sampling_frequency = opts->sampling_frequency;
     ret = snprintf(mdata->iio_base.config.sampling_frequency_name,
         sizeof(mdata->iio_base.config.sampling_frequency_name), "%s", "in_illuminance_");
-    SOL_INT_CHECK_GOTO(ret, >= (int)sizeof(mdata->iio_base.config.sampling_frequency_name), err);
-    SOL_INT_CHECK_GOTO(ret, < 0, err);
+    SOL_EXP_CHECK_GOTO(ret < 0 || ret >= (int)sizeof(mdata->iio_base.config.sampling_frequency_name), err);
 
     if (mdata->iio_base.buffer_enabled) {
         mdata->iio_base.config.sol_iio_reader_cb = type->reader_cb;
@@ -1107,8 +1153,7 @@ intensity_both_create_channels(struct iio_double_data *mdata, int device_id, con
 
     if (channel_id >= 0) {
         ret = snprintf(channel_name, sizeof(channel_name), "in_intensity%d_both", channel_id);
-        SOL_INT_CHECK_GOTO(ret, >= (int)sizeof(channel_name), error);
-        SOL_INT_CHECK_GOTO(ret, < 0, error);
+        SOL_EXP_CHECK_GOTO(ret < 0 || ret >= (int)sizeof(channel_name), error);
     } else {
         strncpy(channel_name, "in_intensity_both", sizeof(channel_name) - 1);
         channel_name[sizeof(channel_name) - 1] = '\0';
@@ -1194,8 +1239,7 @@ intensity_ir_create_channels(struct iio_double_data *mdata, int device_id, const
 
     if (channel_id >= 0) {
         ret = snprintf(channel_name, sizeof(channel_name), "in_intensity%d_ir", channel_id);
-        SOL_INT_CHECK_GOTO(ret, >= (int)sizeof(channel_name), error);
-        SOL_INT_CHECK_GOTO(ret, < 0, error);
+        SOL_EXP_CHECK_GOTO(ret < 0 || ret >= (int)sizeof(channel_name), error);
     } else {
         strncpy(channel_name, "in_intensity_ir", sizeof(channel_name) - 1);
         channel_name[sizeof(channel_name) - 1] = '\0';

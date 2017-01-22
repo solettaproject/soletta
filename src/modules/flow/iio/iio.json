@@ -218,6 +218,12 @@
              "name": "offset"
          },
          {
+             "data_type": "direction-vector",
+             "default": {},
+             "description": "Oversampling ratio measurement of the sensor",
+             "name": "oversampling_ratio"
+         },
+         {
              "data_type": "int",
              "default": -1,
              "description": "Sampling frequency of the sensor. If -1, use device default",
@@ -346,6 +352,12 @@
          },
          {
              "data_type": "int",
+             "default": 0,
+             "description": "Oversampling ratio measurement of the sensor",
+             "name": "oversampling_ratio"
+         },
+         {
+             "data_type": "int",
              "default": -1,
              "description": "Sampling frequency of the sensor. If -1, use device default",
              "name": "sampling_frequency"
@@ -470,6 +482,12 @@
              "default": 0,
              "description": "Offset to be added to device raw readings",
              "name": "offset"
+         },
+         {
+             "data_type": "int",
+             "default": 0,
+             "description": "Oversampling ratio measurement of the sensor",
+             "name": "oversampling_ratio"
          },
          {
              "data_type": "int",
