@@ -112,7 +112,7 @@ static void
 test_network_invalid_bluetooth_addresses(void)
 {
     char str[] = "1:2:3:4:5:6";
-    struct sol_network_link_addr addr;
+    struct sol_network_link_addr addr = { 0 };
     const struct sol_network_link_addr *a;
 
     a = sol_network_link_addr_from_str(&addr, str);
