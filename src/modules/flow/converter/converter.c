@@ -2144,6 +2144,10 @@ string_to_timestamp_convert(struct sol_flow_node *node, void *data, uint16_t por
     timestamp_str = strptime(in_value, mdata->string, &time_tm);
     SOL_NULL_CHECK_GOTO(timestamp_str, timestamp_error);
 
+    /* Let mktime() figure out if we are under DST or not (don't
+     * assume we're not, as the variable initialization does) */
+    time_tm.tm_isdst = -1;
+
     out_value.tv_sec = mktime(&time_tm);
     if (out_value.tv_sec < 0)
         goto timestamp_error;
