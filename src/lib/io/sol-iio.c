@@ -470,14 +470,14 @@ get_buffer_value(struct sol_iio_device *device, int *value)
 static bool
 set_channel_enabled(struct sol_iio_device *device, const char *channel_name, bool enabled)
 {
-    char path[PATH_MAX];
-    bool r;
+    if (check_file_existence(CHANNEL_ENABLE_PATH, device->device_id,
+        channel_name)) {
+        char path[PATH_MAX];
 
-    r = craft_filename_path(path, sizeof(path), CHANNEL_ENABLE_PATH, device->device_id, channel_name);
-    if (!r)
-        return false;
+        if (!craft_filename_path(path, sizeof(path), CHANNEL_ENABLE_PATH,
+            device->device_id, channel_name))
+            return false;
 
-    if (check_file_existence(path)) {
         if (sol_util_write_file(path, "%d", enabled) < 0)
             return false;
     }
@@ -818,7 +818,10 @@ get_mount_matrix(struct sol_iio_device *device, double *mount_matrix)
         return false;
     }
 
+#pragma GCC diagnostic push
+#pragma GCC diagnostic ignored "-Wformat-nonliteral"
     result = craft_filename_path(path, sizeof(path), base, device->device_id);
+#pragma GCC diagnostic pop
     if (!result) {
         SOL_WRN("Could not open device mount_matrix file");
         return false;
