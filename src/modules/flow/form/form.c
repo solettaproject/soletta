@@ -1118,7 +1118,7 @@ integer_custom_open(struct sol_flow_node *node,
     struct integer_custom_data *mdata = data;
     const struct sol_flow_node_type_form_int_custom_options *opts =
         (const struct sol_flow_node_type_form_int_custom_options *)options,
-    *def_opts;
+        *def_opts;
 
     def_opts = node->type->default_options;
 
@@ -1702,7 +1702,7 @@ string_open(struct sol_flow_node *node,
     struct string_data *mdata = data;
     const struct sol_flow_node_type_form_string_options *opts =
         (const struct sol_flow_node_type_form_string_options *)options,
-    *def_opts;
+        *def_opts;
 
     def_opts = node->type->default_options;
 

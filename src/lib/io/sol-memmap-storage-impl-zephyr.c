@@ -265,7 +265,7 @@ resolve_map_path(const struct sol_memmap_map *map,
     char **driver_name)
 {
     char *min_erase_size_s = NULL, *max_rw_size_s = NULL, *mem_offset_s = NULL,
-    *end_ptr;
+        *end_ptr;
     unsigned int min_erase_size, max_rw_size;
     struct sol_vector instructions;
     struct sol_str_slice command;

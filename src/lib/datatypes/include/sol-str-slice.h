@@ -232,7 +232,7 @@ sol_str_slice_str_starts_with(const struct sol_str_slice slice, const char *pref
  */
 static
 #ifndef DOXYGEN_RUN
-    SOL_ATTR_NON_NULL(1)
+SOL_ATTR_NON_NULL(1)
 #endif
 inline struct sol_str_slice
 sol_str_slice_from_str(const char *s)
@@ -249,7 +249,7 @@ sol_str_slice_from_str(const char *s)
  */
 static
 #ifndef DOXYGEN_RUN
-    SOL_ATTR_NON_NULL(1)
+SOL_ATTR_NON_NULL(1)
 #endif
 inline struct sol_str_slice
 sol_str_slice_from_blob(const struct sol_blob *blob)

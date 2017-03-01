@@ -506,16 +506,16 @@ check_node_alone(struct sol_fbp_graph *g)
     ASSERT(is_component_eq(node_alone, "Type"));
 }
 
-#define ASSERT_POSITION(_pos, _line, _col)                              \
-    do {                                                                \
-        if ((_pos).line != (_line) || (_pos).column != (_col)) {        \
-            fprintf(stderr, "%s:%d: %s: Wrong position for: `" #_pos    \
-                "', expected (%u, %u) but got (%u, %u).\n",         \
-                __FILE__, __LINE__, __PRETTY_FUNCTION__,            \
-                _line, _col, (_pos).line, (_pos).column             \
-                );                                                      \
-            exit(1);                                                    \
-        }                                                               \
+#define ASSERT_POSITION(_pos, _line, _col) \
+    do { \
+        if ((_pos).line != (_line) || (_pos).column != (_col)) { \
+            fprintf(stderr, "%s:%d: %s: Wrong position for: `" #_pos \
+                "', expected (%u, %u) but got (%u, %u).\n", \
+                __FILE__, __LINE__, __PRETTY_FUNCTION__, \
+                _line, _col, (_pos).line, (_pos).column \
+                ); \
+            exit(1); \
+        } \
     } while (0)
 
 static const struct sol_str_slice input_column_position = SOL_STR_SLICE_LITERAL(

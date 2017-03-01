@@ -251,9 +251,9 @@ typedef struct sol_gpio_config {
  */
 enum sol_gpio_direction sol_gpio_direction_from_str(const char *direction)
 #ifndef DOXYGEN_RUN
-    SOL_ATTR_WARN_UNUSED_RESULT
+SOL_ATTR_WARN_UNUSED_RESULT
 #endif
-    ;
+;
 
 /**
  * @brief Converts sol_gpio_direction to a string name.
@@ -268,9 +268,9 @@ enum sol_gpio_direction sol_gpio_direction_from_str(const char *direction)
  */
 const char *sol_gpio_direction_to_str(enum sol_gpio_direction direction)
 #ifndef DOXYGEN_RUN
-    SOL_ATTR_WARN_UNUSED_RESULT
+SOL_ATTR_WARN_UNUSED_RESULT
 #endif
-    ;
+;
 
 /**
  * @brief Converts a string GPIO edge to sol_gpio_edge
@@ -285,9 +285,9 @@ const char *sol_gpio_direction_to_str(enum sol_gpio_direction direction)
  */
 enum sol_gpio_edge sol_gpio_edge_from_str(const char *edge)
 #ifndef DOXYGEN_RUN
-    SOL_ATTR_WARN_UNUSED_RESULT
+SOL_ATTR_WARN_UNUSED_RESULT
 #endif
-    ;
+;
 
 /**
  * @brief Converts sol_gpio_edge to a string name.
@@ -302,9 +302,9 @@ enum sol_gpio_edge sol_gpio_edge_from_str(const char *edge)
  */
 const char *sol_gpio_edge_to_str(enum sol_gpio_edge edge)
 #ifndef DOXYGEN_RUN
-    SOL_ATTR_WARN_UNUSED_RESULT
+SOL_ATTR_WARN_UNUSED_RESULT
 #endif
-    ;
+;
 
 /**
  * @brief Converts a string GPIO drive to sol_gpio_drive.
@@ -319,9 +319,9 @@ const char *sol_gpio_edge_to_str(enum sol_gpio_edge edge)
  */
 enum sol_gpio_drive sol_gpio_drive_from_str(const char *drive)
 #ifndef DOXYGEN_RUN
-    SOL_ATTR_WARN_UNUSED_RESULT
+SOL_ATTR_WARN_UNUSED_RESULT
 #endif
-    ;
+;
 
 /**
  * @brief Converts sol_gpio_drive to a string name.
@@ -336,9 +336,9 @@ enum sol_gpio_drive sol_gpio_drive_from_str(const char *drive)
  */
 const char *sol_gpio_drive_to_str(enum sol_gpio_drive drive)
 #ifndef DOXYGEN_RUN
-    SOL_ATTR_WARN_UNUSED_RESULT
+SOL_ATTR_WARN_UNUSED_RESULT
 #endif
-    ;
+;
 
 /**
  * @brief Opens a given pin by its board label as general purpose input or output.
@@ -359,9 +359,9 @@ const char *sol_gpio_drive_to_str(enum sol_gpio_drive drive)
  */
 struct sol_gpio *sol_gpio_open_by_label(const char *label, const struct sol_gpio_config *config)
 #ifndef DOXYGEN_RUN
-    SOL_ATTR_WARN_UNUSED_RESULT
+SOL_ATTR_WARN_UNUSED_RESULT
 #endif
-    ;
+;
 
 /**
  * @brief Opens a given pin as general purpose input or output.
@@ -378,9 +378,9 @@ struct sol_gpio *sol_gpio_open_by_label(const char *label, const struct sol_gpio
  */
 struct sol_gpio *sol_gpio_open(uint32_t pin, const struct sol_gpio_config *config)
 #ifndef DOXYGEN_RUN
-    SOL_ATTR_WARN_UNUSED_RESULT
+SOL_ATTR_WARN_UNUSED_RESULT
 #endif
-    ;
+;
 
 
 /**
@@ -398,9 +398,9 @@ struct sol_gpio *sol_gpio_open(uint32_t pin, const struct sol_gpio_config *confi
  */
 struct sol_gpio *sol_gpio_open_raw(uint32_t pin, const struct sol_gpio_config *config)
 #ifndef DOXYGEN_RUN
-    SOL_ATTR_WARN_UNUSED_RESULT
+SOL_ATTR_WARN_UNUSED_RESULT
 #endif
-    ;
+;
 
 /**
  * @brief Closes a given GPIO pin.

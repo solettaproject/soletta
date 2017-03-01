@@ -1,26 +1,27 @@
 /*
-// Copyright (c) 2016 Intel Corporation
-//
-// Licensed under the Apache License, Version 2.0 (the "License");
-// you may not use this file except in compliance with the License.
-// You may obtain a copy of the License at
-//
-//      http://www.apache.org/licenses/LICENSE-2.0
-//
-// Unless required by applicable law or agreed to in writing, software
-// distributed under the License is distributed on an "AS IS" BASIS,
-// WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
-// See the License for the specific language governing permissions and
-// limitations under the License.
-*/
+   // Copyright (c) 2016 Intel Corporation
+   //
+   // Licensed under the Apache License, Version 2.0 (the "License");
+   // you may not use this file except in compliance with the License.
+   // You may obtain a copy of the License at
+   //
+   //      http://www.apache.org/licenses/LICENSE-2.0
+   //
+   // Unless required by applicable law or agreed to in writing, software
+   // distributed under the License is distributed on an "AS IS" BASIS,
+   // WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+   // See the License for the specific language governing permissions and
+   // limitations under the License.
+ */
 
 #include "matrix-ops.h"
 #include <math.h>
 
 
-void transpose (int rows, int cols, double m[rows][cols], double m_trans[cols][rows])
+void
+transpose(int rows, int cols, double m[rows][cols], double m_trans[cols][rows])
 {
-    int i,j;
+    int i, j;
 
     for (i = 0; i < rows; i++)
         for (j = 0; j < cols; j++)
@@ -28,9 +29,10 @@ void transpose (int rows, int cols, double m[rows][cols], double m_trans[cols][r
 }
 
 
-void multiply (int m, int n, int p, double m1[m][n], double m2[n][p], double result[m][p])
+void
+multiply(int m, int n, int p, double m1[m][n], double m2[n][p], double result[m][p])
 {
-    int i,j,k;
+    int i, j, k;
 
     for (i = 0; i < m; i++)
         for (k = 0; k < p; k++) {
@@ -41,10 +43,11 @@ void multiply (int m, int n, int p, double m1[m][n], double m2[n][p], double res
 }
 
 
-void invert (int s, double m[s][s],  double m_inv[s][s])
+void
+invert(int s, double m[s][s],  double m_inv[s][s])
 {
     double t;
-    int swap,i,j,k;
+    int swap, i, j, k;
     double tmp[s][s];
 
     for (i = 0; i < s; i++)
@@ -54,11 +57,11 @@ void invert (int s, double m[s][s],  double m_inv[s][s])
     for (i = 0; i < s; i++)
         m_inv[i][i] = 1;
 
-    assign(s,s,m,tmp);
+    assign(s, s, m, tmp);
 
     for (i = 0; i < s; i++) {
         swap = i;
-        for (j = i+1; j < s; j++) {
+        for (j = i + 1; j < s; j++) {
             if (fabs(tmp[i][j]) > fabs(tmp[i][i]))
                 swap = j;
         }
@@ -78,15 +81,15 @@ void invert (int s, double m[s][s],  double m_inv[s][s])
 
         t = 1 / tmp[i][i];
 
-        for (k = 0 ; k < s ; k++) {
+        for (k = 0; k < s; k++) {
             tmp[k][i] *= t;
             m_inv[k][i] *= t;
         }
 
-        for (j = 0 ; j < s ; j++)
+        for (j = 0; j < s; j++)
             if (j != i) {
                 t = tmp[i][j];
-                for (k = 0 ; k < s; k++) {
+                for (k = 0; k < s; k++) {
                     tmp[k][j] -= tmp[k][i] * t;
                     m_inv[k][j] -= m_inv[k][i] * t;
                 }
@@ -95,9 +98,10 @@ void invert (int s, double m[s][s],  double m_inv[s][s])
 }
 
 
-void multiply_scalar_inplace(int rows, int cols, double m[rows][cols], double scalar)
+void
+multiply_scalar_inplace(int rows, int cols, double m[rows][cols], double scalar)
 {
-    int i,j;
+    int i, j;
 
     for (i = 0; i < rows; i++)
         for (j = 0; j < cols; j++)
@@ -105,18 +109,20 @@ void multiply_scalar_inplace(int rows, int cols, double m[rows][cols], double sc
 }
 
 
-void assign (int rows, int cols, double m[rows][cols], double m1[rows][cols])
+void
+assign(int rows, int cols, double m[rows][cols], double m1[rows][cols])
 {
-    int i,j;
+    int i, j;
 
     for (i = 0; i < rows; i++)
         for (j = 0; j < cols; j++)
             m1[i][j] = m[i][j];
 }
 
-void substract (int rows, int cols, double m1[rows][cols], double m2[rows][cols], double res[rows][cols])
+void
+substract(int rows, int cols, double m1[rows][cols], double m2[rows][cols], double res[rows][cols])
 {
-    int i,j;
+    int i, j;
 
     for (i = 0; i < rows; i++)
         for (j = 0; j < cols; j++)

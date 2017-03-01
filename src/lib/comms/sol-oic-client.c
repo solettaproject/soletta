@@ -517,11 +517,11 @@ client_get_info(struct sol_oic_client *client,
     int r = 0;
 
     ctx = sol_util_memdup(&(struct server_info_ctx) {
-            .base.client = client,
-            .base.server = server,
-            .cb = info_received_cb,
-            .base.data = data,
-        }, sizeof(*ctx));
+        .base.client = client,
+        .base.server = server,
+        .cb = info_received_cb,
+        .base.data = data,
+    }, sizeof(*ctx));
     SOL_NULL_CHECK_ERRNO(ctx, ENOMEM, NULL);
 
     memcpy(&ctx->base.addr, addr, sizeof(*addr));
@@ -912,11 +912,11 @@ sol_oic_client_find_resources(struct sol_oic_client *client,
     SOL_NULL_CHECK_ERRNO(client, EINVAL, NULL);
 
     ctx = sol_util_memdup(&(struct find_resource_ctx) {
-            .base.client = client,
-            .base.server = client->server,
-            .cb = resource_found_cb,
-            .base.data = data,
-        }, sizeof(*ctx));
+        .base.client = client,
+        .base.server = client->server,
+        .cb = resource_found_cb,
+        .base.data = data,
+    }, sizeof(*ctx));
     SOL_NULL_CHECK_ERRNO(ctx, ENOMEM, NULL);
 
     memcpy(&ctx->base.addr, addr, sizeof(*addr));
@@ -1074,12 +1074,12 @@ _resource_request(struct sol_oic_client_request *request,
 {
     struct resource_request_ctx *ctx = sol_util_memdup
             (&(struct resource_request_ctx) {
-                .base.client = client,
-                .cb = callback,
-                .base.data = data,
-                .res = request->res,
-                .base.token = request->token,
-            }, sizeof(*ctx));
+        .base.client = client,
+        .cb = callback,
+        .base.data = data,
+        .res = request->res,
+        .base.token = request->token,
+    }, sizeof(*ctx));
     struct sol_network_link_addr addr;
     CborError err;
     int r;
@@ -1296,11 +1296,11 @@ _observe_with_polling(struct sol_oic_client *client,
     void *data)
 {
     struct resource_request_ctx *ctx = sol_util_memdup(&(struct resource_request_ctx) {
-            .base.client = client,
-            .cb = callback,
-            .base.data = data,
-            .res = res
-        }, sizeof(*ctx));
+        .base.client = client,
+        .cb = callback,
+        .base.data = data,
+        .res = res
+    }, sizeof(*ctx));
 
     SOL_NULL_CHECK(ctx, -ENOMEM);
 

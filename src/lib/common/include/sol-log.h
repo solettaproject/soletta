@@ -30,17 +30,61 @@
 
 #ifdef __cplusplus
 
-template <typename T> inline const char *sol_int_format(T) { return NULL; }
-template <> inline const char *sol_int_format<int>(int) { return "%d"; }
-template <> inline const char *sol_int_format<long>(long) { return "%ld"; }
-template <> inline const char *sol_int_format<long long>(long long) { return "%lld"; }
-template <> inline const char *sol_int_format<short>(short) { return "%hd"; }
-template <> inline const char *sol_int_format<signed char>(signed char) { return "%hhd"; }
-template <> inline const char *sol_int_format<unsigned>(unsigned) { return "%u"; }
-template <> inline const char *sol_int_format<unsigned long>(unsigned long) { return "%lu"; }
-template <> inline const char *sol_int_format<unsigned long long>(unsigned long long) { return "%llu"; }
-template <> inline const char *sol_int_format<unsigned short>(unsigned short) { return "%hu"; }
-template <> inline const char *sol_int_format<unsigned char>(unsigned char) { return "%hhu"; }
+template <typename T> inline const char *
+sol_int_format(T)
+{
+    return NULL;
+}
+template <> inline const char *
+sol_int_format<int>(int)
+{
+    return "%d";
+}
+template <> inline const char *
+sol_int_format<long>(long)
+{
+    return "%ld";
+}
+template <> inline const char *
+sol_int_format<long long>(long long)
+{
+    return "%lld";
+}
+template <> inline const char *
+sol_int_format<short>(short)
+{
+    return "%hd";
+}
+template <> inline const char *
+sol_int_format<signed char>(signed char)
+{
+    return "%hhd";
+}
+template <> inline const char *
+sol_int_format<unsigned>(unsigned)
+{
+    return "%u";
+}
+template <> inline const char *
+sol_int_format<unsigned long>(unsigned long)
+{
+    return "%lu";
+}
+template <> inline const char *
+sol_int_format<unsigned long long>(unsigned long long)
+{
+    return "%llu";
+}
+template <> inline const char *
+sol_int_format<unsigned short>(unsigned short)
+{
+    return "%hu";
+}
+template <> inline const char *
+sol_int_format<unsigned char>(unsigned char)
+{
+    return "%hhu";
+}
 
 #define SOL_INT_CHECK_IMPL(var, exp, ...) \
     do { \

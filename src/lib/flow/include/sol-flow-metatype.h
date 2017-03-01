@@ -345,9 +345,9 @@ typedef struct sol_flow_metatype {
 #define SOL_FLOW_METATYPE(_NAME, decl ...) \
     SOL_API const struct sol_flow_metatype *SOL_FLOW_METATYPE = \
         &((const struct sol_flow_metatype) { \
-            SOL_SET_API_VERSION(.api_version = SOL_FLOW_METATYPE_API_VERSION, ) \
-            decl \
-        })
+        SOL_SET_API_VERSION(.api_version = SOL_FLOW_METATYPE_API_VERSION, ) \
+        decl \
+    })
 #else
 /**
  * @brief Exports a meta type.

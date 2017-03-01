@@ -1951,19 +1951,19 @@ sol_coap_server_new(const struct sol_network_link_addr *addr,
     bool secure)
 {
     return sol_coap_server_new_full(&((struct sol_socket_ip_options) {
-            .base = {
-                SOL_SET_API_VERSION(.api_version = SOL_SOCKET_OPTIONS_API_VERSION, )
-                SOL_SET_API_VERSION(.sub_api = SOL_SOCKET_IP_OPTIONS_SUB_API_VERSION, )
-                .on_can_read = on_can_read,
-                .on_can_write = on_can_write,
-            },
-            .family = addr->family,
-            .secure = secure,
-            .cipher_suites = secure ?
-            (enum sol_socket_dtls_cipher []){ SOL_SOCKET_DTLS_CIPHER_PSK_AES128_CCM8 } : NULL,
-            .cipher_suites_len = secure ? 1 : 0,
-            .reuse_addr = addr->port ? true : false,
-        }), addr);
+        .base = {
+            SOL_SET_API_VERSION(.api_version = SOL_SOCKET_OPTIONS_API_VERSION, )
+            SOL_SET_API_VERSION(.sub_api = SOL_SOCKET_IP_OPTIONS_SUB_API_VERSION, )
+            .on_can_read = on_can_read,
+            .on_can_write = on_can_write,
+        },
+        .family = addr->family,
+        .secure = secure,
+        .cipher_suites = secure ?
+        (enum sol_socket_dtls_cipher []){SOL_SOCKET_DTLS_CIPHER_PSK_AES128_CCM8 }: NULL,
+        .cipher_suites_len = secure ? 1 : 0,
+        .reuse_addr = addr->port ? true : false,
+    }), addr);
 }
 
 SOL_API struct sol_coap_server *
@@ -1972,18 +1972,18 @@ sol_coap_server_new_by_cipher_suites(
     enum sol_socket_dtls_cipher *cipher_suites, uint16_t cipher_suites_len)
 {
     return sol_coap_server_new_full(&((struct sol_socket_ip_options) {
-            .base = {
-                SOL_SET_API_VERSION(.api_version = SOL_SOCKET_OPTIONS_API_VERSION, )
-                SOL_SET_API_VERSION(.sub_api = SOL_SOCKET_IP_OPTIONS_SUB_API_VERSION, )
-                .on_can_read = on_can_read,
-                .on_can_write = on_can_write,
-            },
-            .family = addr->family,
-            .secure = true,
-            .cipher_suites = cipher_suites,
-            .cipher_suites_len = cipher_suites_len,
-            .reuse_addr = addr->port ? true : false,
-        }), addr);
+        .base = {
+            SOL_SET_API_VERSION(.api_version = SOL_SOCKET_OPTIONS_API_VERSION, )
+            SOL_SET_API_VERSION(.sub_api = SOL_SOCKET_IP_OPTIONS_SUB_API_VERSION, )
+            .on_can_read = on_can_read,
+            .on_can_write = on_can_write,
+        },
+        .family = addr->family,
+        .secure = true,
+        .cipher_suites = cipher_suites,
+        .cipher_suites_len = cipher_suites_len,
+        .reuse_addr = addr->port ? true : false,
+    }), addr);
 }
 
 SOL_API bool

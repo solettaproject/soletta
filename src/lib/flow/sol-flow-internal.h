@@ -121,64 +121,64 @@ void sol_flow_node_fini(struct sol_flow_node *node);
 
 extern const struct sol_flow_node_options sol_flow_node_options_empty;
 
-#define SOL_FLOW_NODE_CHECK(handle, ...)                 \
-    do {                                                \
-        if (!(handle)) {                                \
-            SOL_WRN("" # handle " == NULL");             \
-            return __VA_ARGS__;                         \
-        }                                               \
-        if (!(handle)->type) {                          \
-            SOL_WRN("" # handle "->type == NULL");       \
-            return __VA_ARGS__;                         \
-        }                                               \
+#define SOL_FLOW_NODE_CHECK(handle, ...) \
+    do { \
+        if (!(handle)) { \
+            SOL_WRN("" # handle " == NULL"); \
+            return __VA_ARGS__; \
+        } \
+        if (!(handle)->type) { \
+            SOL_WRN("" # handle "->type == NULL"); \
+            return __VA_ARGS__; \
+        } \
     } while (0)
 
-#define SOL_FLOW_NODE_CHECK_GOTO(handle, label)          \
-    do {                                                \
-        if (!(handle)) {                                \
-            SOL_WRN("" # handle " == NULL");             \
-            goto label;                                 \
-        }                                               \
-        if (!(handle)->type) {                          \
-            SOL_WRN("" # handle "->type == NULL");       \
-            goto label;                                 \
-        }                                               \
+#define SOL_FLOW_NODE_CHECK_GOTO(handle, label) \
+    do { \
+        if (!(handle)) { \
+            SOL_WRN("" # handle " == NULL"); \
+            goto label; \
+        } \
+        if (!(handle)->type) { \
+            SOL_WRN("" # handle "->type == NULL"); \
+            goto label; \
+        } \
     } while (0)
 
-#define SOL_FLOW_NODE_TYPE_CHECK(handle, _type, ...)     \
-    do {                                                \
-        if (!(handle)) {                                \
-            SOL_WRN("" # handle " == NULL");             \
-            return __VA_ARGS__;                         \
-        }                                               \
-        if ((handle)->type != _type) {                  \
-            SOL_WRN("" # handle "->type != " # _type);   \
-            return __VA_ARGS__;                         \
-        }                                               \
+#define SOL_FLOW_NODE_TYPE_CHECK(handle, _type, ...) \
+    do { \
+        if (!(handle)) { \
+            SOL_WRN("" # handle " == NULL"); \
+            return __VA_ARGS__; \
+        } \
+        if ((handle)->type != _type) { \
+            SOL_WRN("" # handle "->type != " # _type); \
+            return __VA_ARGS__; \
+        } \
     } while (0)
 
-#define SOL_FLOW_NODE_TYPE_IS_CONTAINER_CHECK(handle, ...)               \
-    do {                                                                \
-        if (!(handle)->type) {                                          \
-            SOL_WRN("" # handle "->type == NULL");                       \
-            return __VA_ARGS__;                                         \
-        }                                                               \
+#define SOL_FLOW_NODE_TYPE_IS_CONTAINER_CHECK(handle, ...) \
+    do { \
+        if (!(handle)->type) { \
+            SOL_WRN("" # handle "->type == NULL"); \
+            return __VA_ARGS__; \
+        } \
         if (((handle)->type->flags & SOL_FLOW_NODE_TYPE_FLAGS_CONTAINER) == 0) { \
-            SOL_WRN("" # handle "->type isn't a container type");        \
-            return __VA_ARGS__;                                         \
-        }                                                               \
+            SOL_WRN("" # handle "->type isn't a container type"); \
+            return __VA_ARGS__; \
+        } \
     } while (0)
 
-#define SOL_FLOW_NODE_TYPE_IS_CONTAINER_CHECK_GOTO(handle, label)        \
-    do {                                                                \
-        if (!(handle)->type) {                                          \
-            SOL_WRN("" # handle "->type == NULL");                       \
-            goto label;                                                 \
-        }                                                               \
+#define SOL_FLOW_NODE_TYPE_IS_CONTAINER_CHECK_GOTO(handle, label) \
+    do { \
+        if (!(handle)->type) { \
+            SOL_WRN("" # handle "->type == NULL"); \
+            goto label; \
+        } \
         if (((handle)->type->flags & SOL_FLOW_NODE_TYPE_FLAGS_CONTAINER) == 0) { \
-            SOL_WRN("" # handle "->type isn't a container type");        \
-            goto label;                                                 \
-        }                                                               \
+            SOL_WRN("" # handle "->type isn't a container type"); \
+            goto label; \
+        } \
     } while (0)
 
 #ifndef SOL_NO_API_VERSION

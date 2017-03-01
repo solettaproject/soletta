@@ -149,9 +149,9 @@ int sol_util_vread_file(const char *path, const char *fmt, va_list args) SOL_ATT
  */
 struct sol_buffer *sol_util_load_file_fd_raw(int fd)
 #ifndef DOXYGEN_RUN
-    SOL_ATTR_WARN_UNUSED_RESULT
+SOL_ATTR_WARN_UNUSED_RESULT
 #endif
-    ;
+;
 
 /**
  * @brief Reads the contents of a file.
@@ -167,9 +167,9 @@ struct sol_buffer *sol_util_load_file_fd_raw(int fd)
  */
 char *sol_util_load_file_string(const char *filename, size_t *size)
 #ifndef DOXYGEN_RUN
-    SOL_ATTR_WARN_UNUSED_RESULT
+SOL_ATTR_WARN_UNUSED_RESULT
 #endif
-    ;
+;
 
 /**
  * @brief Reads the contents of a file.
@@ -185,9 +185,9 @@ char *sol_util_load_file_string(const char *filename, size_t *size)
  */
 char *sol_util_load_file_fd_string(int fd, size_t *size)
 #ifndef DOXYGEN_RUN
-    SOL_ATTR_WARN_UNUSED_RESULT
+SOL_ATTR_WARN_UNUSED_RESULT
 #endif
-    ;
+;
 
 /**
  * @brief Reads the contents of a file and append to a buffer.
@@ -199,9 +199,9 @@ char *sol_util_load_file_fd_string(int fd, size_t *size)
  */
 int sol_util_load_file_fd_buffer(int fd, struct sol_buffer *buf)
 #ifndef DOXYGEN_RUN
-    SOL_ATTR_WARN_UNUSED_RESULT
+SOL_ATTR_WARN_UNUSED_RESULT
 #endif
-    ;
+;
 
 /**
  * @brief Reads the contents of a file and append to a buffer.
@@ -213,9 +213,9 @@ int sol_util_load_file_fd_buffer(int fd, struct sol_buffer *buf)
  */
 int sol_util_load_file_buffer(const char *filename, struct sol_buffer *buf)
 #ifndef DOXYGEN_RUN
-    SOL_ATTR_WARN_UNUSED_RESULT
+SOL_ATTR_WARN_UNUSED_RESULT
 #endif
-    ;
+;
 
 /**
  * @brief Gets the root directory.
@@ -227,9 +227,9 @@ int sol_util_load_file_buffer(const char *filename, struct sol_buffer *buf)
  */
 int sol_util_get_rootdir(char *out, size_t size)
 #ifndef DOXYGEN_RUN
-    SOL_ATTR_WARN_UNUSED_RESULT
+SOL_ATTR_WARN_UNUSED_RESULT
 #endif
-    ;
+;
 
 /**
  * @brief Set a flag into a file descriptor.
@@ -241,9 +241,9 @@ int sol_util_get_rootdir(char *out, size_t size)
  */
 int sol_util_fd_set_flag(int fd, int flag)
 #ifndef DOXYGEN_RUN
-    SOL_ATTR_WARN_UNUSED_RESULT
+SOL_ATTR_WARN_UNUSED_RESULT
 #endif
-    ;
+;
 
 /**
  * @brief Fills @a buffer with data read from file @a fd.

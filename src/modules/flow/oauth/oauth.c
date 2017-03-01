@@ -40,8 +40,8 @@ struct v1_data {
     struct sol_ptr_vector pending_conns;
     struct sol_ptr_vector pending_digests;
     char *request_token_url, *authorize_token_url, *access_token_url,
-    *consumer_key, *consumer_key_secret, *basename,
-    *start_handler_url, *callback_handler_url;
+        *consumer_key, *consumer_key_secret, *basename,
+        *start_handler_url, *callback_handler_url;
 };
 
 struct v1_request_data {
@@ -207,11 +207,11 @@ err_params:
     free(verifier);
 err:
     r = sol_http_server_send_response(request, &((struct sol_http_response) {
-            SOL_SET_API_VERSION(.api_version = SOL_HTTP_RESPONSE_API_VERSION, )
-            .content = SOL_BUFFER_INIT_EMPTY,
-            .param = SOL_HTTP_REQUEST_PARAMS_INIT,
-            .response_code = SOL_HTTP_STATUS_INTERNAL_SERVER_ERROR
-        }));
+        SOL_SET_API_VERSION(.api_version = SOL_HTTP_RESPONSE_API_VERSION, )
+        .content = SOL_BUFFER_INIT_EMPTY,
+        .param = SOL_HTTP_REQUEST_PARAMS_INIT,
+        .response_code = SOL_HTTP_STATUS_INTERNAL_SERVER_ERROR
+    }));
     return r;
 }
 
@@ -319,11 +319,11 @@ v1_request_finished(void *data,
 
 err:
     r = sol_http_server_send_response(req_data->request, &((struct sol_http_response) {
-            SOL_SET_API_VERSION(.api_version = SOL_HTTP_RESPONSE_API_VERSION, )
-            .content = SOL_BUFFER_INIT_EMPTY,
-            .param = SOL_HTTP_REQUEST_PARAMS_INIT,
-            .response_code = SOL_HTTP_STATUS_INTERNAL_SERVER_ERROR
-        }));
+        SOL_SET_API_VERSION(.api_version = SOL_HTTP_RESPONSE_API_VERSION, )
+        .content = SOL_BUFFER_INIT_EMPTY,
+        .param = SOL_HTTP_REQUEST_PARAMS_INIT,
+        .response_code = SOL_HTTP_STATUS_INTERNAL_SERVER_ERROR
+    }));
     if (r < 0) {
         SOL_WRN("Could not send fail response for %s",
             sol_http_request_get_url(req_data->request));
@@ -409,11 +409,11 @@ err:
     free(req_data->timestamp);
     free(req_data->nonce);
     r = sol_http_server_send_response(req_data->request, &((struct sol_http_response) {
-            SOL_SET_API_VERSION(.api_version = SOL_HTTP_RESPONSE_API_VERSION, )
-            .content = SOL_BUFFER_INIT_EMPTY,
-            .param = SOL_HTTP_REQUEST_PARAMS_INIT,
-            .response_code = SOL_HTTP_STATUS_INTERNAL_SERVER_ERROR
-        }));
+        SOL_SET_API_VERSION(.api_version = SOL_HTTP_RESPONSE_API_VERSION, )
+        .content = SOL_BUFFER_INIT_EMPTY,
+        .param = SOL_HTTP_REQUEST_PARAMS_INIT,
+        .response_code = SOL_HTTP_STATUS_INTERNAL_SERVER_ERROR
+    }));
     if (r < 0) {
         SOL_WRN("Could not send fail response for %s",
             sol_http_request_get_url(req_data->request));
@@ -565,11 +565,11 @@ err_callback:
     free(req_data);
 err:
     r = sol_http_server_send_response(request, &((struct sol_http_response) {
-            SOL_SET_API_VERSION(.api_version = SOL_HTTP_RESPONSE_API_VERSION, )
-            .content = SOL_BUFFER_INIT_EMPTY,
-            .param = SOL_HTTP_REQUEST_PARAMS_INIT,
-            .response_code = SOL_HTTP_STATUS_INTERNAL_SERVER_ERROR
-        }));
+        SOL_SET_API_VERSION(.api_version = SOL_HTTP_RESPONSE_API_VERSION, )
+        .content = SOL_BUFFER_INIT_EMPTY,
+        .param = SOL_HTTP_REQUEST_PARAMS_INIT,
+        .response_code = SOL_HTTP_STATUS_INTERNAL_SERVER_ERROR
+    }));
     return r;
 }
 

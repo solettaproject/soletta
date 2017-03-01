@@ -221,8 +221,8 @@ compute_eigenvalues(double mat[3][3], double *eig1, double *eig2, double *eig3)
     else
         phi = acos(r) / 3;
 
-    *eig3 = q + 2 *p *cos(phi);
-    *eig1 = q + 2 *p *cos(phi + 2 *M_PI / 3);
+    *eig3 = q + 2 * p * cos(phi);
+    *eig1 = q + 2 * p * cos(phi + 2 * M_PI / 3);
     *eig2 = 3 * q - *eig1 - *eig3;
 }
 
@@ -395,7 +395,7 @@ scale(double *x, double *y, double *z)
     double sanity_norm = 0;
     double scale = 1;
 
-    sqr_norm = (*x * *x + *y * *y + *z * *z);
+    sqr_norm = (*x **x + *y **y + *z **z);
 
     if (sqr_norm < MAGNETIC_LOW)
         sanity_norm = MAGNETIC_LOW;

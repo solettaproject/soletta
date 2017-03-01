@@ -1762,7 +1762,7 @@ sol_lwm2m_client_new(const char *name, const char *path, const char *sms,
     SOL_NULL_CHECK_GOTO(client->coap_server, err_coap);
 
     client->dtls_server_psk = sol_coap_server_new_by_cipher_suites(&servaddr,
-        (enum sol_socket_dtls_cipher []){ SOL_SOCKET_DTLS_CIPHER_PSK_AES128_CCM8 }, 1);
+        (enum sol_socket_dtls_cipher []){SOL_SOCKET_DTLS_CIPHER_PSK_AES128_CCM8 }, 1);
     if (!client->dtls_server_psk) {
         if (errno == ENOSYS) {
             SOL_INF("DTLS support not built in, LWM2M client"
@@ -1776,7 +1776,7 @@ sol_lwm2m_client_new(const char *name, const char *path, const char *sms,
     }
 
     client->dtls_server_rpk = sol_coap_server_new_by_cipher_suites(&servaddr,
-        (enum sol_socket_dtls_cipher []){ SOL_SOCKET_DTLS_CIPHER_ECDHE_ECDSA_AES128_CCM8 }, 1);
+        (enum sol_socket_dtls_cipher []){SOL_SOCKET_DTLS_CIPHER_ECDHE_ECDSA_AES128_CCM8 }, 1);
     if (!client->dtls_server_rpk) {
         if (errno == ENOSYS) {
             SOL_INF("DTLS support not built in, LWM2M client"

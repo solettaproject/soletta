@@ -120,7 +120,7 @@ _kcmdline_parse_var(const char *start, size_t len)
         void *data;
         void (*parse)(const char *str, size_t size, void *data);
     } specs[] = {
-#define SPEC(str, storage, parse)               \
+#define SPEC(str, storage, parse) \
     { str, sizeof(str) - 1, storage, parse \
     }
         SPEC("LEVELS", NULL, _levels_parse_wrapper),
@@ -325,7 +325,7 @@ sol_log_impl_print_function_stderr(void *data, const struct sol_log_domain *doma
         }
     } else {
         const char *level_color = "", *reset_color = "", *address_color = "",
-        *domain_color = "";
+            *domain_color = "";
 
         if (_show_colors) {
             level_color = sol_log_get_level_color(message_level);

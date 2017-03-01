@@ -97,9 +97,9 @@ get_member_memory(const struct sol_flow_node_options_member_description *member,
     } while (0)
 
 #define ASSIGN_KEY_VAL(_type, _key, _parse_func, _only_not_negative, \
-        _max_val, _max_str, _max_str_len,        \
-        _min_val, _min_str, _min_str_len)        \
-    do {                                                        \
+        _max_val, _max_str, _max_str_len, \
+        _min_val, _min_str, _min_str_len) \
+    do { \
         bool is_max = false, is_min = false; \
         char *key_name, *remaining, *i; \
         remaining = buf; \
@@ -121,54 +121,54 @@ get_member_memory(const struct sol_flow_node_options_member_description *member,
         } \
         if (!key_name) \
             break; \
-        if (_key && _key[0] && _key[1]) {                       \
-            _key++;                                             \
-            while (_key && isspace((uint8_t)*_key)) _key++;              \
-        } else goto err;                                        \
-        if (!_key)                                              \
-            break;                                              \
-        if (strlen(_key) >= _max_str_len                        \
-            && (strncmp(_key, _max_str,                         \
-            _max_str_len) == 0)) {                  \
-            is_max = true;                                      \
-        } else if (strlen(_key) >= _min_str_len                 \
-            && (strncmp(_key, _min_str,                  \
-            _min_str_len) == 0)) {           \
-            is_min = true;                                      \
-        }                                                       \
-        if (is_max)                                             \
-            ret->_key = _max_val;                               \
+        if (_key && _key[0] && _key[1]) { \
+            _key++; \
+            while (_key && isspace((uint8_t)*_key)) _key++; \
+        } else goto err; \
+        if (!_key) \
+            break; \
+        if (strlen(_key) >= _max_str_len \
+            && (strncmp(_key, _max_str, \
+            _max_str_len) == 0)) { \
+            is_max = true; \
+        } else if (strlen(_key) >= _min_str_len \
+            && (strncmp(_key, _min_str, \
+            _min_str_len) == 0)) { \
+            is_min = true; \
+        } \
+        if (is_max) \
+            ret->_key = _max_val; \
         else if (is_min) { \
             if (_only_not_negative) \
                 goto err; \
-            ret->_key = _min_val;                               \
+            ret->_key = _min_val; \
         } else { \
-            char *_key ## _end = _key;                          \
-            char _key ## _backup;                               \
+            char *_key ## _end = _key; \
+            char _key ## _backup; \
             char *endptr; \
             _type parsed_val; \
-            while (_key ## _end                                 \
-                && *_key ## _end != '\0'                     \
-                && *_key ## _end != SUBOPTION_SEPARATOR)     \
-                _key ## _end++;                                 \
-            if (_key ## _end) {                                 \
-                _key ## _backup = *_key ## _end;                \
-                *_key ## _end = '\0';                           \
-            }                                                   \
-            errno = 0;                                          \
+            while (_key ## _end \
+                && *_key ## _end != '\0' \
+                && *_key ## _end != SUBOPTION_SEPARATOR) \
+                _key ## _end++; \
+            if (_key ## _end) { \
+                _key ## _backup = *_key ## _end; \
+                *_key ## _end = '\0'; \
+            } \
+            errno = 0; \
             parsed_val = _parse_func(_key, &endptr); \
             if (_key == endptr) \
                 goto err; \
-            if (errno != 0)                                     \
-                goto err;                                       \
+            if (errno != 0) \
+                goto err; \
             if (_only_not_negative) { \
                 if (parsed_val < 0) \
                     goto err; \
             } \
             ret->_key = parsed_val; \
-            if (_key ## _end)                                   \
-                *_key ## _end = _key ## _backup;                \
-        }                                                       \
+            if (_key ## _end) \
+                *_key ## _end = _key ## _backup; \
+        } \
     } while (0)
 
 static inline double

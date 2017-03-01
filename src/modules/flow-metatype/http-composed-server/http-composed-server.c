@@ -1041,13 +1041,13 @@ setup_ports_description(const struct sol_str_slice *contents,
     SOL_NULL_CHECK_GOTO(port->name, err);
     if (buf_out) {
         r = sol_buffer_append_printf(buf_out,
-                "static struct http_composed_server_port_out http_composed_server_%.*s_%s_port = {\n"
-                "    SOL_SET_API_VERSION(.base.api_version = SOL_FLOW_PORT_TYPE_OUT_API_VERSION, )\n"
-                "    .base.connect = NULL,\n"
-                "    .base.disconnect = NULL,\n"
-                "    .name = \"%s\"\n"
-                "};\n", SOL_STR_SLICE_PRINT(*prefix), port->name, port->name);
-            SOL_INT_CHECK_GOTO(r, < 0, err_tokens);
+            "static struct http_composed_server_port_out http_composed_server_%.*s_%s_port = {\n"
+            "    SOL_SET_API_VERSION(.base.api_version = SOL_FLOW_PORT_TYPE_OUT_API_VERSION, )\n"
+            "    .base.connect = NULL,\n"
+            "    .base.disconnect = NULL,\n"
+            "    .name = \"%s\"\n"
+            "};\n", SOL_STR_SLICE_PRINT(*prefix), port->name, port->name);
+        SOL_INT_CHECK_GOTO(r, < 0, err_tokens);
     }
 
     port = sol_vector_append(in);
@@ -1057,14 +1057,14 @@ setup_ports_description(const struct sol_str_slice *contents,
     port->type = sol_buffer_steal(&composed_type, NULL);
     if (buf_out) {
         r = sol_buffer_append_printf(buf_out,
-                "static struct http_composed_server_port_in http_composed_server_%.*s_%s_port = {\n"
-                "    SOL_SET_API_VERSION(.base.api_version = SOL_FLOW_PORT_TYPE_IN_API_VERSION, )\n"
-                "    .base.connect = NULL,\n"
-                "    .base.disconnect = NULL,\n"
-                "    .base.process = http_composed_server_in_process,\n"
-                "    .name = \"%s\"\n"
-                "};\n", SOL_STR_SLICE_PRINT(*prefix), port->name, port->name);
-            SOL_INT_CHECK_GOTO(r, < 0, err_tokens);
+            "static struct http_composed_server_port_in http_composed_server_%.*s_%s_port = {\n"
+            "    SOL_SET_API_VERSION(.base.api_version = SOL_FLOW_PORT_TYPE_IN_API_VERSION, )\n"
+            "    .base.connect = NULL,\n"
+            "    .base.disconnect = NULL,\n"
+            "    .base.process = http_composed_server_in_process,\n"
+            "    .name = \"%s\"\n"
+            "};\n", SOL_STR_SLICE_PRINT(*prefix), port->name, port->name);
+        SOL_INT_CHECK_GOTO(r, < 0, err_tokens);
     }
 
     sol_buffer_fini(&composed_type);

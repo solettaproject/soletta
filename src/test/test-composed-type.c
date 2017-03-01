@@ -32,7 +32,7 @@ test_composed_type(void)
     const struct sol_flow_packet_type *types2[] =
     { SOL_FLOW_PACKET_TYPE_BOOL, SOL_FLOW_PACKET_TYPE_STRING, NULL };
     const struct sol_flow_packet_type *composed_type, *composed_type2,
-    *composed_type3;
+        *composed_type3;
     bool is_composed;
 
     composed_type = sol_flow_packet_type_composed_new(NULL);

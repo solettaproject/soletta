@@ -37,9 +37,9 @@
 enum switches {
     SW_ALL_OFF = 0,
     SW_S1 = 1 << 0,
-        SW_S2 = 1 << 1,
-        SW_S3 = 1 << 2,
-        SW_S4 = 1 << 3
+    SW_S2 = 1 << 1,
+    SW_S3 = 1 << 2,
+    SW_S4 = 1 << 3
 };
 
 struct hbridge_data {
@@ -298,7 +298,7 @@ skid_steer_odometer_open(struct sol_flow_node *node, void *data,
         return -EINVAL;
     }
     if (opts->update_period <= 1) {
-        SOL_WRN("update_period=%"PRId32" is invalid, assuming 1ms",
+        SOL_WRN("update_period=%" PRId32 " is invalid, assuming 1ms",
             opts->update_period);
 
         timeout_ms = 1;

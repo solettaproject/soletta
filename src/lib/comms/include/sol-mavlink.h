@@ -210,7 +210,7 @@ typedef struct sol_mavlink_handlers {
      *
      * Callback called when a connect request has been processed
      */
-    void (*connect) (void *data, struct sol_mavlink *mavlink);
+    void (*connect)(void *data, struct sol_mavlink *mavlink);
 
     /**
      * @brief On mode changed callback
@@ -222,7 +222,7 @@ typedef struct sol_mavlink_handlers {
      *
      * Callback called when a mode change has been processed
      */
-    void (*mode_changed) (void *data, struct sol_mavlink *mavlink);
+    void (*mode_changed)(void *data, struct sol_mavlink *mavlink);
 
     /**
      * @brief On armed callback
@@ -236,7 +236,7 @@ typedef struct sol_mavlink_handlers {
      * Callback called when the vehicle has been armed, no matter if
      * it was armed by your application or not
      */
-    void (*armed) (void *data, struct sol_mavlink *mavlink);
+    void (*armed)(void *data, struct sol_mavlink *mavlink);
 
     /**
      * @brief On armed callback
@@ -250,7 +250,7 @@ typedef struct sol_mavlink_handlers {
      * Callback called when the vehicle has been disarmed, no matter if
      * it was disarmed by your application or not
      */
-    void (*disarmed) (void *data, struct sol_mavlink *mavlink);
+    void (*disarmed)(void *data, struct sol_mavlink *mavlink);
 
     /**
      * @brief On position changed callback
@@ -264,7 +264,7 @@ typedef struct sol_mavlink_handlers {
      * Callback called when the vehicle has changed its position, no matter
      * if it was moved by your application or not
      */
-    void (*position_changed) (void *data, struct sol_mavlink *mavlink);
+    void (*position_changed)(void *data, struct sol_mavlink *mavlink);
 
     /**
      * @brief On destination reached callback
@@ -278,7 +278,7 @@ typedef struct sol_mavlink_handlers {
      * Callback called when the vehicle has reached the current mission's
      * destination.
      */
-    void (*mission_reached) (void *data, struct sol_mavlink *mavlink);
+    void (*mission_reached)(void *data, struct sol_mavlink *mavlink);
 } sol_mavlink_handlers;
 
 /**

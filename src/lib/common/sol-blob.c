@@ -41,23 +41,23 @@ SOL_LOG_INTERNAL_DECLARE_STATIC(_sol_blob_log_domain, "blob");
 #define SOL_BLOB_CHECK_API_VERSION(blob, ...)
 #endif
 
-#define SOL_BLOB_CHECK(blob, ...)                        \
-    do {                                                \
-        if (!(blob)) {                                  \
-            SOL_WRN("" # blob " == NULL");               \
-            return __VA_ARGS__;                         \
-        }                                               \
-        if (!(blob)->type) {                            \
-            SOL_WRN("" # blob "(%p)->type == NULL",      \
-                (blob));                             \
-            return __VA_ARGS__;                         \
-        }                                               \
+#define SOL_BLOB_CHECK(blob, ...) \
+    do { \
+        if (!(blob)) { \
+            SOL_WRN("" # blob " == NULL"); \
+            return __VA_ARGS__; \
+        } \
+        if (!(blob)->type) { \
+            SOL_WRN("" # blob "(%p)->type == NULL", \
+                (blob)); \
+            return __VA_ARGS__; \
+        } \
         SOL_BLOB_CHECK_API_VERSION((blob), __VA_ARGS__) \
-        if ((blob)->refcnt == 0) {                      \
-            SOL_WRN("" # blob "(%p)->refcnt == 0",       \
-                (blob));                             \
-            return __VA_ARGS__;                         \
-        }                                               \
+        if ((blob)->refcnt == 0) { \
+            SOL_WRN("" # blob "(%p)->refcnt == 0", \
+                (blob)); \
+            return __VA_ARGS__; \
+        } \
     } while (0)
 
 int sol_blob_init(void);
