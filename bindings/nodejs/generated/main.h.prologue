@@ -1,7 +1,0 @@
-#ifndef __SOLETTA_JS_MAIN_H__
-#define __SOLETTA_JS_MAIN_H__
-
-#include <v8.h>
-#include <node.h>
-#include <nan.h>
-
