@@ -269,7 +269,7 @@ $(eval $(call inc-subdirs))
 $(eval $(call extra-bins))
 $(eval $(call parse-tests-fbp-bin))
 
-PRE_GEN += $(all-gen-hdrs) $(all-dest-hdr) $(all-dest-bin) $(all-data)
+PRE_GEN += $(all-gen-hdrs) $(all-dest-hdr) $(all-dest-bin) $(all-data) gen-aliases
 
 define make-warning
 $(1):

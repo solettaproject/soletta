@@ -121,7 +121,7 @@ PHONY += check-stub
 samples-check:
 	$(TEST_SAMPLES_DEPS_SCRIPT) --samples_root_dir $(top_srcdir)src/samples --samples_dependency_check_skip_list $(SAMPLES_DEPS_SCRIPT_BLACK_LIST)
 
-samples: samples-check $(SOL_LIB_OUTPUT) $(samples-out) $(PRE_GEN)
+samples: samples-check $(SOL_LIB_OUTPUT) $(PRE_GEN) $(samples-out)
 
 PHONY += samples samples-check
 
