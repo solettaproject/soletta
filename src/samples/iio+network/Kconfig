@@ -1,6 +1,6 @@
 config IIO_NETWORK_SAMPLES
 	bool "IIO Network samples"
-	depends on NETWORK && USE_IIO
+	depends on NETWORK && USE_IIO && SAMPLES
 	default y
 
 config IIO_MQTT_SAMPLES

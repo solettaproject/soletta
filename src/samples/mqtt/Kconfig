@@ -1,6 +1,6 @@
 config MQTT_SAMPLES
 	bool "MQTT samples"
-	depends on MQTT
+	depends on MQTT && SAMPLES
 	default y
 
 config MQTT_PUBLISH_SUBSCRIBE_SAMPLES

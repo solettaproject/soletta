@@ -1,3 +1,4 @@
 config DESIGN_PATTERN_SAMPLES
+	depends on SAMPLES
 	bool "Design patterns samples"
 	default y

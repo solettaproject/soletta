@@ -1,6 +1,6 @@
 config COAP_SAMPLES
 	bool "CoAP samples"
-	depends on COAP
+	depends on COAP && SAMPLES
 	default y
 
 config COAP_CLIENT_SERVER_SAMPLES

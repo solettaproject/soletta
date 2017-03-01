@@ -1,4 +1,5 @@
 config HTTP_SAMPLES
+	depends on SAMPLES
 	bool "HTTP samples"
 	default y
 

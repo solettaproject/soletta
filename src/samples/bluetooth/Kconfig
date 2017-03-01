@@ -1,4 +1,4 @@
 config BLUETOOTH_SAMPLES
 	bool "Bluetooth samples"
-	depends on BLUETOOTH
+	depends on BLUETOOTH && SAMPLES
 	default y
