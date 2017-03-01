@@ -1,4 +1,5 @@
 config COMMON_SAMPLES
+	depends on SAMPLES
 	bool "Common samples"
 	default y
 

@@ -1,4 +1,5 @@
 config CRYPTO_SAMPLES
+	depends on SAMPLES
 	bool "Cryptography & Signatures Samples"
 	default y
 

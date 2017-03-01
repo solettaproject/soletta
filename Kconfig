@@ -180,19 +180,25 @@ endmenu
 
 menu "Samples"
 depends on FEATURE_RUNNABLE_PROGRAMS
+
+config SAMPLES
+	bool "Build samples"
+	default y
+
+source "src/samples/bluetooth/Kconfig"
 source "src/samples/coap/Kconfig"
 source "src/samples/common/Kconfig"
 source "src/samples/crypto/Kconfig"
+source "src/samples/design_patterns/Kconfig"
 source "src/samples/http/Kconfig"
-source "src/samples/mqtt/Kconfig"
-source "src/samples/mavlink/Kconfig"
-source "src/samples/network/Kconfig"
-source "src/samples/bluetooth/Kconfig"
 source "src/samples/iio+network/Kconfig"
+source "src/samples/mavlink/Kconfig"
+source "src/samples/mqtt/Kconfig"
+source "src/samples/network/Kconfig"
 
 config FLOW_SAMPLES
 	bool "Flow samples"
-	depends on USE_FLOW
+	depends on USE_FLOW && SAMPLES
 	default y
 
 config FLOW_FBP_GENERATOR_SAMPLES
@@ -200,7 +206,6 @@ config FLOW_FBP_GENERATOR_SAMPLES
 	depends on FLOW_SAMPLES && FBP_GENERATOR
 	default y
 
-source "src/samples/design_patterns/Kconfig"
 source "src/samples/flow/am2315/Kconfig"
 source "src/samples/flow/basics/Kconfig"
 source "src/samples/flow/c-api/Kconfig"
@@ -214,6 +219,7 @@ source "src/samples/flow/http-composed/Kconfig"
 source "src/samples/flow/http-json/Kconfig"
 source "src/samples/flow/http-oauth/Kconfig"
 source "src/samples/flow/http-server/Kconfig"
+source "src/samples/flow/iio+network/Kconfig"
 source "src/samples/flow/iio/Kconfig"
 source "src/samples/flow/io/Kconfig"
 source "src/samples/flow/js/Kconfig"
@@ -221,17 +227,16 @@ source "src/samples/flow/led-strip/Kconfig"
 source "src/samples/flow/minnow-calamari/Kconfig"
 source "src/samples/flow/misc/Kconfig"
 source "src/samples/flow/mqtt/Kconfig"
+source "src/samples/flow/netctl/Kconfig"
 source "src/samples/flow/oic-and-http-light/Kconfig"
 source "src/samples/flow/oic/Kconfig"
 source "src/samples/flow/oic/light-scan/Kconfig"
-source "src/samples/flow/netctl/Kconfig"
 source "src/samples/flow/power-supply/Kconfig"
 source "src/samples/flow/semaphore-monitor/Kconfig"
+source "src/samples/flow/tilt-angle/Kconfig"
 source "src/samples/flow/trash-disposer/Kconfig"
 source "src/samples/flow/unix-socket/Kconfig"
 source "src/samples/flow/webservices/Kconfig"
-source "src/samples/flow/iio+network/Kconfig"
-source "src/samples/flow/tilt-angle/Kconfig"
 
 endmenu
 
