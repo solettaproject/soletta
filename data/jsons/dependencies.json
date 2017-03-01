@@ -183,6 +183,11 @@
   ],
   "dependencies": [
     {
+      "dependency": "connman",
+      "type": "pkg-config",
+      "pkgname": "connman"
+    },
+    {
       "dependency": "check",
       "type": "pkg-config",
       "pkgname": "check"
