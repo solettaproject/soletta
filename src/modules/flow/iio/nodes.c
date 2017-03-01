@@ -126,7 +126,7 @@ iio_common_close(struct sol_flow_node *node, void *data)
         goto end;
 
     for (iter = mdata->config.oversampling_ratio_table; iter->key; iter++)
-        free(iter->key);
+        free((void *)iter->key);
 
     free(mdata->config.oversampling_ratio_table);
 
