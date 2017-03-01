@@ -36,7 +36,6 @@ targets.
   * [Linux-micro](#linux-micro-kconfig-core-library---target-platform---linux-micro)
  * [Flow Based Programming](#flow-based-programming)
  * [Language Bindings](#language-bindings)
-  * [Node.js](#nodejs)
  * [Supported OSes](#supported-oses)
  * [Contributing](#contributing)
 
@@ -523,17 +522,6 @@ On top of Soletta's C API there are a few higher level language bindings.
 
 For each of these bindings, only a subset of Soletta libraries is exposed,
 only libraries that aren't commonly provided for such languages.
-
-#### Node.js
-
-[Node.js](https://nodejs.org) is a JavaScript runtime built
-on Chrome's V8 JavaScript engine.
-It uses an event-driven, non-blocking I/O model that makes it lightweight
-and efficient.
-
-It's vastly used on server-side Web applications.
-
-Check Soletta's [JavaScript API specification](https://github.com/solettaproject/soletta/blob/master/doc/js-spec/README.md)
 
 ## Supported OSes
 

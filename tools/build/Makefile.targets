@@ -1,11 +1,6 @@
 tests: $(SOL_LIB_OUTPUT) $(tests-out) $(modules-out)
 
 CHECK_DEPS := tests
-ifneq ($(USE_NODEJS),)
-# Disabling it for a while since these checks are randomly failing
-# on most builds. As soon as it's solved this should be reverted.
-# CHECK_DEPS += check-bindings-nodejs
-endif
 
 check: $(CHECK_DEPS)
 	$(Q)$(PYTHON) $(TEST_SUITE_RUN_SCRIPT) --tests="$(tests-out)"
@@ -206,48 +201,6 @@ cheat-sheet:
 endif
 
 PHONY += cheat-sheet
-
-ifneq ($(USE_NODEJS),)
-
-bins-out += $(build_stagedir)/bindings-nodejs.stamp
-NODE_GYP ?= $(NODE_GYP_PATH)/node-gyp
-
-$(build_stagedir)/bindings-nodejs.stamp: $(SOL_LIB_OUTPUT) $(shell find bindings/nodejs/src -type f)
-	$(Q) $(NODEJS_NPM) install --ignore-scripts --production
-
-	$(Q) \
-		SOL_CONFIG_OIC=$(OIC) \
-		SOL_CONFIG_USE_GPIO=$(USE_GPIO) \
-		SOL_CONFIG_USE_AIO=$(USE_AIO) \
-		SOL_CONFIG_USE_UART=$(USE_UART) \
-		SOL_CONFIG_USE_PWM=$(USE_PWM) \
-		SOL_CONFIG_USE_SPI=$(USE_SPI) \
-		SOL_CONFIG_USE_I2C=$(USE_I2C) \
-		SOL_CONFIG_NETWORK=$(NETWORK) \
-			$(NODEJS) bindings/nodejs/configure-bindings.js
-
-	$(Q) ( \
-		export SOLETTA_CFLAGS="$(addprefix -I,$(abspath $(HEADERDIRS)))"; \
-		export SOLETTA_LIBS="$(FIND_LIBRARY_LDFLAGS)"; \
-			$(NODE_GYP) configure && $(NODE_GYP) build )
-
-	$(Q) mkdir -p $(build_nodejs_bindingsdir)
-	$(Q) cp -a *js package.json $(build_nodejs_bindingsdir)
-	$(Q) mkdir -p $(build_nodejs_bindingsdir)/build
-	$(Q) cp $$(find build -type f -name soletta.node | grep -v 'soletta_sysroot' | head -n 1) \
-		$(build_nodejs_bindingsdir)/build
-	$(Q) mkdir -p $(build_nodejs_bindingsdir)/node_modules
-	$(Q) cp -a ./node_modules/* $(build_nodejs_bindingsdir)/node_modules
-
-	$(Q) touch $(build_stagedir)/bindings-nodejs.stamp
-
-check-bindings-nodejs: $(build_stagedir)/bindings-nodejs.stamp
-	$(Q) $(NODEJS_NPM) install --ignore-scripts
-	$(Q) $(NODEJS) $(NODEJS_ROOT)/tests/suite.js --ldPreload="$(LIB_ASAN_PATH)" \
-		--testList="Load Library.js,Main Loop Interruption.js,Main Loop Interruption No Cleanup.js,Simple Platform APIs.js"
-PHONY += check-bindings-nodejs
-
-endif #neq($(USE_NODEJS),)
 
 DEFAULT_ALIAS_FILE := $(build_aliasesdir)/50-default.json
 

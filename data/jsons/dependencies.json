@@ -539,18 +539,6 @@
       "exec": "genhtml"
     },
     {
-      "dependency": "nodejs",
-      "type": "exec",
-      "exec": "node",
-      "version-command": "node --version",
-      "atleast-version": "v4.0"
-    },
-    {
-      "dependency": "nodejs_npm",
-      "type": "exec",
-      "exec": "npm"
-    },
-    {
       "dependency": "chrpath",
       "type": "exec",
       "exec": "chrpath"
@@ -710,16 +698,6 @@
       "path": {
         "in-tree": "{TOP_SRCDIR}/src/thirdparty/mavlink",
         "out-of-tree": "{MAVLINK_SRC}"
-      }
-    },
-    {
-      "dependency": "node_gyp",
-      "type": "filesystem",
-      "files": [
-        "node-gyp"
-      ],
-      "path": {
-        "out-of-tree": "{NODEJS_NPM_DIR}/node-gyp-bin"
       }
     }
   ]
