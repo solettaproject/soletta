@@ -88,7 +88,7 @@ typedef struct sol_update {
      * @see sol_update_install
      */
     struct sol_update_handle * (*install)(void (*cb)(void *data, int status),
-        const void *data);
+    const void *data);
 
     /**
      * @brief Function called when module is loaded.
@@ -117,9 +117,9 @@ typedef struct sol_update {
 #define SOL_UPDATE_DECLARE(_NAME, decl ...) \
     SOL_API const struct sol_update *SOL_UPDATE = \
         &((const struct sol_update) { \
-            SOL_SET_API_VERSION(.api_version = SOL_UPDATE_API_VERSION, ) \
-            decl \
-        })
+        SOL_SET_API_VERSION(.api_version = SOL_UPDATE_API_VERSION, ) \
+        decl \
+    })
 #else
 #define SOL_UPDATE_DECLARE(_NAME, decl ...) \
     SOL_API const struct sol_update SOL_UPDATE_ ## _NAME = { \

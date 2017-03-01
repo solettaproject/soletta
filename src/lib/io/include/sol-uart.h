@@ -163,9 +163,9 @@ typedef struct sol_uart_config {
  */
 enum sol_uart_baud_rate sol_uart_baud_rate_from_str(const char *baud_rate)
 #ifndef DOXYGEN_RUN
-    SOL_ATTR_WARN_UNUSED_RESULT
+SOL_ATTR_WARN_UNUSED_RESULT
 #endif
-    ;
+;
 
 /**
  * @brief Converts sol_uart_baud_rate to a string name.
@@ -180,9 +180,9 @@ enum sol_uart_baud_rate sol_uart_baud_rate_from_str(const char *baud_rate)
  */
 const char *sol_uart_baud_rate_to_str(enum sol_uart_baud_rate baud_rate)
 #ifndef DOXYGEN_RUN
-    SOL_ATTR_WARN_UNUSED_RESULT
+SOL_ATTR_WARN_UNUSED_RESULT
 #endif
-    ;
+;
 
 /**
  * @brief Converts a string UART dataBits to sol_uart_data_bits
@@ -197,9 +197,9 @@ const char *sol_uart_baud_rate_to_str(enum sol_uart_baud_rate baud_rate)
  */
 enum sol_uart_data_bits sol_uart_data_bits_from_str(const char *data_bits)
 #ifndef DOXYGEN_RUN
-    SOL_ATTR_WARN_UNUSED_RESULT
+SOL_ATTR_WARN_UNUSED_RESULT
 #endif
-    ;
+;
 
 /**
  * @brief Converts sol_uart_data_bits to a string name.
@@ -214,9 +214,9 @@ enum sol_uart_data_bits sol_uart_data_bits_from_str(const char *data_bits)
  */
 const char *sol_uart_data_bits_to_str(enum sol_uart_data_bits data_bits)
 #ifndef DOXYGEN_RUN
-    SOL_ATTR_WARN_UNUSED_RESULT
+SOL_ATTR_WARN_UNUSED_RESULT
 #endif
-    ;
+;
 
 /**
  * @brief Converts a string UART parity to sol_uart_parity
@@ -231,9 +231,9 @@ const char *sol_uart_data_bits_to_str(enum sol_uart_data_bits data_bits)
  */
 enum sol_uart_parity sol_uart_parity_from_str(const char *parity)
 #ifndef DOXYGEN_RUN
-    SOL_ATTR_WARN_UNUSED_RESULT
+SOL_ATTR_WARN_UNUSED_RESULT
 #endif
-    ;
+;
 
 /**
  * @brief Converts sol_uart_parity to a string name.
@@ -248,9 +248,9 @@ enum sol_uart_parity sol_uart_parity_from_str(const char *parity)
  */
 const char *sol_uart_parity_to_str(enum sol_uart_parity parity)
 #ifndef DOXYGEN_RUN
-    SOL_ATTR_WARN_UNUSED_RESULT
+SOL_ATTR_WARN_UNUSED_RESULT
 #endif
-    ;
+;
 
 /**
  * @brief Converts a string UART stopBits to sol_uart_stop_bits
@@ -265,9 +265,9 @@ const char *sol_uart_parity_to_str(enum sol_uart_parity parity)
  */
 enum sol_uart_stop_bits sol_uart_stop_bits_from_str(const char *stop_bits)
 #ifndef DOXYGEN_RUN
-    SOL_ATTR_WARN_UNUSED_RESULT
+SOL_ATTR_WARN_UNUSED_RESULT
 #endif
-    ;
+;
 
 /**
  * @brief Converts sol_uart_stop_bits to a string name.
@@ -282,9 +282,9 @@ enum sol_uart_stop_bits sol_uart_stop_bits_from_str(const char *stop_bits)
  */
 const char *sol_uart_stop_bits_to_str(enum sol_uart_stop_bits stop_bits)
 #ifndef DOXYGEN_RUN
-    SOL_ATTR_WARN_UNUSED_RESULT
+SOL_ATTR_WARN_UNUSED_RESULT
 #endif
-    ;
+;
 
 /**
  * @brief Open an UART bus.

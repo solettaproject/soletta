@@ -167,22 +167,22 @@ static const struct sol_flow_node_type_description test_node_description = {
         NULL
     },
     .options = &((const struct sol_flow_node_options_description){
-            .data_size = sizeof(struct test_node_options),
-            SOL_SET_API_VERSION(.sub_api = 1, )
-            .required = false,
-            .members = (const struct sol_flow_node_options_member_description[]){
-                {
-                    .name = "opt",
-                    .description = "An optional option",
-                    .data_type = "boolean",
-                    .required = false,
-                    .offset = offsetof(struct test_node_options, opt),
-                    .size = sizeof(bool),
-                    .defvalue.b = true,
-                },
-                {}
-            }
-        })
+        .data_size = sizeof(struct test_node_options),
+        SOL_SET_API_VERSION(.sub_api = 1, )
+        .required = false,
+        .members = (const struct sol_flow_node_options_member_description[]){
+            {
+                .name = "opt",
+                .description = "An optional option",
+                .data_type = "boolean",
+                .required = false,
+                .offset = offsetof(struct test_node_options, opt),
+                .size = sizeof(bool),
+                .defvalue.b = true,
+            },
+            {}
+        }
+    })
 };
 
 static const struct test_node_options default_opts = {
@@ -372,7 +372,7 @@ declare_fbp_read_file(void *data, const char *name, struct sol_buffer *buf)
             (void *)"INPORT=add.OPERAND[1]:IN, OUTPORT=add.OUT:OUT, _(constant/int:value=1) OUT "
             "-> OPERAND[0] add(int/addition)",
             sizeof("INPORT=add.OPERAND[1]:IN, OUTPORT=add.OUT:OUT, _(constant/int:value=1) OUT "
-                "-> OPERAND[0] add(int/addition)") - 1, SOL_BUFFER_FLAGS_MEMORY_NOT_OWNED);
+            "-> OPERAND[0] add(int/addition)") - 1, SOL_BUFFER_FLAGS_MEMORY_NOT_OWNED);
         buf->used = buf->capacity;
         return 0;
     }

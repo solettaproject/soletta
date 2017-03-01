@@ -519,7 +519,7 @@ static int
 compare_conns(const void *data1, const void *data2)
 {
     const struct sol_flow_static_conn_spec *conn_spec1 = data1,
-    *conn_spec2 = data2;
+        *conn_spec2 = data2;
     int retval = sol_util_int_compare(conn_spec1->src, conn_spec2->src);
 
     if (retval != 0)

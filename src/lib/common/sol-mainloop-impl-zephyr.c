@@ -145,7 +145,7 @@ ticks_until_next_timeout(void)
         return TICKS_UNLIMITED;
 
     return ts.tv_sec * sys_clock_ticks_per_sec +
-        ((long long)sys_clock_ticks_per_sec * ts.tv_nsec) / NSEC_PER_SEC;
+           ((long long)sys_clock_ticks_per_sec * ts.tv_nsec) / NSEC_PER_SEC;
 }
 
 void

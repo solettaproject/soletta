@@ -702,6 +702,7 @@ sol_flow_packet_new_location_components(double lat, double lon, double alt)
         .lon = lon,
         .alt = alt,
     };
+
     return sol_flow_packet_new(SOL_FLOW_PACKET_TYPE_LOCATION, &location);
 }
 
@@ -1042,7 +1043,7 @@ sol_flow_packet_type_composed_new(const struct sol_flow_packet_type **types)
 
     SOL_NULL_CHECK(types, NULL);
 
-    for (types_len = 0; types[types_len]; types_len++);
+    for (types_len = 0; types[types_len]; types_len++) ;
 
     members_bytes = types_len * sizeof(struct sol_flow_packet_type *);
     SOL_PTR_VECTOR_FOREACH_IDX (&composed_types_cache, itr, i) {

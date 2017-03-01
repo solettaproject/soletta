@@ -207,7 +207,8 @@ sol_i2c_open_raw(uint8_t bus, enum sol_i2c_speed speed)
     default:
         SOL_WRN("Unsupported speed value: %d", speed);
         return NULL;
-    };
+    }
+    ;
 
     switch (bus) {
     case QM_I2C_0:

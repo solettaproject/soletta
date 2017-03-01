@@ -21,23 +21,23 @@
 #include "sol-log.h"
 
 #ifdef SOL_LOG_ENABLED
-#define SOL_LOG_INTERNAL_DECLARE(_var, _name)    \
+#define SOL_LOG_INTERNAL_DECLARE(_var, _name) \
     SOL_ATTR_UNUSED struct sol_log_domain _var = { \
-        .name = "sol-" _name,                    \
-        .color = SOL_LOG_COLOR_MAGENTA,          \
-        .level = SOL_LOG_LEVEL_WARNING           \
+        .name = "sol-" _name, \
+        .color = SOL_LOG_COLOR_MAGENTA, \
+        .level = SOL_LOG_LEVEL_WARNING \
     }
 
-#define SOL_LOG_INTERNAL_DECLARE_STATIC(_var, _name)    \
+#define SOL_LOG_INTERNAL_DECLARE_STATIC(_var, _name) \
     static SOL_LOG_INTERNAL_DECLARE(_var, _name)
 
-#define SOL_LOG_INTERNAL_INIT_ONCE                               \
-    do {                                                        \
-        static bool _log_internal_init_once_first = true;       \
-        if (_log_internal_init_once_first) {                    \
-            sol_log_domain_init_level(SOL_LOG_DOMAIN);            \
-            _log_internal_init_once_first = false;              \
-        }                                                       \
+#define SOL_LOG_INTERNAL_INIT_ONCE \
+    do { \
+        static bool _log_internal_init_once_first = true; \
+        if (_log_internal_init_once_first) { \
+            sol_log_domain_init_level(SOL_LOG_DOMAIN); \
+            _log_internal_init_once_first = false; \
+        } \
     } while (0)
 #else
 #define SOL_LOG_INTERNAL_DECLARE(_var, _name)

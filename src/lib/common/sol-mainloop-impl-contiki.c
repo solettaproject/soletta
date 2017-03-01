@@ -100,7 +100,7 @@ ticks_until_next_timeout(clock_time_t *sleeptime)
         return false;
 
     *sleeptime = ts.tv_sec * CLOCK_SECOND +
-           (CLOCK_SECOND / SOL_UTIL_NSEC_PER_SEC) * ts.tv_nsec;
+        (CLOCK_SECOND / SOL_UTIL_NSEC_PER_SEC) * ts.tv_nsec;
     return true;
 }
 

@@ -53,7 +53,7 @@
 
 static int
 logic_process(struct sol_flow_node *node, void *data, uint16_t port,
-              uint16_t conn_id, const struct sol_flow_packet *packet);
+    uint16_t conn_id, const struct sol_flow_packet *packet);
 
 /* This file is generated using sol-flow-node-type-gen.py, see above */
 #include "arctan-spec-gen.c"
@@ -80,7 +80,7 @@ logic_process(struct sol_flow_node *node, void *data, uint16_t port,
  */
 static int
 logic_process(struct sol_flow_node *node, void *data, uint16_t port,
-              uint16_t conn_id, const struct sol_flow_packet *packet)
+    uint16_t conn_id, const struct sol_flow_packet *packet)
 {
     int r;
     struct sol_drange d_value;
@@ -100,8 +100,8 @@ logic_process(struct sol_flow_node *node, void *data, uint16_t port,
     }
 
     r = sol_flow_send_drange_value_packet(node,
-                                          SOL_FLOW_NODE_TYPE_ARCTANGENT_LOGIC__OUT__OUT,
-                                          arctan);
+        SOL_FLOW_NODE_TYPE_ARCTANGENT_LOGIC__OUT__OUT,
+        arctan);
     SOL_INT_CHECK(r, < 0, r);
 
     return 0;

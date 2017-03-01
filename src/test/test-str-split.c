@@ -39,35 +39,35 @@ test_str_to_slice(void)
             { strlen("Using space -l :q"), "Using space -l :q"
               "dsdsdsdkjskdjksjdksjdksjdksjd" },
             " ",
-            (const char *const []){ "Using", "space", "-l", ":q" },
+            (const char *const []){"Using", "space", "-l", ":q" },
             0,
             4
         },
         {
             { strlen("Using space -l :q"), "Using space -l :q" },
             " ",
-            (const char *const []){ "Using", "space -l :q" },
+            (const char *const []){"Using", "space -l :q" },
             1,
             2
         },
         {
             { strlen("Using{{brackets{ {{"), "Using{{brackets{ {{" },
             "{",
-            (const char *const []){ "Using", "", "brackets", " ", "", "" },
+            (const char *const []){"Using", "", "brackets", " ", "", "" },
             5,
             6
         },
         {
             { strlen("Using comma test"), "Using comma test" },
             ",",
-            (const char *const []){ "Using comma test" },
+            (const char *const []){"Using comma test" },
             0,
             1
         },
         {
             { strlen("Using42brackets42 test42"), "Using42brackets42 test42" },
             "42",
-            (const char *const []){ "Using", "brackets", " test", "" },
+            (const char *const []){"Using", "brackets", " test", "" },
             3,
             4
         },

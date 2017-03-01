@@ -133,9 +133,9 @@ void sol_platform_linux_micro_inform_service_state(const char *service, enum sol
  */
 #define SOL_PLATFORM_LINUX_MICRO_MODULE(_NAME, decl ...) \
     SOL_API const struct sol_platform_linux_micro_module *SOL_PLATFORM_LINUX_MICRO_MODULE = &((const struct sol_platform_linux_micro_module) { \
-            SOL_SET_API_VERSION(.api_version = SOL_PLATFORM_LINUX_MICRO_MODULE_API_VERSION, ) \
-            decl \
-        })
+        SOL_SET_API_VERSION(.api_version = SOL_PLATFORM_LINUX_MICRO_MODULE_API_VERSION, ) \
+        decl \
+    })
 #else
 /**
  * @brief Exports the Linux micro module.

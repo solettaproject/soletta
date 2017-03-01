@@ -155,10 +155,10 @@ match_packets(const struct sol_flow_packet_type *a, const struct sol_flow_packet
     return a == b;
 }
 
-#define CONNECT_NODES_WRN(spec, src_id, dst_id, reason, ...)            \
-    SOL_WRN("Invalid connection specification: "                         \
+#define CONNECT_NODES_WRN(spec, src_id, dst_id, reason, ...) \
+    SOL_WRN("Invalid connection specification: " \
     "{ .src_id=%s, .src=%hu, .src_port=%hu, .dst_id=%s .dst=%hu, .dst_port=%hu }: " # reason, \
-    src_id, spec->src, spec->src_port,                           \
+    src_id, spec->src, spec->src_port, \
     dst_id, spec->dst, spec->dst_port, ## __VA_ARGS__)
 
 static int
@@ -652,8 +652,8 @@ teardown_node_specs(struct flow_static_type *type)
     free(type->node_infos);
 }
 
-#define INVALID_SPEC_WRN(spec, reason, ...)                     \
-    SOL_WRN("Invalid connection specification "                          \
+#define INVALID_SPEC_WRN(spec, reason, ...) \
+    SOL_WRN("Invalid connection specification " \
     "{ .src=%hu, .src_port=%hu, .dst=%hu, .dst_port=%hu }: " # reason, \
     spec->src, spec->src_port, spec->dst, spec->dst_port, ## __VA_ARGS__)
 
@@ -1094,17 +1094,17 @@ sol_flow_static_new(struct sol_flow_node *parent, const struct sol_flow_static_n
 /* Different from simpler node types, we don't have a single type to check. The trick here is to use
  * one of the pointers in sol_flow_node_type that will always be the same in all static flows we
  * create. */
-#define SOL_FLOW_STATIC_TYPE_CHECK(type, ...)                            \
-    do {                                                                \
-        if (!(type)) {                                                  \
-            SOL_WRN("" # type " == NULL");                               \
-            return __VA_ARGS__;                                         \
-        }                                                               \
-        if (((type)->flags & SOL_FLOW_NODE_TYPE_FLAGS_CONTAINER) == 0    \
+#define SOL_FLOW_STATIC_TYPE_CHECK(type, ...) \
+    do { \
+        if (!(type)) { \
+            SOL_WRN("" # type " == NULL"); \
+            return __VA_ARGS__; \
+        } \
+        if (((type)->flags & SOL_FLOW_NODE_TYPE_FLAGS_CONTAINER) == 0 \
             || ((type)->open != flow_node_open)) { \
-            SOL_WRN("" # type " isn't a static flow type!");             \
-            return __VA_ARGS__;                                         \
-        }                                                               \
+            SOL_WRN("" # type " isn't a static flow type!"); \
+            return __VA_ARGS__; \
+        } \
     } while (0)
 
 SOL_API struct sol_flow_node *

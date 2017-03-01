@@ -52,15 +52,15 @@ struct sol_monitors {
     sol_monitors_cleanup_func_t cleanup;
 };
 
-#define SOL_MONITORS_INIT_CUSTOM(TYPE, CLEANUP)              \
-    {                                                       \
-        .entries = SOL_VECTOR_INIT(TYPE),                    \
-        .walking = 0,                                       \
-        .pending_deletion = 0,                              \
-        .cleanup = CLEANUP,                                 \
+#define SOL_MONITORS_INIT_CUSTOM(TYPE, CLEANUP) \
+    { \
+        .entries = SOL_VECTOR_INIT(TYPE), \
+        .walking = 0, \
+        .pending_deletion = 0, \
+        .cleanup = CLEANUP, \
     }
 
-#define SOL_MONITORS_INIT(CLEANUP)                               \
+#define SOL_MONITORS_INIT(CLEANUP) \
     SOL_MONITORS_INIT_CUSTOM(struct sol_monitors_entry, CLEANUP)
 
 void sol_monitors_init_custom(struct sol_monitors *ms, uint16_t elem_size, sol_monitors_cleanup_func_t cleanup);
@@ -119,25 +119,25 @@ void sol_monitors_end_walk(struct sol_monitors *ms);
         entries_len = sol_monitors_count(ms); \
         !executed; \
         executed = ({ sol_monitors_end_walk(ms); 1; })) \
-        SOL_VECTOR_FOREACH_IDX_UNTIL (&(ms)->entries, itrvar, idx, entries_len)
+        SOL_VECTOR_FOREACH_IDX_UNTIL(&(ms)->entries, itrvar, idx, entries_len)
 
 #define _SOL_MONITORS_WALK(ms, itrvar, idx, executed) \
     __SOL_MONITORS_WALK(ms, itrvar, idx, _SOL_MONITORS_WALK_VAR(executed))
 
-#define SOL_MONITORS_WALK(ms, itrvar, idx)                               \
+#define SOL_MONITORS_WALK(ms, itrvar, idx) \
     _SOL_MONITORS_WALK(ms, itrvar, idx, __COUNTER__)
 
 
-#define __SOL_MONITORS_WALK_AND_CALLBACK(ms, e, i)        \
-    do {                                                \
-        struct sol_monitors_entry *e;                     \
-        uint16_t i;                                     \
-        SOL_MONITORS_WALK (ms, e, i)                      \
-            if (e->cb) e->cb(e->data);                  \
+#define __SOL_MONITORS_WALK_AND_CALLBACK(ms, e, i) \
+    do { \
+        struct sol_monitors_entry *e; \
+        uint16_t i; \
+        SOL_MONITORS_WALK (ms, e, i) \
+            if (e->cb) e->cb(e->data); \
     } while (0)
 
-#define _SOL_MONITORS_WALK_AND_CALLBACK(ms, e, i)        \
+#define _SOL_MONITORS_WALK_AND_CALLBACK(ms, e, i) \
     __SOL_MONITORS_WALK_AND_CALLBACK(ms, _SOL_MONITORS_WALK_VAR(e), _SOL_MONITORS_WALK_VAR(i))
 
-#define SOL_MONITORS_WALK_AND_CALLBACK(ms)    \
+#define SOL_MONITORS_WALK_AND_CALLBACK(ms) \
     _SOL_MONITORS_WALK_AND_CALLBACK(ms, __COUNTER__, __COUNTER__)

@@ -574,7 +574,7 @@ sol_gatt_register_attributes(struct sol_gatt_attr *attrs)
 
     app->attrs = attrs;
     app->id = ++app_id;
-    sol_vector_init(&app->slots, sizeof(sd_bus_slot * *));
+    sol_vector_init(&app->slots, sizeof(sd_bus_slot **));
 
     r = snprintf(app_path, sizeof(app_path), GATT_APPLICATION_PATH "%u", app->id);
     SOL_INT_CHECK_GOTO(r, < 0, error_print);

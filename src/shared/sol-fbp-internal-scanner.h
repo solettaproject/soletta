@@ -24,26 +24,26 @@
  * in https://github.com/noflo/fbp/blob/master/README.md, produces
  * tokens suited for parsing that language. */
 
-#define SOL_FBP_TOKEN_LIST(X)                           \
-    X(NONE)                                            \
-    X(ARROW)                                           \
-    X(BRACKET_CLOSE)                                   \
-    X(BRACKET_OPEN)                                    \
-    X(COLON)                                           \
-    X(COMMA)                                           \
-    X(DOT)                                             \
-    X(EOF)                                             \
-    X(ERROR)                                           \
-    X(EQUAL)                                           \
-    X(IDENTIFIER)                                      \
-    X(INPORT_KEYWORD)                                  \
-    X(INTEGER)                                         \
-    X(OUTPORT_KEYWORD)                                 \
-    X(PAREN_CLOSE)                                     \
-    X(PAREN_OPEN)                                      \
-    X(STMT_SEPARATOR)                                  \
-    X(STRING)                                          \
-    X(DECLARE_KEYWORD)                                 \
+#define SOL_FBP_TOKEN_LIST(X) \
+    X(NONE) \
+    X(ARROW) \
+    X(BRACKET_CLOSE) \
+    X(BRACKET_OPEN) \
+    X(COLON) \
+    X(COMMA) \
+    X(DOT) \
+    X(EOF) \
+    X(ERROR) \
+    X(EQUAL) \
+    X(IDENTIFIER) \
+    X(INPORT_KEYWORD) \
+    X(INTEGER) \
+    X(OUTPORT_KEYWORD) \
+    X(PAREN_CLOSE) \
+    X(PAREN_OPEN) \
+    X(STMT_SEPARATOR) \
+    X(STRING) \
+    X(DECLARE_KEYWORD) \
     X(OPTION_KEYWORD)
 
 #define TOKEN_ENUM(T) SOL_FBP_TOKEN_ ## T,

@@ -30,16 +30,16 @@
 #include "sol-util-internal.h"
 #include "sol-vector.h"
 
-#define SERVICE_NAME_OWNER_MATCH "type='signal',"                   \
-    "sender='org.freedesktop.DBus',"                                \
-    "path='/org/freedesktop/DBus',"                                 \
-    "interface='org.freedesktop.DBus',"                             \
-    "member='NameOwnerChanged',"                                    \
+#define SERVICE_NAME_OWNER_MATCH "type='signal'," \
+    "sender='org.freedesktop.DBus'," \
+    "path='/org/freedesktop/DBus'," \
+    "interface='org.freedesktop.DBus'," \
+    "member='NameOwnerChanged'," \
     "arg0='%s'"
 
-#define INTERFACES_ADDED_MATCH "type='signal',"                 \
-    "sender='%s',"                                              \
-    "interface='org.freedesktop.DBus.ObjectManager',"           \
+#define INTERFACES_ADDED_MATCH "type='signal'," \
+    "sender='%s'," \
+    "interface='org.freedesktop.DBus.ObjectManager'," \
     "member='InterfacesAdded'"
 
 struct property_table {

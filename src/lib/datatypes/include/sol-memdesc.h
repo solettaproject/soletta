@@ -268,9 +268,9 @@ enum sol_memdesc_type {
  */
 enum sol_memdesc_type sol_memdesc_type_from_str(const char *str)
 #ifndef DOXYGEN_RUN
-    SOL_ATTR_WARN_UNUSED_RESULT
+SOL_ATTR_WARN_UNUSED_RESULT
 #endif
-    ;
+;
 
 /**
  * @brief Converts a sol_memdesc_type to a string.
@@ -280,9 +280,9 @@ enum sol_memdesc_type sol_memdesc_type_from_str(const char *str)
  */
 const char *sol_memdesc_type_to_str(enum sol_memdesc_type type)
 #ifndef DOXYGEN_RUN
-    SOL_ATTR_WARN_UNUSED_RESULT
+SOL_ATTR_WARN_UNUSED_RESULT
 #endif
-    ;
+;
 
 /**
  * @def SOL_MEMDESC_DESCRIPTION

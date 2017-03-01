@@ -59,7 +59,7 @@ extern "C" {
  * struct sol_flow_single_options.
  */
 #define SOL_FLOW_SINGLE_CONNECTIONS(...) \
-    (const uint16_t[]){ __VA_ARGS__, UINT16_MAX }
+    (const uint16_t[]){__VA_ARGS__, UINT16_MAX }
 
 /**
  * @brief Structure for the specification of a single node.

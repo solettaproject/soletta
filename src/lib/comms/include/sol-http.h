@@ -574,9 +574,9 @@ sol_http_params_init(struct sol_http_params *params)
 int sol_http_params_add(struct sol_http_params *params,
     struct sol_http_param_value value)
 #ifndef DOXYGEN_RUN
-    SOL_ATTR_WARN_UNUSED_RESULT
+SOL_ATTR_WARN_UNUSED_RESULT
 #endif
-    ;
+;
 
 /**
  * @brief Add a new parameter to HTTP parameters vector copying strings

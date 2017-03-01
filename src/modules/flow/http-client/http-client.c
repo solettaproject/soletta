@@ -115,10 +115,10 @@ set_basic_url_info(struct http_data *mdata, const char *full_uri)
     if ((url.user.len || url.password.len) &&
         (sol_http_params_add_copy(&mdata->url_params,
         ((struct sol_http_param_value) {
-            .type = SOL_HTTP_PARAM_AUTH_BASIC,
-            .value.auth.user = url.user,
-            .value.auth.password = url.password
-        })) < 0 )) {
+        .type = SOL_HTTP_PARAM_AUTH_BASIC,
+        .value.auth.user = url.user,
+        .value.auth.password = url.password
+    })) < 0 )) {
         SOL_WRN("Could not add the user: %.*s and password: %.*s as"
             " parameters", SOL_STR_SLICE_PRINT(url.user),
             SOL_STR_SLICE_PRINT(url.password));
@@ -128,10 +128,10 @@ set_basic_url_info(struct http_data *mdata, const char *full_uri)
 
     if (url.fragment.len && (sol_http_params_add_copy(&mdata->url_params,
         ((struct sol_http_param_value) {
-            .type = SOL_HTTP_PARAM_FRAGMENT,
-            .value.key_value.key = url.fragment,
-            .value.key_value.value = SOL_STR_SLICE_EMPTY
-        })) < 0 )) {
+        .type = SOL_HTTP_PARAM_FRAGMENT,
+        .value.key_value.key = url.fragment,
+        .value.key_value.value = SOL_STR_SLICE_EMPTY
+    })) < 0 )) {
         SOL_WRN("Could not add the fragment: %.*s paramenter",
             SOL_STR_SLICE_PRINT(url.fragment));
         r = -ENOMEM;

@@ -208,7 +208,7 @@ typedef struct sol_mqtt_handlers {
      * Callback called when the client has disconnected from the
      * broker.
      */
-    void (*disconnect) (void *data, struct sol_mqtt *mqtt);
+    void (*disconnect)(void *data, struct sol_mqtt *mqtt);
 
     /**
      * @brief On publish callback
@@ -220,7 +220,7 @@ typedef struct sol_mqtt_handlers {
      *
      * Callback called when a publish request has been processed.
      */
-    void (*publish) (void *data, struct sol_mqtt *mqtt);
+    void (*publish)(void *data, struct sol_mqtt *mqtt);
 
     /**
      * @brief On message callback
@@ -238,7 +238,7 @@ typedef struct sol_mqtt_handlers {
      * The memory associated to the message object will be freed after
      * the callback returns.
      */
-    void (*message) (void *data, struct sol_mqtt *mqtt, const struct sol_mqtt_message *message);
+    void (*message)(void *data, struct sol_mqtt *mqtt, const struct sol_mqtt_message *message);
 
     /**
      * @brief On subscribe callback
@@ -250,7 +250,7 @@ typedef struct sol_mqtt_handlers {
      *
      * Callback called when a subscribe request has been processed.
      */
-    void (*subscribe) (void *data, struct sol_mqtt *mqtt);
+    void (*subscribe)(void *data, struct sol_mqtt *mqtt);
 
     /**
      * @brief On unsubscribe callback
@@ -262,7 +262,7 @@ typedef struct sol_mqtt_handlers {
      *
      * Callback called when a unsubscribe request has been processed.
      */
-    void (*unsubscribe) (void *data, struct sol_mqtt *mqtt);
+    void (*unsubscribe)(void *data, struct sol_mqtt *mqtt);
 } sol_mqtt_handlers;
 
 /**

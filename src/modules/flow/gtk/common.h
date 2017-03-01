@@ -43,27 +43,27 @@ int gtk_open(struct sol_flow_node *node,
 
 void gtk_close(struct sol_flow_node *node, void *data);
 
-#define DEFINE_DEFAULT_OPEN(NAME)                                   \
-    int                                                      \
-    gtk_ ## NAME ## _open(struct sol_flow_node *node, void *data,    \
-    const struct sol_flow_node_options *options)             \
-    {                                                               \
-        return gtk_open(node, data, NAME ## _setup, options);       \
+#define DEFINE_DEFAULT_OPEN(NAME) \
+    int \
+    gtk_ ## NAME ## _open(struct sol_flow_node *node, void *data, \
+    const struct sol_flow_node_options *options) \
+    { \
+        return gtk_open(node, data, NAME ## _setup, options); \
     }
 
-#define DEFINE_DEFAULT_CLOSE(NAME)                                \
-    void                                                   \
+#define DEFINE_DEFAULT_CLOSE(NAME) \
+    void \
     gtk_ ## NAME ## _close(struct sol_flow_node *node, void *data) \
-    {                                                             \
-        return gtk_close(node, data);                             \
+    { \
+        return gtk_close(node, data); \
     }
 
 #define DEFINE_DEFAULT_OPEN_CLOSE(NAME) \
-    DEFINE_DEFAULT_OPEN(NAME);          \
+    DEFINE_DEFAULT_OPEN(NAME); \
     DEFINE_DEFAULT_CLOSE(NAME);
 
 
-#define DEFINE_DEFAULT_HEADER(NAME)                                        \
-    int gtk_ ## NAME ## _open(struct sol_flow_node *node, void *data,       \
+#define DEFINE_DEFAULT_HEADER(NAME) \
+    int gtk_ ## NAME ## _open(struct sol_flow_node *node, void *data, \
     const struct sol_flow_node_options *options); \
     void gtk_ ## NAME ## _close(struct sol_flow_node *node, void *data);

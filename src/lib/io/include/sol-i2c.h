@@ -105,9 +105,9 @@ enum sol_i2c_speed {
  */
 enum sol_i2c_speed sol_i2c_speed_from_str(const char *speed)
 #ifndef DOXYGEN_RUN
-    SOL_ATTR_WARN_UNUSED_RESULT
+SOL_ATTR_WARN_UNUSED_RESULT
 #endif
-    ;
+;
 
 /**
  * @brief Converts sol_i2c_speed to a string name.
@@ -122,9 +122,9 @@ enum sol_i2c_speed sol_i2c_speed_from_str(const char *speed)
  */
 const char *sol_i2c_speed_to_str(enum sol_i2c_speed speed)
 #ifndef DOXYGEN_RUN
-    SOL_ATTR_WARN_UNUSED_RESULT
+SOL_ATTR_WARN_UNUSED_RESULT
 #endif
-    ;
+;
 
 /**
  * @brief Open an I2C bus.
@@ -140,9 +140,9 @@ const char *sol_i2c_speed_to_str(enum sol_i2c_speed speed)
  */
 struct sol_i2c *sol_i2c_open_raw(uint8_t bus, enum sol_i2c_speed speed)
 #ifndef DOXYGEN_RUN
-    SOL_ATTR_WARN_UNUSED_RESULT
+SOL_ATTR_WARN_UNUSED_RESULT
 #endif
-    ;
+;
 
 /**
  * @brief Open an I2C bus.
@@ -160,9 +160,9 @@ struct sol_i2c *sol_i2c_open_raw(uint8_t bus, enum sol_i2c_speed speed)
  */
 struct sol_i2c *sol_i2c_open(uint8_t bus, enum sol_i2c_speed speed)
 #ifndef DOXYGEN_RUN
-    SOL_ATTR_WARN_UNUSED_RESULT
+SOL_ATTR_WARN_UNUSED_RESULT
 #endif
-    ;
+;
 
 /**
  * @brief Close an I2C bus.

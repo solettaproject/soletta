@@ -53,7 +53,7 @@ struct gpio_port_config {
 };
 
 struct gpio_port {
-    const struct gpio_port_config * const config;
+    const struct gpio_port_config *const config;
     void (*previous_callback)(uint32_t int_status);
     struct sol_ptr_vector registered_irqs;
     uint32_t opened_pins;
@@ -77,7 +77,7 @@ static struct gpio_port ports[] = {
             .setup_isr = gpio_0_setup_isr,
             .port_num = QM_GPIO_0,
             .num_pins = QM_NUM_GPIO_PINS
-            }),
+        }),
         .registered_irqs = SOL_PTR_VECTOR_INIT,
     },
 #if HAS_AON_GPIO
@@ -87,7 +87,7 @@ static struct gpio_port ports[] = {
             .setup_isr = gpio_aon_0_setup_isr,
             .port_num = QM_AON_GPIO_0,
             .num_pins = QM_NUM_AON_GPIO_PINS
-            }),
+        }),
         .registered_irqs = SOL_PTR_VECTOR_INIT,
     }
 #endif
@@ -107,7 +107,7 @@ gpio_cb_dispatch(void *user_data, process_event_t ev, process_data_t ev_data)
     port->int_status = 0;
     vals = qm_gpio_read_port(port->config->port_num);
 
-    SOL_PTR_VECTOR_FOREACH_IDX(&port->registered_irqs, gpio, idx) {
+    SOL_PTR_VECTOR_FOREACH_IDX (&port->registered_irqs, gpio, idx) {
         if (gpio->cb && (int_status & BIT(GPIO_GET_PIN(gpio->pin)))) {
             bool value = !!(vals & BIT(GPIO_GET_PIN(gpio->pin))) ^ gpio->active_low;
 
