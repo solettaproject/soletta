@@ -26,14 +26,13 @@
  * [1]: http://www.seattlerobotics.org/encoder/200010/dead_reckoning_article.html
  */
 
+#include "sol-flow/robotics.h"
+#include "sol-flow-internal.h"
+#include "sol-mainloop.h"
+
 #include <stdio.h>
 #include <errno.h>
 #include <math.h>
-
-#include "sol-flow-internal.h"
-#include "sol-flow/robotics.h"
-#include "sol-log-internal.h"
-#include "sol-mainloop.h"
 
 enum switches {
     SW_ALL_OFF = 0,
