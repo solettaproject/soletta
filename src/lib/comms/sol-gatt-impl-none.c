@@ -70,17 +70,18 @@ sol_gatt_discover(struct sol_bt_conn *conn, enum sol_gatt_attr_type type,
 }
 
 SOL_API int
-sol_gatt_subscribe(struct sol_bt_conn *conn, struct sol_gatt_attr *attr,
-    bool (*cb)(void *user_data, struct sol_gatt_attr *attr, const struct sol_buffer *buffer),
+sol_gatt_subscribe(struct sol_bt_conn *conn, const struct sol_gatt_attr *attr,
+    bool (*cb)(void *user_data, const struct sol_gatt_attr *attr,
+    const struct sol_buffer *buffer),
     const void *user_data)
 {
     return -ENOSYS;
 }
 
 SOL_API int
-sol_gatt_unsubscribe(struct sol_bt_conn *conn, struct sol_gatt_attr *attr,
-    bool (*cb)(void *user_data, struct sol_gatt_attr *attr,
-    const struct sol_buffer *buffer))
+sol_gatt_unsubscribe(bool (*cb)(void *user_data, const struct sol_gatt_attr *attr,
+    const struct sol_buffer *buffer),
+    const void *user_data)
 {
     return -ENOSYS;
 }
