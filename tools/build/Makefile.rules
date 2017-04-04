@@ -271,7 +271,7 @@ $(eval $(call inc-subdirs))
 $(eval $(call extra-bins))
 $(eval $(call parse-tests-fbp-bin))
 
-PRE_GEN += $(all-gen-hdrs) $(all-dest-hdr) $(all-dest-bin) $(all-data) gen-aliases
+PRE_GEN += $(all-gen-hdrs) $(all-dest-hdr) $(all-dest-bin) $(all-data)
 
 define make-warning
 $(1):
@@ -457,3 +457,13 @@ $(KCONFIG_AUTOHEADER): $(DEPENDENCY_CACHE) $(KCONFIG_CONFIG) $(obj)/conf
 	$(Q)echo "     "GEN"   "$@
 	$(Q)mkdir -p $(KCONFIG_INCLUDE)config $(KCONFIG_INCLUDE)generated
 	$(Q)$(obj)/conf -s --silentoldconfig Kconfig
+
+ifeq (y,$(USE_FLOW))
+DEFAULT_ALIAS_FILE = $(build_aliasesdir)/50-default.json
+PRE_GEN += $(DEFAULT_ALIAS_FILE)
+
+$(DEFAULT_ALIAS_FILE): $(FLOW_NODE_TYPE_ALIAS) $(all-gens)
+	$(Q)$(MKDIR) -p $(build_aliasesdir)
+	$(Q)echo "     "GEN"   "$(DEFAULT_ALIAS_FILE)
+	$(Q)$(FLOW_NODE_TYPE_ALIAS) --output=$(DEFAULT_ALIAS_FILE) $(all-gens)
+endif
