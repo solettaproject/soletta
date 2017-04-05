@@ -1159,20 +1159,20 @@ close_error:
     r = sol_coap_header_set_type(notification->pkt, SOL_COAP_MESSAGE_TYPE_ACK);
     SOL_INT_CHECK_GOTO(r, < 0, error);
 
-    //Keep reference to CoAP packet, because
-    //sol_coap_notify() release it's memory, even on errors
+    // Keep reference to CoAP packet, because sol_coap_notify()
+    // releases its memory, even on errors
     sol_coap_packet_ref(notification->pkt);
     r = sol_coap_notify(oic_server.server_unicast,
         notification->resource->coap, notification->pkt);
     SOL_INT_CHECK_GOTO(r, < 0, error);
 
+    sol_coap_packet_ref(notification->pkt);
     if (oic_server.dtls_server)
         r = sol_coap_notify(oic_server.dtls_server,
             notification->resource->coap, notification->pkt);
     else
         sol_coap_packet_unref(notification->pkt);
 
-    notification->pkt = NULL;
 error:
     sol_oic_server_response_free(notification);
     return r;
