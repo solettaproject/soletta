@@ -79,6 +79,9 @@ composed_node_open(struct sol_flow_node *node, void *data,
     self = (const struct composed_node_type *)
         sol_flow_node_get_type(node);
 
+    if (!self)
+        return -EINVAL;
+
     cdata->inputs_len = self->in_ports.len;
     cdata->inputs = calloc(cdata->inputs_len, sizeof(struct sol_flow_packet *));
     SOL_NULL_CHECK(cdata->inputs, -ENOMEM);
