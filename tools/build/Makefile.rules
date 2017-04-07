@@ -164,6 +164,7 @@ gen-fbp-common = \
 gen-fbp-artifact = \
 	$(foreach fbp,$(filter %.fbp,$(2)), \
 		$(call gen-fbp-common,$(fbp)) \
+		$(eval $(fbp)-deps := $(5)) \
 		$(eval $(fbp)-conffile  := $(4)) \
 		$(eval $(3)             += $($(fbp)-src)) \
 		$(eval sample-$(1)-gens += $(fbp)) \
@@ -174,7 +175,6 @@ parse-sample = \
 	$(eval artifacts        := $(addprefix $(2),$(filter %.fbp,$(sample-$(1)-y)))) \
 	$(eval conffile         := $(addprefix $(2),$(filter %.json,$(sample-$(1)-y-conffile)))) \
 	$(call gen-artifact,$(1),$(addprefix $(2),$(filter %.json,$(sample-$(1)-y))),sample-$(1)-includedir,$(1)) \
-	$(call gen-fbp-artifact,$(1),$(artifacts),sample-$(1)-srcs,$(conffile)) \
 	$(if $(filter %.o,$(sample-$(1)-srcs)), \
 		$(eval sample-$(1)-out  := $(subst $(top_srcdir)src/,$(build_stagedir),$(filter %.o,$(sample-$(1)-srcs)))) \
 	, \
@@ -184,6 +184,7 @@ parse-sample = \
 	$(eval sample-$(1)-srcs += $(sample-$(1)-y-extra)) \
 	$(eval sample-$(1)-cflags := $(sample-$(1)-y-cflags)) \
 	$(eval $(1)-deps        := $(subst .mod,,$(sample-$(1)-y-deps))) \
+	$(call gen-fbp-artifact,$(1),$(artifacts),sample-$(1)-srcs,$(conffile),$($(1)-deps)) \
 	$(eval samples-out      += $(sample-$(1)-out)) \
 	$(eval $(1)-dir         += $(2)) \
 
@@ -257,6 +258,7 @@ parse-tests-fbp-bin = \
 		$(eval curr := $(subst $(abspath $(top_srcdir))/,$(top_srcdir),$(fbp))) \
 		$(call gen-fbp-common,$(curr)) \
 		$(eval $(curr)-out := $(subst -gen.c,,$($(curr)-src))) \
+		$(eval $(curr)-deps := $(subst .mod,,$($(curr)-deps))) \
 		$(eval all-tests-fbp-bin += $(curr)) \
 		$(eval all-tests-fbp-bin-out += $($(curr)-out)) \
 	) \
@@ -269,7 +271,7 @@ $(eval $(call inc-subdirs))
 $(eval $(call extra-bins))
 $(eval $(call parse-tests-fbp-bin))
 
-PRE_GEN += $(all-gen-hdrs) $(all-dest-hdr) $(all-dest-bin) $(all-data) gen-aliases
+PRE_GEN += $(all-gen-hdrs) $(all-dest-hdr) $(all-dest-bin) $(all-data)
 
 define make-warning
 $(1):
@@ -333,7 +335,7 @@ use-builtin-cflags = $(sort $(builtin-cflags))
 endif
 
 define make-test-fbp-bin
-$($(1)-out): $(SOL_LIB_OUTPUT) $($(1)-src) $(modules-out)
+$($(1)-out): $(SOL_LIB_OUTPUT) $($(1)-src) $(modules-out) $(call find-deps,$(1))
 	$(Q)echo "     " CC"   "$$@
 	$(Q)$(MKDIR) -p $(dir $($(1)-out))
 	$(Q)$(TARGETCC) $(SAMPLE_CFLAGS) $($(1)-CFLAGS) $(use-builtin-cflags) $($(1)-src) $($(1)-extra) -o $($(1)-out) \
@@ -440,7 +442,7 @@ endef
 $(foreach tpl,$(all-templates),$(eval $(call make-template-gen,$(tpl))))
 
 define make-fbp-gen
-$($(1)-src): $(1) $(SOL_FBP_GENERATOR_BIN)
+$($(1)-src): $(1) $(SOL_FBP_GENERATOR_BIN) $(call find-deps,$(1))
 	$(Q)echo "     "GEN"   "$$@
 	$(Q)$(MKDIR) -p $(dir $($(1)-src))
 	$(Q)$(SOL_FBP_GENERATOR_BIN) -j $(build_descdir) $(1) $($(1)-src) $(if $(filter-out "",$($(1)-conffile)), -c $($(1)-conffile))
@@ -455,3 +457,13 @@ $(KCONFIG_AUTOHEADER): $(DEPENDENCY_CACHE) $(KCONFIG_CONFIG) $(obj)/conf
 	$(Q)echo "     "GEN"   "$@
 	$(Q)mkdir -p $(KCONFIG_INCLUDE)config $(KCONFIG_INCLUDE)generated
 	$(Q)$(obj)/conf -s --silentoldconfig Kconfig
+
+ifeq (y,$(USE_FLOW))
+DEFAULT_ALIAS_FILE = $(build_aliasesdir)/50-default.json
+PRE_GEN += $(DEFAULT_ALIAS_FILE)
+
+$(DEFAULT_ALIAS_FILE): $(FLOW_NODE_TYPE_ALIAS) $(all-gens)
+	$(Q)$(MKDIR) -p $(build_aliasesdir)
+	$(Q)echo "     "GEN"   "$(DEFAULT_ALIAS_FILE)
+	$(Q)$(FLOW_NODE_TYPE_ALIAS) --output=$(DEFAULT_ALIAS_FILE) $(all-gens)
+endif

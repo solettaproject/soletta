@@ -14,7 +14,7 @@ check-cpp: $(SOL_LIB_OUTPUT) $(HEADERS_CC)
 PHONY += check-cpp
 
 ifeq (y,$(FBP_RUNNER))
-check-fbp: $(SOL_LIB_OUTPUT) $(SOL_FBP_RUNNER_BIN) $(modules-out) $(PRE_GEN) gen-aliases
+check-fbp: $(SOL_LIB_OUTPUT) $(SOL_FBP_RUNNER_BIN) $(modules-out) $(PRE_GEN) $(DEFAULT_ALIAS_FILE)
 	$(Q)$(PYTHON) $(TEST_FBP_SCRIPT) --runner="$(abspath $(SOL_FBP_RUNNER_BIN))"
 else
 check-fbp:
@@ -23,7 +23,7 @@ check-fbp:
 endif
 
 ifeq (y, $(FBP_GENERATOR))
-check-fbp-bin: $(SOL_LIB_OUTPUT) $(SOL_FBP_GENERATOR_BIN) $(modules-out) $(all-tests-fbp-bin-out) $(PRE_GEN) gen-aliases
+check-fbp-bin: $(SOL_LIB_OUTPUT) $(SOL_FBP_GENERATOR_BIN) $(modules-out) $(all-tests-fbp-bin-out) $(PRE_GEN) $(DEFAULT_ALIAS_FILE)
 	$(Q)$(PYTHON) $(TEST_FBP_SCRIPT) --compiled --compiled-dir $(abspath $(build_stagedir)test-fbp/) \
 		--skip SKIP_SIMPLE SKIP_COMPILE SKIP_VALGRIND $(TEST_FBP_SCRIPT_SKIP_EXTRA)
 else
@@ -201,12 +201,3 @@ cheat-sheet:
 endif
 
 PHONY += cheat-sheet
-
-DEFAULT_ALIAS_FILE := $(build_aliasesdir)/50-default.json
-
-ifeq (y,$(USE_FLOW))
-gen-aliases: $(FLOW_NODE_TYPE_ALIAS)
-	$(Q)$(MKDIR) -p $(build_aliasesdir)
-	$(Q)echo "     "GEN"   "$(DEFAULT_ALIAS_FILE)
-	$(Q)$(FLOW_NODE_TYPE_ALIAS) --output=$(DEFAULT_ALIAS_FILE) $(all-gens)
-endif
