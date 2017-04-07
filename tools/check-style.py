@@ -29,7 +29,7 @@ DIFF_REM_COLOR = "\033[31m"
 DIFF_REF_COLOR = "\033[36m"
 END_COLOR = '\033[0m'
 
-UNCRUSTIFY_VERSION = "0.61"
+UNCRUSTIFY_VERSION = "0.60"
 
 def run_command(cmd):
     try:
