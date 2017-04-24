@@ -1034,6 +1034,7 @@ free_request(struct sol_http_request *request)
         switch (param->type) {
         case SOL_HTTP_PARAM_POST_DATA:
             free((char *)param->value.data.filename.data);
+            break;
         case SOL_HTTP_PARAM_POST_FIELD:
             free((char *)param->value.key_value.value.data);
             free((char *)param->value.key_value.key.data);
