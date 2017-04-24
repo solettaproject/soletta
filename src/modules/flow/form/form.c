@@ -1139,6 +1139,7 @@ integer_custom_open(struct sol_flow_node *node,
 
     mdata->blink_on = true;
 
+    /* outputs truncated on purpose -- only the return value matters */
     n_max = snprintf(sbuf, 1, "%+" PRId32 "", mdata->base.state.max);
     SOL_INT_CHECK_GOTO(n_max, < 0, err);
 
