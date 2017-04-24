@@ -1520,6 +1520,8 @@ handle_resource(void *data, struct sol_coap_server *server,
     switch (method) {
     case SOL_COAP_METHOD_GET:
         if (is_observe_request(req)) {
+            uint8_t obs = 1;
+
             if (client->supports_access_control) {
                 r = check_authorization(client, server_id, path[0],
                     path_size > 1 ? path[1] : -1, SOL_LWM2M_ACL_READ);
@@ -1543,7 +1545,6 @@ handle_resource(void *data, struct sol_coap_server *server,
                 }
             }
 
-            uint8_t obs = 1;
             r = add_coap_int_option(resp, SOL_COAP_OPTION_OBSERVE,
                 &obs, sizeof(obs));
             SOL_INT_CHECK_GOTO(r, < 0, exit);

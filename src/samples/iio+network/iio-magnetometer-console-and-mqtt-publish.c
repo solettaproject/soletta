@@ -187,6 +187,12 @@ compute_eigenvalues(double mat[3][3], double *eig1, double *eig2, double *eig3)
 {
     double phi;
     double p = mat[0][1] * mat[0][1] + mat[0][2] * mat[0][2] + mat[1][2] * mat[1][2];
+    double q = (mat[0][0] + mat[1][1] + mat[2][2]) / 3;
+    double temp1;
+    double temp2;
+    double temp3;
+    double mat2[3][3];
+    double r;
 
     if (p < EPSILON) {
         *eig1 = mat[0][0];
@@ -195,22 +201,21 @@ compute_eigenvalues(double mat[3][3], double *eig1, double *eig2, double *eig3)
         return;
     }
 
-    double q = (mat[0][0] + mat[1][1] + mat[2][2]) / 3;
-    double temp1 = mat[0][0] - q;
-    double temp2 = mat[1][1] - q;
-    double temp3 = mat[2][2] - q;
+    q = (mat[0][0] + mat[1][1] + mat[2][2]) / 3;
+    temp1 = mat[0][0] - q;
+    temp2 = mat[1][1] - q;
+    temp3 = mat[2][2] - q;
 
     p = temp1 * temp1 + temp2 * temp2 + temp3 * temp3 + 2 * p;
     p = sqrt(p / 6);
 
-    double mat2[3][3];
     assign(3, 3, mat, mat2);
     mat2[0][0] -= q;
     mat2[1][1] -= q;
     mat2[2][2] -= q;
     multiply_scalar_inplace(3, 3, mat2, 1 / p);
 
-    double r = (mat2[0][0] * mat2[1][1] * mat2[2][2] + mat2[0][1] * mat2[1][2] * mat2[2][0]
+    r = (mat2[0][0] * mat2[1][1] * mat2[2][2] + mat2[0][1] * mat2[1][2] * mat2[2][0]
         + mat2[0][2] * mat2[1][0] * mat2[2][1] - mat2[0][2] * mat2[1][1] * mat2[2][0]
         - mat2[0][0] * mat2[1][2] * mat2[2][1] - mat2[0][1] * mat2[1][0] * mat2[2][2]) / 2;
 
@@ -231,13 +236,16 @@ calc_evector(double mat[3][3], double eig, double vec[3][1])
 {
     double h[3][3];
     double x_tmp[2][2];
+    double x[2][2];
+    double temp1;
+    double temp2;
+    double norm;
 
     assign(3, 3, mat, h);
     h[0][0] -= eig;
     h[1][1] -= eig;
     h[2][2] -= eig;
 
-    double x[2][2];
     x[0][0] = h[1][1];
     x[0][1] = h[1][2];
     x[1][0] = h[2][1];
@@ -245,9 +253,9 @@ calc_evector(double mat[3][3], double eig, double vec[3][1])
     invert(2, x, x_tmp);
     assign(2, 2, x_tmp, x);
 
-    double temp1 = x[0][0] * (-h[1][0]) + x[0][1] * (-h[2][0]);
-    double temp2 = x[1][0] * (-h[1][0]) + x[1][1] * (-h[2][0]);
-    double norm = sqrt(1 + temp1 * temp1 + temp2 * temp2);
+    temp1 = x[0][0] * (-h[1][0]) + x[0][1] * (-h[2][0]);
+    temp2 = x[1][0] * (-h[1][0]) + x[1][1] * (-h[2][0]);
+    norm = sqrt(1 + temp1 * temp1 + temp2 * temp2);
 
     vec[0][0] = 1.0 / norm;
     vec[1][0] = temp1 / norm;
@@ -270,6 +278,10 @@ ellipsoid_fit(mat_input_t m, double offset[3][1], double w_invert[3][3], double 
     double p[9][1];
     double a[3][3], sqrt_evals[3][3], evecs[3][3], evecs_trans[3][3];
     double evec1[3][1], evec2[3][1], evec3[3][1];
+    double off_x;
+    double off_y;
+    double off_z;
+    double eig1 = 0, eig2 = 0, eig3 = 0;
 
     for (i = 0; i < MAGN_DS_SIZE; i++) {
         w[i][0] = m[i][0] * m[i][0];
@@ -306,9 +318,9 @@ ellipsoid_fit(mat_input_t m, double offset[3][1], double w_invert[3][3], double 
 
     invert(3, temp1, temp1_inv);
     multiply(3, 3, 1, temp1_inv, temp2, offset);
-    double off_x = offset[0][0];
-    double off_y = offset[1][0];
-    double off_z = offset[2][0];
+    off_x = offset[0][0];
+    off_y = offset[1][0];
+    off_z = offset[2][0];
 
     a[0][0] = 1.0 / (p[8][0] + off_x * off_x + p[6][0] * off_y * off_y
         + p[7][0] * off_z * off_z + p[3][0] * off_x * off_y
@@ -323,7 +335,6 @@ ellipsoid_fit(mat_input_t m, double offset[3][1], double w_invert[3][3], double 
     a[1][0] = a[0][1];
     a[2][0] = a[0][2];
 
-    double eig1 = 0, eig2 = 0, eig3 = 0;
     compute_eigenvalues(a, &eig1, &eig2, &eig3);
 
     if (eig1 <= 0 || eig2 <= 0 || eig3 <= 0)
