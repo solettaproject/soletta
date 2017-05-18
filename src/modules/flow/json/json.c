@@ -977,6 +977,7 @@ json_path_add_new_element(struct sol_flow_node *node, struct json_element *base_
             SOL_INT_CHECK(r, == -ENOMEM, r);
             SOL_INT_CHECK_GOTO(r, < 0, error_parse);
 
+            /* fall through */
         case JSON_TYPE_OBJECT:
             if (sol_json_path_is_array_key(key_slice))
                 goto error;
@@ -992,6 +993,7 @@ json_path_add_new_element(struct sol_flow_node *node, struct json_element *base_
             SOL_INT_CHECK(r, == -ENOMEM, r);
             SOL_INT_CHECK_GOTO(r, < 0, error_parse);
 
+            /* fall through */
         case JSON_TYPE_ARRAY:
             if (!sol_json_path_is_array_key(key_slice))
                 goto error;

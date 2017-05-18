@@ -86,15 +86,14 @@ static int
 extract_bootstrap_client_info(struct sol_coap_packet *req,
     struct sol_str_slice *client_name)
 {
+    struct sol_str_slice key, value;
     struct sol_str_slice query;
+    const char *sep;
     int r;
 
     r = sol_coap_find_options(req, SOL_COAP_OPTION_URI_QUERY, &query,
         LWM2M_BOOTSTRAP_QUERY_PARAMS);
     SOL_INT_CHECK(r, < 0, r);
-
-    struct sol_str_slice key, value;
-    const char *sep;
 
     SOL_DBG("Query:%.*s", SOL_STR_SLICE_PRINT(query));
     sep = memchr(query.data, '=', query.len);

@@ -781,7 +781,7 @@ split_option(const char *input, const char **key, unsigned int *key_len, const c
 {
     const char *equal = strchr(input, '=');
 
-    if (!equal || equal == input || equal + 1 == '\0')
+    if (!equal || equal == input || *equal + 1 == '\0')
         return -EINVAL;
 
     *key = input;
