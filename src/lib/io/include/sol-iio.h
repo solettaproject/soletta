@@ -24,6 +24,8 @@
 
 #include <linux/limits.h>
 
+#include <linux/limits.h>
+
 #ifdef __cplusplus
 extern "C" {
 #endif
