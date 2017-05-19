@@ -92,6 +92,8 @@ const char *sol_cert_get_file_name(const struct sol_cert *cert);
 
 #endif /*SOL_FEATURE_FILESYSTEM*/
 
+#endif /*SOL_FEATURE_FILESYSTEM*/
+
 /**
  * @brief Get the certificate contents
  *
