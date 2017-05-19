@@ -23,6 +23,7 @@
 #include <sol-bluetooth.h>
 #include <sol-network.h>
 #include <sol-util.h>
+#include <sol-util-internal.h>
 #include <sol-mainloop.h>
 #include <sol-str-table.h>
 
@@ -78,6 +79,14 @@ sol_gatt_pending_get_attr(const struct sol_gatt_pending *op)
     SOL_NULL_CHECK(op, NULL);
 
     return op->attr;
+}
+
+SOL_API struct sol_bt_conn *
+sol_gatt_pending_get_conn(const struct sol_gatt_pending *op)
+{
+    SOL_NULL_CHECK(op, NULL);
+
+    return op->conn;
 }
 
 static void
@@ -136,6 +145,9 @@ sol_gatt_pending_reply(struct sol_gatt_pending *pending, int error,
     case PENDING_NOTIFY:
         r = -EINVAL;
         pending->buf = buf;
+        /* 'buf' if going to be destroyed when the notification is sent */
+        buf = NULL;
+
         SOL_NULL_CHECK_GOTO(pending->buf, done);
 
         if (attr->type == SOL_GATT_ATTR_TYPE_DESCRIPTOR)
@@ -147,37 +159,40 @@ sol_gatt_pending_reply(struct sol_gatt_pending *pending, int error,
             attr->_priv, interface, "Value", NULL);
         SOL_INT_CHECK_GOTO(r, < 0, done);
         break;
+
     case PENDING_REMOTE_READ:
         pending->read((void *)pending->user_data, true, pending->attr, buf);
         pending->read = NULL;
+        sol_ptr_vector_remove(&pending_ops, pending);
         destroy_pending(pending);
-        break;
+        /* Called the pending callback, nothing more to do. */
+        return 0;
 
     case PENDING_REMOTE_WRITE:
         pending->write((void *)pending->user_data, true, pending->attr);
         pending->write = NULL;
+        sol_ptr_vector_remove(&pending_ops, pending);
         destroy_pending(pending);
-        break;
+        /* Called the pending callback, nothing more to do. */
+        return 0;
     }
 
-    if (!reply)
-        return 0;
-
-    r = sd_bus_send(NULL, reply, NULL);
-    sd_bus_message_unref(reply);
-    SOL_INT_CHECK_GOTO(r, < 0, done);
-
-    return 0;
-
 done:
-    if (r && pending->m) {
-        r = sd_bus_message_new_method_errno(pending->m, &reply, r, NULL);
+    if (buf)
+        sol_buffer_fini(buf);
+
+    if (pending->m && !reply) {
+        if (r)
+            r = sd_bus_message_new_method_errno(pending->m, &reply, r, NULL);
+        else
+            r = sd_bus_message_new_method_return(pending->m, &reply);
+
         SOL_INT_CHECK(r, < 0, r);
+    }
 
+    if (reply) {
         r = sd_bus_send(NULL, reply, NULL);
-
         sd_bus_message_unref(reply);
-
         SOL_INT_CHECK(r, < 0, r);
     }
 
@@ -185,14 +200,36 @@ done:
 }
 
 static int
+parse_operation_dict(sd_bus_message *m, uint16_t *offset, const char **path)
+{
+    const struct sol_bus_dict_entry dict[] = {
+        { .name = "offset", .type = 'q', .value = offset },
+        { .name = "device", .type = 'o', .value = path },
+        SOL_BUS_DICT_ENTRY_FINAL
+    };
+    int r;
+
+    *offset = 0;
+    *path = NULL;
+
+    r = sol_bus_parse_dict(m, dict);
+    SOL_INT_CHECK(r, < 0, r);
+
+    return r;
+}
+
+static int
 attr_method(enum pending_type type, sd_bus_message *m, void *userdata, sd_bus_error *ret_error)
 {
+    struct context *ctx = bluetooth_get_context();
     struct sol_gatt_attr *attr = userdata;
     sd_bus_message *reply = NULL;
     struct sol_gatt_pending *pending;
     const void *data;
     size_t len;
     struct sol_buffer buf;
+    uint16_t offset;
+    const char *path;
     int r = -EINVAL;
 
     if (sol_bus_log_callback(m, userdata, ret_error))
@@ -216,7 +253,18 @@ attr_method(enum pending_type type, sd_bus_message *m, void *userdata, sd_bus_er
 
     switch (type) {
     case PENDING_READ:
-        r = attr->read(pending, 0);
+        r = parse_operation_dict(m, &offset, &path);
+        SOL_INT_CHECK_GOTO(r, < 0, error_op);
+
+        /*
+         * FIXME: need to decide if this is an error if it fails. Right now,
+         * any BlueZ build earlier than commit:
+         * 93b64d9ca8a2bb6 doc/gatt-api: Add options dictionary to ReadValue/WriteValue
+         * would fail.
+         */
+        pending->conn = get_conn_by_path(ctx, path);
+
+        r = attr->read(pending, offset);
         SOL_INT_CHECK_GOTO(r, < 0, error_op);
         break;
     case PENDING_WRITE:
@@ -226,6 +274,14 @@ attr_method(enum pending_type type, sd_bus_message *m, void *userdata, sd_bus_er
         sol_buffer_init_flags(&buf, (void *)data, len,
             SOL_BUFFER_FLAGS_MEMORY_NOT_OWNED | SOL_BUFFER_FLAGS_NO_NUL_BYTE);
         buf.used = len;
+
+        r = parse_operation_dict(m, &offset, &path);
+        SOL_INT_CHECK_GOTO(r, < 0, error_op);
+
+        /*
+         * See note above.
+         */
+        pending->conn = get_conn_by_path(ctx, path);
 
         r = attr->write(pending, &buf, 0);
         SOL_INT_CHECK_GOTO(r, < 0, error_op);
@@ -240,7 +296,7 @@ error_op:
     sol_ptr_vector_del_last(&pending_ops);
 
 error_append:
-    free(pending);
+    destroy_pending(pending);
 
 error:
     if (r < 0) {
@@ -494,9 +550,9 @@ static const sd_bus_vtable characteristic_vtable[] = {
     SD_BUS_PROPERTY("Service", "o", chr_prop_get_service, 0, SD_BUS_VTABLE_PROPERTY_CONST),
     SD_BUS_PROPERTY("Value", "ay", cached_prop_value, 0, SD_BUS_VTABLE_PROPERTY_EMITS_CHANGE),
     SD_BUS_PROPERTY("Flags", "as", chr_prop_get_flags, 0, SD_BUS_VTABLE_PROPERTY_CONST),
-    SD_BUS_METHOD("ReadValue", NULL, "ay",
+    SD_BUS_METHOD("ReadValue", "a{sv}", "ay",
         attr_read_value, SD_BUS_VTABLE_UNPRIVILEGED),
-    SD_BUS_METHOD("WriteValue", "ay", NULL,
+    SD_BUS_METHOD("WriteValue", "aya{sv}", NULL,
         attr_write_value, SD_BUS_VTABLE_UNPRIVILEGED),
     SD_BUS_VTABLE_END,
 };
@@ -508,9 +564,9 @@ static const sd_bus_vtable descriptor_vtable[] = {
         desc_prop_get_characteristic, 0, SD_BUS_VTABLE_PROPERTY_CONST),
     SD_BUS_PROPERTY("Value", "ay", cached_prop_value, 0, SD_BUS_VTABLE_PROPERTY_EMITS_CHANGE),
     SD_BUS_PROPERTY("Flags", "as", desc_prop_get_flags, 0, SD_BUS_VTABLE_PROPERTY_CONST),
-    SD_BUS_METHOD("ReadValue", NULL, "ay",
+    SD_BUS_METHOD("ReadValue", "a{sv}", "ay",
         attr_read_value, SD_BUS_VTABLE_UNPRIVILEGED),
-    SD_BUS_METHOD("WriteValue", "ay", NULL,
+    SD_BUS_METHOD("WriteValue", "aya{sv}", NULL,
         attr_write_value, SD_BUS_VTABLE_UNPRIVILEGED),
     SD_BUS_VTABLE_END,
 };
@@ -777,7 +833,7 @@ error_read:
     sol_ptr_vector_del_last(&pending_ops);
 
 error_append:
-    free(pending);
+    destroy_pending(pending);
     return r;
 }
 
@@ -870,7 +926,7 @@ error_read:
     sol_ptr_vector_del_last(&pending_ops);
 
 error_append:
-    free(pending);
+    destroy_pending(pending);
     return r;
 }
 
@@ -907,6 +963,6 @@ error_read:
     sol_ptr_vector_del_last(&pending_ops);
 
 error_append:
-    free(pending);
+    destroy_pending(pending);
     return r;
 }

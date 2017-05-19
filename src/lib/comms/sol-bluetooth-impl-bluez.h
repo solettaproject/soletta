@@ -32,6 +32,15 @@ struct context {
     struct sol_ptr_vector conns;
     enum adapter_state original_state;
     enum adapter_state current_state;
+    const struct sol_bt_agent *agent;
+    const void *agent_data;
+    struct sol_bt_conn *auth_conn;
+    sd_bus_slot *register_slot;
+    sd_bus_slot *agent_slot;
+    sd_bus_slot *pair_slot;
+    void (*pair_cb)(void *user_data, bool success, struct sol_bt_conn *conn);
+    void *pair_user_data;
+    sd_bus_message *agent_msg;
 };
 
 struct sol_bt_conn {
@@ -74,6 +83,7 @@ enum pending_type {
 
 struct sol_gatt_pending {
     const struct sol_gatt_attr *attr;
+    struct sol_bt_conn *conn;
     sd_bus_message *m;
     sd_bus_slot *slot;
     enum pending_type type;
@@ -97,3 +107,5 @@ uint16_t dbus_string_array_to_flags(enum sol_gatt_attr_type type, sd_bus_message
 void trigger_gatt_discover(struct pending_discovery *disc);
 
 void destroy_pending_discovery(struct pending_discovery *disc);
+
+struct sol_bt_conn *get_conn_by_path(struct context *ctx, const char *path);

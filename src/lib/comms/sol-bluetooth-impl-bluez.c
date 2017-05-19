@@ -29,6 +29,8 @@
 
 #include "sol-bluetooth-impl-bluez.h"
 
+#define AGENT_PATH "/org/solettaproject/agent"
+
 struct sol_bt_scan_pending {
     sd_bus_slot *slot;
     void (*callback)(void *user_data, const struct sol_bt_device_info *device);
@@ -292,6 +294,23 @@ destroy_device(struct device_info *device)
 
     free(device->path);
     free(device);
+}
+
+static void
+destroy_pairing(struct context *ctx, bool success)
+{
+    if (ctx->pair_cb)
+        ctx->pair_cb((void *)ctx->pair_user_data, success, ctx->auth_conn);
+
+    ctx->pair_cb = NULL;
+
+    if (ctx->auth_conn)
+        sol_bt_conn_unref(ctx->auth_conn);
+
+    ctx->auth_conn = NULL;
+
+    ctx->pair_slot = sd_bus_slot_unref(ctx->pair_slot);
+    ctx->agent_msg = sd_bus_message_unref(ctx->agent_msg);
 }
 
 static struct device_info *
@@ -781,6 +800,9 @@ device_property_changed(void *data, const char *path, uint64_t mask)
     if (mask & (1 << DEVICE_PROPERTY_CONNECTED))
         trigger_bt_conn(ctx, d, info->connected);
 
+    if (mask & (1 << DEVICE_PROPERTY_PAIRED))
+        destroy_pairing(ctx, info->paired);
+
     if (info->connected && d->resolved) {
         SOL_PTR_VECTOR_FOREACH_REVERSE_IDX (&d->pending_discoveries, disc, idx) {
             trigger_gatt_discover(disc);
@@ -856,6 +878,9 @@ device_removed(void *data, const char *path)
         if (conn->d != d)
             continue;
 
+        if (ctx->auth_conn == conn)
+            destroy_pairing(ctx, false);
+
         destroy_conn(conn);
         sol_ptr_vector_del(&ctx->conns, idx);
     }
@@ -914,6 +939,20 @@ done:
 }
 
 static int
+append_empty_dict(sd_bus_message *m)
+{
+    int r;
+
+    r = sd_bus_message_open_container(m, 'a', "{sv}");
+    SOL_INT_CHECK(r, < 0, r);
+
+    r = sd_bus_message_close_container(m);
+    SOL_INT_CHECK(r, < 0, r);
+
+    return r;
+}
+
+static int
 remote_attr_read(struct sol_gatt_pending *op,
     uint16_t offset)
 {
@@ -922,6 +961,7 @@ remote_attr_read(struct sol_gatt_pending *op,
     const char *service = sol_bus_client_get_service(ctx->bluez);
     const struct sol_gatt_attr *attr = op->attr;
     const char *interface, *path = attr->_priv;
+    sd_bus_message *m;
     int r;
 
     if (attr->type == SOL_GATT_ATTR_TYPE_DESCRIPTOR)
@@ -929,8 +969,15 @@ remote_attr_read(struct sol_gatt_pending *op,
     else
         interface = "org.bluez.GattCharacteristic1";
 
-    r = sd_bus_call_method_async(bus, &op->slot, service, path,
-        interface, "ReadValue", remote_attr_read_reply, op, NULL);
+    r = sd_bus_message_new_method_call(bus, &m, service, path,
+        interface, "ReadValue");
+    SOL_INT_CHECK(r, < 0, r);
+
+    /* FIXME: add support for specifying the offset */
+    r = append_empty_dict(m);
+    SOL_INT_CHECK(r, < 0, r);
+
+    r = sd_bus_call_async(bus, &op->slot, m, remote_attr_read_reply, op, 0);
     SOL_INT_CHECK(r, < 0, r);
 
     return 0;
@@ -975,6 +1022,10 @@ remote_attr_write(struct sol_gatt_pending *op,
     SOL_INT_CHECK_GOTO(r, < 0, done);
 
     r = sd_bus_message_append_array(m, 'y', buf->data, buf->used);
+    SOL_INT_CHECK_GOTO(r, < 0, done);
+
+    /* FIXME: add support for specifying the offset */
+    r = append_empty_dict(m);
     SOL_INT_CHECK_GOTO(r, < 0, done);
 
     r = sd_bus_call_async(bus, &op->slot, m, remote_attr_write_reply, op, 0);
@@ -1185,6 +1236,14 @@ sol_bt_conn_get_addr(const struct sol_bt_conn *conn)
     SOL_NULL_CHECK(conn, NULL);
 
     return &conn->d->info.addr;
+}
+
+SOL_API const struct sol_bt_device_info *
+sol_bt_conn_get_device_info(const struct sol_bt_conn *conn)
+{
+    SOL_NULL_CHECK(conn, NULL);
+
+    return &conn->d->info;
 }
 
 static void
@@ -1579,6 +1638,613 @@ sol_bt_stop_scan(struct sol_bt_scan_pending *scan)
     SOL_INT_CHECK(r, < 0, r);
 
     return 0;
+}
+
+struct sol_bt_conn *
+get_conn_by_path(struct context *ctx, const char *path)
+{
+    struct sol_bt_conn *conn;
+    struct device_info *d;
+    uint16_t idx;
+    int r;
+
+    SOL_PTR_VECTOR_FOREACH_IDX (&ctx->conns, conn, idx) {
+        d = conn->d;
+
+        /* FIXME: need to think about multiple connections */
+        if (streq(d->path, path))
+            return conn;
+    }
+
+    d = find_device_by_path(ctx, path);
+    SOL_NULL_CHECK(d, NULL);
+
+    if (!d->info.connected)
+        return NULL;
+
+    conn = calloc(1, sizeof(*conn));
+    SOL_NULL_CHECK(conn, NULL);
+
+    conn->d = d;
+    conn->ref = 1;
+
+    r = sol_ptr_vector_append(&ctx->conns, conn);
+    SOL_INT_CHECK_GOTO(r, < 0, error_append);
+
+    return conn;
+
+error_append:
+    free(conn);
+    return NULL;
+}
+
+static int
+agent_release(sd_bus_message *m, void *userdata, sd_bus_error *ret_error)
+{
+    struct context *ctx = userdata;
+
+    ctx->register_slot = sd_bus_slot_unref(ctx->register_slot);
+    ctx->agent_slot = sd_bus_slot_unref(ctx->agent_slot);
+    ctx->agent_msg = sd_bus_message_unref(ctx->agent_msg);
+
+    ctx->agent = NULL;
+    ctx->agent_data = NULL;
+
+    return 0;
+}
+
+static int
+reject_request(sd_bus_message *m)
+{
+    sd_bus_message *reply;
+    int r;
+
+    r = sd_bus_message_new_method_errorf(m, &reply, "org.bluez.Error.Rejected",
+        "Request was rejected");
+    SOL_INT_CHECK(r, < 0, r);
+
+    r = sd_bus_send(NULL, reply, NULL);
+
+    sd_bus_message_unref(reply);
+
+    SOL_INT_CHECK(r, < 0, r);
+
+    return r;
+}
+
+static int
+agent_request_pin_code(sd_bus_message *m, void *userdata, sd_bus_error *ret_error)
+{
+    struct context *ctx = userdata;
+    const struct sol_bt_agent *agent = ctx->agent;
+    const char *path;
+    int r;
+
+    SOL_NULL_CHECK_GOTO(agent, rejected);
+    SOL_NULL_CHECK_GOTO(agent->pincode_entry, rejected);
+
+    if (ctx->auth_conn) {
+        SOL_WRN("Pairing procedure already in progress");
+        goto rejected;
+    }
+
+    r = sd_bus_message_read_basic(m, 'o', &path);
+    SOL_INT_CHECK_GOTO(r, < 0, rejected);
+
+    ctx->auth_conn = get_conn_by_path(ctx, path);
+    SOL_NULL_CHECK_GOTO(ctx->auth_conn, rejected);
+
+    ctx->agent_msg = sd_bus_message_ref(m);
+
+    agent->pincode_entry((void *)ctx->agent_data, ctx->auth_conn, false);
+
+    return 0;
+
+rejected:
+    return reject_request(m);;
+}
+
+static int
+agent_display_pin_code(sd_bus_message *m, void *userdata, sd_bus_error *ret_error)
+{
+    /*
+     * FIXME: there's no equivalent for this on Zephyr, and it only makes
+     * sense for legacy keyboards, need to think
+     */
+    return reject_request(m);
+}
+
+static int
+agent_request_passkey(sd_bus_message *m, void *userdata, sd_bus_error *ret_error)
+{
+    struct context *ctx = userdata;
+    const struct sol_bt_agent *agent = ctx->agent;
+    const char *path;
+    int r;
+
+    SOL_NULL_CHECK_GOTO(agent, rejected);
+    SOL_NULL_CHECK_GOTO(agent->passkey_entry, rejected);
+
+    if (ctx->auth_conn) {
+        SOL_WRN("Pairing procedure already in progress");
+        goto rejected;
+    }
+
+    r = sd_bus_message_read_basic(m, 'o', &path);
+    SOL_INT_CHECK_GOTO(r, < 0, rejected);
+
+    ctx->auth_conn = get_conn_by_path(ctx, path);
+    SOL_NULL_CHECK_GOTO(ctx->auth_conn, rejected);
+
+    ctx->agent_msg = sd_bus_message_ref(m);
+
+    agent->passkey_entry((void *)ctx->agent_data, ctx->auth_conn);
+
+    return 0;
+
+rejected:
+    return reject_request(m);;
+}
+
+static int
+agent_display_passkey(sd_bus_message *m, void *userdata, sd_bus_error *ret_error)
+{
+    struct context *ctx = userdata;
+    const struct sol_bt_agent *agent = ctx->agent;
+    struct sol_bt_conn *conn;
+    const char *path;
+    uint32_t passkey;
+    uint16_t entered;
+    int r;
+
+    SOL_NULL_CHECK_GOTO(agent, rejected);
+    SOL_NULL_CHECK_GOTO(agent->passkey_display, rejected);
+
+    r = sd_bus_message_read(m, "ouq", &path, &passkey, &entered);
+    SOL_INT_CHECK_GOTO(r, < 0, rejected);
+
+    /* The request for displaying the passkey may be called multiple times */
+    conn = get_conn_by_path(ctx, path);
+    if (ctx->auth_conn != conn) {
+        SOL_WRN("Pairing procedure already in progress");
+        goto rejected;
+    }
+
+    ctx->auth_conn = conn;
+    SOL_NULL_CHECK_GOTO(ctx->auth_conn, rejected);
+
+    ctx->agent_msg = sd_bus_message_ref(m);
+
+    agent->passkey_display((void *)ctx->agent_data, ctx->auth_conn, passkey);
+
+    return 0;
+
+rejected:
+    return reject_request(m);;
+}
+
+static int
+agent_request_confirmation(sd_bus_message *m, void *userdata, sd_bus_error *ret_error)
+{
+    struct context *ctx = userdata;
+    const struct sol_bt_agent *agent = ctx->agent;
+    const char *path;
+    uint32_t passkey;
+    int r;
+
+    SOL_NULL_CHECK_GOTO(agent, rejected);
+    SOL_NULL_CHECK_GOTO(agent->passkey_confirm, rejected);
+
+    r = sd_bus_message_read(m, "ou", &path, &passkey);
+    SOL_INT_CHECK_GOTO(r, < 0, rejected);
+
+    ctx->auth_conn = get_conn_by_path(ctx, path);
+    SOL_NULL_CHECK_GOTO(ctx->auth_conn, rejected);
+
+    ctx->agent_msg = sd_bus_message_ref(m);
+
+    agent->passkey_confirm((void *)ctx->agent_data, ctx->auth_conn, passkey);
+
+    return 0;
+
+rejected:
+    return reject_request(m);;
+}
+
+static int
+agent_request_authorization(sd_bus_message *m, void *userdata, sd_bus_error *ret_error)
+{
+    struct context *ctx = userdata;
+    const struct sol_bt_agent *agent = ctx->agent;
+    const char *path;
+    int r;
+
+    SOL_NULL_CHECK_GOTO(agent, rejected);
+    SOL_NULL_CHECK_GOTO(agent->pairing_confirm, rejected);
+
+    r = sd_bus_message_read(m, "o", &path);
+    SOL_INT_CHECK_GOTO(r, < 0, rejected);
+
+    ctx->auth_conn = get_conn_by_path(ctx, path);
+    SOL_NULL_CHECK_GOTO(ctx->auth_conn, rejected);
+
+    ctx->agent_msg = sd_bus_message_ref(m);
+
+    agent->pairing_confirm((void *)ctx->agent_data, ctx->auth_conn);
+
+    return 0;
+
+rejected:
+    return reject_request(m);
+}
+
+static int
+agent_authorize_service(sd_bus_message *m, void *userdata, sd_bus_error *ret_error)
+{
+    /* FIXME: always authorize services? */
+    return sd_bus_reply_method_return(m, NULL);
+}
+
+static int
+agent_cancel(sd_bus_message *m, void *userdata, sd_bus_error *ret_error)
+{
+    struct context *ctx = userdata;
+
+    if (ctx->auth_conn)
+        sol_bt_conn_unref(ctx->auth_conn);
+
+    ctx->auth_conn = NULL;
+
+    ctx->agent_msg = sd_bus_message_unref(ctx->agent_msg);
+
+    return 0;
+}
+
+static const sd_bus_vtable agent_vtable[] = {
+    SD_BUS_VTABLE_START(0),
+    SD_BUS_METHOD("Release", NULL, NULL,
+        agent_release, SD_BUS_VTABLE_UNPRIVILEGED),
+    SD_BUS_METHOD("RequestPinCode", "o", NULL,
+        agent_request_pin_code, SD_BUS_VTABLE_UNPRIVILEGED),
+    SD_BUS_METHOD("DisplayPinCode", "os", NULL,
+        agent_display_pin_code, SD_BUS_VTABLE_UNPRIVILEGED),
+    SD_BUS_METHOD("RequestPasskey", "o", NULL,
+        agent_request_passkey, SD_BUS_VTABLE_UNPRIVILEGED),
+    SD_BUS_METHOD("DisplayPasskey", "ouq", NULL,
+        agent_display_passkey, SD_BUS_VTABLE_UNPRIVILEGED),
+    SD_BUS_METHOD("RequestConfirmation", "ou", NULL,
+        agent_request_confirmation, SD_BUS_VTABLE_UNPRIVILEGED),
+    SD_BUS_METHOD("RequestAuthorization", "o", NULL,
+        agent_request_authorization, SD_BUS_VTABLE_UNPRIVILEGED),
+    SD_BUS_METHOD("AuthorizeService", "os", NULL,
+        agent_authorize_service, SD_BUS_VTABLE_UNPRIVILEGED),
+    SD_BUS_METHOD("Cancel", NULL, NULL,
+        agent_cancel, SD_BUS_VTABLE_UNPRIVILEGED | SD_BUS_VTABLE_METHOD_NO_REPLY),
+    SD_BUS_VTABLE_END,
+};
+
+static const char *
+agent_to_capabities(const struct sol_bt_agent *agent)
+{
+    if (agent->passkey_entry && agent->passkey_display)
+        return "KeyboardDisplay";
+
+    if (agent->passkey_confirm && agent->passkey_display)
+        return "DisplayYesNo";
+
+    if (agent->passkey_entry)
+        return "KeyboardOnly";
+
+    if (agent->passkey_confirm)
+        return "DisplayOnly";
+
+    return "NoInputNoOutput";
+}
+
+static int
+register_agent_reply(sd_bus_message *reply, void *userdata, sd_bus_error *ret_error)
+{
+    struct context *ctx = userdata;
+    sd_bus *bus = sol_bus_client_get_bus(ctx->bluez);
+    const char *service = sol_bus_client_get_service(ctx->bluez);
+    const char *path = AGENT_PATH;
+    int r;
+
+    ctx->register_slot = sd_bus_slot_unref(ctx->register_slot);
+
+    if (sol_bus_log_callback(reply, userdata, ret_error))
+        return -EINVAL;
+
+    /* Don't really care if doesn't get to be the default agent */
+    r = sd_bus_call_method_async(bus, NULL, service, "/org/bluez",
+        "org.bluez.AgentManager1", "RequestDefaultAgent", sol_bus_log_callback, NULL,
+        "o", path);
+    SOL_INT_CHECK(r, < 0, r);
+
+    return 0;
+}
+
+SOL_API int
+sol_bt_register_agent(const struct sol_bt_agent *agent, void *data)
+{
+    struct context *ctx = &context;
+    sd_bus *bus = sol_bus_client_get_bus(ctx->bluez);
+    const char *service = sol_bus_client_get_service(ctx->bluez);
+    const char *path = AGENT_PATH;
+    const char *capabilities;
+    int r;
+
+    SOL_NULL_CHECK(agent, -EINVAL);
+
+    if (ctx->agent)
+        return -EALREADY;
+
+    r = sd_bus_add_object_vtable(bus, &ctx->agent_slot, path, "org.bluez.Agent1",
+        agent_vtable, ctx);
+    SOL_INT_CHECK(r, < 0, -ENOMEM);
+
+    ctx->agent = agent;
+    ctx->agent_data = data;
+
+    capabilities = agent_to_capabities(agent);
+
+    r = sd_bus_call_method_async(bus, &ctx->register_slot, service, "/org/bluez",
+        "org.bluez.AgentManager1", "RegisterAgent", register_agent_reply, ctx,
+        "os", path, capabilities);
+    SOL_INT_CHECK_GOTO(r, < 0, error_call);
+
+    return 0;
+
+error_call:
+    ctx->agent_slot = sd_bus_slot_unref(ctx->agent_slot);
+    ctx->agent = NULL;
+
+    return r;
+}
+
+SOL_API int
+sol_bt_unregister_agent(const struct sol_bt_agent *agent)
+{
+    struct context *ctx = &context;
+    sd_bus *bus = sol_bus_client_get_bus(ctx->bluez);
+    const char *service = sol_bus_client_get_service(ctx->bluez);
+    const char *path = AGENT_PATH;
+    int r;
+
+    SOL_NULL_CHECK(agent, -EINVAL);
+
+    if (!ctx->agent || ctx->agent != agent)
+        return -EINVAL;
+
+    ctx->register_slot = sd_bus_slot_unref(ctx->register_slot);
+    ctx->agent_slot = sd_bus_slot_unref(ctx->agent_slot);
+    ctx->agent = NULL;
+    ctx->agent_data = NULL;
+
+    destroy_pairing(ctx, false);
+
+    r = sd_bus_call_method_async(bus, NULL, service, "/org/bluez",
+        "org.bluez.AgentManager1", "UnregisterAgent", sol_bus_log_callback, NULL,
+        "o", &path);
+    SOL_INT_CHECK(r, < 0, r);
+
+    return 0;
+}
+
+static int
+conn_pair_reply(sd_bus_message *reply, void *userdata,
+    sd_bus_error *ret_error)
+{
+    struct context *ctx = userdata;
+    int r;
+
+    r = sol_bus_log_callback(reply, userdata, ret_error);
+
+    /* if we didn't receive an error, the pairing succeded */
+    destroy_pairing(ctx, r == 0);
+
+    return r;
+}
+
+SOL_API int
+sol_bt_conn_pair(struct sol_bt_conn *conn,
+    void (*cb)(void *user_data, bool success, struct sol_bt_conn *conn),
+    void *user_data)
+{
+    struct context *ctx = &context;
+    sd_bus *bus = sol_bus_client_get_bus(ctx->bluez);
+    const char *service = sol_bus_client_get_service(ctx->bluez);
+    struct device_info *d = conn->d;
+    int r;
+
+    if (ctx->auth_conn)
+        return -EALREADY;
+
+    if (ctx->pair_slot)
+        return -EINVAL;
+
+    if (d->info.paired)
+        return -EALREADY;
+
+    r = sd_bus_call_method_async(bus, &ctx->pair_slot, service, d->path,
+        "org.bluez.Device1", "Pair", conn_pair_reply, ctx, NULL);
+    SOL_INT_CHECK(r, < 0, r);
+
+    ctx->pair_cb = cb;
+    ctx->pair_user_data = user_data;
+    ctx->auth_conn = sol_bt_conn_ref(conn);
+
+    return 0;
+}
+
+SOL_API int
+sol_bt_conn_pair_cancel(struct sol_bt_conn *conn)
+{
+    struct context *ctx = &context;
+
+    SOL_NULL_CHECK(ctx->auth_conn, -EINVAL);
+    SOL_NULL_CHECK(ctx->pair_slot, -EINVAL);
+
+    if (ctx->auth_conn != conn)
+        return -EINVAL;
+
+    ctx->pair_slot = sd_bus_slot_unref(ctx->pair_slot);
+
+    if (ctx->auth_conn)
+        sol_bt_conn_unref(ctx->auth_conn);
+
+    ctx->auth_conn = NULL;
+
+    return 0;
+}
+
+SOL_API int
+sol_bt_forget_device(const struct sol_network_link_addr *addr)
+{
+    struct context *ctx = &context;
+    sd_bus *bus = sol_bus_client_get_bus(ctx->bluez);
+    const char *service = sol_bus_client_get_service(ctx->bluez);
+    struct device_info *d;
+    int r;
+
+    SOL_NULL_CHECK(addr, -EINVAL);
+
+    d = find_device_by_addr(ctx, addr);
+    SOL_NULL_CHECK(d, -ENOENT);
+
+    r = sd_bus_call_method_async(bus, NULL, service, ctx->adapter_path,
+        "org.bluez.Adapter1", "RemoveDevice", sol_bus_log_callback, NULL,
+        "o", d->path);
+    SOL_INT_CHECK(r, < 0, r);
+
+    return 0;
+}
+
+SOL_API int
+sol_bt_agent_reply_passkey_entry(struct sol_bt_conn *conn, uint32_t passkey)
+{
+    struct context *ctx = &context;
+    const struct sol_bt_agent *agent = ctx->agent;
+    int r;
+
+    SOL_NULL_CHECK(agent, -EINVAL);
+    SOL_NULL_CHECK(ctx->agent_msg, -EINVAL);
+
+    if (ctx->auth_conn != conn) {
+        SOL_WRN("The connection is not the one being authenticated");
+        return -EINVAL;
+    }
+
+    r = sd_bus_reply_method_return(ctx->agent_msg, "u", &passkey);
+
+    ctx->agent_msg = sd_bus_message_unref(ctx->agent_msg);
+
+    return r;
+}
+
+SOL_API int
+sol_bt_agent_reply_cancel(struct sol_bt_conn *conn)
+{
+    struct context *ctx = &context;
+    sd_bus_message *reply;
+    int r;
+
+    SOL_NULL_CHECK(conn, -EINVAL);
+
+    if (ctx->auth_conn != conn) {
+        SOL_WRN("The connection is not the one being authenticated");
+        return -EINVAL;
+    }
+
+    if (ctx->auth_conn)
+        sol_bt_conn_unref(ctx->auth_conn);
+    ctx->auth_conn = NULL;
+
+    r = sd_bus_message_new_method_errorf(ctx->agent_msg, &reply, "org.bluez.Error.Canceled",
+        "Request was canceled");
+    SOL_INT_CHECK(r, < 0, r);
+
+    ctx->agent_msg = sd_bus_message_unref(ctx->agent_msg);
+
+    r = sd_bus_send(NULL, reply, NULL);
+
+    sd_bus_message_unref(reply);
+
+    SOL_INT_CHECK(r, < 0, r);
+
+    return r;
+}
+
+SOL_API int
+sol_bt_agent_reply_passkey_confirm(struct sol_bt_conn *conn)
+{
+    struct context *ctx = &context;
+    const struct sol_bt_agent *agent = ctx->agent;
+    int r;
+
+    SOL_NULL_CHECK(agent, -EINVAL);
+    SOL_NULL_CHECK(ctx->agent_msg, -EINVAL);
+
+    if (ctx->auth_conn != conn) {
+        SOL_WRN("The connection is not the one being authenticated");
+        return -EINVAL;
+    }
+
+    r = sd_bus_reply_method_return(ctx->agent_msg, NULL);
+
+    ctx->agent_msg = sd_bus_message_unref(ctx->agent_msg);
+    sol_bt_conn_unref(ctx->auth_conn);
+    ctx->auth_conn = NULL;
+
+    return r;
+}
+
+SOL_API int
+sol_bt_agent_reply_pairing_confirm(struct sol_bt_conn *conn)
+{
+    struct context *ctx = &context;
+    const struct sol_bt_agent *agent = ctx->agent;
+    int r;
+
+    SOL_NULL_CHECK(agent, -EINVAL);
+    SOL_NULL_CHECK(ctx->agent_msg, -EINVAL);
+
+    if (ctx->auth_conn != conn) {
+        SOL_WRN("The connection is not the one being authenticated");
+        return -EINVAL;
+    }
+
+    r = sd_bus_reply_method_return(ctx->agent_msg, NULL);
+
+    ctx->agent_msg = sd_bus_message_unref(ctx->agent_msg);
+    sol_bt_conn_unref(ctx->auth_conn);
+    ctx->auth_conn = NULL;
+
+    return r;
+}
+
+SOL_API int
+sol_bt_agent_reply_pincode_entry(struct sol_bt_conn *conn, const char *pin)
+{
+    struct context *ctx = &context;
+    const struct sol_bt_agent *agent = ctx->agent;
+    int r;
+
+    SOL_NULL_CHECK(agent, -EINVAL);
+    SOL_NULL_CHECK(ctx->agent_msg, -EINVAL);
+
+    if (ctx->auth_conn != conn) {
+        SOL_WRN("The connection is not the one being authenticated");
+        return -EINVAL;
+    }
+
+    r = sd_bus_reply_method_return(ctx->agent_msg, "s", &pin);
+
+    ctx->agent_msg = sd_bus_message_unref(ctx->agent_msg);
+    sol_bt_conn_unref(ctx->auth_conn);
+    ctx->auth_conn = NULL;
+
+    return r;
 }
 
 static uint16_t
