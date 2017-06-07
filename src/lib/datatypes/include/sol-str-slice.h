@@ -190,7 +190,6 @@ static inline void
 sol_str_slice_copy(char *dst, const struct sol_str_slice src)
 {
     memcpy(dst, src.data, src.len);
-    dst[src.len] = 0;
 }
 
 /**
