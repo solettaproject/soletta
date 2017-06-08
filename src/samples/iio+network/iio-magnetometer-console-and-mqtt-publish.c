@@ -411,7 +411,7 @@ scale(double *x, double *y, double *z)
     if (sqr_norm < MAGNETIC_LOW)
         sanity_norm = MAGNETIC_LOW;
 
-    if (sanity_norm && sqr_norm) {
+    if (fpclassify(sanity_norm) != FP_ZERO && fpclassify(sqr_norm) != FP_ZERO) {
         scale = sanity_norm / sqr_norm;
         scale = sqrt(scale);
         *x = *x * scale;
