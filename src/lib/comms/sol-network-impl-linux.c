@@ -282,6 +282,7 @@ _on_event(void *data, int nl_socket, uint32_t cond)
             switch (h->nlmsg_type) {
             case NLMSG_ERROR:
                 SOL_WRN("read_netlink: Message is an error");
+            /* fall through */
             case NLMSG_DONE:
                 return true;
             case RTM_NEWADDR:

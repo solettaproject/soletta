@@ -229,6 +229,7 @@ attr_method(enum pending_type type, sd_bus_message *m, void *userdata, sd_bus_er
 
         r = attr->write(pending, &buf, 0);
         SOL_INT_CHECK_GOTO(r, < 0, error_op);
+    /* fall through */
     default:
         r = -EINVAL;
         goto error_op;

@@ -741,6 +741,7 @@ sol_memdesc_get_size(const struct sol_memdesc *desc)
         return sizeof(const char *);
     case SOL_MEMDESC_TYPE_PTR:
         return sizeof(void *);
+    /* fall through */
     case SOL_MEMDESC_TYPE_STRUCTURE:
     case SOL_MEMDESC_TYPE_ARRAY:
     case SOL_MEMDESC_TYPE_ENUMERATION:
@@ -748,6 +749,7 @@ sol_memdesc_get_size(const struct sol_memdesc *desc)
             return desc->size;
 
     /* must provide size */
+    /* fall through */
     default:
         errno = EINVAL;
         return 0;
