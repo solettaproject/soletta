@@ -43,7 +43,6 @@ _sol_message_digest_evp_init(struct sol_message_digest *handle, const EVP_MD *md
 {
     EVP_MD_CTX *ctx = sol_message_digest_common_get_context(handle);
 
-    EVP_MD_CTX_init(ctx);
     if (EVP_DigestInit_ex(ctx, md, NULL))
         return 0;
 
@@ -51,11 +50,11 @@ _sol_message_digest_evp_init(struct sol_message_digest *handle, const EVP_MD *md
 }
 
 static void
-_sol_message_digest_evp_cleanup(struct sol_message_digest *handle)
+_sol_message_digest_evp_reset(struct sol_message_digest *handle)
 {
     EVP_MD_CTX *ctx = sol_message_digest_common_get_context(handle);
 
-    EVP_MD_CTX_cleanup(ctx);
+    EVP_MD_CTX_reset(ctx);
 }
 
 static ssize_t
@@ -87,15 +86,17 @@ _sol_message_digest_evp_read_digest(struct sol_message_digest *handle, void *mem
 static const struct sol_message_digest_common_ops _sol_message_digest_evp_ops = {
     .feed = _sol_message_digest_evp_feed,
     .read_digest = _sol_message_digest_evp_read_digest,
-    .cleanup = _sol_message_digest_evp_cleanup
+    .cleanup = _sol_message_digest_evp_reset
 };
 
 static int
 _sol_message_digest_hmac_init(struct sol_message_digest *handle, const EVP_MD *md, const struct sol_str_slice key)
 {
-    HMAC_CTX *ctx = sol_message_digest_common_get_context(handle);
+    HMAC_CTX *ctx = HMAC_CTX_new();
 
-    HMAC_CTX_init(ctx);
+    if (!ctx)
+        return -ENOMEM;
+
     if (HMAC_Init_ex(ctx, key.data, key.len, md, NULL))
         return 0;
 
@@ -103,11 +104,11 @@ _sol_message_digest_hmac_init(struct sol_message_digest *handle, const EVP_MD *m
 }
 
 static void
-_sol_message_digest_hmac_cleanup(struct sol_message_digest *handle)
+_sol_message_digest_hmac_reset(struct sol_message_digest *handle)
 {
     HMAC_CTX *ctx = sol_message_digest_common_get_context(handle);
 
-    HMAC_CTX_cleanup(ctx);
+    HMAC_CTX_reset(ctx);
 }
 
 static ssize_t
@@ -139,7 +140,7 @@ _sol_message_digest_hmac_read_digest(struct sol_message_digest *handle, void *me
 static const struct sol_message_digest_common_ops _sol_message_digest_hmac_ops = {
     .feed = _sol_message_digest_hmac_feed,
     .read_digest = _sol_message_digest_hmac_read_digest,
-    .cleanup = _sol_message_digest_hmac_cleanup
+    .cleanup = _sol_message_digest_hmac_reset
 };
 
 SOL_API struct sol_message_digest *
@@ -172,17 +173,19 @@ sol_message_digest_new(const struct sol_message_digest_config *config)
 
     params.config = config;
     params.ops = NULL;
-    params.context_template = NULL;
 
     md = EVP_get_digestbyname(config->algorithm);
     if (md) {
+        params.context_handle = EVP_MD_CTX_new();
+        params.context_free = (void (*)(void *))EVP_MD_CTX_free;
         init_fn = _sol_message_digest_evp_init;
         params.ops = &_sol_message_digest_evp_ops;
-        params.context_size = sizeof(EVP_MD_CTX);
         SOL_DBG("using evp, md=%p, algorithm=\"%s\"", md, config->algorithm);
     } else if (streqn(config->algorithm, "hmac(", strlen("hmac("))) {
         const char *p = config->algorithm + strlen("hmac(");
         size_t len = strlen(p);
+        params.context_handle = HMAC_CTX_new();
+        params.context_free = (void (*)(void *))HMAC_CTX_free;
         if (len > 1 && p[len - 1] == ')') {
             char *mdname = strndupa(p, len - 1);
             md = EVP_get_digestbyname(mdname);
@@ -193,7 +196,6 @@ sol_message_digest_new(const struct sol_message_digest_config *config)
             }
             init_fn = _sol_message_digest_hmac_init;
             params.ops = &_sol_message_digest_hmac_ops;
-            params.context_size = sizeof(HMAC_CTX);
             SOL_DBG("using hmac, md=%p, algorithm=\"%s\"", md, mdname);
         }
     }

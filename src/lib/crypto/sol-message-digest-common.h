@@ -131,6 +131,23 @@ struct sol_message_digest_common_new_params {
      */
     const void *context_template;
     /**
+     * The algorithm-specific context as an external handle (i.e. life
+     * cycle not managed by Soletta). If set, context_template will be
+     * ignored and context_size will be set to sizeof(void *) forcibly
+     * in order to accomodate this pointer exactly. context_free()
+     * must be set when this one is non-NULL.
+     *
+     * The actual context may be retrieved with
+     * sol_message_digest_common_get_context().
+     */
+    const void *context_handle;
+    /**
+     * Free external context handle at exit.
+     *
+     * This function is called from the main thread.
+     */
+    void (*context_free)(void *context_handle);
+    /**
      * Size in bytes of @c context_template, to copy with @c memcpy().
      */
     size_t context_size;

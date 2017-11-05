@@ -77,6 +77,7 @@ struct sol_message_digest_pending_dispatch {
 struct sol_message_digest {
     void (*on_digest_ready)(void *data, struct sol_message_digest *handle, struct sol_blob *output);
     void (*on_feed_done)(void *data, struct sol_message_digest *handle, struct sol_blob *input, int status);
+    void (*context_free)(void *context_handle);
     const void *data;
     const struct sol_message_digest_common_ops *ops;
 #ifdef MESSAGE_DIGEST_USE_THREAD
@@ -249,11 +250,18 @@ void *
 sol_message_digest_common_get_context(const struct sol_message_digest *handle)
 {
     size_t padding = sizeof(struct sol_message_digest) % sizeof(void *);
+    void *ctx, **pctx;
 
     if (padding > 0)
         padding = sizeof(void *) - padding;
 
-    return (char *)handle + sizeof(struct sol_message_digest) + padding;
+    ctx = (char *)handle + sizeof(struct sol_message_digest) + padding;
+    pctx = ctx;
+
+    if (!handle->context_free)
+        return ctx;
+    else
+        return *pctx;
 }
 
 struct sol_message_digest *
@@ -263,6 +271,7 @@ sol_message_digest_common_new(const struct sol_message_digest_common_new_params 
     struct sol_message_digest *handle;
     size_t padding;
     int errno_bkp;
+    void *context;
 
     SOL_NULL_CHECK(params.ops, NULL);
     SOL_NULL_CHECK(params.ops->feed, NULL);
@@ -274,13 +283,24 @@ sol_message_digest_common_new(const struct sol_message_digest_common_new_params 
     if (padding > 0)
         padding = sizeof(void *) - padding;
 
-    handle = calloc(1, sizeof(struct sol_message_digest) + padding + params.context_size);
+    if (params.context_handle && !params.context_free) {
+        SOL_WRN("a handle freeing function has to be set for external handlers");
+        errno = EINVAL;
+        return NULL;
+    }
+
+    handle = calloc(1, sizeof(struct sol_message_digest) + padding +
+        (params.context_handle ? sizeof(void *) : params.context_size));
     SOL_NULL_CHECK(handle, NULL);
 
-    if (params.context_template) {
-        void *context = (char *)handle + sizeof(struct sol_message_digest) + padding;
+    context = (char *)handle + sizeof(struct sol_message_digest) + padding;
+
+    if (params.context_handle) {
+        void **pctx = context;
+        *pctx = (void *)params.context_handle;
+        handle->context_free = params.context_free;
+    } else if (params.context_template)
         memcpy(context, params.context_template, params.context_size);
-    }
 
     handle->ops = params.ops;
 
@@ -332,6 +352,9 @@ _sol_message_digest_free(struct sol_message_digest *handle)
         sol_blob_unref(handle->digest);
 
     handle->ops->cleanup(handle);
+
+    if (handle->context_free)
+        handle->context_free(sol_message_digest_common_get_context(handle));
 
     free(handle);
 }
