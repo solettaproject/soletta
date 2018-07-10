@@ -102,3 +102,5 @@ bc0 OUT -> IN[1] eswitcher
 bc200 OUT -> IN[3] eswitcher
 
 eswitcher OUT[0] -> IN _(converter/empty-to-boolean) OUT -> IN eval OUT -> RESULT empty_switcher_keep(test/result)
+
+## TEST-SKIP-VALGRIND The timing we're relying on for the string sequence is blown away by Valgrind, so skip it
