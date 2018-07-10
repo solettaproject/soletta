@@ -1140,11 +1140,13 @@ integer_custom_open(struct sol_flow_node *node,
     mdata->blink_on = true;
 
     /* outputs truncated on purpose -- only the return value matters */
+#pragma GCC diagnostic ignored "-Wformat-truncation"
     n_max = snprintf(sbuf, 1, "%+" PRId32 "", mdata->base.state.max);
     SOL_INT_CHECK_GOTO(n_max, < 0, err);
 
     n_min = snprintf(sbuf, 1, "%+" PRId32 "", mdata->base.state.min);
     SOL_INT_CHECK_GOTO(n_min, < 0, err);
+#pragma GCC diagnostic pop
 
     /* -1 to take away sign */
     mdata->n_digits = sol_util_max(n_min, n_max) - 1;
