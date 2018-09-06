@@ -91,11 +91,12 @@ static bool
 on_connect(void *user_data, struct sol_bt_conn *conn)
 {
     SOL_BUFFER_DECLARE_STATIC(str, SOL_BLUETOOTH_ADDR_STRLEN);
+    const struct sol_bt_device_info *info = sol_bt_conn_get_device_info(conn);
     int r;
 
     sol_network_link_addr_to_str(sol_bt_conn_get_addr(conn), &str);
 
-    SOL_INF("Connected to device %.*s", (int)str.used, (char *)str.data);
+    SOL_INF("Connected to device '%s' (%.*s)", info->name, (int)str.used, (char *)str.data);
 
     r = sol_gatt_discover(conn, 0, NULL, NULL, print_attr, NULL);
     SOL_INT_CHECK(r, < 0, false);
@@ -107,10 +108,11 @@ static void
 on_disconnect(void *user_data, struct sol_bt_conn *conn)
 {
     SOL_BUFFER_DECLARE_STATIC(str, SOL_BLUETOOTH_ADDR_STRLEN);
+    const struct sol_bt_device_info *info = sol_bt_conn_get_device_info(conn);
 
     sol_network_link_addr_to_str(sol_bt_conn_get_addr(conn), &str);
 
-    SOL_INF("Disconnected from device %.*s", (int)str.used, (char *)str.data);
+    SOL_INF("Disconnected from device '%s' (%.*s)", info->name, (int)str.used, (char *)str.data);
 
     browse_conn = NULL;
 }
@@ -134,7 +136,7 @@ found_device(void *user_data, const struct sol_bt_device_info *device)
     addr = sol_network_link_addr_to_str(&device->addr, &str);
     SOL_NULL_CHECK(addr);
 
-    SOL_INF("device %.*s in range %s", (int)str.used, (char *)str.data,
+    SOL_INF("device '%s' (%.*s) in range %s", device->name, (int)str.used, (char *)str.data,
         device->in_range ? "yes" : "no");
 
     if (!device->in_range)

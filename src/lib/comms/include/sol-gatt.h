@@ -145,6 +145,16 @@ const struct sol_gatt_attr *sol_gatt_pending_get_attr(
     const struct sol_gatt_pending *op);
 
 /**
+ * @brief Returns the connection referenced by a pending operation
+ *
+ * @param op The pending operation
+ *
+ * @return reference to a connection
+ */
+struct sol_bt_conn *sol_gatt_pending_get_conn(
+    const struct sol_gatt_pending *op);
+
+/**
  * @brief Representation of a GATT Attribute
  */
 typedef struct sol_gatt_attr {

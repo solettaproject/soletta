@@ -78,3 +78,64 @@ sol_bt_conn_get_addr(const struct sol_bt_conn *conn)
     return NULL;
 }
 
+SOL_API const struct sol_bt_device_info *
+sol_bt_conn_get_device_info(const struct sol_bt_conn *conn)
+{
+    return NULL;
+}
+
+SOL_API int
+sol_bt_conn_pair(struct sol_bt_conn *conn,
+    void (*cb)(void *user_data, bool success, struct sol_bt_conn *conn),
+    void *user_data)
+{
+    return -ENOSYS;
+}
+
+SOL_API int
+sol_bt_conn_pair_cancel(struct sol_bt_conn *conn)
+{
+    return -ENOSYS;
+}
+
+SOL_API int
+sol_bt_forget_device(const struct sol_network_link_addr *addr)
+{
+    return -ENOSYS;
+}
+
+SOL_API int
+sol_bt_register_agent(const struct sol_bt_agent *agent, const void *data)
+{
+    return -ENOSYS;
+}
+
+SOL_API int
+sol_bt_agent_finish_passkey_entry(struct sol_bt_conn *conn, uint32_t passkey)
+{
+    return -ENOSYS;
+}
+
+SOL_API int
+sol_bt_agent_finish_cancel(struct sol_bt_conn *conn)
+{
+    return -ENOSYS;
+}
+
+SOL_API int
+sol_bt_agent_finish_passkey_confirm(struct sol_bt_conn *conn)
+{
+    return -ENOSYS;
+}
+
+SOL_API int
+sol_bt_agent_finish_pairing_confirm(struct sol_bt_conn *conn)
+{
+    return -ENOSYS;
+}
+
+SOL_API int
+sol_bt_agent_finish_pincode_entry(struct sol_bt_conn *conn, const char *pin)
+{
+    return -ENOSYS;
+}
