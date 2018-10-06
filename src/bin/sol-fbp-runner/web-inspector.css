@@ -16,173 +16,37 @@
  * limitations under the License.
  */
 
-td.fbp-node-ports-in, td.fbp-node-ports-out {
-    min-width: 300pt;
+.widget{
+    background-color: #C0C0C0;
+    width:350px;
+    height:360px;
+    float:left;
+    margin:10px;
+    overflow: hidden;;
+    border-radius: 10px;
+}
+.widgetHeader{
+    background-Color:#A0A0A0;
+    width: 350px;
+    height:50px;
+    padding-left: 10px;
+    padding-top: 10px
+}
+.widgetData{
+    font-size: 3em;
 }
 
-div.fbp-node-port-names-in, div.fbp-node-port-names-out {
-    font-family: monospace;
-    color: #333;
+.port-in{
+    width:100px;
+    height:30px;
+    background-color: #00FF00;
+    margin: 1px;
+    padding: 4px;
 }
-
-div.fbp-node-port-description-in, div.fbp-node-port-description-out {
-    font-family: sans-serif;
-    font-size: smaller;
-    color: #999;
-}
-
-div.fbp-node-port-data_type-in, div.fbp-node-port-data_type-in, span.fbp-packet {
-    font-family: monospace;
-}
-
-span.fbp-packet-type-rgb-preview {
-    margin: 2pt 2pt 2pt 2pt;
-    padding: 2pt 2pt 2pt 2pt;
-    display: inline-block;
-    width: 10pt;
-    height: 10pt;
-    border: 1px solid black;
-}
-
-div.fbp-node-port-required-true {
-    font-weight: bold;
-}
-
-span.fbp-packet-type-int {
-    color: #0000aa;
-}
-
-span.fbp-packet-type-float {
-    color: #aa00aa;
-}
-
-span.fbp-packet-type-string {
-    color: #aa7700;
-}
-
-span.fbp-packet-type-error {
-    color: #ff0000;
-}
-
-span.fbp-packet-type-boolean {
-    color: #0077aa;
-}
-
-table#fbp-container-inspector {
-    width: 100%;
-}
-
-td.fbp-node-ports-in, td.fbp-node-ports-out {
-    padding-top: 30pt;
-    vertical-align: top;
-}
-
-td.fbp-node-info h3 {
-    height: 30pt;
-    font-size: 1em;
-}
-
-table.fbp-log {
-    width: 100%;
-}
-
-table.fbp-log thead, table.fbp-log tbody {
-    display: block;
-}
-
-table.fbp-log tbody {
-    height: 100pt;
-    overflow-y: auto;
-    overflow-x: auto;
-}
-
-table.fbp-log tr td {
-    font-family: monospace;
-    font-size: smaller;
-}
-
-td.fbp-log-timestamp {
-    text-align: right;
-}
-
-td.fbp-node-info {
-    vertical-align: top;
-    min-width: 300pt;
-    border: 1px solid #ccc;
-    background-color: #d9d9d9;
-}
-
-td.fbp-node-info dl {
-    font-size: x-small;
-}
-
-td.fbp-node-info dl dt {
-    color: #666;
-    float: left;
-    clear: left;
-}
-
-td.fbp-node-info dl dt:after {
-    content: ": ";
-}
-
-td.fbp-node-info dl dd {
-    color: #333;
-    padding: 0 0 0.5em 0;
-    -webkit-margin-start: 10pt;
-}
-
-span.fbp-node-option-type-rgb-preview {
-    margin: 1pt 1pt 1pt 1pt;
-    padding: 1pt 1pt 1pt 1pt;
-    display: inline-block;
-    width: 10pt;
-    height: 8pt;
-    border: 1px solid black;
-}
-
-div.fbp-node-port-info-in, div.fbp-node-port-info-out, div.fbp-node-options-info {
-}
-
-div.fbp-node-port-container-in, div.fbp-node-port-container-out {
-    margin: 1pt 1pt 1pt;
-    padding: 2pt 2pt 2pt;
-}
-
-div.fbp-node-port-name-in {
-    margin: 1pt 1pt 1pt;
-    padding: 2pt 2pt 2pt;
-    float: right;
-    clear: right;
-    background-color: #d9d9d9;
-    border: 1px solid #ccc;
-}
-
-div.fbp-node-port-value-in {
-    float: right;
-}
-
-div.fbp-node-port-name-out {
-    margin: 1pt 1pt 1pt;
-    padding: 2pt 2pt 2pt;
-    float: left;
-    clear: left;
-    background-color: #d9d9d9;
-    border: 1px solid #ccc;
-}
-
-div.fbp-node-port-value-out {
-    float: left;
-}
-
-div.fbp-node-port-data_type-in-float div div div.fbp-node-port-name-in, div.fbp-node-port-data_type-out-float div div div.fbp-node-port-name-out {
-    background-color: #ff66ff;
-}
-
-div.fbp-node-port-data_type-in-int div div div.fbp-node-port-name-in, div.fbp-node-port-data_type-out-int div div div.fbp-node-port-name-out {
-    background-color: #6666ff;
-}
-
-div.fbp-node-port-data_type-in-boolean div div div.fbp-node-port-name-in, div.fbp-node-port-data_type-out-boolean div div div.fbp-node-port-name-out {
-    background-color: #66aaff;
+.port-out{
+    width:100px;
+    height:30px;
+    background-color: #FF0000;
+    margin: 1px;
+    padding: 4px;
 }
